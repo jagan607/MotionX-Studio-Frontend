@@ -1,26 +1,32 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600&display=swap');
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-black: #050505;
+  --text-white: #EDEDED;
+  --accent-red: #FF0000; /* That specific MotionX Red */
+  --border-dim: #1F1F1F;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-black);
+  color: var(--text-white);
+  font-family: 'Inter', sans-serif; /* Clean body text */
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: 'Anton', sans-serif; /* The tall condensed font */
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+input, textarea, button {
+  font-family: inherit;
+  outline: none;
 }
