@@ -25,7 +25,6 @@ import {
 } from '@dnd-kit/sortable';
 
 import { CSS } from '@dnd-kit/utilities';
-import DirectorOverlay from "@/components/DirectorOverlay";
 
 
 const InpaintEditor = ({ src, onSave, onClose, styles, onApply }: any) => {
@@ -170,88 +169,114 @@ const InpaintEditor = ({ src, onSave, onClose, styles, onApply }: any) => {
 // --- FIXED HELPER COMPONENT: STABLE IMAGE LOADING ---
 // Uses CSS stacking instead of conditional rendering to prevent flickering
 // --- REFINED SHOT IMAGE COMPONENT ---
-const ShotImage = ({ src, onClickZoom, onDownload, shotId, isSystemLoading, onStartInpaint }: {
-  src: string,
-  onClickZoom: () => void,
-  onDownload: () => void,
-  shotId: string,
-  isSystemLoading: boolean, // This is the 'loadingShots.has(id)' state
-  onStartInpaint: (imageUrl: string) => void
-}) => {
+const ShotImage = ({
+  src,
+  videoUrl,
+  videoStatus,
+  onClickZoom,
+  onDownload,
+  shotId,
+  isSystemLoading,
+  onStartInpaint,
+  onAnimate
+}: any) => {
   const [imageFullyDecoded, setImageFullyDecoded] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // If the source changes (Regenerate), reset the decoded state
-  useEffect(() => {
-    setImageFullyDecoded(false);
-  }, [src]);
+  // Status Checks
+  const isAnimating = videoStatus === 'animating';
+  const isVideoReady = Boolean(videoUrl);
 
-  // Check for cached images
-  useEffect(() => {
-    if (imgRef.current?.complete) {
-      setImageFullyDecoded(true);
-    }
-  }, [src]);
+  useEffect(() => { setImageFullyDecoded(false); }, [src]);
+  useEffect(() => { if (imgRef.current?.complete) setImageFullyDecoded(true); }, [src]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor: '#000', overflow: 'hidden' }}>
 
-      {/* THE LOADER LAYER: 
-         Visible IF the system is generating (API call) 
-         OR if the image has a URL but hasn't finished painting yet.
+      {/* --- 1. LOADER OVERLAY --- 
+          Shows if:
+          - System is generating the initial image
+          - Image isn't loaded yet
+          - Video is currently animating
       */}
-      {(isSystemLoading || !imageFullyDecoded) && (
+      {(isSystemLoading || !imageFullyDecoded || isAnimating) && (
         <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10,
-          backgroundColor: '#0A0A0A'
+          position: 'absolute', inset: 0, zIndex: 10, backgroundColor: 'rgba(5,5,5,0.9)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
         }}>
           <Loader2 className="spin-loader" size={32} color="#FF0000" />
+
+          {isAnimating && (
+            <div style={{ marginTop: '15px', textAlign: 'center' }}>
+              <p style={{ color: '#FF0000', fontSize: '10px', fontWeight: 'bold', letterSpacing: '2px', animation: 'pulse 1.5s infinite' }}>
+                ANIMATING...
+              </p>
+              <p style={{ color: '#666', fontSize: '9px', marginTop: '5px', fontFamily: 'monospace' }}>
+                SEEDANCE 1.5 PRO
+              </p>
+            </div>
+          )}
         </div>
       )}
 
-      {/* THE ACTUAL IMAGE */}
-      {src && (
-        <img
-          ref={imgRef}
-          src={src}
-          alt={`Shot ${shotId}`}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 5,
-            opacity: imageFullyDecoded ? 1 : 0,
-            transition: 'opacity 0.3s ease-in'
-          }}
-          onLoad={() => setImageFullyDecoded(true)}
+      {/* --- 2. MEDIA CONTENT --- */}
+      {isVideoReady ? (
+        // VIDEO PLAYER
+        <video
+          src={videoUrl}
+          controls
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 5 }}
         />
+      ) : (
+        // STATIC IMAGE
+        src && (
+          <img
+            ref={imgRef}
+            src={src}
+            alt={`Shot ${shotId}`}
+            style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 5,
+              opacity: imageFullyDecoded ? 1 : 0, transition: 'opacity 0.3s ease-in'
+            }}
+            onLoad={() => setImageFullyDecoded(true)}
+          />
+        )
       )}
 
-      {/* TOOLS OVERLAY */}
-      {imageFullyDecoded && (
+      {/* --- 3. CONTROLS OVERLAY --- */}
+      {/* Only show controls if not currently animating/loading */}
+      {!isAnimating && imageFullyDecoded && (
         <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 20 }}>
-          <button onClick={onClickZoom} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}>
-            <Maximize2 size={14} />
-          </button>
-          <button onClick={onDownload} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}>
-            <Download size={14} />
-          </button>
-          <button
-            onClick={() => onStartInpaint(src)}
-            style={{ padding: '6px', backgroundColor: 'rgba(255,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}
-            title="Inpaint / Fix Area"
-          >
-            <Wand2 size={14} />
-          </button>
+
+          {/* ANIMATE BUTTON (Hidden if video already exists) */}
+          {!isVideoReady && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onAnimate(); }}
+              style={{
+                padding: '6px 12px', backgroundColor: '#FF0000', color: 'white', border: 'none',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+              }}
+              title="Generate Video with Seedance"
+            >
+              <Film size={12} fill="white" /> ANIMATE
+            </button>
+          )}
+
+          <button onClick={onClickZoom} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Maximize2 size={14} /></button>
+          <button onClick={onDownload} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Download size={14} /></button>
+          <button onClick={() => onStartInpaint(src)} style={{ padding: '6px', backgroundColor: 'rgba(255,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Wand2 size={14} /></button>
         </div>
       )}
+
+      <style>{`
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+      `}</style>
     </div>
   );
 };
@@ -266,32 +291,6 @@ const SortableShotCard = ({ shot, index, styles, onDelete, children }: any) => {
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const isGenerating = shot.status === 'generating_image' || shot.status === 'draft';
-  const isRendered = shot.status === 'rendered';
-
-  if (isGenerating) {
-    return (
-      <div style={{
-        aspectRatio: '16/9', backgroundColor: '#0A0A0A', border: '1px dashed #333',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        padding: '20px', position: 'relative', overflow: 'hidden'
-      }}>
-        {/* Animated Scanline */}
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '2px', backgroundColor: '#FF0000',
-          boxShadow: '0 0 10px #FF0000', animation: 'scan 2s linear infinite'
-        }} />
-
-        <Loader2 className="animate-spin" size={24} color="#666" style={{ marginBottom: '15px' }} />
-        <p style={{ fontSize: '10px', color: '#666', fontFamily: 'monospace', textTransform: 'uppercase' }}>
-          RENDERING: {shot.type}
-        </p>
-        <p style={{ fontSize: '9px', color: '#444', marginTop: '5px' }}>{shot.id}</p>
-
-        <style>{`@keyframes scan { 0% { top: 0; } 100% { top: 100%; } }`}</style>
-      </div>
-    );
-  }
   return (
     <div ref={setNodeRef} style={{ ...styles.shotCard, ...style }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
@@ -473,49 +472,66 @@ export default function EpisodeBoard() {
 
     const currentScene = scenes.find(s => s.id === activeSceneId);
 
-    // Prepare data for the Background Worker
     const formData = new FormData();
     formData.append("series_id", seriesId);
     formData.append("episode_id", episodeId);
     formData.append("scene_id", activeSceneId);
     formData.append("scene_action", currentScene.visual_action || "");
-    formData.append("characters", (currentScene.characters || []).join(", "));
+
+    // Use a fallback to a space or specific string if "" is causing 422
+    const charString = Array.isArray(currentScene.characters) && currentScene.characters.length > 0
+      ? currentScene.characters.join(", ")
+      : "None";
+
+    formData.append("characters", charString);
     formData.append("location", currentScene.location || "Unknown");
 
     try {
-      setTimeout(() => setTerminalLog(prev => [...prev, "> SIGNAL SENT TO DIRECTOR..."]), 500);
-
       const idToken = await auth.currentUser?.getIdToken();
-      if (!idToken) throw new Error("Failed to get ID token");
-
-      // 1. Trigger the background task (returns instantly)
-      const res = await fetch("http://127.0.0.1:8000/api/v1/shot/suggest_shots", {
+      const res = await fetch("[http://127.0.0.1:8000/api/v1/shot/suggest_shots](http://127.0.0.1:8000/api/v1/shot/suggest_shots)", {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${idToken}`,
-        },
+        headers: { "Authorization": `Bearer ${idToken}` },
         body: formData
       });
 
       const data = await res.json();
 
-      if (res.ok) {
-        setTerminalLog(prev => [...prev, "> DIRECTOR ACTIVE. WATCH BOARD FOR UPDATES."]);
-
-        // 2. Clear the loading screen after a brief moment
-        // We don't need to generate shots manually anymore. 
-        // The backend does it, and your onSnapshot listener picks up the changes.
-        setTimeout(() => {
-          setIsAutoDirecting(false);
-        }, 2500);
-
-      } else {
-        throw new Error(data.detail || "Director failed to start");
+      if (res.status === 422) {
+        console.error("422 Error Detail:", data.detail);
+        setIsAutoDirecting(false);
+        return;
       }
 
+      if (res.ok && data.shots) {
+        setTerminalLog(prev => [...prev, "> GENERATING SHOT LIST..."]);
+        const batch = writeBatch(db);
+        const newShotsToRender: any[] = [];
+
+        data.shots.forEach((shot: any, index: number) => {
+          const newShotId = `shot_${String(index + 1).padStart(2, '0')}`;
+          const docRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", newShotId);
+
+          const shotPayload = {
+            id: newShotId,
+            type: shot.type,
+            prompt: shot.description,
+            characters: shot.characters || [],
+            location: shot.location || currentScene.location || "",
+            status: "draft"
+          };
+
+          batch.set(docRef, shotPayload);
+          newShotsToRender.push(shotPayload);
+        });
+
+        await batch.commit();
+        setIsAutoDirecting(false);
+
+        // This triggers the actual image generation and GCS upload one-by-one
+        generateAllShots(newShotsToRender);
+      }
     } catch (e) {
       console.error(e);
-      alert("Auto-Direct Start Failed");
       setIsAutoDirecting(false);
     }
   };
@@ -647,6 +663,42 @@ export default function EpisodeBoard() {
     }
   };
 
+  const handleAnimateShot = async (shot: any) => {
+    if (!shot.image_url) return alert("Please generate an image first.");
+    setIsProcessing(true);
+
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) throw new Error("Not Authenticated");
+
+      const formData = new FormData();
+      formData.append("series_id", seriesId);
+      formData.append("episode_id", episodeId);
+      formData.append("scene_id", activeSceneId!);
+      formData.append("shot_id", shot.id);
+      formData.append("image_url", shot.image_url);
+      // Use the shot prompt for video guidance
+      formData.append("prompt", shot.prompt || "Cinematic movement, slow motion");
+
+      // Fire and forget (Backend updates Firestore => UI Updates)
+      const res = await fetch("http://127.0.0.1:8000/api/v1/shot/animate_shot", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${idToken}` },
+        body: formData
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setIsProcessing(false);
+        alert("Error: " + err.detail);
+      }
+
+    } catch (e) {
+      console.error(e);
+      setIsProcessing(false);
+      alert("Failed to start animation.");
+    }
+  };
   // 2. Handle AI Generation
   const handleAssetGenerate = async () => {
     if (!genPrompt || !selectedAsset) return alert("Please describe the asset");
@@ -883,11 +935,15 @@ export default function EpisodeBoard() {
                         {shot?.image_url ? (
                           <ShotImage
                             src={shot.image_url}
+                            videoUrl={shot.video_url}          // Pass video URL from DB
+                            videoStatus={shot.video_status}    // Pass status ('animating', 'ready', 'error')
                             shotId={shot.id}
-                            isSystemLoading={isThisShotLoading}
-                            onClickZoom={() => setZoomImage(shot.image_url)}
-                            onDownload={() => handleDownload(shot.image_url, `shot_${index + 1}.png`)}
-                            onStartInpaint={(url) => setInpaintData({ src: shot.image_url, shotId: shot.id })} />
+                            isSystemLoading={loadingShots.has(shot.id)}
+                            onClickZoom={() => setZoomImage(shot.video_url || shot.image_url)}
+                            onDownload={() => handleDownload(shot.video_url || shot.image_url, `shot_${index}.mp4`)}
+                            onStartInpaint={(url: string) => handleStartInpaint(url)}
+                            onAnimate={() => handleAnimateShot(shot)} // Link the handler
+                          />
                         ) : (
                           <div style={styles.shotImagePlaceholder}>
                             {isThisShotLoading ? (
@@ -938,7 +994,7 @@ export default function EpisodeBoard() {
       )}
 
       {/* --- TERMINAL LOADER & MODALS (Keep existing) --- */}
-      {isAutoDirecting && <DirectorOverlay logs={terminalLog} />}
+      {isAutoDirecting && (<div style={styles.terminalOverlay}><div style={styles.terminalBox}>{terminalLog.map((log, i) => (<div key={i} style={styles.terminalLine}>{log}</div>))}<div style={styles.terminalLine}>_ <span className="spin-loader">|</span></div></div></div>)}
       {zoomImage && (<div style={styles.zoomOverlay} onClick={() => setZoomImage(null)}><img src={zoomImage} style={styles.zoomImg} onClick={(e) => e.stopPropagation()} /><X size={30} style={{ position: 'absolute', top: 30, right: 30, color: 'white', cursor: 'pointer' }} onClick={() => setZoomImage(null)} /></div>)}
       {modalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
