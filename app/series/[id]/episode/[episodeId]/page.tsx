@@ -26,6 +26,9 @@ import {
 
 import { CSS } from '@dnd-kit/utilities';
 import { API_BASE_URL } from "@/lib/config";
+import { LogOut, Zap } from "lucide-react";
+import { useCredits } from "@/hooks/useCredits";
+
 
 
 const InpaintEditor = ({ src, onSave, onClose, styles, onApply }: any) => {
@@ -35,6 +38,9 @@ const InpaintEditor = ({ src, onSave, onClose, styles, onApply }: any) => {
     const [prompt, setPrompt] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
     const [outputImage, setOutputImage] = useState<string | null>(null); // NEW: Track output
+    const { credits } = useCredits();
+
+
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -87,6 +93,15 @@ const InpaintEditor = ({ src, onSave, onClose, styles, onApply }: any) => {
             <div style={{ ...styles.modal, width: '1200px', maxWidth: '95vw' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                     <h2 style={styles.modalTitle}>INPAINT: FIX AREA</h2>
+                    <div style={styles.infoBox}>
+                        <Zap size={14} color="#FF0000" />
+                        <div style={{ textAlign: 'right' }}>
+                            <p style={{ fontSize: '9px', color: '#666', fontFamily: 'monospace' }}>CREDITS</p>
+                            <p style={{ fontSize: '10px', color: credits && credits > 0 ? '#FFF' : '#FF0000', fontWeight: 'bold' }}>
+                                {credits !== null ? credits : '...'}
+                            </p>
+                        </div>
+                    </div>
                     <X size={24} onClick={onClose} style={{ cursor: 'pointer' }} />
                 </div>
 
@@ -318,6 +333,8 @@ export default function EpisodeBoard() {
     const seriesId = params?.id as string;
     const episodeId = params?.episodeId as string;
 
+    const { credits } = useCredits();
+
     const [scenes, setScenes] = useState<any[]>([]);
     const [episodeData, setEpisodeData] = useState<any>(null);
     const [activeTab, setActiveTab] = useState('scenes');
@@ -348,14 +365,13 @@ export default function EpisodeBoard() {
     const [isProcessing, setIsProcessing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [inpaintImage, setInpaintImage] = useState<string | null>(null);
-    const [showInpaintEditor, setShowInpaintEditor] = useState(false);
+    // const [inpaintImage, setInpaintImage] = useState<string | null>(null);
+    // const [showInpaintEditor, setShowInpaintEditor] = useState(false);
 
     const [inpaintData, setInpaintData] = useState<{ src: string, shotId: string } | null>(null);
 
-    const handleStartInpaint = (imageUrl: string) => {
-        setInpaintImage(imageUrl);
-        setShowInpaintEditor(true);
+    const handleStartInpaint = (imageUrl: string, shotId: string) => {
+        setInpaintData({ src: imageUrl, shotId: shotId });
     };
 
     useEffect(() => { if (seriesId && episodeId) fetchData(); }, [seriesId, episodeId]);
@@ -825,7 +841,9 @@ export default function EpisodeBoard() {
         toggleBtn: (active: boolean) => ({ flex: 1, padding: '15px', textAlign: 'center' as const, cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '1px', color: active ? 'white' : '#444', borderBottom: active ? '2px solid #FF0000' : 'none' }),
         uploadBox: { border: '1px dashed #333', padding: '50px', textAlign: 'center' as const, color: '#666', cursor: 'pointer', marginBottom: '20px' },
         textareaInput: { width: '100%', backgroundColor: '#111', border: '1px solid #333', padding: '15px', color: '#EEE', fontSize: '14px', marginBottom: '20px', resize: 'none' as const },
-        primaryBtn: { width: '100%', padding: '20px', backgroundColor: '#FF0000', color: 'white', border: 'none', fontWeight: 'bold' as const, cursor: 'pointer', letterSpacing: '2px', fontSize: '14px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }
+        primaryBtn: { width: '100%', padding: '20px', backgroundColor: '#FF0000', color: 'white', border: 'none', fontWeight: 'bold' as const, cursor: 'pointer', letterSpacing: '2px', fontSize: '14px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' },
+        infoBox: { display: 'flex', alignItems: 'center', gap: '10px', borderRight: '1px solid #333', paddingRight: '20px', marginRight: '20px' },
+
     };
 
     return (
@@ -899,6 +917,16 @@ export default function EpisodeBoard() {
                         </button>
                         <div style={{ fontFamily: 'Anton, sans-serif', fontSize: '32px' }}>SCENE STORYBOARD</div>
 
+                        <div style={styles.infoBox}>
+                            <Zap size={14} color="#FF0000" />
+                            <div style={{ textAlign: 'right' }}>
+                                <p style={{ fontSize: '9px', color: '#666', fontFamily: 'monospace' }}>CREDITS</p>
+                                <p style={{ fontSize: '10px', color: credits && credits > 0 ? '#FFF' : '#FF0000', fontWeight: 'bold' }}>
+                                    {credits !== null ? credits : '...'}
+                                </p>
+                            </div>
+                        </div>
+
                         <div style={{ marginLeft: '40px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#666' }}>ASPECT:</span>
                             <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} style={{ backgroundColor: '#111', color: 'white', border: '1px solid #333', padding: '8px', fontSize: '12px', fontWeight: 'bold' }}>
@@ -953,7 +981,7 @@ export default function EpisodeBoard() {
                                                         isSystemLoading={loadingShots.has(shot.id)}
                                                         onClickZoom={() => setZoomImage(shot.video_url || shot.image_url)}
                                                         onDownload={() => handleDownload(shot.video_url || shot.image_url, `shot_${index}.mp4`)}
-                                                        onStartInpaint={(url: string) => handleStartInpaint(url)}
+                                                        onStartInpaint={() => handleStartInpaint(shot.image_url, shot.id)}
                                                         onAnimate={() => handleAnimateShot(shot)} // Link the handler
                                                     />
                                                 ) : (

@@ -1,17 +1,22 @@
 "use client";
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, where, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Film, Tv, ChevronRight, Loader2, LogOut, User, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Film, Tv, ChevronRight, Loader2, LogOut, Trash2, Zap } from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
+// IMPORT THE HOOK
+import { useCredits } from "@/hooks/useCredits";
 
 export default function Dashboard() {
   const [seriesList, setSeriesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  // USE THE HOOK
+  const { credits } = useCredits();
 
   // Fetch Data
   useEffect(() => {
@@ -30,7 +35,7 @@ export default function Dashboard() {
       }
     }
     fetchUserScopedSeries();
-  }, [auth.currentUser]);
+  }, []);
 
   // Handle Logout
   const handleLogout = async () => {
@@ -41,21 +46,15 @@ export default function Dashboard() {
   // Handle Delete
   const handleDelete = async (e: React.MouseEvent, seriesId: string) => {
     e.preventDefault();
-    e.stopPropagation(); // Stop click from opening the card
-
+    e.stopPropagation();
     if (!confirm("WARNING: DELETE THIS PRODUCTION? THIS ACTION CANNOT BE UNDONE.")) return;
-
     try {
       const idToken = await auth.currentUser?.getIdToken();
-
-      // Call Backend to delete
       const res = await fetch(`${API_BASE_URL}/api/v1/script/series/${seriesId}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${idToken}` }
       });
-
       if (res.ok) {
-        // Remove from UI immediately
         setSeriesList(prev => prev.filter(s => s.id !== seriesId));
       } else {
         alert("DELETE FAILED");
@@ -66,7 +65,7 @@ export default function Dashboard() {
     }
   };
 
-  // --- CYBER-BRUTALIST STYLES ---
+  // --- STYLES ---
   const styles = {
     container: {
       minHeight: '100vh',
@@ -74,7 +73,7 @@ export default function Dashboard() {
       color: '#EDEDED',
       fontFamily: 'Inter, sans-serif',
       padding: '60px 80px',
-      backgroundImage: 'radial-gradient(circle at 50% 50%, #111 0%, #030303 80%)', // Subtle lighting
+      backgroundImage: 'radial-gradient(circle at 50% 50%, #111 0%, #030303 80%)',
     },
     header: {
       display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
@@ -83,41 +82,31 @@ export default function Dashboard() {
     logo: { fontSize: '42px', fontFamily: 'Anton, sans-serif', textTransform: 'uppercase' as const, lineHeight: '1', letterSpacing: '1px' },
     subLogo: { fontSize: '10px', color: '#FF0000', letterSpacing: '4px', fontWeight: 'bold' as const, marginTop: '10px', textTransform: 'uppercase' as const },
 
-    // Header Buttons
+    // Header Info Box (Operator / Credits)
+    infoBox: {
+      display: 'flex', alignItems: 'center', gap: '10px',
+      borderRight: '1px solid #333', paddingRight: '20px', marginRight: '20px'
+    },
+
+    // Buttons
     logoutBtn: { backgroundColor: 'transparent', color: '#666', border: '1px solid #333', padding: '12px 20px', fontSize: '10px', fontWeight: 'bold' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase' as const },
     createButton: { backgroundColor: '#FF0000', color: 'black', border: 'none', padding: '16px 32px', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', textTransform: 'uppercase' as const, boxShadow: '0 0 20px rgba(255, 0, 0, 0.2)' },
 
-    // Grid
+    // Grid & Cards
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '30px' },
-
-    // The Card (CSS Group needed for hover)
     card: {
       backgroundColor: 'rgba(255, 255, 255, 0.03)',
-      border: '1px solid #222',
-      padding: '30px',
-      cursor: 'pointer',
-      position: 'relative' as const,
-      height: '100%',
-      transition: 'all 0.3s ease',
-      overflow: 'hidden'
+      border: '1px solid #222', padding: '30px', cursor: 'pointer',
+      position: 'relative' as const, height: '100%', transition: 'all 0.3s ease', overflow: 'hidden'
     },
-
-    // Typography
     cardTitle: { fontFamily: 'Anton, sans-serif', fontSize: '32px', textTransform: 'uppercase' as const, marginBottom: '15px', color: '#FFF' },
     metaText: { fontFamily: 'monospace', fontSize: '10px', color: '#888', textTransform: 'uppercase' as const, display: 'flex', gap: '10px' },
-
-    // Badges & Icons
     badge: { position: 'absolute' as const, top: '20px', right: '20px', fontSize: '9px', fontWeight: 'bold' as const, color: '#000', backgroundColor: '#FFF', padding: '2px 6px', textTransform: 'uppercase' as const },
-    deleteBtn: {
-      position: 'absolute' as const, bottom: '20px', right: '20px',
-      background: 'transparent', border: 'none', color: '#444',
-      cursor: 'pointer', zIndex: 10, transition: 'color 0.2s'
-    }
+    deleteBtn: { position: 'absolute' as const, bottom: '20px', right: '20px', background: 'transparent', border: 'none', color: '#444', cursor: 'pointer', zIndex: 10, transition: 'color 0.2s' }
   };
 
   return (
     <main style={styles.container}>
-      {/* GLOBAL HOVER CSS */}
       <style>{`
         .series-card:hover { border-color: #FF0000 !important; transform: translateY(-5px); background-color: #0A0A0A !important; }
         .series-card:hover .open-link { color: #FF0000 !important; }
@@ -125,30 +114,7 @@ export default function Dashboard() {
         .delete-btn:hover { color: #FF0000 !important; }
       `}</style>
 
-      {/* HEADER */}
-      <div style={styles.header}>
-        <div>
-          <h1 style={styles.logo}>Motion X <span style={{ color: '#FF0000' }}>Studio</span></h1>
-          <p style={styles.subLogo}>/// PRODUCTION_TERMINAL_V1</p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderRight: '1px solid #333', paddingRight: '20px' }}>
-            <div style={{ width: '8px', height: '8px', backgroundColor: '#00FF41', borderRadius: '50%', boxShadow: '0 0 10px #00FF41' }}></div>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '9px', color: '#666', fontFamily: 'monospace' }}>OPERATOR</p>
-              <p style={{ fontSize: '11px', color: '#FFF', fontWeight: 'bold' }}>{auth.currentUser?.displayName || 'UNKNOWN'}</p>
-            </div>
-          </div>
-
-          <button onClick={handleLogout} style={styles.logoutBtn}> <LogOut size={14} /> EXIT</button>
-          <Link href="/series/new" style={{ textDecoration: 'none' }}>
-            <button style={styles.createButton}> <Plus size={16} strokeWidth={3} /> INITIALIZE SERIES</button>
-          </Link>
-        </div>
-      </div>
-
-      {/* CONTENT */}
+      {/* CONTENT GRID */}
       {loading ? (
         <div style={{ height: '50vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#444' }}>
           <Loader2 className="animate-spin mb-4" />
@@ -166,27 +132,17 @@ export default function Dashboard() {
             <Link key={series.id} href={`/series/${series.id}`} style={{ textDecoration: 'none' }}>
               <div style={styles.card} className="series-card">
                 <div style={styles.badge}>{series.style}</div>
-
                 <Tv size={28} style={{ color: '#333', marginBottom: '40px' }} />
-
                 <h2 style={styles.cardTitle}>{series.title}</h2>
                 <div style={styles.metaText}>
                   <span>{series.genre}</span>
                   <span>//</span>
                   <span>{series.created_at ? new Date(series.created_at.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
                 </div>
-
                 <div className="open-link" style={{ marginTop: '30px', fontSize: '10px', fontWeight: 'bold', color: '#444', display: 'flex', alignItems: 'center', gap: '5px', transition: 'color 0.2s' }}>
                   ACCESS DATA <ChevronRight size={10} />
                 </div>
-
-                {/* DELETE BUTTON */}
-                <button
-                  className="delete-btn"
-                  onClick={(e) => handleDelete(e, series.id)}
-                  style={styles.deleteBtn}
-                  title="DELETE SERIES"
-                >
+                <button className="delete-btn" onClick={(e) => handleDelete(e, series.id)} style={styles.deleteBtn} title="DELETE SERIES">
                   <Trash2 size={16} />
                 </button>
               </div>

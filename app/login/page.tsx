@@ -1,10 +1,11 @@
 "use client";
 
-import { auth, googleProvider } from "@/lib/firebase";
+import { auth, googleProvider, db } from "@/lib/firebase"; // Import db
 import { signInWithPopup } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"; // Import Firestore functions
 import { useRouter } from "next/navigation";
 import { LogIn, Volume2, VolumeX } from "lucide-react";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, useMotionValue, useTransform } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 
 export default function LoginPage() {
@@ -51,9 +52,32 @@ export default function LoginPage() {
     }
   };
 
+  // --- UPDATED LOGIN LOGIC ---
   const handleGoogleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      // 1. Authenticate with Google
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // 2. Check if User Document Exists in Firestore
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      // 3. If New User, Create Profile & Add Credits
+      if (!userSnap.exists()) {
+        console.log("Creating new user profile...");
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          credits: 10,  // <--- IMPORTANT!!!!!!!! 10 FREE CREDITS ADDED HERE, NEED TO IMPLEMENT THIS LOGIC IN THE BACKEND LATER!!!!!!!
+          plan: "free",
+          createdAt: serverTimestamp()
+        });
+      }
+
+      // 4. Redirect
       router.push("/");
     } catch (error) {
       console.error("Login failed", error);

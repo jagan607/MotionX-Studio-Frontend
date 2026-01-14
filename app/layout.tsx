@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import AuthProvider from "@/components/AuthProvider"; // Import the provider
+import AuthProvider from "@/components/AuthProvider";
+import GlobalHeader from "@/components/GlobalHeader"; // <--- 1. Import it
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,10 +18,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        {/* Wrap children with Auth Logic */}
+      <body className={inter.className} style={{ backgroundColor: '#030303', color: 'white' }}>
         <AuthProvider>
+
+          {/* 2. PLACE HEADER HERE */}
+          <GlobalHeader />
+
+          {/* 3. MAIN CONTENT */}
           {children}
+
         </AuthProvider>
       </body>
     </html>
