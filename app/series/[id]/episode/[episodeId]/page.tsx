@@ -448,6 +448,8 @@ export default function EpisodeBoard() {
             });
             setUniqueChars(Array.from(chars));
             setUniqueLocs(Array.from(locs));
+            console.log("Unique chars:", Array.from(chars));
+            console.log("Unique locs:", Array.from(locs));
 
             const charSnapshot = await getDocs(collection(db, "series", seriesId, "characters"));
             const charMap: Record<string, string> = {};
@@ -456,8 +458,14 @@ export default function EpisodeBoard() {
 
             const locSnapshot = await getDocs(collection(db, "series", seriesId, "locations"));
             const locMap: Record<string, string> = {};
-            locSnapshot.forEach(doc => locMap[doc.id] = doc.data().image_url);
+            locSnapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.name) {
+                    locMap[data.name] = data.image_url;
+                }
+            });
             setLocationImages(locMap);
+            console.log("loca images:", locMap);
         } catch (e) { console.error(e); }
     }
 
@@ -634,6 +642,8 @@ export default function EpisodeBoard() {
                 formData.append("location_name", selectedAsset);
                 endpoint = `${API_BASE_URL}/api/v1/assets/location/upload`;
             }
+
+            console.log('Form data:', formData);
 
             const res = await fetch(endpoint, {
                 method: "POST",
@@ -868,6 +878,7 @@ export default function EpisodeBoard() {
                 <div style={styles.grid}>
                     {uniqueLocs.map((loc, index) => {
                         const imageUrl = locationImages[loc];
+                        console.log("Location images:", locationImages);
                         return (
                             <div key={index} style={styles.assetCard}>
                                 {imageUrl ? <img src={imageUrl} alt={loc} style={styles.assetImage} /> : <div style={styles.assetPlaceholder}><ImageIcon size={40} /></div>}
