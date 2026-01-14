@@ -3,11 +3,53 @@
 import { auth, googleProvider } from "@/lib/firebase";
 import { signInWithPopup } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { LogIn } from "lucide-react";
-import { motion } from "framer-motion";
+import { LogIn, Volume2, VolumeX } from "lucide-react";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // STATE: Audio & Subtitles
+  const [isMuted, setIsMuted] = useState(true);
+  const [textIndex, setTextIndex] = useState(0);
+
+  const taglines = [
+    "CREATIVE PRODUCTION SUITE",
+    "AI-POWERED FILMMAKING",
+    "FROM SCRIPT TO SCREEN",
+    "AUTOMATE YOUR VISUALS"
+  ];
+
+  // 3D TILT LOGIC
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useTransform(y, [-300, 300], [10, -10]); // Tilt Up/Down
+  const rotateY = useTransform(x, [-300, 300], [-10, 10]); // Tilt Left/Right
+
+  // Cycle through taglines every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTextIndex((prev) => (prev + 1) % taglines.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    // Calculate mouse position relative to center
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    x.set(e.clientX - centerX);
+    y.set(e.clientY - centerY);
+  };
+
+  const toggleAudio = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(videoRef.current.muted);
+    }
+  };
 
   const handleGoogleLogin = async () => {
     try {
@@ -19,31 +61,27 @@ export default function LoginPage() {
   };
 
   return (
-    <main style={{
-      position: 'relative',
-      height: '100vh',
-      width: '100vw',
-      overflow: 'hidden',
-      backgroundColor: 'black',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
+    <main
+      onMouseMove={handleMouseMove}
+      style={{
+        position: 'relative', height: '100vh', width: '100vw',
+        overflow: 'hidden', backgroundColor: 'black',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        perspective: '1000px' // Essential for 3D effect
+      }}
+    >
 
-      {/* 1. BACKGROUND VIDEO (Blurred) */}
+      {/* 1. BACKGROUND VIDEO */}
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
         <video
+          ref={videoRef}
           autoPlay
           loop
-          muted
+          muted={isMuted} // Controlled by React state
           playsInline
           style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            opacity: 0.6,
-            filter: 'blur(5px)',       // <--- CONTROLS THE BLUR AMOUNT
-            transform: 'scale(1.05)'   // <--- Slight zoom to hide blurred edges
+            width: '100%', height: '100%', objectFit: 'cover',
+            opacity: 0.6, filter: 'blur(5px)', transform: 'scale(1.05)'
           }}
         >
           <source
@@ -51,80 +89,90 @@ export default function LoginPage() {
             type="video/mp4"
           />
         </video>
-        {/* Dark Overlay */}
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.83)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.4)' }} />
       </div>
 
-      {/* 2. LOGIN CARD */}
+      {/* AUDIO TOGGLE BUTTON */}
+      <button
+        onClick={toggleAudio}
+        style={{
+          position: 'absolute', top: '40px', right: '40px', zIndex: 50,
+          background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+          borderRadius: '50%', width: '50px', height: '50px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: 'white', backdropFilter: 'blur(5px)'
+        }}
+      >
+        {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+      </button>
+
+      {/* 2. 3D INTERACTIVE LOGIN CARD */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
+        style={{
+          rotateX, rotateY, // Apply the 3D tilt
+          zIndex: 10, width: '100%', maxWidth: '480px', margin: '0 20px',
+        }}
+        initial={{ opacity: 0, scale: 0.9, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '450px', margin: '0 20px' }}
       >
         <div style={{
           textAlign: 'center',
           border: '1px solid rgba(255,255,255,0.1)',
-          padding: '60px 40px',
-          backgroundColor: 'rgba(0,0,0,0.4)',
-          backdropFilter: 'blur(10px)',
+          padding: '70px 40px',
+          backgroundColor: 'rgba(5, 5, 5, 0.6)',
+          backdropFilter: 'blur(12px)',
           borderRadius: '24px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+          boxShadow: '0 30px 60px -12px rgba(0, 0, 0, 0.7)'
         }}>
 
+          {/* Logo */}
           <h1 style={{
-            fontFamily: 'Anton, sans-serif',
-            fontSize: '64px',
-            color: '#FFF',
-            letterSpacing: '4px',
-            marginBottom: '5px',
-            lineHeight: 1
+            fontFamily: 'Anton, sans-serif', fontSize: '72px', color: '#FFF',
+            letterSpacing: '4px', marginBottom: '10px', lineHeight: 1,
+            textShadow: '0 0 20px rgba(255, 255, 255, 0.1)'
           }}>
             MOTION X
           </h1>
 
-          <p style={{
-            color: '#aaa',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            letterSpacing: '3px',
-            marginBottom: '40px',
-            textTransform: 'uppercase'
-          }}>
-            Creative Production Suite
-          </p>
+          {/* Dynamic Typewriter Subtitle */}
+          <div style={{ height: '20px', marginBottom: '50px' }}>
+            <motion.p
+              key={textIndex} // Re-renders animation when index changes
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              style={{
+                color: '#FF3333', fontSize: '13px', fontWeight: 'bold',
+                letterSpacing: '3px', textTransform: 'uppercase'
+              }}
+            >
+              {taglines[textIndex]}
+            </motion.p>
+          </div>
 
           <motion.button
-            whileHover={{ scale: 1.05, backgroundColor: '#ff1f1f' }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.05, backgroundColor: '#ff1f1f', boxShadow: '0 0 30px rgba(255,0,0,0.4)' }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleGoogleLogin}
             style={{
-              backgroundColor: '#FF0000',
-              color: 'white',
-              border: 'none',
-              padding: '20px',
-              width: '100%',
-              borderRadius: '50px',
-              fontWeight: 'bold',
-              fontSize: '14px',
-              letterSpacing: '1px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px',
-              transition: 'all 0.3s ease'
+              backgroundColor: '#FF0000', color: 'white', border: 'none',
+              padding: '22px', width: '100%', borderRadius: '50px',
+              fontWeight: 'bold', fontSize: '15px', letterSpacing: '1px',
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: '12px'
             }}
           >
             <LogIn size={20} />
-            <span>SIGN IN WITH GOOGLE</span>
+            <span>START CREATING</span>
           </motion.button>
+
         </div>
       </motion.div>
 
       {/* Footer */}
       <div style={{ position: 'absolute', bottom: '30px', width: '100%', textAlign: 'center', zIndex: 10 }}>
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', letterSpacing: '2px' }}>
+        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px', letterSpacing: '2px' }}>
           © {new Date().getFullYear()} MOTIONX STUDIO
         </p>
       </div>
