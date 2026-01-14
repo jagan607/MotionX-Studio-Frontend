@@ -143,7 +143,7 @@ export default function SeriesDetail() {
           </div>
         </div>
         <button style={styles.addButton} onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} strokeWidth={3} /> UPLOAD SCRIPT
+          <Plus size={20} strokeWidth={3} /> NEW EPISODE
         </button>
       </div>
 
