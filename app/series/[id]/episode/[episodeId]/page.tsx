@@ -955,81 +955,167 @@ export default function EpisodeBoard() {
                         />
                     )}
 
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                        <SortableContext items={shots?.map(s => s.id)} strategy={verticalListSortingStrategy}>
-                            <div style={styles.sbGrid}>
-                                {shots?.map((shot, index) => {
-                                    const isThisShotLoading = loadingShots.has(shot.id);
+                    {/* --- EMPTY STATE OR GRID --- */}
+                    {shots.length === 0 ? (
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            height: '60vh',
+                            border: '1px dashed #222',
+                            backgroundColor: 'rgba(10, 10, 10, 0.5)',
+                            marginTop: '20px',
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }}>
+                            {/* Animated Background Scanline (Optional Cool Effect) */}
+                            <div style={{
+                                position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+                                backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                                boxShadow: '0 0 20px rgba(255, 0, 0, 0.2)',
+                                animation: 'scanline 3s linear infinite'
+                            }} />
+                            <style>{`@keyframes scanline { 0% { top: 0%; opacity: 0; } 50% { opacity: 1; } 100% { top: 100%; opacity: 0; } }`}</style>
 
-                                    // WRAP THE ENTIRE CONTENT INSIDE THE SORTABLE CARD
-                                    return (
-                                        <SortableShotCard
-                                            key={shot.id}
-                                            shot={shot}
-                                            index={index}
-                                            styles={styles}
-                                            onDelete={handleDeleteShot}
-                                        >
-                                            {/* Image Container */}
-                                            <div style={styles.shotImageContainer}>
-                                                {shot?.image_url ? (
-                                                    <ShotImage
-                                                        src={shot.image_url}
-                                                        videoUrl={shot.video_url}          // Pass video URL from DB
-                                                        videoStatus={shot.video_status}    // Pass status ('animating', 'ready', 'error')
-                                                        shotId={shot.id}
-                                                        isSystemLoading={loadingShots.has(shot.id)}
-                                                        onClickZoom={() => setZoomImage(shot.video_url || shot.image_url)}
-                                                        onDownload={() => handleDownload(shot.video_url || shot.image_url, `shot_${index}.mp4`)}
-                                                        onStartInpaint={() => handleStartInpaint(shot.image_url, shot.id)}
-                                                        onAnimate={() => handleAnimateShot(shot)} // Link the handler
-                                                    />
-                                                ) : (
-                                                    <div style={styles.shotImagePlaceholder}>
-                                                        {isThisShotLoading ? (
-                                                            <Loader2 className="spin-loader" size={32} color="#FF0000" />
-                                                        ) : (
-                                                            <Film size={32} strokeWidth={1} />
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
+                            {/* Icon & Text */}
+                            <Film size={80} style={{ opacity: 0.1, color: '#FFF', marginBottom: '20px' }} />
 
-                                            <label style={styles.label}>SHOT TYPE</label>
-                                            <select style={styles.select} value={shot.type} onChange={(e) => updateShot(shot.id, "type", e.target.value)}>
-                                                <option>Wide Shot</option>
-                                                <option>Medium Shot</option>
-                                                <option>Close Up</option>
-                                                <option>Over the Shoulder</option>
-                                            </select>
+                            <h3 style={{
+                                fontFamily: 'Anton, sans-serif',
+                                fontSize: '32px',
+                                color: '#333',
+                                letterSpacing: '4px',
+                                textTransform: 'uppercase'
+                            }}>
+                                SEQUENCE_BUFFER_EMPTY
+                            </h3>
 
-                                            <label style={styles.label}>CASTING</label>
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '15px' }}>
-                                                {uniqueChars.map(char => {
-                                                    const isSelected = shot.characters?.includes(char);
-                                                    return (
-                                                        <button key={char} onClick={() => {
-                                                            const current = shot.characters || [];
-                                                            const updated = isSelected ? current.filter((c: string) => c !== char) : [...current, char];
-                                                            updateShot(shot.id, "characters", updated);
-                                                        }} style={styles.charToggle(isSelected)}>{char}</button>
-                                                    )
-                                                })}
-                                            </div>
+                            <p style={{
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                color: '#555',
+                                marginTop: '10px',
+                                letterSpacing: '2px'
+                            }}>
+            // NO VISUAL DATA DETECTED IN THIS SECTOR
+                            </p>
 
-                                            <label style={styles.label}>VISUAL ACTION</label>
-                                            <textarea style={styles.textArea} value={shot.prompt} onChange={(e) => updateShot(shot.id, "prompt", e.target.value)} />
+                            {/* Big Actions */}
+                            <div style={{ display: 'flex', gap: '20px', marginTop: '40px' }}>
+                                <button
+                                    onClick={handleAutoDirect}
+                                    disabled={isAutoDirecting}
+                                    style={{
+                                        padding: '15px 30px',
+                                        backgroundColor: '#FF0000',
+                                        color: 'white',
+                                        border: 'none',
+                                        fontWeight: 'bold',
+                                        fontSize: '12px',
+                                        letterSpacing: '2px',
+                                        cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '10px',
+                                        boxShadow: '0 0 30px rgba(255,0,0,0.2)'
+                                    }}
+                                >
+                                    <Wand2 size={18} /> INITIALIZE AUTO-DIRECTOR
+                                </button>
 
-                                            <button style={isThisShotLoading ? styles.renderBtnLoading : styles.renderBtn} onClick={() => handleRenderShot(shot)} disabled={isThisShotLoading}>
-                                                {isThisShotLoading ? <Loader2 className="spin-loader" size={14} /> : <Sparkles size={14} />}
-                                                {isThisShotLoading ? "GENERATING..." : (shot.image_url ? "REGENERATE SHOT" : "RENDER SHOT")}
-                                            </button>
-                                        </SortableShotCard>
-                                    );
-                                })}
+                                <button
+                                    onClick={handleAddShot}
+                                    style={{
+                                        padding: '15px 30px',
+                                        backgroundColor: 'transparent',
+                                        color: '#666',
+                                        border: '1px solid #333',
+                                        fontWeight: 'bold',
+                                        fontSize: '12px',
+                                        letterSpacing: '2px',
+                                        cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '10px'
+                                    }}
+                                >
+                                    <Plus size={18} /> MANUAL ENTRY
+                                </button>
                             </div>
-                        </SortableContext>
-                    </DndContext>
+                        </div>
+                    ) : (
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                            <SortableContext items={shots?.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                                <div style={styles.sbGrid}>
+                                    {shots?.map((shot, index) => {
+                                        const isThisShotLoading = loadingShots.has(shot.id);
+
+                                        return (
+                                            <SortableShotCard
+                                                key={shot.id}
+                                                shot={shot}
+                                                index={index}
+                                                styles={styles}
+                                                onDelete={handleDeleteShot}
+                                            >
+                                                {/* ... (Your existing Shot Card Content) ... */}
+                                                <div style={styles.shotImageContainer}>
+                                                    {shot?.image_url ? (
+                                                        <ShotImage
+                                                            src={shot.image_url}
+                                                            videoUrl={shot.video_url}
+                                                            videoStatus={shot.video_status}
+                                                            shotId={shot.id}
+                                                            isSystemLoading={loadingShots.has(shot.id)}
+                                                            onClickZoom={() => setZoomImage(shot.video_url || shot.image_url)}
+                                                            onDownload={() => handleDownload(shot.video_url || shot.image_url, `shot_${index}.mp4`)}
+                                                            onStartInpaint={() => handleStartInpaint(shot.image_url, shot.id)}
+                                                            onAnimate={() => handleAnimateShot(shot)}
+                                                        />
+                                                    ) : (
+                                                        <div style={styles.shotImagePlaceholder}>
+                                                            {isThisShotLoading ? (
+                                                                <Loader2 className="spin-loader" size={32} color="#FF0000" />
+                                                            ) : (
+                                                                <Film size={32} strokeWidth={1} />
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <label style={styles.label}>SHOT TYPE</label>
+                                                <select style={styles.select} value={shot.type} onChange={(e) => updateShot(shot.id, "type", e.target.value)}>
+                                                    <option>Wide Shot</option>
+                                                    <option>Medium Shot</option>
+                                                    <option>Close Up</option>
+                                                    <option>Over the Shoulder</option>
+                                                </select>
+
+                                                <label style={styles.label}>CASTING</label>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '15px' }}>
+                                                    {uniqueChars.map(char => {
+                                                        const isSelected = shot.characters?.includes(char);
+                                                        return (
+                                                            <button key={char} onClick={() => {
+                                                                const current = shot.characters || [];
+                                                                const updated = isSelected ? current.filter((c: string) => c !== char) : [...current, char];
+                                                                updateShot(shot.id, "characters", updated);
+                                                            }} style={styles.charToggle(isSelected)}>{char}</button>
+                                                        )
+                                                    })}
+                                                </div>
+
+                                                <label style={styles.label}>VISUAL ACTION</label>
+                                                <textarea style={styles.textArea} value={shot.prompt} onChange={(e) => updateShot(shot.id, "prompt", e.target.value)} />
+
+                                                <button style={isThisShotLoading ? styles.renderBtnLoading : styles.renderBtn} onClick={() => handleRenderShot(shot)} disabled={isThisShotLoading}>
+                                                    {isThisShotLoading ? <Loader2 className="spin-loader" size={14} /> : <Sparkles size={14} />}
+                                                    {isThisShotLoading ? "GENERATING..." : (shot.image_url ? "REGENERATE SHOT" : "RENDER SHOT")}
+                                                </button>
+                                            </SortableShotCard>
+                                        );
+                                    })}
+                                </div>
+                            </SortableContext>
+                        </DndContext>
+                    )}
                 </div>
             )}
 
