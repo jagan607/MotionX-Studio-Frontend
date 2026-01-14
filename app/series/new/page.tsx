@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { ArrowLeft, Film, Zap } from "lucide-react";
 import Link from "next/link";
+import { API_BASE_URL } from "@/lib/config";
 
 export default function CreateSeries() {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function CreateSeries() {
       formData.append("style", style);
 
       // FIX URL: Pointing to 'script' router where the code lives
-      const res = await fetch("http://127.0.0.1:8000/api/v1/create-series", {
+      const res = await fetch(`${API_BASE_URL}/api/v1/create-series`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${idToken}`,

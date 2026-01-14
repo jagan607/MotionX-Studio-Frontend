@@ -5,6 +5,7 @@ import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { ArrowLeft, Plus, Play, Loader2, X, Upload, Trash2, FileText } from "lucide-react";
 import Link from "next/link";
+import { API_BASE_URL } from "@/lib/config";
 
 export default function SeriesDetail() {
   const params = useParams();
@@ -47,7 +48,7 @@ export default function SeriesDetail() {
 
     try {
       const idToken = await auth.currentUser?.getIdToken();
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/script/episode/${seriesId}/${episodeId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/script/episode/${seriesId}/${episodeId}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${idToken}` }
       });
@@ -72,7 +73,7 @@ export default function SeriesDetail() {
 
     try {
       const idToken = await auth.currentUser?.getIdToken();
-      const res = await fetch("http://127.0.0.1:8000/api/v1/script/upload-episode", {
+      const res = await fetch(`${API_BASE_URL}/api/v1/script/upload-episode`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${idToken}` },
         body: formData,

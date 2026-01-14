@@ -6,6 +6,7 @@ import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Film, Tv, ChevronRight, Loader2, LogOut, User, Trash2, AlertTriangle } from "lucide-react";
+import { API_BASE_URL } from "@/lib/config";
 
 export default function Dashboard() {
   const [seriesList, setSeriesList] = useState<any[]>([]);
@@ -48,7 +49,7 @@ export default function Dashboard() {
       const idToken = await auth.currentUser?.getIdToken();
 
       // Call Backend to delete
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/script/series/${seriesId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/script/series/${seriesId}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${idToken}` }
       });
