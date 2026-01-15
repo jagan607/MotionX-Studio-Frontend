@@ -11,7 +11,7 @@ interface ShotImageProps {
     isSystemLoading: boolean;
     onClickZoom: () => void;
     onDownload: () => void;
-    onStartInpaint: () => void; // Updated to match page.tsx usage
+    onStartInpaint: () => void;
     onAnimate: () => void;
 }
 
@@ -33,6 +33,10 @@ export const ShotImage = ({
     const isAnimating = videoStatus === 'animating';
     const isVideoReady = Boolean(videoUrl);
 
+    // FIX: Content is ready if Video exists OR Image is loaded
+    // This prevents the loader from getting stuck when switching to video mode
+    const isContentReady = isVideoReady || imageFullyDecoded;
+
     useEffect(() => { setImageFullyDecoded(false); }, [src]);
     useEffect(() => { if (imgRef.current?.complete) setImageFullyDecoded(true); }, [src]);
 
@@ -41,11 +45,11 @@ export const ShotImage = ({
 
             {/* --- 1. LOADER OVERLAY --- 
                 Shows if:
-                - System is generating the initial image
-                - Image isn't loaded yet
-                - Video is currently animating
+                - System is generating (isSystemLoading)
+                - Animation is in progress (isAnimating)
+                - Content isn't ready yet (!isContentReady)
             */}
-            {(isSystemLoading || !imageFullyDecoded || isAnimating) && (
+            {(isSystemLoading || isAnimating || !isContentReady) && (
                 <div style={{
                     position: 'absolute', inset: 0, zIndex: 10, backgroundColor: 'rgba(5,5,5,0.9)',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
@@ -94,8 +98,8 @@ export const ShotImage = ({
             )}
 
             {/* --- 3. CONTROLS OVERLAY --- */}
-            {/* Only show controls if not currently animating/loading */}
-            {!isAnimating && imageFullyDecoded && (
+            {/* Show controls if not animating AND content is ready (Video or Image) */}
+            {!isAnimating && isContentReady && (
                 <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 20 }}>
 
                     {/* ANIMATE BUTTON (Hidden if video already exists) */}
@@ -116,8 +120,11 @@ export const ShotImage = ({
 
                     <button onClick={onClickZoom} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Maximize2 size={14} /></button>
                     <button onClick={onDownload} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Download size={14} /></button>
-                    {/* Simplified Handler */}
-                    <button onClick={onStartInpaint} style={{ padding: '6px', backgroundColor: 'rgba(255,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Wand2 size={14} /></button>
+
+                    {/* Only show Inpaint if it's an image (Inpainting video is complex/unsupported here) */}
+                    {!isVideoReady && (
+                        <button onClick={onStartInpaint} style={{ padding: '6px', backgroundColor: 'rgba(255,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Wand2 size={14} /></button>
+                    )}
                 </div>
             )}
 
