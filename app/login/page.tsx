@@ -27,7 +27,7 @@ export default function LoginPage() {
           email: user.email,
           displayName: user.displayName,
           photoURL: user.photoURL,
-          credits: 10,
+          credits: 40,
           plan: "free",
           createdAt: serverTimestamp()
         });
