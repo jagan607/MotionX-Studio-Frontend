@@ -40,6 +40,27 @@ export default function LandingPage() {
   return (
     <main style={{ backgroundColor: '#050505', minHeight: '100vh', color: 'white', fontFamily: 'Inter, sans-serif' }}>
 
+      {/* Metadata */}
+      <Head>
+        <title>MotionX Studio | Direct AI Cinema</title>
+        <meta name="description" content="The first AI-native operating system for filmmakers. Turn scripts into consistent characters, storyboards, and 4K video assets. Start creating for free." />
+        <meta name="keywords" content="AI Filmmaking, Script to Video, Consistent Characters, AI Storyboard, Runway Alternative, Midjourney for Video, MotionX, Nano Banana Pro, Seedance, Film Production Software" />
+        <meta name="author" content="MotionX Studio" />
+        <meta name="creator" content="MotionX Studio" />
+        <meta name="publisher" content="MotionX Studio" />
+        <meta name="robots" content="index, follow" />
+        <meta property="og:title" content="MotionX Studio | Direct AI Cinema" />
+        <meta property="og:description" content="Turn raw scripts into production-ready video assets. Features consistent casting, auto-directing, and 4K upscaling." />
+        <meta property="og:url" content="https://studio.motionx.in" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="/og-share-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="MotionX Studio | Direct AI Cinema" />
+        <meta name="twitter:description" content="The first AI-native operating system for filmmakers." />
+        <meta name="twitter:image" content="/og-share-image.png" />
+        <meta name="robots" content="index, follow" />
+      </Head>
+
       {/* 1. NAVBAR */}
       <nav style={styles.nav}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
