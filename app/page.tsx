@@ -1,203 +1,211 @@
 "use client";
-import { useEffect, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
-import { signOut } from "firebase/auth";
-import { useRouter } from "next/navigation";
+import Head from "next/head";
 import Link from "next/link";
-import { Plus, Film, Tv, ChevronRight, Loader2, LogOut, Trash2, Zap } from "lucide-react";
-import { API_BASE_URL } from "@/lib/config";
-import { useCredits } from "@/hooks/useCredits";
-import { DashboardTour } from "@/components/DashboardTour";
-import { useDashboardTour } from "@/hooks/useDashboardTour";
+import { ArrowRight, Film, LayoutTemplate, Wand2, CheckCircle2, Zap, ChevronRight, Play, Check, Box, Layers } from "lucide-react";
 
-// --- IMPORT YOUR CUSTOM MODAL ---
-import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+export default function LandingPage() {
 
-export default function Dashboard() {
-  const [seriesList, setSeriesList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
-
-  // USE THE HOOK
-  const { credits } = useCredits();
-  const { tourStep, nextStep, completeTour } = useDashboardTour();
-
-  // --- DELETE STATE ---
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  // Fetch Data
-  useEffect(() => {
-    async function fetchUserScopedSeries() {
-      if (!auth.currentUser) return;
-      setLoading(true);
-      try {
-        const seriesRef = collection(db, "series");
-        const q = query(seriesRef, where("owner_id", "==", auth.currentUser.uid));
-        const querySnapshot = await getDocs(q);
-        setSeriesList(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (e) {
-        console.error("Fetch failed:", e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchUserScopedSeries();
-  }, []);
-
-  // Handle Logout
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push("/login");
-  };
-
-  // --- DELETE LOGIC ---
-
-  // 1. Triggered by clicking trash icon (Opens Modal)
-  const confirmDeleteRequest = (e: React.MouseEvent, seriesId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDeleteId(seriesId); // Open the custom modal
-  };
-
-  // 2. Triggered by "CONFIRM DELETE" button in Modal (Actual API Call)
-  const performDelete = async () => {
-    if (!deleteId) return;
-    setIsDeleting(true);
-
-    try {
-      const idToken = await auth.currentUser?.getIdToken();
-      const res = await fetch(`${API_BASE_URL}/api/v1/script/series/${deleteId}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${idToken}` }
-      });
-
-      if (res.ok) {
-        setSeriesList(prev => prev.filter(s => s.id !== deleteId));
-        setDeleteId(null); // Close modal on success
-      } else {
-        alert("DELETE FAILED");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("CONNECTION ERROR");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  // --- STYLES ---
+  // --- INLINE STYLES FOR STABILITY ---
   const styles = {
-    container: {
-      minHeight: '100vh',
-      backgroundColor: '#030303',
-      color: '#EDEDED',
-      fontFamily: 'Inter, sans-serif',
-      padding: '60px 80px',
-      backgroundImage: 'radial-gradient(circle at 50% 50%, #111 0%, #030303 80%)',
-    },
-    header: {
-      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-      borderBottom: '1px solid #333', paddingBottom: '30px', marginBottom: '50px'
-    },
-    logo: { fontSize: '42px', fontFamily: 'Anton, sans-serif', textTransform: 'uppercase' as const, lineHeight: '1', letterSpacing: '1px' },
-    subLogo: { fontSize: '10px', color: '#FF0000', letterSpacing: '4px', fontWeight: 'bold' as const, marginTop: '10px', textTransform: 'uppercase' as const },
+    // LAYOUT UTILS
+    section: { padding: '100px 40px', maxWidth: '1200px', margin: '0 auto', borderBottom: '1px solid #111' },
+    heroContainer: { position: 'relative' as const, height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: '#000' },
+    videoBg: { position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' as const, opacity: 0.4, zIndex: 0 },
+    overlay: { position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%', background: 'radial-gradient(circle at center, transparent 0%, #000 90%)', zIndex: 1 },
+    nav: { position: 'fixed' as const, top: 0, left: 0, right: 0, zIndex: 50, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 40px', borderBottom: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' },
 
-    // Header Info Box (Operator / Credits)
-    infoBox: {
-      display: 'flex', alignItems: 'center', gap: '10px',
-      borderRight: '1px solid #333', paddingRight: '20px', marginRight: '20px'
-    },
+    // TYPOGRAPHY
+    h2: { fontFamily: 'Anton', fontSize: '64px', textTransform: 'uppercase' as const, marginBottom: '20px', lineHeight: 0.9 },
+    subtitle: { fontFamily: 'monospace', fontSize: '12px', color: '#FF0000', letterSpacing: '3px', textTransform: 'uppercase' as const, marginBottom: '20px', display: 'block' },
+    p: { fontSize: '16px', color: '#888', lineHeight: 1.6, maxWidth: '600px' },
 
-    // Buttons
-    logoutBtn: { backgroundColor: 'transparent', color: '#666', border: '1px solid #333', padding: '12px 20px', fontSize: '10px', fontWeight: 'bold' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase' as const },
-    createButton: { backgroundColor: '#FF0000', color: 'black', border: 'none', padding: '16px 32px', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', textTransform: 'uppercase' as const, boxShadow: '0 0 20px rgba(255, 0, 0, 0.2)' },
+    // CARDS
+    card: { backgroundColor: '#080808', border: '1px solid #222', padding: '40px', display: 'flex', flexDirection: 'column' as const, height: '100%' },
+    priceCard: { flex: 1, backgroundColor: '#0A0A0A', border: '1px solid #333', padding: '50px', position: 'relative' as const, display: 'flex', flexDirection: 'column' as const },
+    priceHighlight: { flex: 1, backgroundColor: '#111', border: '1px solid #FF0000', padding: '50px', position: 'relative' as const, display: 'flex', flexDirection: 'column' as const, transform: 'scale(1.05)', boxShadow: '0 0 50px rgba(255,0,0,0.1)' },
 
-    // Grid & Cards
-    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '30px' },
-    card: {
-      backgroundColor: 'rgba(255, 255, 255, 0.03)',
-      border: '1px solid #222', padding: '30px', cursor: 'pointer',
-      position: 'relative' as const, height: '100%', transition: 'all 0.3s ease', overflow: 'hidden'
-    },
-    cardTitle: { fontFamily: 'Anton, sans-serif', fontSize: '32px', textTransform: 'uppercase' as const, marginBottom: '15px', color: '#FFF' },
-    metaText: { fontFamily: 'monospace', fontSize: '10px', color: '#888', textTransform: 'uppercase' as const, display: 'flex', gap: '10px' },
-    badge: { position: 'absolute' as const, top: '20px', right: '20px', fontSize: '9px', fontWeight: 'bold' as const, color: '#000', backgroundColor: '#FFF', padding: '2px 6px', textTransform: 'uppercase' as const },
-    deleteBtn: { position: 'absolute' as const, bottom: '20px', right: '20px', background: 'transparent', border: 'none', color: '#444', cursor: 'pointer', zIndex: 10, transition: 'color 0.2s' }
+    // BUTTONS
+    ctaBtn: { backgroundColor: '#FF0000', color: 'white', border: 'none', padding: '15px 30px', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '2px', textTransform: 'uppercase' as const, cursor: 'pointer', marginTop: 'auto' },
+    ghostBtn: { backgroundColor: 'transparent', color: '#FFF', border: '1px solid #333', padding: '15px 30px', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '2px', textTransform: 'uppercase' as const, cursor: 'pointer', marginTop: 'auto' }
   };
+
+  // ASSETS ARRAY
+  const castingImages = [
+    "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-1%20(1).png?alt=media&token=4125c260-6236-49d0-abb5-d06b20278eb0",
+    "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-3%20(2).png?alt=media&token=07a27ac4-8a69-4d8d-bcde-f6a079eb5f4d",
+    "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-2%20(2).png?alt=media&token=92858dec-04d2-4dae-b8c1-c815705c2141",
+    "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-1%20(2).png?alt=media&token=c1755e67-9fc0-49e5-a000-77a92198fae1"
+  ];
 
   return (
-    <main style={styles.container}>
-      <style>{`
-        .series-card:hover { border-color: #FF0000 !important; transform: translateY(-5px); background-color: #0A0A0A !important; }
-        .series-card:hover .open-link { color: #FF0000 !important; }
-        .series-card:hover .delete-btn { color: #666 !important; }
-        .delete-btn:hover { color: #FF0000 !important; }
-      `}</style>
+    <main style={{ backgroundColor: '#050505', minHeight: '100vh', color: 'white', fontFamily: 'Inter, sans-serif' }}>
 
-      {/* CONTENT GRID */}
-      {loading ? (
-        <div style={{ height: '50vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#444' }}>
-          <Loader2 className="animate-spin mb-4" />
-          <p style={{ fontFamily: 'monospace', fontSize: '12px' }}>ACCESSING MAINFRAME...</p>
+      {/* 1. NAVBAR */}
+      <nav style={styles.nav}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ backgroundColor: '#FF0000', color: 'black', padding: '4px 8px', fontFamily: 'Anton', fontSize: '18px' }}>MX</div>
+          <div><h1 style={{ fontFamily: 'Anton', fontSize: '20px', lineHeight: 1, textTransform: 'uppercase' }}>Motion X</h1></div>
         </div>
-      ) : seriesList.length === 0 ? (
-        <div style={{ border: '1px dashed #333', padding: '100px', textAlign: 'center', color: '#444' }}>
-          <Film size={48} style={{ marginBottom: '20px', opacity: 0.5 }} />
-          <h3 style={{ fontSize: '24px', fontFamily: 'Anton', textTransform: 'uppercase' }}>No Active Data</h3>
-          <p style={{ fontSize: '12px', marginTop: '10px' }}>INITIALIZE A NEW SERIES TO BEGIN</p>
-        </div>
-      ) : (
-        <div style={styles.grid}>
-          {seriesList.map((series) => (
-            <Link key={series.id} href={`/series/${series.id}`} style={{ textDecoration: 'none' }}>
-              <div style={styles.card} className="series-card">
-                <div style={styles.badge}>{series.style}</div>
-                <Tv size={28} style={{ color: '#333', marginBottom: '40px' }} />
-                <h2 style={styles.cardTitle}>{series.title}</h2>
-                <div style={styles.metaText}>
-                  <span>{series.genre}</span>
-                  <span>//</span>
-                  <span>{series.created_at ? new Date(series.created_at.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
-                </div>
-                <div className="open-link" style={{ marginTop: '30px', fontSize: '10px', fontWeight: 'bold', color: '#444', display: 'flex', alignItems: 'center', gap: '5px', transition: 'color 0.2s' }}>
-                  ACCESS DATA <ChevronRight size={10} />
-                </div>
+        <Link href="/login" style={{ textDecoration: 'none' }}>
+          <button style={{ backgroundColor: 'white', color: 'black', border: 'none', padding: '12px 24px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            Start Directing <ChevronRight size={14} />
+          </button>
+        </Link>
+      </nav>
 
-                {/* UPDATED DELETE BUTTON (Calls confirmDeleteRequest) */}
-                <button
-                  className="delete-btn"
-                  onClick={(e) => confirmDeleteRequest(e, series.id)}
-                  style={styles.deleteBtn}
-                  title="DELETE SERIES"
-                >
-                  <Trash2 size={16} />
-                </button>
+      {/* 2. HERO SECTION */}
+      <section style={styles.heroContainer}>
+        <video autoPlay loop muted playsInline style={styles.videoBg}>
+          <source src="https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media&token=8b2fd5b3-3280-48b5-b141-1f399daf00ac" type="video/mp4" />
+        </video>
+        <div style={styles.overlay} />
+        <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', maxWidth: '900px', padding: '0 20px' }}>
+          <div style={{ marginBottom: '20px', display: 'inline-block', border: '1px solid rgba(255,255,255,0.2)', padding: '6px 12px', borderRadius: '20px', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <span style={{ fontSize: '10px', color: '#AAA', letterSpacing: '3px', fontWeight: 'bold', textTransform: 'uppercase' }}>/// SYSTEM ONLINE: V1.0</span>
+          </div>
+          <h1 style={{ fontFamily: 'Anton', fontSize: 'clamp(60px, 10vw, 140px)', lineHeight: 0.9, textTransform: 'uppercase', marginBottom: '30px', textShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+            Direct <br /> <span style={{ color: '#888' }}>AI Cinema</span>
+          </h1>
+          <p style={{ fontSize: '16px', color: '#CCC', maxWidth: '600px', margin: '0 auto 40px', lineHeight: 1.6 }}>The first operating system that turns raw scripts into consistent characters, storyboards, and 4K video assets.</p>
+          <Link href="/login" style={{ textDecoration: 'none' }}>
+            <button style={{ backgroundColor: '#FF0000', color: 'white', border: 'none', padding: '20px 50px', fontSize: '14px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase', cursor: 'pointer', boxShadow: '0 0 40px rgba(255,0,0,0.4)' }}>Start Creating Free</button>
+          </Link>
+        </div>
+      </section>
+
+      {/* 3. MANIFESTO / PROBLEM */}
+      <section style={{ ...styles.section, textAlign: 'center', padding: '150px 40px' }}>
+        <h2 style={{ fontFamily: 'Anton', fontSize: '42px', color: '#333', textTransform: 'uppercase', marginBottom: '20px' }}>The Old Way is Broken</h2>
+        <p style={{ fontSize: '24px', lineHeight: 1.5, maxWidth: '800px', margin: '0 auto', color: '#FFF' }}>
+          Filmmaking used to require millions of dollars, hundreds of crew members, and years of production time. <span style={{ color: '#FF0000' }}>Motion X reduces this to a single terminal.</span>
+        </p>
+      </section>
+
+      {/* 4. FEATURE: CONSISTENCY GRID */}
+      <section style={styles.section}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '60px' }}>
+          <div>
+            <span style={styles.subtitle}>/// MODULE 01: IDENTITY ENGINE</span>
+            <h2 style={styles.h2}>Consistent Casting</h2>
+            <p style={styles.p}>Define your actor once. Use them in 100 shots. We maintain facial identity across wide shots, close-ups, and different lighting.</p>
+          </div>
+          <div style={{ textAlign: 'right', display: 'none', md: { display: 'block' } }}>
+            <div style={{ fontSize: '10px', fontFamily: 'monospace', color: '#555' }}>ACCURACY: 99.8%</div>
+            <div style={{ fontSize: '10px', fontFamily: 'monospace', color: '#555' }}>MODEL: FLUX_V2</div>
+          </div>
+        </div>
+
+        {/* The Grid of Faces */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+          {castingImages.map((src, i) => (
+            <div key={i} style={{ aspectRatio: '1/1', backgroundColor: '#111', border: '1px solid #333', position: 'relative', overflow: 'hidden' }}>
+              <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s' }} className="hover:scale-105" alt={`Character variation ${i}`} />
+              <div style={{ position: 'absolute', bottom: '10px', left: '10px', fontSize: '9px', backgroundColor: '#000', padding: '2px 5px', color: '#FFF', fontFamily: 'monospace' }}>
+                VAR_0{i + 1}_CONFIRMED
               </div>
-            </Link>
+            </div>
           ))}
         </div>
-      )}
+      </section>
 
-      {/* TOUR GUIDE */}
-      <DashboardTour
-        step={tourStep}
-        onNext={nextStep}
-        onComplete={completeTour}
-      />
+      {/* 5. FEATURE: SCRIPT TO VIDEO */}
+      <section style={styles.section}>
+        <span style={styles.subtitle}>/// MODULE 02: AUTO-DIRECTOR</span>
+        <h2 style={styles.h2}>Script to Screen</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginTop: '60px' }}>
+          {/* Left: The Script */}
+          <div style={{ backgroundColor: '#0A0A0A', borderLeft: '2px solid #FF0000', padding: '40px' }}>
+            <h3 style={{ fontFamily: 'monospace', color: '#666', marginBottom: '20px' }}>INPUT: RAW_SCRIPT.TXT</h3>
+            <p style={{ fontFamily: 'Courier New', fontSize: '14px', lineHeight: 1.8, color: '#DDD' }}>
+              EXT. NEON STREET - NIGHT <br /><br />
+              A rain-slicked cyberpunk alleyway. STEAM rises from vents. <br />
+              A FIGURE in a trench coat walks away from camera.<br />
+              Red neon lights reflect in the puddles.
+            </p>
+          </div>
+          {/* Right: The Visual */}
+          <div style={{ aspectRatio: '16/9', backgroundColor: '#000', border: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <video
+              autoPlay loop muted playsInline
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              src="https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/kling_20260116_Text_to_Video_Camera_pus_444_0.mp4?alt=media&token=8bbfc8dd-4b70-4ba6-8180-d44b22fdbf22"
+            />
+          </div>
+        </div>
+      </section>
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {deleteId && (
-        <DeleteConfirmModal
-          title="DELETE SERIES?"
-          message="This will permanently destroy the entire production, including all episodes, scripts, and generated assets. This action is irreversible."
-          isDeleting={isDeleting}
-          onConfirm={performDelete}
-          onCancel={() => setDeleteId(null)}
-        />
-      )}
+      {/* 6. PRICING / COMING SOON SECTION */}
+      <section style={{ padding: '100px 40px', maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
+        <span style={styles.subtitle}>/// PRODUCTION ECONOMY</span>
+        <h2 style={styles.h2}>Membership Access</h2>
 
+        <div style={{
+          marginTop: '60px',
+          border: '1px solid #222',
+          backgroundColor: '#0A0A0A',
+          padding: '80px 40px',
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          {/* Background Texture */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: 'repeating-linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111), repeating-linear-gradient(45deg, #111 25%, #0A0A0A 25%, #0A0A0A 75%, #111 75%, #111)',
+            backgroundPosition: '0 0, 10px 10px',
+            backgroundSize: '20px 20px',
+            opacity: 0.1
+          }} />
+
+          <div style={{ position: 'relative', zIndex: 10, maxWidth: '600px' }}>
+            <div style={{
+              display: 'inline-block', padding: '8px 16px',
+              border: '1px solid #FF0000', color: '#FF0000',
+              fontSize: '10px', fontFamily: 'monospace', letterSpacing: '2px',
+              marginBottom: '30px', backgroundColor: 'rgba(255, 0, 0, 0.1)'
+            }}>
+              SYSTEM STATUS: INITIALIZING PRICING MODULE
+            </div>
+
+            <h3 style={{ fontFamily: 'Anton', fontSize: '48px', color: '#FFF', marginBottom: '20px', textTransform: 'uppercase' }}>
+              Public Access Opening Soon
+            </h3>
+
+            <p style={{ color: '#888', fontSize: '16px', lineHeight: 1.6, marginBottom: '40px' }}>
+              We are currently onboarding studios and independent creators in waves to ensure GPU stability. The "Studio Pro" and "Short Film" passes will unlock shortly.
+            </p>
+
+            {/* VISUAL PROGRESS BAR */}
+            <div style={{ width: '100%', height: '4px', backgroundColor: '#222', marginBottom: '15px', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '75%', backgroundColor: '#FF0000', boxShadow: '0 0 10px #FF0000' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '10px', fontFamily: 'monospace', color: '#666' }}>
+              <span>LOADING_ASSETS...</span>
+              <span>75% COMPLETE</span>
+            </div>
+
+            {/* NOTIFY BUTTON (Visual Only) */}
+            <div style={{ marginTop: '50px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <input type="email" placeholder="ENTER EMAIL FOR EARLY ACCESS" style={{ backgroundColor: '#111', border: '1px solid #333', padding: '15px', color: 'white', fontSize: '12px', width: '250px', outline: 'none', fontFamily: 'monospace' }} />
+              <button style={{ backgroundColor: '#FFF', color: 'black', border: 'none', padding: '15px 30px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', fontFamily: 'monospace' }}>NOTIFY ME</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. FOOTER */}
+      <footer style={{ borderTop: '1px solid #222', padding: '60px 40px', textAlign: 'center', backgroundColor: 'black' }}>
+        <h2 style={{ fontFamily: 'Anton', fontSize: '32px', marginBottom: '20px', textTransform: 'uppercase' }}>Motion X</h2>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', fontSize: '10px', fontFamily: 'monospace', color: '#666' }}>
+          <span>PRIVACY POLICY</span>
+          <span>TERMS OF SERVICE</span>
+          <span>DOCUMENTATION</span>
+        </div>
+        <p style={{ fontSize: '10px', color: '#444', fontFamily: 'monospace', marginTop: '20px' }}>© 2026 MOTIONX STUDIO.</p>
+      </footer>
     </main>
   );
 }

@@ -14,11 +14,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       // Redirect to login if no user is found and we aren't already on the login page
       if (!user && pathname !== "/login") {
-        router.push("/login");
+        router.push("/");
       }
       // If user is logged in but tries to access login page, send to dashboard
       else if (user && pathname === "/login") {
-        router.push("/");
+        router.push("/dashboard");
       }
       setLoading(false);
     });

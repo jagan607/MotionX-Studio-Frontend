@@ -8,6 +8,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        anton: ['Anton', 'sans-serif'], // <--- Ensure this was added
+      },
       colors: {
         background: "#050505",
       },

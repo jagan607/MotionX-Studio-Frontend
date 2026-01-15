@@ -1,206 +1,122 @@
 "use client";
 
-import { auth, googleProvider, db } from "@/lib/firebase"; // Import db
+import { auth, googleProvider, db } from "@/lib/firebase";
 import { signInWithPopup } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"; // Import Firestore functions
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { LogIn, Volume2, VolumeX } from "lucide-react";
-import { motion, useMotionValue, useTransform } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
+import { ArrowRight, Activity, Disc, Globe, ArrowLeft } from "lucide-react"; // Import ArrowLeft
+import Link from "next/link"; // Import Link
 
 export default function LoginPage() {
   const router = useRouter();
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
-  // STATE: Audio & Subtitles
-  const [isMuted, setIsMuted] = useState(true);
-  const [textIndex, setTextIndex] = useState(0);
-
-  const taglines = [
-    "CREATIVE PRODUCTION SUITE",
-    "AI-POWERED FILMMAKING",
-    "FROM SCRIPT TO SCREEN",
-    "AUTOMATE YOUR VISUALS"
-  ];
-
-  // 3D TILT LOGIC
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotateX = useTransform(y, [-300, 300], [10, -10]); // Tilt Up/Down
-  const rotateY = useTransform(x, [-300, 300], [-10, 10]); // Tilt Left/Right
-
-  // Cycle through taglines every 3 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTextIndex((prev) => (prev + 1) % taglines.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    // Calculate mouse position relative to center
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-    x.set(e.clientX - centerX);
-    y.set(e.clientY - centerY);
-  };
-
-  const toggleAudio = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(videoRef.current.muted);
-    }
-  };
-
-  // --- UPDATED LOGIN LOGIC ---
   const handleGoogleLogin = async () => {
+    setIsLoading(true);
     try {
-      // 1. Authenticate with Google
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-
-      // 2. Check if User Document Exists in Firestore
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
-      // 3. If New User, Create Profile & Add Credits
       if (!userSnap.exists()) {
-        console.log("Creating new user profile...");
         await setDoc(userRef, {
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
           photoURL: user.photoURL,
-          credits: 10,  // <--- IMPORTANT!!!!!!!! 10 FREE CREDITS ADDED HERE, NEED TO IMPLEMENT THIS LOGIC IN THE BACKEND LATER!!!!!!!
+          credits: 10,
           plan: "free",
           createdAt: serverTimestamp()
         });
       }
-
-      // 4. Redirect
-      router.push("/");
+      router.push("/dashboard");
     } catch (error) {
       console.error("Login failed", error);
+      setIsLoading(false);
+    }
+  };
+
+  const styles = {
+    container: { display: 'flex', height: '100vh', width: '100vw', backgroundColor: '#050505', color: '#EDEDED', fontFamily: 'Inter, sans-serif', overflow: 'hidden' },
+    leftPanel: { flex: '1.5', position: 'relative' as const, backgroundColor: '#000', borderRight: '1px solid #222', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between', overflow: 'hidden' },
+    bgImage: { position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' as const, opacity: 0.6, filter: 'grayscale(100%) contrast(120%)', zIndex: 0 },
+    overlay: { position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(to bottom, rgba(0,0,0,0.2), #000)', zIndex: 1 },
+    hudText: { zIndex: 10, fontFamily: 'monospace', fontSize: '10px', letterSpacing: '2px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase' as const, lineHeight: '1.6' },
+    heroTitle: { zIndex: 10, padding: '60px', fontFamily: 'Anton, sans-serif', fontSize: '80px', lineHeight: '0.9', textTransform: 'uppercase' as const, color: '#FFF', textShadow: '0 10px 30px rgba(0,0,0,0.8)' },
+    rightPanel: { flex: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' as const, backgroundColor: '#050505', padding: '40px' },
+    gridBg: { position: 'absolute' as const, inset: 0, backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.5, zIndex: 0 },
+    loginBox: { position: 'relative' as const, zIndex: 10, width: '100%', maxWidth: '420px' },
+    header: { marginBottom: '40px' },
+    logoMark: { backgroundColor: '#FF0000', color: 'black', fontFamily: 'Anton', padding: '4px 8px', fontSize: '14px', display: 'inline-block', marginBottom: '15px' },
+    h1: { fontFamily: 'Anton', fontSize: '42px', textTransform: 'uppercase' as const, marginBottom: '10px', lineHeight: 1 },
+    p: { fontSize: '13px', color: '#666', lineHeight: '1.5' },
+    card: { border: '1px solid #222', backgroundColor: '#0A0A0A', padding: '5px' },
+    cardInner: { border: '1px solid #222', padding: '30px', backgroundColor: '#080808' },
+    statusRow: { display: 'flex', gap: '15px', marginBottom: '25px', fontSize: '9px', fontFamily: 'monospace', color: '#555', textTransform: 'uppercase' as const },
+    dot: { width: '6px', height: '6px', backgroundColor: '#00FF41', borderRadius: '50%', display: 'inline-block', marginRight: '6px' },
+    btn: { width: '100%', padding: '18px', backgroundColor: isHovered ? '#FF0000' : '#FFF', color: isHovered ? '#FFF' : '#000', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: 'all 0.2s ease', boxShadow: isHovered ? '0 0 20px rgba(255,0,0,0.4)' : 'none' },
+    footer: { marginTop: '30px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontFamily: 'monospace', color: '#444', textTransform: 'uppercase' as const },
+
+    // BACK BUTTON STYLE
+    backBtn: {
+      position: 'absolute' as const, top: '30px', left: '30px', zIndex: 50,
+      display: 'flex', alignItems: 'center', gap: '8px',
+      color: '#666', textDecoration: 'none', fontSize: '10px', fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: '2px',
+      transition: 'color 0.2s'
     }
   };
 
   return (
-    <main
-      onMouseMove={handleMouseMove}
-      style={{
-        position: 'relative', height: '100vh', width: '100vw',
-        overflow: 'hidden', backgroundColor: 'black',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        perspective: '1000px' // Essential for 3D effect
-      }}
-    >
+    <div style={styles.container}>
 
-      {/* 1. BACKGROUND VIDEO */}
-      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted={isMuted} // Controlled by React state
-          playsInline
-          style={{
-            width: '100%', height: '100%', objectFit: 'cover',
-            opacity: 0.6, filter: 'blur(5px)', transform: 'scale(1.05)'
-          }}
-        >
-          <source
-            src="https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media&token=8b2fd5b3-3280-48b5-b141-1f399daf00ac"
-            type="video/mp4"
-          />
-        </video>
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.4)' }} />
-      </div>
+      {/* LEFT PANEL */}
+      <div style={styles.leftPanel}>
+        {/* NEW BACK BUTTON */}
+        <Link href="/" style={styles.backBtn}>
+          <ArrowLeft size={14} /> ABORT / BACK TO HOME
+        </Link>
 
-      {/* AUDIO TOGGLE BUTTON */}
-      <button
-        onClick={toggleAudio}
-        style={{
-          position: 'absolute', top: '40px', right: '40px', zIndex: 50,
-          background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-          borderRadius: '50%', width: '50px', height: '50px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', color: 'white', backdropFilter: 'blur(5px)'
-        }}
-      >
-        {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-      </button>
-
-      {/* 2. 3D INTERACTIVE LOGIN CARD */}
-      <motion.div
-        style={{
-          rotateX, rotateY, // Apply the 3D tilt
-          zIndex: 10, width: '100%', maxWidth: '480px', margin: '0 20px',
-        }}
-        initial={{ opacity: 0, scale: 0.9, y: 30 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-      >
-        <div style={{
-          textAlign: 'center',
-          border: '1px solid rgba(255,255,255,0.1)',
-          padding: '70px 40px',
-          backgroundColor: 'rgba(5, 5, 5, 0.6)',
-          backdropFilter: 'blur(12px)',
-          borderRadius: '24px',
-          boxShadow: '0 30px 60px -12px rgba(0, 0, 0, 0.7)'
-        }}>
-
-          {/* Logo */}
-          <h1 style={{
-            fontFamily: 'Anton, sans-serif', fontSize: '72px', color: '#FFF',
-            letterSpacing: '4px', marginBottom: '10px', lineHeight: 1,
-            textShadow: '0 0 20px rgba(255, 255, 255, 0.1)'
-          }}>
-            MOTION X
-          </h1>
-
-          {/* Dynamic Typewriter Subtitle */}
-          <div style={{ height: '20px', marginBottom: '50px' }}>
-            <motion.p
-              key={textIndex} // Re-renders animation when index changes
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              style={{
-                color: '#FF3333', fontSize: '13px', fontWeight: 'bold',
-                letterSpacing: '3px', textTransform: 'uppercase'
-              }}
-            >
-              {taglines[textIndex]}
-            </motion.p>
-          </div>
-
-          <motion.button
-            whileHover={{ scale: 1.05, backgroundColor: '#ff1f1f', boxShadow: '0 0 30px rgba(255,0,0,0.4)' }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleGoogleLogin}
-            style={{
-              backgroundColor: '#FF0000', color: 'white', border: 'none',
-              padding: '22px', width: '100%', borderRadius: '50px',
-              fontWeight: 'bold', fontSize: '15px', letterSpacing: '1px',
-              cursor: 'pointer', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', gap: '12px'
-            }}
-          >
-            <LogIn size={20} />
-            <span>START CREATING</span>
-          </motion.button>
-
+        <img src="https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=2940&auto=format&fit=crop" style={styles.bgImage} />
+        <div style={styles.overlay} />
+        <div style={{ padding: '40px', ...styles.hudText, display: 'flex', justifyContent: 'space-between' }}>
+          <div><div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFF', marginBottom: '5px' }}><Disc size={12} fill="#FF0000" color="#FF0000" className="animate-pulse" /> REC [00:04:12:09]</div><div>CAM: ARRI ALEXA 65</div></div>
+          <div style={{ textAlign: 'right' }}><div>ISO 800</div><div>WB 5600K</div></div>
         </div>
-      </motion.div>
-
-      {/* Footer */}
-      <div style={{ position: 'absolute', bottom: '30px', width: '100%', textAlign: 'center', zIndex: 10 }}>
-        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px', letterSpacing: '2px' }}>
-          © {new Date().getFullYear()} MOTIONX STUDIO
-        </p>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '200px', height: '120px', border: '1px solid rgba(255,255,255,0.1)', zIndex: 5 }}>
+          <div style={{ position: 'absolute', top: '-5px', left: '50%', height: '10px', width: '1px', background: 'white' }} />
+          <div style={{ position: 'absolute', bottom: '-5px', left: '50%', height: '10px', width: '1px', background: 'white' }} />
+          <div style={{ position: 'absolute', left: '-5px', top: '50%', width: '10px', height: '1px', background: 'white' }} />
+          <div style={{ position: 'absolute', right: '-5px', top: '50%', width: '10px', height: '1px', background: 'white' }} />
+        </div>
+        <div style={styles.heroTitle}>Direct <br /> <span style={{ color: '#888' }}>The Impossible</span></div>
       </div>
 
-    </main>
+      {/* RIGHT PANEL */}
+      <div style={styles.rightPanel}>
+        <div style={styles.gridBg} />
+        <div style={styles.loginBox}>
+          <div style={styles.header}>
+            <div style={styles.logoMark}>MX</div>
+            <div style={{ fontSize: '10px', fontFamily: 'monospace', letterSpacing: '3px', color: '#555', marginBottom: '10px' }}>SECURE ACCESS V1.0</div>
+            <h1 style={styles.h1}>Welcome Back</h1>
+            <p style={styles.p}>Authenticate to access the production mainframe.</p>
+          </div>
+          <div style={styles.card}>
+            <div style={styles.cardInner}>
+              <div style={styles.statusRow}><span style={{ display: 'flex', alignItems: 'center' }}><span style={styles.dot} /> SYSTEM ONLINE</span><span style={{ display: 'flex', alignItems: 'center' }}><span style={styles.dot} /> ENCRYPTED</span></div>
+              <button onClick={handleGoogleLogin} disabled={isLoading} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} style={{ ...styles.btn, opacity: isLoading ? 0.7 : 1 }}>
+                {isLoading ? <> <Activity size={16} className="animate-spin" /> AUTHENTICATING... </> : <> INITIALIZE SESSION <ArrowRight size={16} strokeWidth={3} /> </>}
+              </button>
+              <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '9px', fontFamily: 'monospace', color: '#444' }}>SECURED BY GOOGLE IDENTITY</div>
+            </div>
+          </div>
+          <div style={styles.footer}><div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>ID: 884-291</div><div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}><Globe size={10} /> REGION: GLOBAL</div></div>
+        </div>
+      </div>
+      <style jsx global>{` @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } } .animate-pulse { animation: pulse 2s infinite; } .animate-spin { animation: spin 1s linear infinite; } @keyframes spin { 100% { transform: rotate(360deg); } } `}</style>
+    </div>
   );
 }

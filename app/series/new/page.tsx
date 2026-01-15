@@ -127,7 +127,7 @@ export default function CreateSeries() {
   return (
     <main style={styles.container}>
       <div style={styles.box}>
-        <Link href="/" style={{ textDecoration: 'none', color: '#666', fontSize: '11px', fontWeight: 'bold', letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '40px' }}>
+        <Link href="/dashboard" style={{ textDecoration: 'none', color: '#666', fontSize: '11px', fontWeight: 'bold', letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '40px' }}>
           <ArrowLeft size={14} /> BACK TO DASHBOARD
         </Link>
 

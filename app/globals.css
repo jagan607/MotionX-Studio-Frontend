@@ -1,32 +1,59 @@
+/* 1. GOOGLE FONTS IMPORT */
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600&display=swap');
 
+/* 2. TAILWIND DIRECTIVES (CRITICAL) */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 3. YOUR CUSTOM VARIABLES */
 :root {
   --bg-black: #050505;
   --text-white: #EDEDED;
-  --accent-red: #FF0000; /* That specific MotionX Red */
+  --accent-red: #FF0000;
   --border-dim: #1F1F1F;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
+/* 4. BASE STYLES */
 body {
   background-color: var(--bg-black);
   color: var(--text-white);
-  font-family: 'Inter', sans-serif; /* Clean body text */
+  font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 {
-  font-family: 'Anton', sans-serif; /* The tall condensed font */
+h1,
+h2,
+h3 {
+  font-family: 'Anton', sans-serif;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
-input, textarea, button {
+input,
+textarea,
+button {
   font-family: inherit;
   outline: none;
+}
+
+/* 5. ANIMATIONS (New Addition for Landing Page) */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 20s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
 }

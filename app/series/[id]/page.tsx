@@ -156,7 +156,7 @@ export default function SeriesDetail() {
       `}</style>
 
       {/* --- BREADCRUMB --- */}
-      <Link href="/" style={styles.backLink}> <ArrowLeft size={14} /> TERMINAL ROOT </Link>
+      <Link href="/dashboard" style={styles.backLink}> <ArrowLeft size={14} /> TERMINAL ROOT </Link>
 
       {/* --- HEADER --- */}
       <div style={styles.header}>

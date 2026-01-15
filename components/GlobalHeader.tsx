@@ -13,11 +13,11 @@ export default function GlobalHeader() {
     const { credits } = useCredits();
 
     // 1. HIDE ON LOGIN PAGE
-    if (pathname === "/login") return null;
+    if (pathname === "/login" || pathname === "/") return null;
 
     const handleLogout = async () => {
         await signOut(auth);
-        router.push("/login");
+        router.push("/");
     };
 
     // --- SHARED STYLES ---
@@ -38,7 +38,7 @@ export default function GlobalHeader() {
     return (
         <div style={styles.header}>
             {/* LEFT: LOGO */}
-            <Link href="/" style={{ textDecoration: 'none' }}>
+            <Link href="/dashboard" style={{ textDecoration: 'none' }}>
                 <div>
                     <h1 style={styles.logo}>Motion X <span style={{ color: '#FF0000' }}>Studio</span></h1>
                     <p style={styles.subLogo}>/// PRODUCTION_TERMINAL_V1</p>
