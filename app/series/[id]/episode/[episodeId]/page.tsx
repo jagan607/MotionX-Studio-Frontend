@@ -32,6 +32,7 @@ import { useShotManager } from "./hooks/useShotManager";
 // --- TOUR ---
 import { TourGuide } from "./components/TourGuide";
 import { useEpisodeTour } from "./hooks/useEpisodeTour";
+import { DownloadModal } from "./components/DownloadModal";
 
 export default function EpisodeBoard() {
     const { id: seriesId, episodeId } = useParams() as { id: string; episodeId: string };
@@ -100,6 +101,69 @@ export default function EpisodeBoard() {
             shotMgr.updateShot(inpaintData.shotId, "status", "rendered");
             setInpaintData(null);
         }
+    };
+
+    // State to track which shot is currently asking for download options
+    const [downloadShot, setDownloadShot] = useState<any>(null);
+
+    // --- HELPER: Performs the actual file download ---
+    const executeDownload = async (url: string, filename: string) => {
+        try {
+            // Attempt 1: Fetch blob for a clean "Save As" behavior
+            const response = await fetch(url, { mode: 'cors' }); // Add mode: 'cors'
+            if (!response.ok) throw new Error("Network response was not ok");
+
+            const blob = await response.blob();
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href); // Clean up memory
+
+        } catch (e) {
+            console.warn("Direct blob download failed (likely CORS). Switching to fallback...", e);
+
+            // Attempt 2: Fallback to direct link opening
+            // This forces the browser to handle the file (view or download)
+            const link = document.createElement("a");
+            link.href = url;
+            link.target = "_blank"; // Open in new tab if download is blocked
+            link.download = filename; // Hint to browser to download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
+
+    // --- HANDLER: Decides whether to download directly or show modal ---
+    const handleDownloadRequest = (shot: any) => {
+        // Case 1: Video exists -> Show Options Modal
+        if (shot.video_url) {
+            setDownloadShot(shot);
+        }
+        // Case 2: Only Image exists -> Download immediately
+        else if (shot.image_url) {
+            executeDownload(shot.image_url, `${shot.id}_image.jpg`);
+        }
+    };
+
+    // --- HANDLER: Called by the Modal ---
+    const handleModalChoice = async (type: 'image' | 'video' | 'both') => {
+        if (!downloadShot) return;
+
+        if (type === 'image' || type === 'both') {
+            executeDownload(downloadShot.image_url, `${downloadShot.id}_image.jpg`);
+        }
+
+        if (type === 'video' || type === 'both') {
+            // Small timeout if downloading both to prevent browser blocking
+            if (type === 'both') await new Promise(r => setTimeout(r, 500));
+            executeDownload(downloadShot.video_url, `${downloadShot.id}_video.mp4`);
+        }
+
+        setDownloadShot(null); // Close modal
     };
 
     return (
@@ -286,7 +350,7 @@ export default function EpisodeBoard() {
                                                     shotId={shot.id}
                                                     isSystemLoading={shotMgr.loadingShots.has(shot.id)}
                                                     onClickZoom={() => setZoomImage(shot.video_url || shot.image_url)}
-                                                    onDownload={() => { }}
+                                                    onDownload={() => handleDownloadRequest(shot)}
                                                     onStartInpaint={() => setInpaintData({ src: shot.image_url, shotId: shot.id })}
                                                     onAnimate={() => shotMgr.handleAnimateShot(shot)}
                                                 />
@@ -413,6 +477,13 @@ export default function EpisodeBoard() {
                 onNext={nextStep}
                 onComplete={completeTour}
             />
+            {downloadShot && (
+                <DownloadModal
+                    shot={downloadShot}
+                    onClose={() => setDownloadShot(null)}
+                    onDownload={handleModalChoice}
+                />
+            )}
         </main>
     );
 }
