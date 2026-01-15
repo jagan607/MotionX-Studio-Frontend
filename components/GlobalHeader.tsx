@@ -32,7 +32,7 @@ export default function GlobalHeader() {
         subLogo: { fontSize: '9px', color: '#FF0000', letterSpacing: '3px', fontWeight: 'bold' as const, marginTop: '5px', textTransform: 'uppercase' as const },
         infoBox: { display: 'flex', alignItems: 'center', gap: '10px', borderRight: '1px solid #333', paddingRight: '20px', marginRight: '20px' },
         logoutBtn: { backgroundColor: 'transparent', color: '#666', border: '1px solid #333', padding: '8px 16px', fontSize: '10px', fontWeight: 'bold' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase' as const },
-        createButton: { backgroundColor: '#FF0000', color: 'black', border: 'none', padding: '10px 20px', fontSize: '10px', fontWeight: 'bold' as const, letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', textTransform: 'uppercase' as const },
+        createButton: { backgroundColor: '#FF0000', color: 'white', border: 'none', padding: '10px 20px', fontSize: '10px', fontWeight: 'bold' as const, letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', textTransform: 'uppercase' as const },
     };
 
     return (

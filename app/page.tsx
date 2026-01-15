@@ -11,6 +11,9 @@ import { useCredits } from "@/hooks/useCredits";
 import { DashboardTour } from "@/components/DashboardTour";
 import { useDashboardTour } from "@/hooks/useDashboardTour";
 
+// --- IMPORT YOUR CUSTOM MODAL ---
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+
 export default function Dashboard() {
   const [seriesList, setSeriesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,6 +22,10 @@ export default function Dashboard() {
   // USE THE HOOK
   const { credits } = useCredits();
   const { tourStep, nextStep, completeTour } = useDashboardTour();
+
+  // --- DELETE STATE ---
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch Data
   useEffect(() => {
@@ -45,25 +52,38 @@ export default function Dashboard() {
     router.push("/login");
   };
 
-  // Handle Delete
-  const handleDelete = async (e: React.MouseEvent, seriesId: string) => {
+  // --- DELETE LOGIC ---
+
+  // 1. Triggered by clicking trash icon (Opens Modal)
+  const confirmDeleteRequest = (e: React.MouseEvent, seriesId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm("WARNING: DELETE THIS PRODUCTION? THIS ACTION CANNOT BE UNDONE.")) return;
+    setDeleteId(seriesId); // Open the custom modal
+  };
+
+  // 2. Triggered by "CONFIRM DELETE" button in Modal (Actual API Call)
+  const performDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+
     try {
       const idToken = await auth.currentUser?.getIdToken();
-      const res = await fetch(`${API_BASE_URL}/api/v1/script/series/${seriesId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/v1/script/series/${deleteId}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${idToken}` }
       });
+
       if (res.ok) {
-        setSeriesList(prev => prev.filter(s => s.id !== seriesId));
+        setSeriesList(prev => prev.filter(s => s.id !== deleteId));
+        setDeleteId(null); // Close modal on success
       } else {
         alert("DELETE FAILED");
       }
     } catch (err) {
       console.error(err);
       alert("CONNECTION ERROR");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -144,7 +164,14 @@ export default function Dashboard() {
                 <div className="open-link" style={{ marginTop: '30px', fontSize: '10px', fontWeight: 'bold', color: '#444', display: 'flex', alignItems: 'center', gap: '5px', transition: 'color 0.2s' }}>
                   ACCESS DATA <ChevronRight size={10} />
                 </div>
-                <button className="delete-btn" onClick={(e) => handleDelete(e, series.id)} style={styles.deleteBtn} title="DELETE SERIES">
+
+                {/* UPDATED DELETE BUTTON (Calls confirmDeleteRequest) */}
+                <button
+                  className="delete-btn"
+                  onClick={(e) => confirmDeleteRequest(e, series.id)}
+                  style={styles.deleteBtn}
+                  title="DELETE SERIES"
+                >
                   <Trash2 size={16} />
                 </button>
               </div>
@@ -153,11 +180,23 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* TOUR GUIDE */}
       <DashboardTour
         step={tourStep}
         onNext={nextStep}
         onComplete={completeTour}
       />
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteId && (
+        <DeleteConfirmModal
+          title="DELETE SERIES?"
+          message="This will permanently destroy the entire production, including all episodes, scripts, and generated assets. This action is irreversible."
+          isDeleting={isDeleting}
+          onConfirm={performDelete}
+          onCancel={() => setDeleteId(null)}
+        />
+      )}
 
     </main>
   );
