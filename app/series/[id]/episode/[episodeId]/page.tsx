@@ -4,7 +4,6 @@ import { useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-    // ADDED "X" HERE
     ArrowLeft, MapPin, X, Users, LayoutTemplate, Camera, Upload,
     Sparkles, Loader2, Image as ImageIcon, Film, Plus, Wand2, Zap
 } from "lucide-react";
@@ -30,6 +29,10 @@ import { useEpisodeData } from "./hooks/useEpisodeData";
 import { useAssetManager } from "./hooks/useAssetManager";
 import { useShotManager } from "./hooks/useShotManager";
 
+// --- TOUR ---
+import { TourGuide } from "./components/TourGuide";
+import { useEpisodeTour } from "./hooks/useEpisodeTour";
+
 export default function EpisodeBoard() {
     const { id: seriesId, episodeId } = useParams() as { id: string; episodeId: string };
 
@@ -42,20 +45,23 @@ export default function EpisodeBoard() {
 
     const { credits } = useCredits();
 
-    // 2. ASSET MANAGER
+    // 2. TOUR HOOK (Checks status on load)
+    const { tourStep, nextStep, completeTour } = useEpisodeTour();
+
+    // 3. ASSET MANAGER
     const assetMgr = useAssetManager(seriesId);
 
-    // 3. UI STATE
+    // 4. UI STATE
     const [activeTab, setActiveTab] = useState('scenes');
     const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
     const [zoomImage, setZoomImage] = useState<string | null>(null);
     const [inpaintData, setInpaintData] = useState<{ src: string, shotId: string } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 4. SHOT MANAGER
+    // 5. SHOT MANAGER
     const shotMgr = useShotManager(seriesId, episodeId, activeSceneId);
 
-    // 5. DnD SENSORS
+    // 6. DnD SENSORS
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -112,7 +118,9 @@ export default function EpisodeBoard() {
                     <h1 style={styles.title}>{episodeData?.title || 'UNTITLED'}</h1>
                     <p style={styles.subtitle}>PHASE 2: ASSET LAB</p>
                 </div>
-                <div style={styles.tabRow}>
+
+                {/* ID ADDED HERE FOR TOUR TARGET 1 */}
+                <div style={styles.tabRow} id="tour-assets-target">
                     <div style={styles.tabBtn(activeTab === 'scenes')} onClick={() => setActiveTab('scenes')}>
                         <LayoutTemplate size={16} /> SCENES
                     </div>
@@ -128,7 +136,7 @@ export default function EpisodeBoard() {
             {/* --- TAB CONTENT: SCENES --- */}
             {activeTab === 'scenes' && (
                 <div style={styles.grid}>
-                    {scenes.map(scene => (
+                    {scenes.map((scene, index) => (
                         <div key={scene.id} style={styles.card}>
                             <div style={styles.sceneHeader}>
                                 <span style={styles.sceneTitle}>SCENE {scene.scene_number}</span>
@@ -138,7 +146,10 @@ export default function EpisodeBoard() {
                                 <MapPin size={16} color="#666" /> {scene.location}
                             </div>
                             <p style={styles.actionText}>{scene.visual_action}</p>
+
+                            {/* ID ADDED HERE FOR TOUR TARGET 2 (Only on first card) */}
                             <button
+                                id={index === 0 ? "tour-storyboard-target" : undefined}
                                 onClick={() => setActiveSceneId(scene.id)}
                                 style={{ width: '100%', padding: '15px', backgroundColor: '#222', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '12px', letterSpacing: '1px' }}
                             >
@@ -391,6 +402,13 @@ export default function EpisodeBoard() {
                     </div>
                 </div>
             )}
+
+            {/* --- TOUR GUIDE RENDERER --- */}
+            <TourGuide
+                step={tourStep}
+                onNext={nextStep}
+                onComplete={completeTour}
+            />
         </main>
     );
 }
