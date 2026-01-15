@@ -8,8 +8,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "MotionX Studio | Direct AI Cinema",
-  description: "The first AI-native operating system for filmmakers.",
-  metadataBase: new URL('https://studio.motionx.in'),
+  description: "The first AI-native operating system for filmmakers. Turn scripts into consistent characters, storyboards, and 4K video assets.",
+  metadataBase: new URL('https://studio.motionx.in'), // Base URL
   openGraph: {
     title: "MotionX Studio",
     description: "Turn scripts into cinema.",
@@ -17,9 +17,10 @@ export const metadata: Metadata = {
     siteName: 'MotionX Studio',
     images: [
       {
-        url: '/og-share-image.png', // Ensure this file is in your /public folder
+        url: 'https://studio.motionx.in/og-share-image.png', // <--- FORCE ABSOLUTE URL
         width: 1200,
         height: 630,
+        alt: 'MotionX Studio Preview',
       },
     ],
     locale: 'en_US',
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "MotionX Studio",
     description: "AI Filmmaking Terminal",
-    images: ['/og-share-image.png'],
+    images: ['https://studio.motionx.in/og-share-image.png'], // <--- FORCE ABSOLUTE URL
   },
 };
 
