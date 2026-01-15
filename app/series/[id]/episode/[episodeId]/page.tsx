@@ -29,9 +29,11 @@ import { useEpisodeData } from "./hooks/useEpisodeData";
 import { useAssetManager } from "./hooks/useAssetManager";
 import { useShotManager } from "./hooks/useShotManager";
 
-// --- TOUR ---
+// --- TOURS & MODALS ---
 import { TourGuide } from "./components/TourGuide";
 import { useEpisodeTour } from "./hooks/useEpisodeTour";
+import { StoryboardTour } from "@/components/StoryboardTour"; // NEW
+import { useStoryboardTour } from "@/hooks/useStoryboardTour"; // NEW
 import { DownloadModal } from "./components/DownloadModal";
 
 export default function EpisodeBoard() {
@@ -46,8 +48,11 @@ export default function EpisodeBoard() {
 
     const { credits } = useCredits();
 
-    // 2. TOUR HOOK (Checks status on load)
-    const { tourStep, nextStep, completeTour } = useEpisodeTour();
+    // 2. TOUR HOOKS
+    // Main Episode Tour (Tabs)
+    const { tourStep: epTourStep, nextStep: epNextStep, completeTour: epCompleteTour } = useEpisodeTour();
+    // Storyboard Tour (Aspect Ratio/Auto-Direct)
+    const { tourStep: sbTourStep, nextStep: sbNextStep, completeTour: sbCompleteTour } = useStoryboardTour();
 
     // 3. ASSET MANAGER
     const assetMgr = useAssetManager(seriesId);
@@ -103,14 +108,12 @@ export default function EpisodeBoard() {
         }
     };
 
-    // State to track which shot is currently asking for download options
+    // --- DOWNLOAD HANDLERS ---
     const [downloadShot, setDownloadShot] = useState<any>(null);
 
-    // --- HELPER: Performs the actual file download ---
     const executeDownload = async (url: string, filename: string) => {
         try {
-            // Attempt 1: Fetch blob for a clean "Save As" behavior
-            const response = await fetch(url, { mode: 'cors' }); // Add mode: 'cors'
+            const response = await fetch(url, { mode: 'cors' });
             if (!response.ok) throw new Error("Network response was not ok");
 
             const blob = await response.blob();
@@ -120,50 +123,33 @@ export default function EpisodeBoard() {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            URL.revokeObjectURL(link.href); // Clean up memory
+            URL.revokeObjectURL(link.href);
 
         } catch (e) {
             console.warn("Direct blob download failed (likely CORS). Switching to fallback...", e);
-
-            // Attempt 2: Fallback to direct link opening
-            // This forces the browser to handle the file (view or download)
             const link = document.createElement("a");
             link.href = url;
-            link.target = "_blank"; // Open in new tab if download is blocked
-            link.download = filename; // Hint to browser to download
+            link.target = "_blank";
+            link.download = filename;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
     };
 
-    // --- HANDLER: Decides whether to download directly or show modal ---
     const handleDownloadRequest = (shot: any) => {
-        // Case 1: Video exists -> Show Options Modal
-        if (shot.video_url) {
-            setDownloadShot(shot);
-        }
-        // Case 2: Only Image exists -> Download immediately
-        else if (shot.image_url) {
-            executeDownload(shot.image_url, `${shot.id}_image.jpg`);
-        }
+        if (shot.video_url) setDownloadShot(shot);
+        else if (shot.image_url) executeDownload(shot.image_url, `${shot.id}_image.jpg`);
     };
 
-    // --- HANDLER: Called by the Modal ---
     const handleModalChoice = async (type: 'image' | 'video' | 'both') => {
         if (!downloadShot) return;
-
-        if (type === 'image' || type === 'both') {
-            executeDownload(downloadShot.image_url, `${downloadShot.id}_image.jpg`);
-        }
-
+        if (type === 'image' || type === 'both') executeDownload(downloadShot.image_url, `${downloadShot.id}_image.jpg`);
         if (type === 'video' || type === 'both') {
-            // Small timeout if downloading both to prevent browser blocking
             if (type === 'both') await new Promise(r => setTimeout(r, 500));
             executeDownload(downloadShot.video_url, `${downloadShot.id}_video.mp4`);
         }
-
-        setDownloadShot(null); // Close modal
+        setDownloadShot(null);
     };
 
     return (
@@ -172,6 +158,7 @@ export default function EpisodeBoard() {
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 .spin-loader { animation: spin 1s linear infinite; }
             `}</style>
+
             {/* --- TOP NAV --- */}
             <div style={styles.topNav}>
                 <Link href={`/series/${seriesId}`} style={styles.backLink}>
@@ -187,7 +174,7 @@ export default function EpisodeBoard() {
                     <p style={styles.subtitle}>PHASE 2: ASSET LAB</p>
                 </div>
 
-                {/* ID ADDED HERE FOR TOUR TARGET 1 */}
+                {/* ID: TOUR TARGET 1 (EPISODE TOUR) */}
                 <div style={styles.tabRow} id="tour-assets-target">
                     <div style={styles.tabBtn(activeTab === 'scenes')} onClick={() => setActiveTab('scenes')}>
                         <LayoutTemplate size={16} /> SCENES
@@ -201,7 +188,7 @@ export default function EpisodeBoard() {
                 </div>
             </div>
 
-            {/* --- TAB CONTENT: SCENES --- */}
+            {/* --- SCENES TAB --- */}
             {activeTab === 'scenes' && (
                 <div style={styles.grid}>
                     {scenes.map((scene, index) => (
@@ -215,7 +202,7 @@ export default function EpisodeBoard() {
                             </div>
                             <p style={styles.actionText}>{scene.visual_action}</p>
 
-                            {/* ID ADDED HERE FOR TOUR TARGET 2 (Only on first card) */}
+                            {/* ID: TOUR TARGET 2 (EPISODE TOUR) */}
                             <button
                                 id={index === 0 ? "tour-storyboard-target" : undefined}
                                 onClick={() => setActiveSceneId(scene.id)}
@@ -228,7 +215,7 @@ export default function EpisodeBoard() {
                 </div>
             )}
 
-            {/* --- TAB CONTENT: CASTING --- */}
+            {/* --- CASTING TAB --- */}
             {activeTab === 'casting' && (
                 <div style={styles.grid}>
                     {uniqueChars.map((char, index) => {
@@ -249,7 +236,7 @@ export default function EpisodeBoard() {
                 </div>
             )}
 
-            {/* --- TAB CONTENT: LOCATIONS --- */}
+            {/* --- LOCATIONS TAB --- */}
             {activeTab === 'locations' && (
                 <div style={styles.grid}>
                     {uniqueLocs.map((loc, index) => {
@@ -279,7 +266,6 @@ export default function EpisodeBoard() {
                         </button>
                         <div style={{ fontFamily: 'Anton, sans-serif', fontSize: '32px' }}>SCENE STORYBOARD</div>
 
-                        {/* Credits in Storyboard Header */}
                         <div style={styles.infoBox}>
                             <Zap size={14} color="#FF0000" />
                             <div style={{ textAlign: 'right' }}>
@@ -290,7 +276,8 @@ export default function EpisodeBoard() {
                             </div>
                         </div>
 
-                        <div style={{ marginLeft: '40px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {/* ID: TOUR TARGET 1 (STORYBOARD TOUR - Aspect Ratio) */}
+                        <div style={{ marginLeft: '40px', display: 'flex', alignItems: 'center', gap: '10px' }} id="tour-sb-aspect">
                             <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#666' }}>ASPECT:</span>
                             <select value={shotMgr.aspectRatio} onChange={(e) => shotMgr.setAspectRatio(e.target.value)} style={{ backgroundColor: '#111', color: 'white', border: '1px solid #333', padding: '8px', fontSize: '12px', fontWeight: 'bold' }}>
                                 <option value="16:9">16:9 (Cinema)</option>
@@ -299,8 +286,14 @@ export default function EpisodeBoard() {
                             </select>
                         </div>
 
+                        {/* ID: TOUR TARGET 2 (STORYBOARD TOUR - Auto Direct) */}
                         <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
-                            <button onClick={() => shotMgr.handleAutoDirect(currentScene)} disabled={shotMgr.isAutoDirecting} style={{ padding: '12px 24px', backgroundColor: '#222', color: '#FFF', fontWeight: 'bold', border: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', letterSpacing: '1px' }}>
+                            <button
+                                id="tour-sb-autodirect"
+                                onClick={() => shotMgr.handleAutoDirect(currentScene)}
+                                disabled={shotMgr.isAutoDirecting}
+                                style={{ padding: '12px 24px', backgroundColor: '#222', color: '#FFF', fontWeight: 'bold', border: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', letterSpacing: '1px' }}
+                            >
                                 <Wand2 size={16} /> AUTO-DIRECT
                             </button>
                             <button onClick={() => shotMgr.handleAddShot(currentScene)} style={{ padding: '12px 24px', backgroundColor: '#FFF', color: 'black', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', letterSpacing: '1px' }}>
@@ -471,12 +464,24 @@ export default function EpisodeBoard() {
                 </div>
             )}
 
-            {/* --- TOUR GUIDE RENDERER --- */}
+            {/* --- RENDER TOURS --- */}
+            {/* 1. Episode Tab Tour */}
             <TourGuide
-                step={tourStep}
-                onNext={nextStep}
-                onComplete={completeTour}
+                step={epTourStep}
+                onNext={epNextStep}
+                onComplete={epCompleteTour}
             />
+
+            {/* 2. Storyboard Action Tour (Shows up when Overlay is active) */}
+            {activeSceneId && (
+                <StoryboardTour
+                    step={sbTourStep}
+                    onNext={sbNextStep}
+                    onComplete={sbCompleteTour}
+                />
+            )}
+
+            {/* --- DOWNLOAD MODAL --- */}
             {downloadShot && (
                 <DownloadModal
                     shot={downloadShot}

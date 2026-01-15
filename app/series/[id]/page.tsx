@@ -10,13 +10,18 @@ import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
 
-// --- IMPORT YOUR CUSTOM MODAL ---
+// --- IMPORT CUSTOM MODALS & TOUR ---
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import { SeriesTour } from "@/components/SeriesTour"; // Import Tour Component
+import { useSeriesTour } from "@/hooks/useSeriesTour"; // Import Tour Hook
 
 export default function SeriesDetail() {
   const params = useParams();
   const router = useRouter();
   const seriesId = params.id as string;
+
+  // --- TOUR STATE ---
+  const { tourStep, completeTour } = useSeriesTour();
 
   // --- DATA STATE ---
   const [seriesData, setSeriesData] = useState<any>(null);
@@ -162,7 +167,13 @@ export default function SeriesDetail() {
             <span>TYPE: {seriesData?.genre?.toUpperCase() || 'UNK'}</span>
           </div>
         </div>
-        <button style={styles.addButton} onClick={() => setIsUploadModalOpen(true)}>
+
+        {/* ADDED ID TARGET FOR TOUR HERE */}
+        <button
+          id="tour-series-new-ep"
+          style={styles.addButton}
+          onClick={() => setIsUploadModalOpen(true)}
+        >
           <Plus size={20} strokeWidth={3} /> NEW EPISODE
         </button>
       </div>
@@ -253,6 +264,13 @@ export default function SeriesDetail() {
           onCancel={() => setDeleteId(null)}
         />
       )}
+
+      {/* --- ONBOARDING TOUR --- */}
+      <SeriesTour
+        step={tourStep}
+        onComplete={completeTour}
+      />
+
     </main>
   );
 }
