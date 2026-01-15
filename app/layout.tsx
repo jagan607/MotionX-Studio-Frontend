@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     siteName: "MotionX Studio",
     images: [
       {
-        url: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/og-share-image.png?alt=media&token=17466de3-857d-4807-a36b-a4ea867d6026", // Must be in 'public' folder
+        url: "/og-share-image.png", // Must be in 'public' folder
         width: 1200,
         height: 630,
         alt: "MotionX Studio Preview",
