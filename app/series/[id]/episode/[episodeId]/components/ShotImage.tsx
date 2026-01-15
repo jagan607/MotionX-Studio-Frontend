@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Film, Maximize2, Download, Wand2 } from "lucide-react";
+import { Loader2, Film, Maximize2, Download, Wand2, Image as ImageIcon } from "lucide-react";
 
 interface ShotImageProps {
     src: string;
@@ -29,13 +29,19 @@ export const ShotImage = ({
     const [imageFullyDecoded, setImageFullyDecoded] = useState(false);
     const imgRef = useRef<HTMLImageElement>(null);
 
-    // Status Checks
+    // --- STATE CHECKS ---
     const isAnimating = videoStatus === 'animating';
-    const isVideoReady = Boolean(videoUrl);
+    const hasVideo = Boolean(videoUrl);
+    const hasImage = Boolean(src);
 
-    // FIX: Content is ready if Video exists OR Image is loaded
-    // This prevents the loader from getting stuck when switching to video mode
-    const isContentReady = isVideoReady || imageFullyDecoded;
+    // --- FIX 1: LOADING LOGIC ---
+    // Only wait for image decoding if we are NOT showing a video.
+    // If hasVideo is true, we skip the image check so the loader turns off and video plays.
+    const isLoading = isSystemLoading || isAnimating || (!hasVideo && hasImage && !imageFullyDecoded);
+
+    // --- FIX 2: EMPTY STATE ---
+    // Shown only if no media exists and we aren't currently generating anything.
+    const isEmpty = !hasVideo && !hasImage && !isSystemLoading && !isAnimating;
 
     useEffect(() => { setImageFullyDecoded(false); }, [src]);
     useEffect(() => { if (imgRef.current?.complete) setImageFullyDecoded(true); }, [src]);
@@ -43,13 +49,8 @@ export const ShotImage = ({
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor: '#000', overflow: 'hidden' }}>
 
-            {/* --- 1. LOADER OVERLAY --- 
-                Shows if:
-                - System is generating (isSystemLoading)
-                - Animation is in progress (isAnimating)
-                - Content isn't ready yet (!isContentReady)
-            */}
-            {(isSystemLoading || isAnimating || !isContentReady) && (
+            {/* --- 1. LOADER OVERLAY --- */}
+            {isLoading && (
                 <div style={{
                     position: 'absolute', inset: 0, zIndex: 10, backgroundColor: 'rgba(5,5,5,0.9)',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
@@ -69,8 +70,22 @@ export const ShotImage = ({
                 </div>
             )}
 
-            {/* --- 2. MEDIA CONTENT --- */}
-            {isVideoReady ? (
+            {/* --- 2. EMPTY STATE (Placeholder) --- */}
+            {isEmpty && (
+                <div style={{
+                    position: 'absolute', inset: 0, zIndex: 5,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: '#050505', color: '#222', border: '1px solid #111'
+                }}>
+                    <ImageIcon size={32} strokeWidth={1} style={{ opacity: 0.5 }} />
+                    <p style={{ marginTop: '10px', fontSize: '9px', fontFamily: 'monospace', letterSpacing: '1px', color: '#333' }}>
+                        NO SIGNAL
+                    </p>
+                </div>
+            )}
+
+            {/* --- 3. MEDIA CONTENT --- */}
+            {hasVideo ? (
                 // VIDEO PLAYER
                 <video
                     src={videoUrl}
@@ -83,7 +98,7 @@ export const ShotImage = ({
                 />
             ) : (
                 // STATIC IMAGE
-                src && (
+                hasImage && (
                     <img
                         ref={imgRef}
                         src={src}
@@ -97,13 +112,13 @@ export const ShotImage = ({
                 )
             )}
 
-            {/* --- 3. CONTROLS OVERLAY --- */}
-            {/* Show controls if not animating AND content is ready (Video or Image) */}
-            {!isAnimating && isContentReady && (
+            {/* --- 4. CONTROLS OVERLAY --- */}
+            {/* Show controls if not loading and content exists */}
+            {!isLoading && !isEmpty && (
                 <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 20 }}>
 
                     {/* ANIMATE BUTTON (Hidden if video already exists) */}
-                    {!isVideoReady && (
+                    {!hasVideo && (
                         <button
                             onClick={(e) => { e.stopPropagation(); onAnimate(); }}
                             style={{
@@ -112,7 +127,7 @@ export const ShotImage = ({
                                 fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px',
                                 boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
                             }}
-                            title="Generate Video with Seedance"
+                            title="Generate Video"
                         >
                             <Film size={12} fill="white" /> ANIMATE
                         </button>
@@ -121,8 +136,8 @@ export const ShotImage = ({
                     <button onClick={onClickZoom} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Maximize2 size={14} /></button>
                     <button onClick={onDownload} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Download size={14} /></button>
 
-                    {/* Only show Inpaint if it's an image (Inpainting video is complex/unsupported here) */}
-                    {!isVideoReady && (
+                    {/* INPAINT BUTTON (Images only, hidden for video) */}
+                    {!hasVideo && (
                         <button onClick={onStartInpaint} style={{ padding: '6px', backgroundColor: 'rgba(255,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Wand2 size={14} /></button>
                     )}
                 </div>

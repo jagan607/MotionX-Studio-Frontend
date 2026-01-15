@@ -32,9 +32,10 @@ import { useShotManager } from "./hooks/useShotManager";
 // --- TOURS & MODALS ---
 import { TourGuide } from "./components/TourGuide";
 import { useEpisodeTour } from "./hooks/useEpisodeTour";
-import { StoryboardTour } from "@/components/StoryboardTour"; // NEW
-import { useStoryboardTour } from "@/hooks/useStoryboardTour"; // NEW
+import { StoryboardTour } from "@/components/StoryboardTour";
+import { useStoryboardTour } from "@/hooks/useStoryboardTour";
 import { DownloadModal } from "./components/DownloadModal";
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 
 export default function EpisodeBoard() {
     const { id: seriesId, episodeId } = useParams() as { id: string; episodeId: string };
@@ -49,9 +50,7 @@ export default function EpisodeBoard() {
     const { credits } = useCredits();
 
     // 2. TOUR HOOKS
-    // Main Episode Tour (Tabs)
     const { tourStep: epTourStep, nextStep: epNextStep, completeTour: epCompleteTour } = useEpisodeTour();
-    // Storyboard Tour (Aspect Ratio/Auto-Direct)
     const { tourStep: sbTourStep, nextStep: sbNextStep, completeTour: sbCompleteTour } = useStoryboardTour();
 
     // 3. ASSET MANAGER
@@ -60,12 +59,19 @@ export default function EpisodeBoard() {
     // 4. UI STATE
     const [activeTab, setActiveTab] = useState('scenes');
     const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
-    const [zoomImage, setZoomImage] = useState<string | null>(null);
+
+    // --- UPDATED ZOOM STATE: Handles both Image and Video ---
+    const [zoomMedia, setZoomMedia] = useState<{ url: string, type: 'image' | 'video' } | null>(null);
+
     const [inpaintData, setInpaintData] = useState<{ src: string, shotId: string } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // 5. SHOT MANAGER
     const shotMgr = useShotManager(seriesId, episodeId, activeSceneId);
+
+    // --- DELETE STATE ---
+    const [deleteShotId, setDeleteShotId] = useState<string | null>(null);
+    const [isDeletingShot, setIsDeletingShot] = useState(false);
 
     // 6. DnD SENSORS
     const sensors = useSensors(
@@ -74,6 +80,21 @@ export default function EpisodeBoard() {
     );
 
     const currentScene = scenes.find(s => s.id === activeSceneId);
+
+    // --- DELETE HANDLER ---
+    const confirmShotDelete = async () => {
+        if (!deleteShotId) return;
+        setIsDeletingShot(true);
+        try {
+            await shotMgr.handleDeleteShot(deleteShotId);
+            setDeleteShotId(null);
+        } catch (error) {
+            console.error("Failed to delete shot", error);
+            alert("Error deleting shot");
+        } finally {
+            setIsDeletingShot(false);
+        }
+    };
 
     // --- INPAINT HANDLERS ---
     const handleInpaintSave = async (prompt: string, maskBase64: string) => {
@@ -276,7 +297,6 @@ export default function EpisodeBoard() {
                             </div>
                         </div>
 
-                        {/* ID: TOUR TARGET 1 (STORYBOARD TOUR - Aspect Ratio) */}
                         <div style={{ marginLeft: '40px', display: 'flex', alignItems: 'center', gap: '10px' }} id="tour-sb-aspect">
                             <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#666' }}>ASPECT:</span>
                             <select value={shotMgr.aspectRatio} onChange={(e) => shotMgr.setAspectRatio(e.target.value)} style={{ backgroundColor: '#111', color: 'white', border: '1px solid #333', padding: '8px', fontSize: '12px', fontWeight: 'bold' }}>
@@ -286,7 +306,6 @@ export default function EpisodeBoard() {
                             </select>
                         </div>
 
-                        {/* ID: TOUR TARGET 2 (STORYBOARD TOUR - Auto Direct) */}
                         <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
                             <button
                                 id="tour-sb-autodirect"
@@ -334,7 +353,13 @@ export default function EpisodeBoard() {
                             <SortableContext items={shotMgr.shots?.map(s => s.id)} strategy={verticalListSortingStrategy}>
                                 <div style={styles.sbGrid}>
                                     {shotMgr.shots.map((shot, index) => (
-                                        <SortableShotCard key={shot.id} shot={shot} index={index} styles={styles} onDelete={shotMgr.handleDeleteShot}>
+                                        <SortableShotCard
+                                            key={shot.id}
+                                            shot={shot}
+                                            index={index}
+                                            styles={styles}
+                                            onDelete={() => setDeleteShotId(shot.id)}
+                                        >
                                             <div style={styles.shotImageContainer}>
                                                 <ShotImage
                                                     src={shot.image_url}
@@ -342,7 +367,11 @@ export default function EpisodeBoard() {
                                                     videoStatus={shot.video_status}
                                                     shotId={shot.id}
                                                     isSystemLoading={shotMgr.loadingShots.has(shot.id)}
-                                                    onClickZoom={() => setZoomImage(shot.video_url || shot.image_url)}
+                                                    // --- UPDATED ZOOM HANDLER ---
+                                                    onClickZoom={() => {
+                                                        if (shot.video_url) setZoomMedia({ url: shot.video_url, type: 'video' });
+                                                        else if (shot.image_url) setZoomMedia({ url: shot.image_url, type: 'image' });
+                                                    }}
                                                     onDownload={() => handleDownloadRequest(shot)}
                                                     onStartInpaint={() => setInpaintData({ src: shot.image_url, shotId: shot.id })}
                                                     onAnimate={() => shotMgr.handleAnimateShot(shot)}
@@ -397,10 +426,26 @@ export default function EpisodeBoard() {
                 </div>
             )}
 
-            {zoomImage && (
-                <div style={styles.zoomOverlay} onClick={() => setZoomImage(null)}>
-                    <img src={zoomImage} style={styles.zoomImg} onClick={(e) => e.stopPropagation()} />
-                    <X size={30} style={{ position: 'absolute', top: 30, right: 30, color: 'white', cursor: 'pointer' }} onClick={() => setZoomImage(null)} />
+            {/* --- UPDATED ZOOM OVERLAY: HANDLES VIDEO & IMAGE --- */}
+            {zoomMedia && (
+                <div style={styles.zoomOverlay} onClick={() => setZoomMedia(null)}>
+                    {zoomMedia.type === 'video' ? (
+                        <video
+                            src={zoomMedia.url}
+                            controls
+                            autoPlay
+                            loop
+                            style={{ maxWidth: '90%', maxHeight: '90%', outline: 'none', boxShadow: '0 0 50px rgba(0,0,0,0.8)' }}
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    ) : (
+                        <img
+                            src={zoomMedia.url}
+                            style={styles.zoomImg}
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    )}
+                    <X size={30} style={{ position: 'absolute', top: 30, right: 30, color: 'white', cursor: 'pointer' }} onClick={() => setZoomMedia(null)} />
                 </div>
             )}
 
@@ -465,20 +510,10 @@ export default function EpisodeBoard() {
             )}
 
             {/* --- RENDER TOURS --- */}
-            {/* 1. Episode Tab Tour */}
-            <TourGuide
-                step={epTourStep}
-                onNext={epNextStep}
-                onComplete={epCompleteTour}
-            />
+            <TourGuide step={epTourStep} onNext={epNextStep} onComplete={epCompleteTour} />
 
-            {/* 2. Storyboard Action Tour (Shows up when Overlay is active) */}
             {activeSceneId && (
-                <StoryboardTour
-                    step={sbTourStep}
-                    onNext={sbNextStep}
-                    onComplete={sbCompleteTour}
-                />
+                <StoryboardTour step={sbTourStep} onNext={sbNextStep} onComplete={sbCompleteTour} />
             )}
 
             {/* --- DOWNLOAD MODAL --- */}
@@ -487,6 +522,17 @@ export default function EpisodeBoard() {
                     shot={downloadShot}
                     onClose={() => setDownloadShot(null)}
                     onDownload={handleModalChoice}
+                />
+            )}
+
+            {/* --- DELETE CONFIRMATION MODAL --- */}
+            {deleteShotId && (
+                <DeleteConfirmModal
+                    title="DELETE SHOT?"
+                    message="This will permanently delete this shot and all its generated assets. This action is irreversible."
+                    isDeleting={isDeletingShot}
+                    onConfirm={confirmShotDelete}
+                    onCancel={() => setDeleteShotId(null)}
                 />
             )}
         </main>

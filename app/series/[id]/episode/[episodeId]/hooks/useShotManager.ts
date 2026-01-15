@@ -1,5 +1,3 @@
-// app/series/[id]/episode/[episodeId]/hooks/useShotManager.ts
-
 import { useState, useEffect } from "react";
 import { collection, onSnapshot, doc, setDoc, writeBatch, deleteDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
@@ -47,8 +45,9 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         await setDoc(ref, { [field]: value }, { merge: true });
     };
 
+    // --- UPDATED: Removed window.confirm logic here ---
     const handleDeleteShot = async (shotId: string) => {
-        if (!window.confirm("Delete this shot?")) return;
+        // Confirmation is now handled by the UI component (DeleteConfirmModal)
         const ref = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId!, "shots", shotId);
         await deleteDoc(ref);
     };
