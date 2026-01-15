@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     siteName: "MotionX Studio",
     images: [
       {
-        url: "/og-share-image.png", // Must be in 'public' folder
+        url: "https://studio.motionx.in/og-share-image.png", // Must be in 'public' folder
         width: 1200,
         height: 630,
         alt: "MotionX Studio Preview",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "MotionX Studio | Direct AI Cinema",
     description: "The first AI-native operating system for filmmakers.",
-    images: ["/og-share-image.png"], // Must be in 'public' folder
+    images: ["https://studio.motionx.in/og-share-image.png"], // Must be in 'public' folder
   },
 };
 
