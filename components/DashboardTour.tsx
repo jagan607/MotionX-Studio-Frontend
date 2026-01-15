@@ -9,29 +9,46 @@ interface TourProps {
 }
 
 export const DashboardTour = ({ step, onNext, onComplete }: TourProps) => {
-    const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+    // 1. UPDATE STATE: Store 'rect' to capture width/height of the target
+    const [pos, setPos] = useState<{ top: number; left: number, rect?: DOMRect } | null>(null);
 
     useEffect(() => {
         if (step === 0) return;
 
-        // TARGETS: We will add these IDs to your GlobalHeader next
+        // TARGETS: These IDs must exist in your GlobalHeader
         const targetId = step === 1 ? "tour-credits-target" : "tour-new-series-target";
         const el = document.getElementById(targetId);
 
         if (el) {
             const rect = el.getBoundingClientRect();
-
-            // Logic: Place box BELOW the element, aligned roughly to the RIGHT
             setPos({
+                // Tooltip position
                 top: rect.bottom + 20,
-                left: rect.right - 300 // Shift left to keep box on screen
+                left: rect.right - 300,
+                // 2. SAVE RECT: We need the target's exact geometry for the spotlight
+                rect: rect
             });
         }
     }, [step]);
 
     if (step === 0 || !pos) return null;
 
-    // STYLES
+    // --- SPOTLIGHT STYLE ---
+    // This creates a transparent hole over the target and shadows everything else
+    const spotlightStyle: React.CSSProperties = {
+        position: 'fixed',
+        top: pos.rect?.top,
+        left: pos.rect?.left,
+        width: pos.rect?.width,
+        height: pos.rect?.height,
+        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.85)', // THE DARK OVERLAY
+        borderRadius: '4px',
+        zIndex: 9998, // Behind tooltip, above content
+        pointerEvents: 'none', // Allow clicking the button through the hole
+        transition: 'all 0.3s ease'
+    };
+
+    // --- TOOLTIP BOX STYLE ---
     const boxStyle: React.CSSProperties = {
         position: 'fixed',
         top: pos.top,
@@ -41,7 +58,7 @@ export const DashboardTour = ({ step, onNext, onComplete }: TourProps) => {
         padding: '20px',
         borderRadius: '2px',
         boxShadow: '0 10px 40px rgba(0, 0, 0, 0.9)',
-        zIndex: 9999,
+        zIndex: 9999, // Above spotlight
         width: '300px',
         fontSize: '13px',
         fontWeight: 500,
@@ -73,7 +90,8 @@ export const DashboardTour = ({ step, onNext, onComplete }: TourProps) => {
 
     return (
         <>
-            <div style={{ position: 'fixed', inset: 0, background: 'transparent', zIndex: 9998, pointerEvents: 'none' }} />
+            {/* 3. RENDER THE SPOTLIGHT */}
+            <div style={spotlightStyle} />
 
             <div style={boxStyle}>
                 <div style={arrowStyle} />

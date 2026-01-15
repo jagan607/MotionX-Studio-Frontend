@@ -9,7 +9,8 @@ interface TourProps {
 }
 
 export const StoryboardTour = ({ step, onNext, onComplete }: TourProps) => {
-    const [pos, setPos] = useState<{ top: number; left: number, arrowRight?: number, arrowLeft?: number } | null>(null);
+    // 1. UPDATE STATE: Store 'rect' for spotlight dimensions
+    const [pos, setPos] = useState<{ top: number; left: number, rect?: DOMRect, arrowRight?: number, arrowLeft?: number } | null>(null);
 
     useEffect(() => {
         if (step === 0) return;
@@ -22,14 +23,38 @@ export const StoryboardTour = ({ step, onNext, onComplete }: TourProps) => {
 
             // Logic: Different alignment for Aspect Ratio (Center/Left) vs Auto-Direct (Right)
             if (step === 1) {
-                setPos({ top: rect.bottom + 20, left: rect.left, arrowLeft: 30 });
+                setPos({
+                    top: rect.bottom + 20,
+                    left: rect.left,
+                    arrowLeft: 30,
+                    rect: rect // Save dimensions
+                });
             } else {
-                setPos({ top: rect.bottom + 20, left: rect.right - 300, arrowRight: 30 });
+                setPos({
+                    top: rect.bottom + 20,
+                    left: rect.right - 300,
+                    arrowRight: 30,
+                    rect: rect // Save dimensions
+                });
             }
         }
     }, [step]);
 
     if (step === 0 || !pos) return null;
+
+    // --- SPOTLIGHT STYLE ---
+    const spotlightStyle: React.CSSProperties = {
+        position: 'fixed',
+        top: pos.rect?.top,
+        left: pos.rect?.left,
+        width: pos.rect?.width,
+        height: pos.rect?.height,
+        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.85)', // Dark overlay
+        borderRadius: '4px',
+        zIndex: 9998, // Behind tooltip
+        pointerEvents: 'none',
+        transition: 'all 0.3s ease'
+    };
 
     const boxStyle: React.CSSProperties = {
         position: 'fixed', top: pos.top, left: pos.left,
@@ -63,7 +88,9 @@ export const StoryboardTour = ({ step, onNext, onComplete }: TourProps) => {
 
     return (
         <>
-            <div style={{ position: 'fixed', inset: 0, background: 'transparent', zIndex: 9998, pointerEvents: 'none' }} />
+            {/* 3. RENDER SPOTLIGHT */}
+            <div style={spotlightStyle} />
+
             <div style={boxStyle}>
                 <div style={arrowStyle} />
                 <div style={headerStyle}>

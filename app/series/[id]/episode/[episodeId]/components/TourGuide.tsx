@@ -9,8 +9,15 @@ interface TourGuideProps {
 }
 
 export const TourGuide = ({ step, onNext, onComplete }: TourGuideProps) => {
-    // State to hold the calculated position
-    const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+    // 1. STATE: Store explicit dimensions for both Tooltip and Spotlight
+    const [pos, setPos] = useState<{
+        tooltipTop: number;
+        tooltipLeft: number;
+        targetTop: number;
+        targetLeft: number;
+        targetWidth: number;
+        targetHeight: number;
+    } | null>(null);
 
     // DYNAMIC POSITIONING LOGIC
     useEffect(() => {
@@ -24,44 +31,71 @@ export const TourGuide = ({ step, onNext, onComplete }: TourGuideProps) => {
             const rect = el.getBoundingClientRect();
 
             if (step === 1) {
-                // STEP 1: ASSETS (Tabs)
-                // Place box BELOW the tabs, aligned to the right side of the tab bar
+                // STEP 1: ASSETS (Tabs) -> Tooltip BELOW
                 setPos({
-                    top: rect.bottom + 20, // 20px gap below the tabs
-                    left: rect.right - 300 // Shift left by width of box (300px) to align right edges
+                    // Spotlight matches target exactly
+                    targetTop: rect.top,
+                    targetLeft: rect.left,
+                    targetWidth: rect.width,
+                    targetHeight: rect.height,
+
+                    // Tooltip Position: Below tabs, aligned right
+                    tooltipTop: rect.bottom + 20,
+                    tooltipLeft: rect.right - 300
                 });
             } else {
-                // STEP 2: STORYBOARD (Button)
-                // Place box ABOVE the button
+                // STEP 2: STORYBOARD (Button) -> Tooltip ABOVE
                 setPos({
-                    top: rect.top - 190, // Move up by height of box + gap
-                    left: rect.left      // Align left edges
+                    // Spotlight matches target exactly
+                    targetTop: rect.top,
+                    targetLeft: rect.left,
+                    targetWidth: rect.width,
+                    targetHeight: rect.height,
+
+                    // Tooltip Position: Above button, aligned left
+                    tooltipTop: rect.top - 190,
+                    tooltipLeft: rect.left
                 });
             }
         }
-    }, [step]); // Re-calculate whenever step changes
+    }, [step]);
 
     // Don't render until we have a position
     if (step === 0 || !pos) return null;
 
     // --- STYLES ---
+
+    // 2. SPOTLIGHT STYLE (The Focus Effect)
+    const spotlightStyle: React.CSSProperties = {
+        position: 'fixed',
+        top: pos.targetTop,
+        left: pos.targetLeft,
+        width: pos.targetWidth,
+        height: pos.targetHeight,
+        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.85)', // Massive shadow creates the overlay
+        borderRadius: '4px',
+        zIndex: 9998, // Behind the tooltip
+        pointerEvents: 'none', // Allows clicking through to the target
+        transition: 'all 0.3s ease'
+    };
+
     const boxStyle: React.CSSProperties = {
         position: 'fixed',
-        top: pos.top,
-        left: pos.left,
+        top: pos.tooltipTop,
+        left: pos.tooltipLeft,
         backgroundColor: '#FF0000',
         color: 'white',
         padding: '20px',
         borderRadius: '4px',
         boxShadow: '0 10px 40px rgba(0, 0, 0, 0.9)',
-        zIndex: 9999,
+        zIndex: 9999, // Above spotlight
         width: '300px',
         fontSize: '12px',
         fontWeight: 500,
         letterSpacing: '0.5px',
         lineHeight: '1.5',
         animation: 'fadeIn 0.3s ease-out',
-        transition: 'top 0.3s, left 0.3s' // Smooth movement if window resizes
+        transition: 'top 0.3s, left 0.3s'
     };
 
     const headerStyle: React.CSSProperties = {
@@ -99,9 +133,10 @@ export const TourGuide = ({ step, onNext, onComplete }: TourGuideProps) => {
 
     return (
         <>
-            {/* BACKDROP */}
-            <div style={{ position: 'fixed', inset: 0, background: 'transparent', zIndex: 9998, pointerEvents: 'none' }} />
+            {/* 3. RENDER SPOTLIGHT */}
+            <div style={spotlightStyle} />
 
+            {/* RENDER TOOLTIP */}
             <div style={boxStyle}>
                 {/* DYNAMIC ARROWS */}
                 {step === 1 ? (

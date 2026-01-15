@@ -8,7 +8,8 @@ interface TourProps {
 }
 
 export const SeriesTour = ({ step, onComplete }: TourProps) => {
-    const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+    // 1. UPDATE STATE: Store 'rect' to capture width/height of the target
+    const [pos, setPos] = useState<{ top: number; left: number, rect?: DOMRect } | null>(null);
 
     useEffect(() => {
         if (step === 0) return;
@@ -19,12 +20,29 @@ export const SeriesTour = ({ step, onComplete }: TourProps) => {
             setPos({
                 top: rect.bottom + 20,
                 // Align to right side of button, shifting left to fit box
-                left: rect.right - 300
+                left: rect.right - 300,
+                // 2. SAVE RECT for the spotlight
+                rect: rect
             });
         }
     }, [step]);
 
     if (step === 0 || !pos) return null;
+
+    // --- SPOTLIGHT STYLE ---
+    // Creates the focus effect by using a massive shadow around the target's dimensions
+    const spotlightStyle: React.CSSProperties = {
+        position: 'fixed',
+        top: pos.rect?.top,
+        left: pos.rect?.left,
+        width: pos.rect?.width,
+        height: pos.rect?.height,
+        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.85)', // Dark overlay
+        borderRadius: '4px',
+        zIndex: 9998, // Behind tooltip
+        pointerEvents: 'none', // Allows clicking the actual button through the hole
+        transition: 'all 0.3s ease'
+    };
 
     const boxStyle: React.CSSProperties = {
         position: 'fixed', top: pos.top, left: pos.left,
@@ -48,7 +66,9 @@ export const SeriesTour = ({ step, onComplete }: TourProps) => {
 
     return (
         <>
-            <div style={{ position: 'fixed', inset: 0, background: 'transparent', zIndex: 9998, pointerEvents: 'none' }} />
+            {/* 3. RENDER SPOTLIGHT */}
+            <div style={spotlightStyle} />
+
             <div style={boxStyle}>
                 <div style={arrowStyle} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.3)', paddingBottom: '8px', fontWeight: 'bold', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase' }}>
