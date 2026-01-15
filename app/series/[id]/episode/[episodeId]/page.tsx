@@ -1,31 +1,23 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
-import { collection, getDocs, doc, setDoc, getDoc, onSnapshot, writeBatch, deleteDoc } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
-import { ArrowLeft, MapPin, X, Users, LayoutTemplate, Camera, Upload, Sparkles, Loader2, Image as ImageIcon, Film, Plus, Wand2, Maximize2, Download } from "lucide-react";
-import Link from "next/link";
-import { Trash2, GripVertical } from "lucide-react";
-import {
-    DndContext,
-    closestCenter,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    DragEndEvent
-} from '@dnd-kit/core';
 
+import { useState, useRef } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 import {
-    arrayMove,
-    SortableContext,
-    sortableKeyboardCoordinates,
-    verticalListSortingStrategy,
-    useSortable
+    ArrowLeft, MapPin, X, Users, LayoutTemplate, Camera, Upload,
+    Sparkles, Loader2, Image as ImageIcon, Film, Plus, Wand2
+} from "lucide-react";
+import {
+    DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
+} from '@dnd-kit/core';
+import {
+    SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 
-import { CSS } from '@dnd-kit/utilities';
+// --- CUSTOM IMPORTS ---
+import { auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
+<<<<<<< HEAD
 import { LogOut, Zap } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 
@@ -327,44 +319,46 @@ const SortableShotCard = ({ shot, index, styles, onDelete, children }: any) => {
     );
 };
 
+=======
+import { styles } from "./components/BoardStyles";
+import { ShotImage } from "./components/ShotImage";
+import { InpaintEditor } from "./components/InpaintEditor";
+import { SortableShotCard } from "./components/SortableShotCard";
+
+// --- HOOKS ---
+import { useEpisodeData } from "./hooks/useEpisodeData";
+import { useAssetManager } from "./hooks/useAssetManager";
+import { useShotManager } from "./hooks/useShotManager";
+>>>>>>> 5835832 (story boarding modularization)
 
 export default function EpisodeBoard() {
-    const params = useParams();
-    const seriesId = params?.id as string;
-    const episodeId = params?.episodeId as string;
+    const { id: seriesId, episodeId } = useParams() as { id: string; episodeId: string };
 
+<<<<<<< HEAD
     const { credits } = useCredits();
 
     const [scenes, setScenes] = useState<any[]>([]);
     const [episodeData, setEpisodeData] = useState<any>(null);
+=======
+    // 1. DATA HOOKS (Fetches initial data)
+    const {
+        episodeData, scenes, uniqueChars, uniqueLocs,
+        characterImages, setCharacterImages,
+        locationImages, setLocationImages
+    } = useEpisodeData(seriesId, episodeId);
+
+    // 2. ASSET MANAGER HOOK (Handles Upload/Generation modals)
+    const assetMgr = useAssetManager(seriesId);
+
+    // 3. LOCAL UI STATE
+>>>>>>> 5835832 (story boarding modularization)
     const [activeTab, setActiveTab] = useState('scenes');
-
-    // Assets
-    const [uniqueChars, setUniqueChars] = useState<string[]>([]);
-    const [uniqueLocs, setUniqueLocs] = useState<string[]>([]);
-    const [characterImages, setCharacterImages] = useState<Record<string, string>>({});
-    const [locationImages, setLocationImages] = useState<Record<string, string>>({});
-
-    // Storyboard State
     const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
-    const [shots, setShots] = useState<any[]>([]);
-    const [loadingShots, setLoadingShots] = useState<Set<string>>(new Set());
-
-    // AI Director State
-    const [isAutoDirecting, setIsAutoDirecting] = useState(false);
-    const [terminalLog, setTerminalLog] = useState<string[]>([]);
-    const [aspectRatio, setAspectRatio] = useState("9:16");
-
-    // Zoom / Modal State
     const [zoomImage, setZoomImage] = useState<string | null>(null);
-    const [modalOpen, setModalOpen] = useState(false);
-    const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
-    const [assetType, setAssetType] = useState<'character' | 'location'>('character');
-    const [modalMode, setModalMode] = useState<'upload' | 'generate'>('upload');
-    const [genPrompt, setGenPrompt] = useState("");
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [inpaintData, setInpaintData] = useState<{ src: string, shotId: string } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+<<<<<<< HEAD
     // const [inpaintImage, setInpaintImage] = useState<string | null>(null);
     // const [showInpaintEditor, setShowInpaintEditor] = useState(false);
 
@@ -419,175 +413,54 @@ export default function EpisodeBoard() {
         });
         return () => unsubscribe();
     }, [activeSceneId]);
+=======
+    // 4. SHOT MANAGER HOOK (Handles Storyboard Logic - only active when scene selected)
+    const shotMgr = useShotManager(seriesId, episodeId, activeSceneId);
+>>>>>>> 5835832 (story boarding modularization)
 
+    // 5. DnD SENSORS
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    const handleDeleteShot = async (shotId: string) => {
-        if (!window.confirm("Delete this shot?")) return;
-        const ref = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId!, "shots", shotId);
-        await deleteDoc(ref); // Make sure to import deleteDoc from firebase/firestore
-    };
+    // Helper: Get current scene object
+    const currentScene = scenes.find(s => s.id === activeSceneId);
 
-    const handleDragEnd = async (event: any) => {
-        const { active, over } = event;
-        if (active.id !== over.id) {
-            const oldIndex = shots.findIndex((s) => s.id === active.id);
-            const newIndex = shots.findIndex((s) => s.id === over.id);
-
-            const newOrder = arrayMove(shots, oldIndex, newIndex);
-            setShots(newOrder);
-
-            // PERSISTENCE: In a real app, you'd update a 'position' field in Firestore
-            // For now, the visual order is updated.
-        }
-    };
-
-
-    async function fetchData() {
-        try {
-            const epDoc = await getDoc(doc(db, "series", seriesId, "episodes", episodeId));
-            if (epDoc.exists()) setEpisodeData(epDoc.data());
-
-            const querySnapshot = await getDocs(collection(db, "series", seriesId, "episodes", episodeId, "scenes"));
-            const scenesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            scenesData.sort((a: any, b: any) => a.scene_number - b.scene_number);
-            setScenes(scenesData);
-
-            const chars = new Set<string>();
-            const locs = new Set<string>();
-            scenesData.forEach((s: any) => {
-                s.characters?.forEach((c: string) => chars.add(c));
-                if (s.location) locs.add(s.location);
-            });
-            setUniqueChars(Array.from(chars));
-            setUniqueLocs(Array.from(locs));
-            console.log("Unique chars:", Array.from(chars));
-            console.log("Unique locs:", Array.from(locs));
-
-            const charSnapshot = await getDocs(collection(db, "series", seriesId, "characters"));
-            const charMap: Record<string, string> = {};
-            charSnapshot.forEach(doc => charMap[doc.id] = doc.data().image_url);
-            setCharacterImages(charMap);
-
-            const locSnapshot = await getDocs(collection(db, "series", seriesId, "locations"));
-            const locMap: Record<string, string> = {};
-            locSnapshot.forEach(doc => {
-                const data = doc.data();
-                if (data.name) {
-                    locMap[data.name] = data.image_url;
-                }
-            });
-            setLocationImages(locMap);
-            console.log("loca images:", locMap);
-        } catch (e) { console.error(e); }
-    }
-
-    // --- HELPERS ---
-    const addLoadingShot = (id: string) => setLoadingShots(prev => new Set(prev).add(id));
-    const removeLoadingShot = (id: string) => setLoadingShots(prev => { const next = new Set(prev); next.delete(id); return next; });
-
-    // --- AUTO DIRECTOR ---
-    const handleAutoDirect = async () => {
-        if (!activeSceneId) return;
-        setIsAutoDirecting(true);
-        setTerminalLog(["> INITIALIZING AI DIRECTOR..."]);
-
-        const currentScene = scenes.find(s => s.id === activeSceneId);
-
-        const formData = new FormData();
-        formData.append("series_id", seriesId);
-        formData.append("episode_id", episodeId);
-        formData.append("scene_id", activeSceneId);
-        formData.append("scene_action", currentScene.visual_action || "");
-
-        // Use a fallback to a space or specific string if "" is causing 422
-        const charString = Array.isArray(currentScene.characters) && currentScene.characters.length > 0
-            ? currentScene.characters.join(", ")
-            : "None";
-
-        formData.append("characters", charString);
-        formData.append("location", currentScene.location || "Unknown");
-
+    // --- INPAINT HANDLERS (Bridging Page Logic) ---
+    const handleInpaintSave = async (prompt: string, maskBase64: string) => {
+        if (!inpaintData) return null;
         try {
             const idToken = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${API_BASE_URL}/api/v1/shot/suggest_shots`, {
+            const formData = new FormData();
+            formData.append("series_id", seriesId);
+            formData.append("shot_id", inpaintData.shotId);
+            formData.append("prompt", prompt);
+            formData.append("original_image_url", inpaintData.src);
+            formData.append("mask_image_base64", maskBase64);
+
+            const res = await fetch(`${API_BASE_URL}/api/v1/shot/inpaint_shot`, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${idToken}` },
                 body: formData
             });
-
             const data = await res.json();
-
-            if (res.status === 422) {
-                console.error("422 Error Detail:", data.detail);
-                setIsAutoDirecting(false);
-                return;
-            }
-
-            if (res.ok && data.shots) {
-                setTerminalLog(prev => [...prev, "> GENERATING SHOT LIST..."]);
-                const batch = writeBatch(db);
-                const newShotsToRender: any[] = [];
-
-                data.shots.forEach((shot: any, index: number) => {
-                    const newShotId = `shot_${String(index + 1).padStart(2, '0')}`;
-                    const docRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", newShotId);
-
-                    const shotPayload = {
-                        id: newShotId,
-                        type: shot.type,
-                        prompt: shot.description,
-                        characters: shot.characters || [],
-                        location: shot.location || currentScene.location || "",
-                        status: "draft"
-                    };
-
-                    batch.set(docRef, shotPayload);
-                    newShotsToRender.push(shotPayload);
-                });
-
-                await batch.commit();
-                setIsAutoDirecting(false);
-
-                // This triggers the actual image generation and GCS upload one-by-one
-                generateAllShots(newShotsToRender);
-            }
+            return data.status === "success" ? data.image_url : null;
         } catch (e) {
-            console.error(e);
-            setIsAutoDirecting(false);
+            alert("Inpaint failed");
+            return null;
         }
     };
 
-    // --- SEQUENTIAL GENERATION ---
-    const generateAllShots = async (shotList: any[]) => {
-        for (const shot of shotList) {
-            handleRenderShot(shot);
-            await new Promise(r => setTimeout(r, 1500)); // Staggered delay
-        }
-    };
-
-    const handleApplyInpaint = async (newImageUrl: string) => {
-        if (!inpaintData) return;
-
-        try {
-            const shotRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId!, "shots", inpaintData.shotId);
-
-            // Update Firestore with the refined image
-            await setDoc(shotRef, {
-                image_url: newImageUrl,
-                status: "rendered" // Ensure it stays in rendered state
-            }, { merge: true });
-
-            // Close the editor
+    const handleApplyInpaint = (url: string) => {
+        if (inpaintData) {
+            shotMgr.updateShot(inpaintData.shotId, "image_url", url);
+            shotMgr.updateShot(inpaintData.shotId, "status", "rendered");
             setInpaintData(null);
-        } catch (e) {
-            alert("Failed to apply fix to storyboard.");
         }
     };
 
+<<<<<<< HEAD
     const handleRenderShot = async (shot: any) => {
         addLoadingShot(shot.id);
         const currentScene = scenes.find(s => s.id === activeSceneId);
@@ -846,38 +719,62 @@ export default function EpisodeBoard() {
 
     };
 
+=======
+>>>>>>> 5835832 (story boarding modularization)
     return (
         <main style={styles.container}>
-            <style>{` @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } .spin-loader { animation: spin 1s linear infinite; } `}</style>
-
-            {/* ... (Top Nav, Header, Scenes, Casting, Locations Tabs - KEEP SAME) ... */}
+            {/* --- TOP NAV --- */}
             <div style={styles.topNav}>
-                <Link href={`/series/${seriesId}`} style={styles.backLink}><ArrowLeft size={14} /> BACK TO EPISODES</Link>
+                <Link href={`/series/${seriesId}`} style={styles.backLink}>
+                    <ArrowLeft size={14} /> BACK TO EPISODES
+                </Link>
                 <div style={{ fontSize: '12px', color: '#444' }}>MOTION X STUDIO</div>
             </div>
+
+            {/* --- HEADER --- */}
             <div style={styles.header}>
-                <div style={styles.titleBlock}><h1 style={styles.title}>{episodeData?.title || 'UNTITLED'}</h1><p style={styles.subtitle}>PHASE 2: ASSET LAB</p></div>
+                <div style={styles.titleBlock}>
+                    <h1 style={styles.title}>{episodeData?.title || 'UNTITLED'}</h1>
+                    <p style={styles.subtitle}>PHASE 2: ASSET LAB</p>
+                </div>
                 <div style={styles.tabRow}>
-                    <div style={styles.tabBtn(activeTab === 'scenes')} onClick={() => setActiveTab('scenes')}><LayoutTemplate size={16} /> SCENES</div>
-                    <div style={styles.tabBtn(activeTab === 'casting')} onClick={() => setActiveTab('casting')}><Users size={16} /> CASTING ({uniqueChars.length})</div>
-                    <div style={styles.tabBtn(activeTab === 'locations')} onClick={() => setActiveTab('locations')}><MapPin size={16} /> LOCATIONS ({uniqueLocs.length})</div>
+                    <div style={styles.tabBtn(activeTab === 'scenes')} onClick={() => setActiveTab('scenes')}>
+                        <LayoutTemplate size={16} /> SCENES
+                    </div>
+                    <div style={styles.tabBtn(activeTab === 'casting')} onClick={() => setActiveTab('casting')}>
+                        <Users size={16} /> CASTING ({uniqueChars.length})
+                    </div>
+                    <div style={styles.tabBtn(activeTab === 'locations')} onClick={() => setActiveTab('locations')}>
+                        <MapPin size={16} /> LOCATIONS ({uniqueLocs.length})
+                    </div>
                 </div>
             </div>
 
+            {/* --- TAB CONTENT: SCENES --- */}
             {activeTab === 'scenes' && (
                 <div style={styles.grid}>
                     {scenes.map(scene => (
                         <div key={scene.id} style={styles.card}>
-                            <div style={styles.sceneHeader}><span style={styles.sceneTitle}>SCENE {scene.scene_number}</span><span style={styles.metaTag}>{scene.time_of_day}</span></div>
-                            <div style={styles.locRow}><MapPin size={16} color="#666" /> {scene.location}</div>
+                            <div style={styles.sceneHeader}>
+                                <span style={styles.sceneTitle}>SCENE {scene.scene_number}</span>
+                                <span style={styles.metaTag}>{scene.time_of_day}</span>
+                            </div>
+                            <div style={styles.locRow}>
+                                <MapPin size={16} color="#666" /> {scene.location}
+                            </div>
                             <p style={styles.actionText}>{scene.visual_action}</p>
-                            <button onClick={() => handleOpenStoryboard(scene.id)} style={{ width: '100%', padding: '15px', backgroundColor: '#222', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '12px', letterSpacing: '1px' }}>
+                            <button
+                                onClick={() => setActiveSceneId(scene.id)}
+                                style={{ width: '100%', padding: '15px', backgroundColor: '#222', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '12px', letterSpacing: '1px' }}
+                            >
                                 <Film size={16} /> OPEN STORYBOARD
                             </button>
                         </div>
                     ))}
                 </div>
             )}
+
+            {/* --- TAB CONTENT: CASTING --- */}
             {activeTab === 'casting' && (
                 <div style={styles.grid}>
                     {uniqueChars.map((char, index) => {
@@ -886,22 +783,33 @@ export default function EpisodeBoard() {
                             <div key={index} style={styles.assetCard}>
                                 {imageUrl ? <img src={imageUrl} alt={char} style={styles.assetImage} /> : <div style={styles.assetPlaceholder}><Camera size={40} /></div>}
                                 <div style={styles.assetName}>{char}</div>
-                                <button style={{ ...styles.genBtn, backgroundColor: imageUrl ? '#222' : '#FF0000' }} onClick={() => openAssetModal(char, 'character')}>{imageUrl ? "REGENERATE" : "GENERATE CHARACTER"}</button>
+                                <button
+                                    style={{ ...styles.genBtn, backgroundColor: imageUrl ? '#222' : '#FF0000' }}
+                                    onClick={() => assetMgr.openAssetModal(char, 'character')}
+                                >
+                                    {imageUrl ? "REGENERATE" : "GENERATE CHARACTER"}
+                                </button>
                             </div>
                         );
                     })}
                 </div>
             )}
+
+            {/* --- TAB CONTENT: LOCATIONS --- */}
             {activeTab === 'locations' && (
                 <div style={styles.grid}>
                     {uniqueLocs.map((loc, index) => {
                         const imageUrl = locationImages[loc];
-                        console.log("Location images:", locationImages);
                         return (
                             <div key={index} style={styles.assetCard}>
                                 {imageUrl ? <img src={imageUrl} alt={loc} style={styles.assetImage} /> : <div style={styles.assetPlaceholder}><ImageIcon size={40} /></div>}
                                 <div style={styles.assetName}>{loc}</div>
-                                <button style={{ ...styles.genBtn, backgroundColor: imageUrl ? '#222' : '#FF0000' }} onClick={() => openAssetModal(loc, 'location')}>{imageUrl ? "REGENERATE SET" : "BUILD SET"}</button>
+                                <button
+                                    style={{ ...styles.genBtn, backgroundColor: imageUrl ? '#222' : '#FF0000' }}
+                                    onClick={() => assetMgr.openAssetModal(loc, 'location')}
+                                >
+                                    {imageUrl ? "REGENERATE SET" : "BUILD SET"}
+                                </button>
                             </div>
                         );
                     })}
@@ -911,6 +819,7 @@ export default function EpisodeBoard() {
             {/* --- STORYBOARD OVERLAY --- */}
             {activeSceneId && (
                 <div style={styles.sbOverlay}>
+                    {/* Toolbar */}
                     <div style={styles.sbHeader}>
                         <button onClick={() => setActiveSceneId(null)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', fontWeight: 'bold' }}>
                             <ArrowLeft size={20} /> CLOSE BOARD
@@ -929,7 +838,7 @@ export default function EpisodeBoard() {
 
                         <div style={{ marginLeft: '40px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#666' }}>ASPECT:</span>
-                            <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} style={{ backgroundColor: '#111', color: 'white', border: '1px solid #333', padding: '8px', fontSize: '12px', fontWeight: 'bold' }}>
+                            <select value={shotMgr.aspectRatio} onChange={(e) => shotMgr.setAspectRatio(e.target.value)} style={{ backgroundColor: '#111', color: 'white', border: '1px solid #333', padding: '8px', fontSize: '12px', fontWeight: 'bold' }}>
                                 <option value="16:9">16:9 (Cinema)</option>
                                 <option value="21:9">21:9 (Wide)</option>
                                 <option value="9:16">9:16 (Vertical)</option>
@@ -937,14 +846,16 @@ export default function EpisodeBoard() {
                         </div>
 
                         <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
-                            <button onClick={handleAutoDirect} disabled={isAutoDirecting} style={{ padding: '12px 24px', backgroundColor: '#222', color: '#FFF', fontWeight: 'bold', border: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', letterSpacing: '1px' }}>
+                            <button onClick={() => shotMgr.handleAutoDirect(currentScene)} disabled={shotMgr.isAutoDirecting} style={{ padding: '12px 24px', backgroundColor: '#222', color: '#FFF', fontWeight: 'bold', border: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', letterSpacing: '1px' }}>
                                 <Wand2 size={16} /> AUTO-DIRECT
                             </button>
-                            <button onClick={handleAddShot} style={{ padding: '12px 24px', backgroundColor: '#FFF', color: 'black', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', letterSpacing: '1px' }}>
+                            <button onClick={() => shotMgr.handleAddShot(currentScene)} style={{ padding: '12px 24px', backgroundColor: '#FFF', color: 'black', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', letterSpacing: '1px' }}>
                                 <Plus size={16} /> ADD SHOT
                             </button>
                         </div>
                     </div>
+
+                    {/* Inpaint Modal */}
                     {inpaintData && (
                         <InpaintEditor
                             src={inpaintData.src}
@@ -955,6 +866,7 @@ export default function EpisodeBoard() {
                         />
                     )}
 
+<<<<<<< HEAD
                     {/* --- EMPTY STATE OR GRID --- */}
                     {shots.length === 0 ? (
                         <div style={{
@@ -1038,6 +950,77 @@ export default function EpisodeBoard() {
                                 >
                                     <Plus size={18} /> MANUAL ENTRY
                                 </button>
+=======
+                    {/* Draggable Shot Grid */}
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={shotMgr.handleDragEnd}>
+                        <SortableContext items={shotMgr.shots?.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                            <div style={styles.sbGrid}>
+                                {shotMgr.shots.map((shot, index) => (
+                                    <SortableShotCard
+                                        key={shot.id}
+                                        shot={shot}
+                                        index={index}
+                                        styles={styles}
+                                        onDelete={shotMgr.handleDeleteShot}
+                                    >
+                                        {/* Image Area */}
+                                        <div style={styles.shotImageContainer}>
+                                            <ShotImage
+                                                src={shot.image_url}
+                                                videoUrl={shot.video_url}
+                                                videoStatus={shot.video_status}
+                                                shotId={shot.id}
+                                                isSystemLoading={shotMgr.loadingShots.has(shot.id)}
+                                                onClickZoom={() => setZoomImage(shot.video_url || shot.image_url)}
+                                                onDownload={() => { /* Implement download if needed */ }}
+                                                onStartInpaint={(url: string) => setInpaintData({ src: url, shotId: shot.id })}
+                                                onAnimate={() => shotMgr.handleAnimateShot(shot)}
+                                            />
+                                        </div>
+
+                                        {/* Shot Controls */}
+                                        <label style={styles.label}>SHOT TYPE</label>
+                                        <select style={styles.select} value={shot.type} onChange={(e) => shotMgr.updateShot(shot.id, "type", e.target.value)}>
+                                            <option>Wide Shot</option>
+                                            <option>Medium Shot</option>
+                                            <option>Close Up</option>
+                                            <option>Over the Shoulder</option>
+                                        </select>
+
+                                        <label style={styles.label}>CASTING</label>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '15px' }}>
+                                            {uniqueChars.map(char => {
+                                                const isSelected = shot.characters?.includes(char);
+                                                return (
+                                                    <button
+                                                        key={char}
+                                                        onClick={() => {
+                                                            const current = shot.characters || [];
+                                                            const updated = isSelected ? current.filter((c: string) => c !== char) : [...current, char];
+                                                            shotMgr.updateShot(shot.id, "characters", updated);
+                                                        }}
+                                                        style={styles.charToggle(isSelected)}
+                                                    >
+                                                        {char}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+
+                                        <label style={styles.label}>VISUAL ACTION</label>
+                                        <textarea style={styles.textArea} value={shot.prompt} onChange={(e) => shotMgr.updateShot(shot.id, "prompt", e.target.value)} />
+
+                                        <button
+                                            style={shotMgr.loadingShots.has(shot.id) ? styles.renderBtnLoading : styles.renderBtn}
+                                            onClick={() => shotMgr.handleRenderShot(shot, currentScene)}
+                                            disabled={shotMgr.loadingShots.has(shot.id)}
+                                        >
+                                            {shotMgr.loadingShots.has(shot.id) ? <Loader2 className="spin-loader" size={14} /> : <Sparkles size={14} />}
+                                            {shotMgr.loadingShots.has(shot.id) ? "GENERATING..." : (shot.image_url ? "REGENERATE SHOT" : "RENDER SHOT")}
+                                        </button>
+                                    </SortableShotCard>
+                                ))}
+>>>>>>> 5835832 (story boarding modularization)
                             </div>
                         </div>
                     ) : (
@@ -1119,14 +1102,86 @@ export default function EpisodeBoard() {
                 </div>
             )}
 
-            {/* --- TERMINAL LOADER & MODALS (Keep existing) --- */}
-            {isAutoDirecting && (<div style={styles.terminalOverlay}><div style={styles.terminalBox}>{terminalLog.map((log, i) => (<div key={i} style={styles.terminalLine}>{log}</div>))}<div style={styles.terminalLine}>_ <span className="spin-loader">|</span></div></div></div>)}
-            {zoomImage && (<div style={styles.zoomOverlay} onClick={() => setZoomImage(null)}><img src={zoomImage} style={styles.zoomImg} onClick={(e) => e.stopPropagation()} /><X size={30} style={{ position: 'absolute', top: 30, right: 30, color: 'white', cursor: 'pointer' }} onClick={() => setZoomImage(null)} /></div>)}
-            {modalOpen && (
+            {/* --- UTILITY OVERLAYS --- */}
+
+            {/* 1. Terminal Log (Auto Direct) */}
+            {shotMgr.isAutoDirecting && (
+                <div style={styles.terminalOverlay}>
+                    <div style={styles.terminalBox}>
+                        {shotMgr.terminalLog.map((log, i) => (<div key={i} style={styles.terminalLine}>{log}</div>))}
+                        <div style={styles.terminalLine}>_ <span className="spin-loader">|</span></div>
+                    </div>
+                </div>
+            )}
+
+            {/* 2. Image Zoom */}
+            {zoomImage && (
+                <div style={styles.zoomOverlay} onClick={() => setZoomImage(null)}>
+                    <img src={zoomImage} style={styles.zoomImg} onClick={(e) => e.stopPropagation()} />
+                    <X size={30} style={{ position: 'absolute', top: 30, right: 30, color: 'white', cursor: 'pointer' }} onClick={() => setZoomImage(null)} />
+                </div>
+            )}
+
+            {/* 3. Asset Generation/Upload Modal */}
+            {assetMgr.modalOpen && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={styles.modal}>
-                        {/* ... (Keep existing asset modal content) ... */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}><h2 style={styles.modalTitle}>{selectedAsset}</h2><X size={24} style={{ cursor: 'pointer', color: 'white' }} onClick={() => setModalOpen(false)} /></div><p style={styles.modalSub}>ASSET GENERATION</p><div style={styles.toggleRow}><div style={styles.toggleBtn(modalMode === 'upload')} onClick={() => setModalMode('upload')}>UPLOAD REF</div><div style={styles.toggleBtn(modalMode === 'generate')} onClick={() => setModalMode('generate')}>AI GENERATION</div></div>{modalMode === 'upload' && (<><div style={styles.uploadBox} onClick={() => fileInputRef.current?.click()}><Upload size={32} style={{ marginBottom: '15px' }} /><p>CLICK TO UPLOAD REF</p></div><input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleAssetUpload} />{isProcessing && <div style={{ textAlign: 'center', color: '#FF0000' }}>UPLOADING...</div>}</>)}{modalMode === 'generate' && (<><textarea style={styles.textareaInput} value={genPrompt} onChange={(e) => setGenPrompt(e.target.value)} placeholder="Describe details..." /><button style={styles.primaryBtn} onClick={handleAssetGenerate} disabled={isProcessing}>{isProcessing ? <Loader2 className="spin-loader" /> : <Sparkles size={18} />} {isProcessing ? "DREAMING..." : "GENERATE"}</button></>)}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                            <h2 style={styles.modalTitle}>{assetMgr.selectedAsset}</h2>
+                            <X size={24} style={{ cursor: 'pointer', color: 'white' }} onClick={() => assetMgr.setModalOpen(false)} />
+                        </div>
+                        <p style={styles.modalSub}>ASSET GENERATION</p>
+
+                        <div style={styles.toggleRow}>
+                            <div style={styles.toggleBtn(assetMgr.modalMode === 'upload')} onClick={() => assetMgr.setModalMode('upload')}>UPLOAD REF</div>
+                            <div style={styles.toggleBtn(assetMgr.modalMode === 'generate')} onClick={() => assetMgr.setModalMode('generate')}>AI GENERATION</div>
+                        </div>
+
+                        {assetMgr.modalMode === 'upload' && (
+                            <>
+                                <div style={styles.uploadBox} onClick={() => fileInputRef.current?.click()}>
+                                    <Upload size={32} style={{ marginBottom: '15px' }} />
+                                    <p>CLICK TO UPLOAD REF</p>
+                                </div>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    hidden
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        if (e.target.files?.[0]) {
+                                            assetMgr.handleAssetUpload(e.target.files[0], (url) => {
+                                                if (assetMgr.assetType === 'character') setCharacterImages(prev => ({ ...prev, [assetMgr.selectedAsset!]: url }));
+                                                else setLocationImages(prev => ({ ...prev, [assetMgr.selectedAsset!]: url }));
+                                            });
+                                        }
+                                    }}
+                                />
+                                {assetMgr.isProcessing && <div style={{ textAlign: 'center', color: '#FF0000' }}>UPLOADING...</div>}
+                            </>
+                        )}
+
+                        {assetMgr.modalMode === 'generate' && (
+                            <>
+                                <textarea
+                                    style={styles.textareaInput}
+                                    value={assetMgr.genPrompt}
+                                    onChange={(e) => assetMgr.setGenPrompt(e.target.value)}
+                                    placeholder="Describe details..."
+                                />
+                                <button
+                                    style={styles.primaryBtn}
+                                    onClick={() => assetMgr.handleAssetGenerate((url) => {
+                                        if (assetMgr.assetType === 'character') setCharacterImages(prev => ({ ...prev, [assetMgr.selectedAsset!]: url }));
+                                        else setLocationImages(prev => ({ ...prev, [assetMgr.selectedAsset!]: url }));
+                                    })}
+                                    disabled={assetMgr.isProcessing}
+                                >
+                                    {assetMgr.isProcessing ? <Loader2 className="spin-loader" /> : <Sparkles size={18} />}
+                                    {assetMgr.isProcessing ? "DREAMING..." : "GENERATE"}
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
