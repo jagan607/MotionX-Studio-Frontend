@@ -48,7 +48,7 @@ export default function LandingPage() {
         </div>
         <Link href="/login" style={{ textDecoration: 'none' }}>
           <button style={{ backgroundColor: 'white', color: 'black', border: 'none', padding: '12px 24px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            Start Directing <ChevronRight size={14} />
+            Initialize Studio <ChevronRight size={14} />
           </button>
         </Link>
       </nav>
@@ -89,7 +89,8 @@ export default function LandingPage() {
             <h2 style={styles.h2}>Consistent Casting</h2>
             <p style={styles.p}>Define your actor once. Use them in 100 shots. We maintain facial identity across wide shots, close-ups, and different lighting.</p>
           </div>
-          <div style={{ textAlign: 'right', display: 'none', md: { display: 'block' } }}>
+          {/* FIXED: Removed invalid 'md' style property */}
+          <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '10px', fontFamily: 'monospace', color: '#555' }}>ACCURACY: 99.8%</div>
             <div style={{ fontSize: '10px', fontFamily: 'monospace', color: '#555' }}>MODEL: FLUX_V2</div>
           </div>
@@ -128,7 +129,7 @@ export default function LandingPage() {
             <video
               autoPlay loop muted playsInline
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              src="https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/kling_20260116_Text_to_Video_Camera_pus_444_0.mp4?alt=media&token=8bbfc8dd-4b70-4ba6-8180-d44b22fdbf22"
+              src="https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/Demo.mp4?alt=media&token=bd3499d7-b714-4b3d-9c78-8c2fe113abba"
             />
           </div>
         </div>
