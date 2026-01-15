@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Loader2, Image as ImageIcon, Sparkles } from "lucide-react";
+import { X, Loader2, Image as ImageIcon, Sparkles, Zap } from "lucide-react";
+import { useCredits } from "@/hooks/useCredits"; // Ensure this path matches your project structure
 
 interface InpaintEditorProps {
     src: string;
@@ -18,6 +19,9 @@ export const InpaintEditor = ({ src, onSave, onClose, styles, onApply }: Inpaint
     const [prompt, setPrompt] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
     const [outputImage, setOutputImage] = useState<string | null>(null);
+
+    // NEW: Credits Hook
+    const { credits } = useCredits();
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -69,6 +73,18 @@ export const InpaintEditor = ({ src, onSave, onClose, styles, onApply }: Inpaint
             <div style={{ ...styles.modal, width: '1200px', maxWidth: '95vw' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                     <h2 style={styles.modalTitle}>INPAINT: FIX AREA</h2>
+
+                    {/* NEW: Credits Display */}
+                    <div style={styles.infoBox}>
+                        <Zap size={14} color="#FF0000" />
+                        <div style={{ textAlign: 'right' }}>
+                            <p style={{ fontSize: '9px', color: '#666', fontFamily: 'monospace' }}>CREDITS</p>
+                            <p style={{ fontSize: '10px', color: credits && credits > 0 ? '#FFF' : '#FF0000', fontWeight: 'bold' }}>
+                                {credits !== null ? credits : '...'}
+                            </p>
+                        </div>
+                    </div>
+
                     <X size={24} onClick={onClose} style={{ cursor: 'pointer', color: 'white' }} />
                 </div>
 

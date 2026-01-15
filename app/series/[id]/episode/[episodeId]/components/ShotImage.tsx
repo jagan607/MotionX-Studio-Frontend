@@ -11,11 +11,10 @@ interface ShotImageProps {
     isSystemLoading: boolean;
     onClickZoom: () => void;
     onDownload: () => void;
-    onStartInpaint: (url: string) => void;
+    onStartInpaint: () => void; // Updated to match page.tsx usage
     onAnimate: () => void;
 }
 
-// Ensure "export const" is used here so the named import { ShotImage } works
 export const ShotImage = ({
     src,
     videoUrl,
@@ -117,7 +116,8 @@ export const ShotImage = ({
 
                     <button onClick={onClickZoom} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Maximize2 size={14} /></button>
                     <button onClick={onDownload} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Download size={14} /></button>
-                    <button onClick={() => onStartInpaint(src)} style={{ padding: '6px', backgroundColor: 'rgba(255,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Wand2 size={14} /></button>
+                    {/* Simplified Handler */}
+                    <button onClick={onStartInpaint} style={{ padding: '6px', backgroundColor: 'rgba(255,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Wand2 size={14} /></button>
                 </div>
             )}
 
