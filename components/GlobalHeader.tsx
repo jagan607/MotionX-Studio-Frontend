@@ -9,7 +9,7 @@ import { useCredits } from "@/hooks/useCredits";
 
 export default function GlobalHeader() {
     const router = useRouter();
-    const pathname = usePathname(); // <--- To check current page
+    const pathname = usePathname();
     const { credits } = useCredits();
 
     // 1. HIDE ON LOGIN PAGE
@@ -24,8 +24,8 @@ export default function GlobalHeader() {
     const styles = {
         header: {
             display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-            borderBottom: '1px solid #333', padding: '20px 40px', // Adjusted padding for global use
-            backgroundColor: '#030303', // Ensure background is solid
+            borderBottom: '1px solid #333', padding: '20px 40px',
+            backgroundColor: '#030303',
             position: 'sticky' as const, top: 0, zIndex: 50
         },
         logo: { fontSize: '24px', fontFamily: 'Anton, sans-serif', textTransform: 'uppercase' as const, lineHeight: '1', letterSpacing: '1px', color: '#FFF' },
@@ -57,8 +57,8 @@ export default function GlobalHeader() {
                     </div>
                 </div>
 
-                {/* 2. CREDITS INFO */}
-                <div style={styles.infoBox}>
+                {/* 2. CREDITS INFO (Target ID Added) */}
+                <div id="tour-credits-target" style={styles.infoBox}>
                     <Zap size={14} color="#FF0000" />
                     <div style={{ textAlign: 'right' }}>
                         <p style={{ fontSize: '9px', color: '#666', fontFamily: 'monospace' }}>CREDITS</p>
@@ -72,7 +72,10 @@ export default function GlobalHeader() {
 
                 <div style={{ marginLeft: '20px' }}>
                     <Link href="/series/new" style={{ textDecoration: 'none' }}>
-                        <button style={styles.createButton}> <Plus size={14} strokeWidth={3} /> NEW SERIES</button>
+                        {/* 3. NEW SERIES BUTTON (Target ID Added) */}
+                        <button id="tour-new-series-target" style={styles.createButton}>
+                            <Plus size={14} strokeWidth={3} /> NEW SERIES
+                        </button>
                     </Link>
                 </div>
             </div>

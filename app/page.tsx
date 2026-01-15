@@ -7,8 +7,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Film, Tv, ChevronRight, Loader2, LogOut, Trash2, Zap } from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
-// IMPORT THE HOOK
 import { useCredits } from "@/hooks/useCredits";
+import { DashboardTour } from "@/components/DashboardTour";
+import { useDashboardTour } from "@/hooks/useDashboardTour";
 
 export default function Dashboard() {
   const [seriesList, setSeriesList] = useState<any[]>([]);
@@ -17,6 +18,7 @@ export default function Dashboard() {
 
   // USE THE HOOK
   const { credits } = useCredits();
+  const { tourStep, nextStep, completeTour } = useDashboardTour();
 
   // Fetch Data
   useEffect(() => {
@@ -150,6 +152,13 @@ export default function Dashboard() {
           ))}
         </div>
       )}
+
+      <DashboardTour
+        step={tourStep}
+        onNext={nextStep}
+        onComplete={completeTour}
+      />
+
     </main>
   );
 }

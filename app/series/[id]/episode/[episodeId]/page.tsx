@@ -104,6 +104,10 @@ export default function EpisodeBoard() {
 
     return (
         <main style={styles.container}>
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                .spin-loader { animation: spin 1s linear infinite; }
+            `}</style>
             {/* --- TOP NAV --- */}
             <div style={styles.topNav}>
                 <Link href={`/series/${seriesId}`} style={styles.backLink}>
