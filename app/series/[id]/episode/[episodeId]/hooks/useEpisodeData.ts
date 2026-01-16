@@ -1,29 +1,19 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, getDoc, doc, query, where, documentId } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-
-// 1. Export Interface for use in page.tsx
-export interface CharacterProfile {
-    id: string;
-    name: string;
-    face_sample_url?: string;
-    image_url?: string; // Included for type safety with DB fields
-    voice_config?: {
-        voice_id?: string;
-        voice_name?: string;
-    };
-    status?: string;
-}
+import { LocationProfile, CharacterProfile } from "@/lib/types";
 
 export const useEpisodeData = (seriesId: string, episodeId: string) => {
     const [episodeData, setEpisodeData] = useState<any>(null);
     const [scenes, setScenes] = useState<any[]>([]);
 
-    // 2. State holds full CharacterProfile objects
+    // State holds full CharacterProfile objects
     const [castMembers, setCastMembers] = useState<CharacterProfile[]>([]);
 
-    const [uniqueLocs, setUniqueLocs] = useState<string[]>([]);
-    const [locationImages, setLocationImages] = useState<Record<string, string>>({});
+    // --- UPDATED LOCATION STATES ---
+    const [uniqueLocs, setUniqueLocs] = useState<string[]>([]); // Just the names (from script)
+    const [locations, setLocations] = useState<LocationProfile[]>([]); // The Full DB Objects
+    const [locationImages, setLocationImages] = useState<Record<string, string>>({}); // Legacy Map (Name -> URL)
 
     const [loading, setLoading] = useState(true);
 
@@ -68,11 +58,11 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
 
                         snap.forEach(doc => {
                             const data = doc.data();
-                            // CRITICAL FIX: Map image_url to face_sample_url if needed
                             fetchedChars.push({
                                 id: doc.id,
                                 ...data,
-                                face_sample_url: data.face_sample_url || data.image_url
+                                face_sample_url: data.face_sample_url || data.image_url,
+                                visual_traits: data.visual_traits || {} // Ensure this exists
                             } as CharacterProfile);
                         });
                     }
@@ -81,18 +71,39 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                     setCastMembers([]);
                 }
 
-                // D. LOCATIONS (Legacy Logic)
+                // D. LOCATIONS (UPDATED LOGIC)
+                // 1. Extract unique names from the Script Scenes
                 const locs = new Set<string>();
                 scenesData.forEach((s: any) => { if (s.location) locs.add(s.location); });
                 setUniqueLocs(Array.from(locs));
 
+                // 2. Fetch stored Location Profiles from Firestore
                 const locSnapshot = await getDocs(collection(db, "series", seriesId, "locations"));
+
+                const fetchedLocations: LocationProfile[] = [];
                 const locMap: Record<string, string> = {};
+
                 locSnapshot.forEach(doc => {
                     const data = doc.data();
+
+                    // Build the full object
+                    const locObj: LocationProfile = {
+                        id: doc.id,
+                        name: data.name || doc.id,
+                        image_url: data.image_url || "",
+                        visual_traits: data.visual_traits || {}, // Default to empty object if missing
+                        base_prompt: data.base_prompt || "",
+                        status: data.status || 'active'
+                    };
+
+                    fetchedLocations.push(locObj);
+
+                    // Build the legacy map (Name -> Image URL) for the grid view
                     if (data.name) locMap[data.name] = data.image_url;
                 });
-                setLocationImages(locMap);
+
+                setLocations(fetchedLocations); // NEW State
+                setLocationImages(locMap);      // Legacy State
 
             } catch (e) {
                 console.error("Data Load Error:", e);
@@ -108,9 +119,11 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
         episodeData,
         scenes,
         castMembers,
-        setCastMembers, // Exposed for immediate UI updates after generation
-        uniqueLocs,
-        locationImages,
+        setCastMembers,
+        uniqueLocs,      // List of strings (Scene headers)
+        locations,       // List of Objects (Full DB Profile) <--- NEW EXPORT
+        setLocations,    // Setter for updates <--- NEW EXPORT
+        locationImages,  // Simple Map (Name -> URL)
         setLocationImages,
         loading
     };
