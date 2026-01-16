@@ -32,14 +32,13 @@ import { useStoryboardTour } from "@/hooks/useStoryboardTour";
 // --- TYPES ---
 import { CharacterProfile, LocationProfile } from "@/lib/types";
 
+const sanitizeId = (name: string) => {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+};
+
 export default function EpisodeBoard() {
 
     const { id: seriesId, episodeId } = useParams() as { id: string; episodeId: string };
-
-    // --- HELPER: MATCH DB ID FORMAT ---
-    const sanitizeId = (name: string) => {
-        return name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/^_+|_+$/g, '');
-    };
 
     // 1. DATA & STATE
     const {

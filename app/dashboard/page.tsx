@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
@@ -10,8 +11,6 @@ import { API_BASE_URL } from "@/lib/config";
 import { useCredits } from "@/hooks/useCredits";
 import { DashboardTour } from "@/components/DashboardTour";
 import { useDashboardTour } from "@/hooks/useDashboardTour";
-
-// --- IMPORT YOUR CUSTOM MODAL ---
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 
 export default function Dashboard() {
@@ -77,7 +76,8 @@ export default function Dashboard() {
                 setSeriesList(prev => prev.filter(s => s.id !== deleteId));
                 setDeleteId(null); // Close modal on success
             } else {
-                alert("DELETE FAILED");
+                const data = await res.json();
+                alert("DELETE FAILED: " + (data.detail || "Server error"));
             }
         } catch (err) {
             console.error(err);
@@ -106,7 +106,7 @@ export default function Dashboard() {
 
         // Header Info Box (Operator / Credits)
         infoBox: {
-            display: 'flex', alignItems: 'center', gap: '10px',
+            display: 'flex', alignItems: 'center', gap: '20px',
             borderRight: '1px solid #333', paddingRight: '20px', marginRight: '20px'
         },
 
@@ -135,6 +135,42 @@ export default function Dashboard() {
         .series-card:hover .delete-btn { color: #666 !important; }
         .delete-btn:hover { color: #FF0000 !important; }
       `}</style>
+
+            {/* HEADER SECTION */}
+            <header style={styles.header}>
+                <div>
+                    <h1 style={styles.logo}>MotionX</h1>
+                    <div style={styles.subLogo}>Production Mainframe</div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {/* INFO BOX: OPERATOR & CREDITS */}
+                    <div style={styles.infoBox}>
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '9px', color: '#666', marginBottom: '2px', letterSpacing: '1px' }}>OPERATOR</div>
+                            <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{auth.currentUser?.email?.split('@')[0].toUpperCase() || 'UNKNOWN'}</div>
+                        </div>
+                        <div style={{ textAlign: 'right', borderLeft: '1px solid #333', paddingLeft: '15px' }}>
+                            <div style={{ fontSize: '9px', color: '#666', marginBottom: '2px', letterSpacing: '1px' }}>CREDITS</div>
+                            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#FF0000', display: 'flex', alignItems: 'center', gap: '5px', justifyContent: 'flex-end' }}>
+                                <Zap size={10} fill="#FF0000" /> {credits ?? '---'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '15px' }}>
+                        <button onClick={handleLogout} style={styles.logoutBtn}>
+                            <LogOut size={12} /> LOGOUT
+                        </button>
+
+                        <Link href="/new">
+                            <button style={styles.createButton}>
+                                <Plus size={16} /> INITIALIZE SERIES
+                            </button>
+                        </Link>
+                    </div>
+                </div>
+            </header>
 
             {/* CONTENT GRID */}
             {loading ? (
@@ -165,7 +201,7 @@ export default function Dashboard() {
                                     ACCESS DATA <ChevronRight size={10} />
                                 </div>
 
-                                {/* UPDATED DELETE BUTTON (Calls confirmDeleteRequest) */}
+                                {/* DELETE BUTTON */}
                                 <button
                                     className="delete-btn"
                                     onClick={(e) => confirmDeleteRequest(e, series.id)}
@@ -191,7 +227,7 @@ export default function Dashboard() {
             {deleteId && (
                 <DeleteConfirmModal
                     title="DELETE SERIES?"
-                    message="This will permanently destroy the entire production, including all episodes, scripts, and generated assets. This action is irreversible."
+                    message="This will permanently destroy the entire production, including all episodes, scripts, characters, locations and generated assets. This action is irreversible."
                     isDeleting={isDeleting}
                     onConfirm={performDelete}
                     onCancel={() => setDeleteId(null)}
