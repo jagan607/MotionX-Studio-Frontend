@@ -57,3 +57,21 @@ button {
 .animate-marquee:hover {
   animation-play-state: paused;
 }
+
+/* app/globals.css */
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-loader {
+  animation: spin 1s linear infinite;
+  /* Optional: ensure it centers nicely */
+  display: block;
+}
