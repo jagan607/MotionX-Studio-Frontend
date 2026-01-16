@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
+import { doc, updateDoc } from "firebase/firestore"; // Firestore imports
+import { db } from "@/lib/firebase";
 
 // --- CUSTOM IMPORTS ---
-import { auth, db } from "@/lib/firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
 import { useCredits } from "@/hooks/useCredits";
 import { styles } from "./components/BoardStyles";
@@ -54,10 +55,67 @@ export default function EpisodeBoard() {
     const epTour = useEpisodeTour();
     const sbTour = useStoryboardTour();
 
-    // 4. ACTION HANDLERS (Download/Delete/Inpaint)
+    // 4. ACTION HANDLERS
     const [deleteShotId, setDeleteShotId] = useState<string | null>(null);
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [downloadShot, setDownloadShot] = useState<any>(null);
+
+    // --- NEW HANDLER: UPDATE TRAITS ---
+    const handleUpdateTraits = async (newTraits: any) => {
+        if (!assetMgr.selectedAsset) return;
+
+        try {
+            // 1. Update Firestore
+            const charRef = doc(db, "series", seriesId, "characters", assetMgr.selectedAsset);
+            await updateDoc(charRef, {
+                visual_traits: newTraits
+            });
+
+            // 2. Update Local State (Immediate Reflection)
+            setCastMembers((prev: CharacterProfile[]) => prev.map(member =>
+                member.id === assetMgr.selectedAsset
+                    ? { ...member, visual_traits: newTraits }
+                    : member
+            ));
+
+        } catch (error) {
+            console.error("Failed to update traits:", error);
+            alert("Failed to save traits.");
+        }
+    };
+
+    // --- NEW HANDLER: LINK VOICE ---
+    const handleLinkVoice = async (voiceData: { voice_id: string; voice_name: string }) => {
+        if (!assetMgr.selectedAsset) return;
+
+        try {
+            // 1. Update Firestore
+            const charRef = doc(db, "series", seriesId, "characters", assetMgr.selectedAsset);
+            await updateDoc(charRef, {
+                "voice_config.voice_id": voiceData.voice_id,
+                "voice_config.voice_name": voiceData.voice_name,
+                "voice_config.provider": "elevenlabs"
+            });
+
+            // 2. Update Local State (Immediate Reflection for Traffic Light)
+            setCastMembers((prev: CharacterProfile[]) => prev.map(member =>
+                member.id === assetMgr.selectedAsset
+                    ? {
+                        ...member,
+                        voice_config: {
+                            ...member.voice_config,
+                            voice_id: voiceData.voice_id,
+                            voice_name: voiceData.voice_name
+                        }
+                    }
+                    : member
+            ));
+
+        } catch (error) {
+            console.error("Failed to link voice:", error);
+            alert("Failed to link voice.");
+        }
+    };
 
     const confirmShotDelete = async () => {
         if (!deleteShotId) return;
@@ -105,7 +163,6 @@ export default function EpisodeBoard() {
     };
 
     const executeDownload = async (url: string, filename: string) => {
-        // (Keep existing download logic here, omitted for brevity but same as before)
         try {
             const response = await fetch(url, { mode: 'cors' });
             if (!response.ok) throw new Error("Network response was not ok");
@@ -125,30 +182,6 @@ export default function EpisodeBoard() {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        }
-    };
-
-    // HANDLER: Update Character Traits
-    const handleUpdateTraits = async (newTraits: any) => {
-        if (!assetMgr.selectedAsset) return;
-
-        try {
-            // 1. Update Firestore
-            const charRef = doc(db, "series", seriesId, "characters", assetMgr.selectedAsset);
-            await updateDoc(charRef, {
-                visual_traits: newTraits
-            });
-
-            // 2. Update Local State (Immediate Reflection)
-            setCastMembers((prev) => prev.map(member =>
-                member.id === assetMgr.selectedAsset
-                    ? { ...member, visual_traits: newTraits } // Assumption: visual_traits is added to Interface
-                    : member
-            ));
-
-        } catch (error) {
-            console.error("Failed to update traits:", error);
-            alert("Failed to save traits.");
         }
     };
 
@@ -225,12 +258,15 @@ export default function EpisodeBoard() {
                         isOpen={assetMgr.modalOpen}
                         onClose={() => assetMgr.setModalOpen(false)}
 
-                        // NEW PROPS
+                        // Handlers
+                        onUpdateTraits={handleUpdateTraits}
+                        onLinkVoice={handleLinkVoice}
+
+                        // Props
                         assetId={assetMgr.selectedAsset}
                         assetName={selectedCharData?.name || assetMgr.selectedAsset || 'Unknown Asset'}
                         assetType={assetMgr.assetType}
                         currentData={selectedCharData}
-                        onUpdateTraits={handleUpdateTraits}
 
                         mode={assetMgr.modalMode}
                         setMode={assetMgr.setModalMode}
@@ -261,7 +297,7 @@ export default function EpisodeBoard() {
 
             <ZoomOverlay media={zoomMedia} onClose={() => setZoomMedia(null)} styles={styles} />
 
-            {/* --- UTILS --- */}
+            {/* --- UTILITIES --- */}
             <TourGuide step={epTour.tourStep} onNext={epTour.nextStep} onComplete={epTour.completeTour} />
 
             {downloadShot && (
