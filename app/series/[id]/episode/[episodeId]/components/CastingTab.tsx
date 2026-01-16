@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Mic } from 'lucide-react';
+import { Users, Mic, Settings } from 'lucide-react';
 
 interface Character {
     id: string;
@@ -26,24 +26,24 @@ export const CastingTab: React.FC<CastingTabProps> = ({
 
     // Helper function for rendering status lights
     const renderStatus = (hasVisual: boolean, hasVoice: boolean) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 'auto', marginBottom: '15px' }}>
             {/* Visual Status */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontFamily: 'monospace' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontFamily: 'monospace', letterSpacing: '1px' }}>
                 <div style={{
-                    width: '8px', height: '8px', borderRadius: '50%',
-                    backgroundColor: hasVisual ? '#00FF00' : '#FF0000',
-                    boxShadow: hasVisual ? '0 0 5px #00FF00' : 'none'
+                    width: '6px', height: '6px', borderRadius: '50%',
+                    backgroundColor: hasVisual ? '#00FF00' : '#333',
+                    boxShadow: hasVisual ? '0 0 8px #00FF00' : 'none'
                 }} />
-                <span style={{ color: hasVisual ? '#FFF' : '#666' }}>
-                    {hasVisual ? "VISUAL MODEL READY" : "NO VISUAL MODEL"}
+                <span style={{ color: hasVisual ? '#CCC' : '#555' }}>
+                    {hasVisual ? "VISUAL MODEL READY" : "MISSING VISUALS"}
                 </span>
             </div>
 
             {/* Voice Status */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontFamily: 'monospace' }}>
-                <Mic size={10} color={hasVoice ? '#0088FF' : '#444'} />
-                <span style={{ color: hasVoice ? '#FFF' : '#666' }}>
-                    {hasVoice ? "VOICE SYNCED" : "NO VOICE DATA"}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontFamily: 'monospace', letterSpacing: '1px' }}>
+                <Mic size={10} color={hasVoice ? '#0088FF' : '#333'} />
+                <span style={{ color: hasVoice ? '#CCC' : '#555' }}>
+                    {hasVoice ? "VOICE SYNCED" : "MISSING VOICE"}
                 </span>
             </div>
         </div>
@@ -58,56 +58,87 @@ export const CastingTab: React.FC<CastingTabProps> = ({
                 return (
                     <div
                         key={char.id}
-                        style={{ ...styles.assetCard, height: '320px', justifyContent: 'space-between', alignItems: 'stretch' }}
+                        style={{
+                            ...styles.assetCard,
+                            height: '380px', // Increased height for better layout
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'flex-start', // Stack from top
+                            alignItems: 'stretch',
+                            padding: '0', // Reset padding to handle internally
+                            overflow: 'hidden'
+                        }}
                     >
-                        {/* 1. IMAGE AREA */}
+                        {/* 1. IMAGE AREA (Top Half) */}
                         <div style={{
-                            height: '180px',
-                            backgroundColor: '#111',
+                            height: '220px',
+                            width: '100%',
+                            backgroundColor: '#0a0a0a',
                             backgroundImage: hasVisual ? `url(${char.face_sample_url})` : 'none',
                             backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            borderRadius: '8px',
-                            marginBottom: '10px',
+                            backgroundPosition: 'top center',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             position: 'relative',
-                            border: hasVisual ? '1px solid #333' : '1px dashed #444'
+                            borderBottom: '1px solid #222'
                         }}>
-                            {!hasVisual && <Users size={40} color="#333" />}
+                            {!hasVisual && <Users size={48} color="#222" />}
 
                             {/* Hover Overlay */}
                             <div className="group-hover-overlay" style={{
-                                position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
+                                position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 opacity: 0, transition: '0.2s', cursor: 'pointer'
                             }} onClick={() => onEditAsset(char.id, 'character')}>
-                                <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>EDIT</span>
+                                <Settings size={24} color="white" />
                             </div>
                         </div>
 
-                        {/* 2. NAME */}
-                        <div style={{ fontWeight: 'bold', fontSize: '18px', fontFamily: 'Anton', letterSpacing: '1px', marginBottom: '5px' }}>
-                            {char.name.toUpperCase()}
+                        {/* 2. INFO AREA (Bottom Half) */}
+                        <div style={{
+                            padding: '20px', // FIX: Added Padding here
+                            display: 'flex',
+                            flexDirection: 'column',
+                            flex: 1
+                        }}>
+                            <div style={{
+                                fontWeight: 'bold',
+                                fontSize: '24px',
+                                fontFamily: 'Anton, sans-serif',
+                                letterSpacing: '1px',
+                                marginBottom: '5px',
+                                color: '#FFF'
+                            }}>
+                                {char.name.toUpperCase()}
+                            </div>
+
+                            {/* 3. STATUS INDICATORS */}
+                            {renderStatus(hasVisual, hasVoice)}
+
+                            {/* 4. ACTION BUTTON */}
+                            <button
+                                style={{
+                                    ...styles.genBtn,
+                                    width: '100%',
+                                    marginTop: 'auto', // Pushes button to bottom
+                                    backgroundColor: '#1a1a1a',
+                                    border: '1px solid #333',
+                                    color: '#FFF',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    padding: '12px',
+                                    fontSize: '11px',
+                                    letterSpacing: '1px'
+                                }}
+                                onClick={() => onEditAsset(char.id, 'character')}
+                            >
+                                <Settings size={12} />
+                                CONFIGURE
+                            </button>
                         </div>
-
-                        {/* 3. STATUS INDICATORS */}
-                        {renderStatus(hasVisual, hasVoice)}
-
-                        {/* 4. ACTION BUTTON */}
-                        <button
-                            style={{
-                                ...styles.genBtn,
-                                marginTop: '15px',
-                                backgroundColor: (!hasVisual || !hasVoice) ? '#222' : '#111',
-                                border: (!hasVisual || !hasVoice) ? '1px solid #333' : '1px solid #222',
-                                color: (!hasVisual || !hasVoice) ? 'white' : '#444'
-                            }}
-                            onClick={() => onEditAsset(char.id, 'character')}
-                        >
-                            {!hasVisual ? "GENERATE VISUALS" : (!hasVoice ? "ADD VOICE" : "EDIT PROFILE")}
-                        </button>
                     </div>
                 );
             })}

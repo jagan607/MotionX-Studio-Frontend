@@ -2,68 +2,63 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, MapPin, LayoutTemplate, Film, ImageIcon, Users } from "lucide-react";
 
 // --- CUSTOM IMPORTS ---
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, updateDoc } from "firebase/firestore";
 import { API_BASE_URL } from "@/lib/config";
 import { useCredits } from "@/hooks/useCredits";
 import { styles } from "./components/BoardStyles";
 
 // --- MODULAR COMPONENTS ---
-import { StoryboardOverlay } from "./components/StoryboardOverlay";
+import { EpisodeHeader } from "./components/EpisodeHeader";
+import { ScenesTab } from "./components/ScenesTab";
 import { CastingTab } from "./components/CastingTab";
+import { LocationsTab } from "./components/LocationsTab";
+import { StoryboardOverlay } from "./components/StoryboardOverlay";
 import { AssetModal } from "./components/AssetModal";
 import { ZoomOverlay } from "./components/ZoomOverlay";
-
-// --- HOOKS ---
-import { useEpisodeData, CharacterProfile } from "./hooks/useEpisodeData"; // Import Type
-import { useAssetManager } from "./hooks/useAssetManager";
-import { useShotManager } from "./hooks/useShotManager";
-
-// --- TOURS & MODALS ---
-import { TourGuide } from "./components/TourGuide";
-import { useEpisodeTour } from "./hooks/useEpisodeTour";
-import { useStoryboardTour } from "@/hooks/useStoryboardTour";
 import { DownloadModal } from "./components/DownloadModal";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import { TourGuide } from "./components/TourGuide";
+
+// --- HOOKS ---
+import { useEpisodeData, CharacterProfile } from "./hooks/useEpisodeData";
+import { useAssetManager } from "./hooks/useAssetManager";
+import { useShotManager } from "./hooks/useShotManager";
+import { useEpisodeTour } from "./hooks/useEpisodeTour";
+import { useStoryboardTour } from "@/hooks/useStoryboardTour";
 
 export default function EpisodeBoard() {
     const { id: seriesId, episodeId } = useParams() as { id: string; episodeId: string };
 
-    // 1. DATA & CREDITS
+    // 1. DATA & STATE
     const {
         episodeData, scenes, castMembers, setCastMembers, uniqueLocs,
         locationImages, setLocationImages, loading: dataLoading
     } = useEpisodeData(seriesId, episodeId);
 
     const { credits } = useCredits();
-
-    // 2. TOUR HOOKS
-    const { tourStep: epTourStep, nextStep: epNextStep, completeTour: epCompleteTour } = useEpisodeTour();
-    const { tourStep: sbTourStep, nextStep: sbNextStep, completeTour: sbCompleteTour } = useStoryboardTour();
-
-    // 3. ASSET MANAGER
     const assetMgr = useAssetManager(seriesId);
 
-    // 4. UI STATE
     const [activeTab, setActiveTab] = useState('scenes');
     const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
     const [zoomMedia, setZoomMedia] = useState<{ url: string, type: 'image' | 'video' } | null>(null);
     const [inpaintData, setInpaintData] = useState<{ src: string, shotId: string } | null>(null);
 
-    // 5. SHOT MANAGER
+    // 2. MANAGERS
     const shotMgr = useShotManager(seriesId, episodeId, activeSceneId);
+    const currentScene = scenes.find(s => s.id === activeSceneId);
 
-    // 6. DELETE STATE
+    // 3. TOURS
+    const epTour = useEpisodeTour();
+    const sbTour = useStoryboardTour();
+
+    // 4. ACTION HANDLERS (Download/Delete/Inpaint)
     const [deleteShotId, setDeleteShotId] = useState<string | null>(null);
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [downloadShot, setDownloadShot] = useState<any>(null);
 
-    const currentScene = scenes.find(s => s.id === activeSceneId);
-
-    // --- HANDLERS ---
     const confirmShotDelete = async () => {
         if (!deleteShotId) return;
         setIsDeletingShot(true);
@@ -71,7 +66,6 @@ export default function EpisodeBoard() {
             await shotMgr.handleDeleteShot(deleteShotId);
             setDeleteShotId(null);
         } catch (error) {
-            console.error("Failed to delete shot", error);
             alert("Error deleting shot");
         } finally {
             setIsDeletingShot(false);
@@ -110,8 +104,8 @@ export default function EpisodeBoard() {
         }
     };
 
-    // --- DOWNLOAD LOGIC ---
     const executeDownload = async (url: string, filename: string) => {
+        // (Keep existing download logic here, omitted for brevity but same as before)
         try {
             const response = await fetch(url, { mode: 'cors' });
             if (!response.ok) throw new Error("Network response was not ok");
@@ -134,73 +128,52 @@ export default function EpisodeBoard() {
         }
     };
 
-    const handleModalChoice = async (type: 'image' | 'video' | 'both') => {
-        if (!downloadShot) return;
-        if (type === 'image' || type === 'both') executeDownload(downloadShot.image_url, `${downloadShot.id}_image.jpg`);
-        if (type === 'video' || type === 'both') {
-            if (type === 'both') await new Promise(r => setTimeout(r, 500));
-            executeDownload(downloadShot.video_url, `${downloadShot.id}_video.mp4`);
+    // HANDLER: Update Character Traits
+    const handleUpdateTraits = async (newTraits: any) => {
+        if (!assetMgr.selectedAsset) return;
+
+        try {
+            // 1. Update Firestore
+            const charRef = doc(db, "series", seriesId, "characters", assetMgr.selectedAsset);
+            await updateDoc(charRef, {
+                visual_traits: newTraits
+            });
+
+            // 2. Update Local State (Immediate Reflection)
+            setCastMembers((prev) => prev.map(member =>
+                member.id === assetMgr.selectedAsset
+                    ? { ...member, visual_traits: newTraits } // Assumption: visual_traits is added to Interface
+                    : member
+            ));
+
+        } catch (error) {
+            console.error("Failed to update traits:", error);
+            alert("Failed to save traits.");
         }
-        setDownloadShot(null);
     };
 
     return (
         <main style={styles.container}>
-            {/* --- TOP NAV --- */}
-            <div style={styles.topNav}>
-                <Link href={`/series/${seriesId}`} style={styles.backLink}>
-                    <ArrowLeft size={14} /> BACK TO EPISODES
-                </Link>
-                <div style={{ fontSize: '12px', color: '#444' }}>MOTION X STUDIO</div>
-            </div>
 
-            {/* --- HEADER --- */}
-            <div style={styles.header}>
-                <div style={styles.titleBlock}>
-                    <h1 style={styles.title}>{episodeData?.title || 'UNTITLED'}</h1>
-                    <p style={styles.subtitle}>PHASE 2: ASSET LAB</p>
-                </div>
+            <EpisodeHeader
+                seriesId={seriesId}
+                episodeTitle={episodeData?.title}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                castCount={castMembers.length}
+                locCount={uniqueLocs.length}
+                styles={styles}
+            />
 
-                <div style={styles.tabRow} id="tour-assets-target">
-                    <div style={styles.tabBtn(activeTab === 'scenes')} onClick={() => setActiveTab('scenes')}>
-                        <LayoutTemplate size={16} /> SCENES
-                    </div>
-                    <div style={styles.tabBtn(activeTab === 'casting')} onClick={() => setActiveTab('casting')}>
-                        <Users size={16} /> CASTING ({castMembers.length})
-                    </div>
-                    <div style={styles.tabBtn(activeTab === 'locations')} onClick={() => setActiveTab('locations')}>
-                        <MapPin size={16} /> LOCATIONS ({uniqueLocs.length})
-                    </div>
-                </div>
-            </div>
-
-            {/* --- TAB CONTENT: SCENES --- */}
+            {/* --- MAIN TABS --- */}
             {activeTab === 'scenes' && (
-                <div style={styles.grid}>
-                    {scenes.map((scene, index) => (
-                        <div key={scene.id} style={styles.card}>
-                            <div style={styles.sceneHeader}>
-                                <span style={styles.sceneTitle}>SCENE {scene.scene_number}</span>
-                                <span style={styles.metaTag}>{scene.time_of_day}</span>
-                            </div>
-                            <div style={styles.locRow}>
-                                <MapPin size={16} color="#666" /> {scene.location}
-                            </div>
-                            <p style={styles.actionText}>{scene.visual_action}</p>
-
-                            <button
-                                id={index === 0 ? "tour-storyboard-target" : undefined}
-                                onClick={() => setActiveSceneId(scene.id)}
-                                style={{ width: '100%', padding: '15px', backgroundColor: '#222', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '12px', letterSpacing: '1px' }}
-                            >
-                                <Film size={16} /> OPEN STORYBOARD
-                            </button>
-                        </div>
-                    ))}
-                </div>
+                <ScenesTab
+                    scenes={scenes}
+                    onOpenStoryboard={setActiveSceneId}
+                    styles={styles}
+                />
             )}
 
-            {/* --- TAB CONTENT: CASTING (MODULAR) --- */}
             {activeTab === 'casting' && (
                 <CastingTab
                     castMembers={castMembers}
@@ -210,28 +183,16 @@ export default function EpisodeBoard() {
                 />
             )}
 
-            {/* --- TAB CONTENT: LOCATIONS --- */}
             {activeTab === 'locations' && (
-                <div style={styles.grid}>
-                    {uniqueLocs.map((loc, index) => {
-                        const imageUrl = locationImages[loc];
-                        return (
-                            <div key={index} style={styles.assetCard}>
-                                {imageUrl ? <img src={imageUrl} alt={loc} style={styles.assetImage} /> : <div style={styles.assetPlaceholder}><ImageIcon size={40} /></div>}
-                                <div style={styles.assetName}>{loc}</div>
-                                <button
-                                    style={{ ...styles.genBtn, backgroundColor: imageUrl ? '#222' : '#FF0000' }}
-                                    onClick={() => assetMgr.openAssetModal(loc, 'location')}
-                                >
-                                    {imageUrl ? "REGENERATE SET" : "BUILD SET"}
-                                </button>
-                            </div>
-                        );
-                    })}
-                </div>
+                <LocationsTab
+                    uniqueLocs={uniqueLocs}
+                    locationImages={locationImages}
+                    onEditAsset={(loc) => assetMgr.openAssetModal(loc, 'location')}
+                    styles={styles}
+                />
             )}
 
-            {/* --- MODULAR OVERLAYS --- */}
+            {/* --- OVERLAYS --- */}
 
             <StoryboardOverlay
                 activeSceneId={activeSceneId}
@@ -248,73 +209,81 @@ export default function EpisodeBoard() {
                 onZoom={setZoomMedia}
                 onDownload={(shot) => shot.video_url ? setDownloadShot(shot) : executeDownload(shot.image_url, `${shot.id}.jpg`)}
                 onDeleteShot={setDeleteShotId}
-                tourStep={sbTourStep}
-                onTourNext={sbNextStep}
-                onTourComplete={sbCompleteTour}
+                tourStep={sbTour.tourStep}
+                onTourNext={sbTour.nextStep}
+                onTourComplete={sbTour.completeTour}
             />
 
-            <AssetModal
-                isOpen={assetMgr.modalOpen}
-                onClose={() => assetMgr.setModalOpen(false)}
-                selectedAsset={assetMgr.selectedAsset}
-                mode={assetMgr.modalMode}
-                setMode={assetMgr.setModalMode}
-                genPrompt={assetMgr.genPrompt}
-                setGenPrompt={assetMgr.setGenPrompt}
-                isProcessing={assetMgr.isProcessing}
+            {/* ASSET MODAL with CALLBACKS */}
+            {(() => {
+                const selectedCharData = assetMgr.assetType === 'character'
+                    ? castMembers.find(c => c.id === assetMgr.selectedAsset)
+                    : undefined;
 
-                // CALLBACK 1: ON UPLOAD
-                onUpload={(file) => assetMgr.handleAssetUpload(file, (url) => {
-                    if (assetMgr.assetType === 'location') {
-                        setLocationImages(prev => ({ ...prev, [assetMgr.selectedAsset!]: url }));
-                    } else if (assetMgr.assetType === 'character') {
-                        // FIX: Explicitly typed to avoid TS7006 error
-                        setCastMembers((prevMembers: CharacterProfile[]) => prevMembers.map(member =>
-                            member.id === assetMgr.selectedAsset
-                                ? { ...member, face_sample_url: url, image_url: url } // Updating both fields for consistency
-                                : member
-                        ));
-                    }
-                })}
+                return (
+                    <AssetModal
+                        isOpen={assetMgr.modalOpen}
+                        onClose={() => assetMgr.setModalOpen(false)}
 
-                // CALLBACK 2: ON GENERATE
-                onGenerate={() => assetMgr.handleAssetGenerate((url) => {
-                    if (assetMgr.assetType === 'location') {
-                        setLocationImages(prev => ({ ...prev, [assetMgr.selectedAsset!]: url }));
-                    } else if (assetMgr.assetType === 'character') {
-                        // FIX: Explicitly typed to avoid TS7006 error
-                        setCastMembers((prevMembers: CharacterProfile[]) => prevMembers.map(member =>
-                            member.id === assetMgr.selectedAsset
-                                ? { ...member, face_sample_url: url, image_url: url } // Updating both fields for consistency
-                                : member
-                        ));
-                    }
-                })}
+                        // NEW PROPS
+                        assetId={assetMgr.selectedAsset}
+                        assetName={selectedCharData?.name || assetMgr.selectedAsset || 'Unknown Asset'}
+                        assetType={assetMgr.assetType}
+                        currentData={selectedCharData}
+                        onUpdateTraits={handleUpdateTraits}
 
-                styles={styles}
-            />
+                        mode={assetMgr.modalMode}
+                        setMode={assetMgr.setModalMode}
+                        genPrompt={assetMgr.genPrompt}
+                        setGenPrompt={assetMgr.setGenPrompt}
+                        isProcessing={assetMgr.isProcessing}
 
-            <ZoomOverlay
-                media={zoomMedia}
-                onClose={() => setZoomMedia(null)}
-                styles={styles}
-            />
+                        onUpload={(file) => assetMgr.handleAssetUpload(file, (url) => {
+                            if (assetMgr.assetType === 'location') {
+                                setLocationImages(prev => ({ ...prev, [assetMgr.selectedAsset!]: url }));
+                            } else if (assetMgr.assetType === 'character') {
+                                setCastMembers((prev: CharacterProfile[]) => prev.map(m => m.id === assetMgr.selectedAsset ? { ...m, face_sample_url: url, image_url: url } : m));
+                            }
+                        })}
 
-            {/* --- UTILITIES --- */}
-            <TourGuide step={epTourStep} onNext={epNextStep} onComplete={epCompleteTour} />
+                        onGenerate={() => assetMgr.handleAssetGenerate((url) => {
+                            if (assetMgr.assetType === 'location') {
+                                setLocationImages(prev => ({ ...prev, [assetMgr.selectedAsset!]: url }));
+                            } else if (assetMgr.assetType === 'character') {
+                                setCastMembers((prev: CharacterProfile[]) => prev.map(m => m.id === assetMgr.selectedAsset ? { ...m, face_sample_url: url, image_url: url } : m));
+                            }
+                        })}
+
+                        styles={styles}
+                    />
+                );
+            })()}
+
+            <ZoomOverlay media={zoomMedia} onClose={() => setZoomMedia(null)} styles={styles} />
+
+            {/* --- UTILS --- */}
+            <TourGuide step={epTour.tourStep} onNext={epTour.nextStep} onComplete={epTour.completeTour} />
 
             {downloadShot && (
                 <DownloadModal
                     shot={downloadShot}
                     onClose={() => setDownloadShot(null)}
-                    onDownload={handleModalChoice}
+                    onDownload={async (type) => {
+                        if (!downloadShot) return;
+                        if (type === 'image' || type === 'both') executeDownload(downloadShot.image_url, `${downloadShot.id}_image.jpg`);
+                        if (type === 'video' || type === 'both') {
+                            if (type === 'both') await new Promise(r => setTimeout(r, 500));
+                            executeDownload(downloadShot.video_url, `${downloadShot.id}_video.mp4`);
+                        }
+                        setDownloadShot(null);
+                    }}
                 />
             )}
 
             {deleteShotId && (
                 <DeleteConfirmModal
                     title="DELETE SHOT?"
-                    message="Irreversible action. Assets will be lost."
+                    message="Irreversible action."
                     isDeleting={isDeletingShot}
                     onConfirm={confirmShotDelete}
                     onCancel={() => setDeleteShotId(null)}
