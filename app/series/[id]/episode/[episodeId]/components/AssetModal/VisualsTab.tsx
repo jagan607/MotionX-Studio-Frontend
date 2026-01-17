@@ -75,8 +75,18 @@ export const VisualsTab: React.FC<VisualsTabProps> = ({
                         onClick={onGenerate}
                         disabled={isProcessing}
                     >
-                        {isProcessing ? <Loader2 className="animate-spin" /> : <Sparkles size={18} />}
-                        {isProcessing ? "GENERATING..." : "GENERATE VISUAL"}
+                        {isProcessing ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                {/* Using the new force-spin class */}
+                                <Loader2 className="force-spin" size={18} />
+                                <span>GENERATING...</span>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                <Sparkles size={18} />
+                                <span>GENERATE VISUAL</span>
+                            </div>
+                        )}
                     </button>
                 </div>
             )}

@@ -37,7 +37,23 @@ button {
   outline: none;
 }
 
-/* 5. ANIMATIONS (New Addition for Landing Page) */
+/* 5. ANIMATIONS */
+@keyframes spin-custom {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* We use a custom class name to avoid Tailwind conflicts */
+.force-spin {
+  animation: spin-custom 1s linear infinite !important;
+  display: inline-block !important;
+}
+
 @keyframes marquee {
   0% {
     transform: translateX(0);
@@ -52,26 +68,4 @@ button {
   display: flex;
   width: max-content;
   animation: marquee 20s linear infinite;
-}
-
-.animate-marquee:hover {
-  animation-play-state: paused;
-}
-
-/* app/globals.css */
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.spin-loader {
-  animation: spin 1s linear infinite;
-  /* Optional: ensure it centers nicely */
-  display: block;
 }
