@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, User, MapPin, Upload, Sparkles, Play, Pause, RefreshCw, ArrowLeft, Loader2 } from 'lucide-react';
+import { X, User, MapPin, Upload, Sparkles, Play, Pause, RefreshCw, ArrowLeft, Loader2, Terminal } from 'lucide-react';
 import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
 import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils';
 
@@ -35,6 +35,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         assetName,
         onUpdateTraits,
         setGenPrompt,
+        genPrompt,
         onClose,
         isProcessing,
         onGenerate,
@@ -86,11 +87,12 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             setEditableTraits(initialTraits);
             setSelectedVoiceId(currentData?.voice_config?.voice_id || null);
 
-            if (assetType === 'location') {
-                setGenPrompt(constructLocationPrompt(assetName || "Location", initialTraits.visual_traits, initialTraits));
-            } else if (assetType === 'character') {
-                setGenPrompt(constructCharacterPrompt(assetName || "Character", initialTraits, initialTraits));
-            }
+            // 2. Initial Prompt Construction
+            const constructedPrompt = assetType === 'location'
+                ? constructLocationPrompt(assetName || "Location", initialTraits.visual_traits, initialTraits)
+                : constructCharacterPrompt(assetName || "Character", initialTraits, initialTraits);
+
+            setGenPrompt(constructedPrompt);
         }
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
@@ -121,27 +123,20 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         audio.onended = () => setPlayingVoiceId(null);
     };
 
-    // NEW: Handles playing voice directly from the main inspector view
     const handleMainViewPlay = async () => {
         const vid = currentData?.voice_config?.voice_id;
         if (!vid) return;
 
-        // If currently playing this voice, pause it
         if (playingVoiceId === vid) {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current = null;
-            }
+            if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
             setPlayingVoiceId(null);
             return;
         }
 
-        // Try to find the voice URL in our loaded list
         let voice = allVoices.find(v => v.voice_id === vid);
 
-        // If voices aren't loaded yet (user didn't open library), fetch them now
         if (!voice) {
-            setIsLoadingVoices(true); // Re-use loading state for the spinner on the play button
+            setIsLoadingVoices(true);
             const fetched = await loadVoices();
             setIsLoadingVoices(false);
             voice = fetched.find(v => v.voice_id === vid);
@@ -159,7 +154,18 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         if (assetType === 'location' && key === 'visual_traits') {
             finalValue = value.split(',').map(t => t.trim()).filter(t => t !== "");
         }
-        setEditableTraits((prev: any) => ({ ...prev, [key]: finalValue }));
+
+        // Update Traits State
+        const updatedTraits = { ...editableTraits, [key]: finalValue };
+        setEditableTraits(updatedTraits);
+
+        // LIVE UPDATE: Regenerate prompt based on new traits
+        // This ensures the prompt terminal always reflects the inputs above
+        const constructedPrompt = assetType === 'location'
+            ? constructLocationPrompt(assetName || "Location", updatedTraits.visual_traits, updatedTraits)
+            : constructCharacterPrompt(assetName || "Character", updatedTraits, updatedTraits);
+
+        setGenPrompt(constructedPrompt);
     };
 
     const handleSaveTraits = async () => {
@@ -289,6 +295,23 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                     </div>
                                 </div>
 
+                                {/* NEW: PROMPT TERMINAL */}
+                                <div style={props.styles.promptBox}>
+                                    <div style={props.styles.promptHeader}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <Terminal size={10} color="#00FF00" />
+                                            <span>AI GENERATION PROMPT</span>
+                                        </div>
+                                        {/* Optional: Add a "Reset" button here if needed in future */}
+                                    </div>
+                                    <textarea
+                                        value={genPrompt}
+                                        onChange={(e) => setGenPrompt(e.target.value)}
+                                        style={props.styles.promptInput}
+                                    />
+                                </div>
+
+                                {/* Image Preview */}
                                 <div style={{
                                     width: '100%', height: '220px', backgroundColor: '#050505',
                                     border: '1px dashed #333', borderRadius: '6px', overflow: 'hidden',
@@ -306,7 +329,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                 </div>
                             </div>
 
-                            {/* SECTION: VOICE (Interactive Card) */}
+                            {/* SECTION: VOICE */}
                             {assetType === 'character' && (
                                 <div>
                                     <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#444', marginBottom: '10px', letterSpacing: '1px' }}>

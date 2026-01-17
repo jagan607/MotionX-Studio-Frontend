@@ -50,12 +50,17 @@ export const styles = {
     locRow: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', fontWeight: 'bold' as const, marginBottom: '15px', color: '#FFF' },
     actionText: { fontSize: '14px', lineHeight: '1.6', color: '#CCC', marginBottom: '20px', minHeight: '80px' },
 
-    // MODAL STYLES (UPDATED)
-    modal: { width: '600px', backgroundColor: '#0A0A0A', border: '1px solid #333', padding: '0px' }, // Removed padding for flex layout
+    // MODAL STYLES
+    modal: { width: '600px', backgroundColor: '#0A0A0A', border: '1px solid #333', padding: '0px' },
     modalTitle: { fontFamily: 'Anton, sans-serif', fontSize: '32px', textTransform: 'uppercase' as const, marginBottom: '10px', color: 'white' },
     modalSub: { fontSize: '12px', color: '#666', marginBottom: '30px' },
 
-    // NEW: Action Toolbar Styles
+    // Prompt Terminal Styles (NEW)
+    promptBox: { backgroundColor: '#0F0F0F', border: '1px solid #333', borderRadius: '6px', marginBottom: '15px', overflow: 'hidden' },
+    promptHeader: { backgroundColor: '#1a1a1a', padding: '8px 12px', borderBottom: '1px solid #333', fontSize: '10px', fontWeight: 'bold' as const, color: '#888', letterSpacing: '1px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+    promptInput: { width: '100%', backgroundColor: '#0F0F0F', border: 'none', padding: '12px', color: '#00FF00', fontFamily: 'monospace', fontSize: '11px', lineHeight: '1.6', resize: 'vertical' as const, minHeight: '80px', outline: 'none', boxSizing: 'border-box' as const },
+
+    // Action Toolbar Styles
     actionToolbar: { display: 'flex', gap: '10px' },
     actionBtn: (active: boolean) => ({
         cursor: 'pointer',

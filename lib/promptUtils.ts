@@ -1,74 +1,75 @@
+// lib/promptUtils.ts
+
 import { LocationProfile, CharacterProfile } from "@/lib/types";
 
 // --- LOCATION PROMPT BUILDER ---
 export const constructLocationPrompt = (
     locationName: string,
-    traits: LocationProfile['visual_traits'],
-    additionalData?: Partial<LocationProfile> // Pass atmosphere, lighting, terrain
+    visualTraits: string[] | any, // Can be array or object depending on legacy data
+    allTraits: any // The full flat object containing atmosphere, lighting, terrain
 ): string => {
-    // 1. Start with the Subject
-    let prompt = `Cinematic wide shot of ${locationName.toUpperCase()}`;
+    // 1. Base Identity
+    let prompt = `Cinematic wide shot of ${locationName.toUpperCase()}.`;
 
-    const details: string[] = [];
+    // 2. Atmosphere & Lighting (The "Vibe")
+    if (allTraits.atmosphere) prompt += ` Atmosphere: ${allTraits.atmosphere}.`;
+    if (allTraits.lighting) prompt += ` Lighting: ${allTraits.lighting}.`;
 
-    // 2. Handle the New Array Structure
-    if (Array.isArray(traits)) {
-        details.push(...traits);
-    }
-    // 3. Handle the Old Object Structure (Fallback)
-    else if (traits && typeof traits === 'object') {
-        const t = traits as any;
-        if (t.environment) details.push(t.environment);
-        if (t.architectural_style) details.push(`${t.architectural_style} architecture`);
-        if (t.weather) details.push(`${t.weather} weather`);
-        if (t.color_palette) details.push(`${t.color_palette} color palette`);
-        if (t.vibe) details.push(`${t.vibe} vibe`);
-    }
-
-    // 4. Incorporate New Top-Level Fields
-    if (additionalData?.terrain) details.push(`${additionalData.terrain} environment`);
-    if (additionalData?.atmosphere) details.push(`${additionalData.atmosphere} atmosphere`);
-    if (additionalData?.lighting) details.push(`${additionalData.lighting} lighting`);
-
-    if (details.length > 0) {
-        prompt += `. Visual details: ${details.join(', ')}`;
+    // 3. Specific Visual Details (The "Ingredients")
+    // Handle if visualTraits is an array (new schema) or object (legacy fallback)
+    if (Array.isArray(visualTraits) && visualTraits.length > 0) {
+        prompt += ` Visual details: ${visualTraits.join(', ')}.`;
+    } else if (visualTraits && typeof visualTraits === 'object' && !Array.isArray(visualTraits)) {
+        // Fallback for any legacy object structure
+        const details = [];
+        if (visualTraits.environment) details.push(visualTraits.environment);
+        if (visualTraits.architectural_style) details.push(visualTraits.architectural_style);
+        if (details.length > 0) prompt += ` Visual details: ${details.join(', ')}.`;
     }
 
-    // 5. Technical Boilerplate
-    const techSpecs = "Highly detailed, 8k resolution, photorealistic, depth of field, professional cinematography, unreal engine 5 render.";
+    // 4. Terrain/Setting
+    if (allTraits.terrain) prompt += ` Setting: ${allTraits.terrain}.`;
 
-    return `${prompt}. ${techSpecs}`;
+    // 5. Hardcoded Stylistic Suffix (Ensures high quality)
+    prompt += " Highly detailed, 8k resolution, photorealistic, depth of field, professional cinematography, unreal engine 5 render.";
+
+    return prompt;
 };
 
 
 // --- CHARACTER PROMPT BUILDER ---
 export const constructCharacterPrompt = (
     charName: string,
-    traits: any,
-    additionalData?: any // Added to capture top-level physical_description
+    traits: any, // The specific visual_traits object (age, hair, etc.)
+    allTraits: any // The full object (in case we need top-level fields like physical_description)
 ): string => {
+    // 1. Base Identity & Demographics
     let prompt = `Cinematic portrait of ${charName.toUpperCase()}`;
-    const details: string[] = [];
 
-    // Prioritize the comprehensive physical description if it exists
-    if (additionalData?.physical_description) {
-        details.push(additionalData.physical_description);
+    const demographics = [];
+    if (traits.age) demographics.push(traits.age);
+    if (traits.ethnicity) demographics.push(traits.ethnicity);
+
+    if (demographics.length > 0) {
+        prompt += `, ${demographics.join(', ')}.`;
+    } else {
+        prompt += `.`;
     }
 
-    if (traits) {
-        if (traits.age) details.push(`${traits.age}`);
-        if (traits.ethnicity) details.push(traits.ethnicity);
-        if (traits.hair) details.push(`hair: ${traits.hair}`);
-        if (traits.clothing) details.push(`clothing: ${traits.clothing}`);
-        // Support for vibe as a top-level field or trait
-        const vibe = additionalData?.vibe || traits.vibe;
-        if (vibe) details.push(`vibe: ${vibe}`);
+    // 2. Physical Appearance
+    if (traits.clothing) prompt += ` Wearing ${traits.clothing}.`;
+    if (traits.hair) prompt += ` Hair: ${traits.hair}.`;
+
+    // 3. Character Vibe/Aura
+    if (traits.vibe) prompt += ` Vibe: ${traits.vibe}.`;
+
+    // 4. Fallback for "Physical Description" (if used in ingestion)
+    if (allTraits.physical_description) {
+        prompt += ` Description: ${allTraits.physical_description}.`;
     }
 
-    if (details.length > 0) {
-        prompt += `, ${details.join(', ')}`;
-    }
+    // 5. Hardcoded Stylistic Suffix
+    prompt += " Detailed facial features, dramatic lighting, 8k, photorealistic, character concept art, masterpiece.";
 
-    const techSpecs = "8k resolution, photorealistic, detailed skin texture, dramatic lighting, sharp focus, masterpiece.";
-    return `${prompt}. ${techSpecs}`;
+    return prompt;
 };
