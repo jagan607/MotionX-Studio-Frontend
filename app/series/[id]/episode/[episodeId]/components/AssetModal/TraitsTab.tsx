@@ -14,37 +14,41 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
     assetType, editableTraits, handleTraitChange, handleSaveTraits, isSavingTraits, styles
 }) => {
 
-    // Define fields based on type
+    // Define fields based on the new AI response schema
     const fields = assetType === 'location' ? [
-        { k: 'environment', l: 'ENVIRONMENT', p: 'e.g. Cave, Office' },
-        { k: 'time_of_day', l: 'TIME OF DAY', p: 'e.g. Night, Golden Hour' },
-        { k: 'architectural_style', l: 'ARCHITECTURE', p: 'e.g. Brutalist, Modern' },
-        { k: 'lighting', l: 'LIGHTING', p: 'e.g. Neon, Dim' },
-        { k: 'weather', l: 'WEATHER', p: 'e.g. Foggy, Clear' },
-        { k: 'vibe', l: 'MOOD / VIBE', p: 'e.g. Ominous, Sterile' },
-    ] : Object.entries(editableTraits).map(([k]) => ({ k, l: k.toUpperCase(), p: '' }));
+        { k: 'terrain', l: 'TERRAIN', p: 'e.g. Indoor, Outdoor' },
+        { k: 'atmosphere', l: 'ATMOSPHERE', p: 'e.g. Eerie, Tense' },
+        { k: 'lighting', l: 'LIGHTING', p: 'e.g. Dim moonlight, Warm' },
+        // Visual traits are often returned as a list; we join them for easy editing here
+        { k: 'visual_traits', l: 'VISUAL KEYWORDS', p: 'e.g. mist, fog, black water' },
+    ] : [
+        { k: 'age', l: 'AGE / ERA', p: 'e.g. 30s, Ancient' },
+        { k: 'ethnicity', l: 'ETHNICITY', p: 'e.g. South Asian' },
+        { k: 'hair', l: 'HAIR', p: 'e.g. Long, messy' },
+        { k: 'clothing', l: 'CLOTHING', p: 'e.g. Dark cloak' },
+        { k: 'vibe', l: 'VIBE', p: 'e.g. Mysterious' },
+    ];
 
-    // If character traits are empty, show fallback
-    if (assetType === 'character' && fields.length === 0) {
-        return (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#666', border: '1px dashed #333', borderRadius: '8px' }}>
-                NO TRAITS DETECTED
-            </div>
-        );
-    }
+    // Helper to handle displaying array data in a text input
+    const getDisplayValue = (key: string) => {
+        const val = editableTraits[key];
+        if (Array.isArray(val)) return val.join(', ');
+        if (typeof val === 'object' && val !== null) return JSON.stringify(val);
+        return val || '';
+    };
 
     return (
         <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div style={{ flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 1fr', // Strict 2-column layout
+                    gridTemplateColumns: '1fr 1fr',
                     gap: '12px',
                     width: '100%',
-                    padding: '2px' // Prevent scrollbar clipping
+                    padding: '2px'
                 }}>
                     {fields.map((field: any) => (
-                        <div key={field.k} style={{ minWidth: 0 }}> {/* minWidth 0 prevents grid blowout */}
+                        <div key={field.k} style={{ minWidth: 0, gridColumn: field.k === 'visual_traits' ? 'span 2' : 'auto' }}>
                             <label style={{ display: 'block', fontSize: '9px', color: '#666', fontWeight: 'bold', marginBottom: '6px', letterSpacing: '0.5px' }}>
                                 {field.l}
                             </label>
@@ -58,10 +62,10 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
                                     fontSize: '11px',
                                     padding: '10px',
                                     outline: 'none',
-                                    boxSizing: 'border-box' // CRITICAL FIX FOR OVERFLOW
+                                    boxSizing: 'border-box'
                                 }}
                                 placeholder={field.p}
-                                value={editableTraits[field.k] || ''}
+                                value={getDisplayValue(field.k)}
                                 onChange={(e) => handleTraitChange(field.k, e.target.value)}
                             />
                         </div>

@@ -42,16 +42,30 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     useEffect(() => {
         if (isOpen) {
             setActiveTab('visual');
-            setEditableTraits(currentData?.visual_traits || {});
+
+            // Populate initial trait data from DB
+            const initialTraits = {
+                ...(currentData?.visual_traits ? { visual_traits: currentData.visual_traits } : {}),
+                ...(currentData?.atmosphere ? { atmosphere: currentData.atmosphere } : {}),
+                ...(currentData?.lighting ? { lighting: currentData.lighting } : {}),
+                ...(currentData?.terrain ? { terrain: currentData.terrain } : {}),
+                ...(assetType === 'character' ? (currentData?.visual_traits || {}) : {})
+            };
+            setEditableTraits(initialTraits);
             setSelectedVoiceId(currentData?.voice_config?.voice_id || null);
 
-            // Auto-Generate Prompt if empty
+            // Populate AI Prompt
             if (!genPrompt) {
-                if (assetType === 'location') setGenPrompt(constructLocationPrompt(assetName || "Location", currentData?.visual_traits));
-                else if (assetType === 'character') setGenPrompt(constructCharacterPrompt(assetName || "Character", currentData?.visual_traits));
+                if (currentData?.base_prompt) {
+                    setGenPrompt(currentData.base_prompt);
+                } else {
+                    // Fallback to construction utilities
+                    if (assetType === 'location') setGenPrompt(constructLocationPrompt(assetName || "Location", currentData?.visual_traits));
+                    else if (assetType === 'character') setGenPrompt(constructCharacterPrompt(assetName || "Character", currentData?.visual_traits));
+                }
             }
         }
-    }, [isOpen, props.assetId]);
+    }, [isOpen, props.assetId, currentData]);
 
     useEffect(() => {
         if (activeTab === 'voice' && allVoices.length === 0) loadVoices();
@@ -77,19 +91,32 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         audio.onended = () => setPlayingVoiceId(null);
     };
 
+    // Robust handler to manage both string fields and arrays
     const handleTraitChange = (key: string, value: string) => {
-        const newTraits = { ...editableTraits, [key]: value };
+        let finalValue: any = value;
+
+        // If editing the 'visual_traits' field in a location, convert comma-string back to array
+        if (assetType === 'location' && key === 'visual_traits') {
+            finalValue = value.split(',').map(t => t.trim()).filter(t => t !== "");
+        }
+
+        const newTraits = { ...editableTraits, [key]: finalValue };
         setEditableTraits(newTraits);
-        if (assetType === 'location') setGenPrompt(constructLocationPrompt(assetName || "Location", newTraits));
     };
 
     const handleSaveTraits = async () => {
-        setIsSavingTraits(true); await onUpdateTraits(editableTraits); setIsSavingTraits(false);
+        setIsSavingTraits(true);
+        await onUpdateTraits(editableTraits);
+        setIsSavingTraits(false);
     };
 
     const handleVoiceLink = async () => {
         const v = allVoices.find(v => v.voice_id === selectedVoiceId);
-        if (v) { setIsLinkingVoice(true); await props.onLinkVoice({ voice_id: v.voice_id, voice_name: v.name }); setIsLinkingVoice(false); }
+        if (v) {
+            setIsLinkingVoice(true);
+            await props.onLinkVoice({ voice_id: v.voice_id, voice_name: v.name });
+            setIsLinkingVoice(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -127,12 +154,43 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
                 {/* CONTENT AREA */}
                 <div style={{ flex: 1, overflow: 'hidden', padding: '5px' }}>
-                    {activeTab === 'visual' && <VisualsTab {...props} currentImageUrl={currentData?.face_sample_url || currentData?.image_url} />}
-                    {activeTab === 'traits' && <TraitsTab assetType={assetType!} editableTraits={editableTraits} handleTraitChange={handleTraitChange} handleSaveTraits={handleSaveTraits} isSavingTraits={isSavingTraits} styles={props.styles} />}
-                    {activeTab === 'voice' && <VoiceTab
-                        voiceSearch={voiceSearch} setVoiceSearch={setVoiceSearch} isLoadingVoices={isLoadingVoices} filteredVoices={filteredVoices}
-                        selectedVoiceId={selectedVoiceId} setSelectedVoiceId={setSelectedVoiceId} playingVoiceId={playingVoiceId} handlePlayPreview={handlePlayPreview}
-                        handleVoiceSelection={handleVoiceLink} linkBtnState={{ text: selectedVoiceId === currentData?.voice_config?.voice_id ? "LINKED" : "LINK VOICE", disabled: !selectedVoiceId || selectedVoiceId === currentData?.voice_config?.voice_id }} isLinkingVoice={isLinkingVoice} styles={props.styles} />}
+                    {activeTab === 'visual' && (
+                        <VisualsTab
+                            {...props}
+                            currentImageUrl={currentData?.face_sample_url || currentData?.image_url}
+                            basePrompt={currentData?.base_prompt} // Ensuring AI-suggested prompt is used
+                        />
+                    )}
+                    {activeTab === 'traits' && (
+                        <TraitsTab
+                            assetType={assetType!}
+                            editableTraits={editableTraits}
+                            handleTraitChange={handleTraitChange}
+                            handleSaveTraits={handleSaveTraits}
+                            isSavingTraits={isSavingTraits}
+                            styles={props.styles}
+                        />
+                    )}
+                    {activeTab === 'voice' && (
+                        <VoiceTab
+                            voiceSuggestion={currentData?.voice_config?.suggestion} // AI description for voice
+                            voiceSearch={voiceSearch}
+                            setVoiceSearch={setVoiceSearch}
+                            isLoadingVoices={isLoadingVoices}
+                            filteredVoices={filteredVoices}
+                            selectedVoiceId={selectedVoiceId}
+                            setSelectedVoiceId={setSelectedVoiceId}
+                            playingVoiceId={playingVoiceId}
+                            handlePlayPreview={handlePlayPreview}
+                            handleVoiceSelection={handleVoiceLink}
+                            linkBtnState={{
+                                text: selectedVoiceId === currentData?.voice_config?.voice_id ? "LINKED" : "LINK VOICE",
+                                disabled: !selectedVoiceId || selectedVoiceId === currentData?.voice_config?.voice_id
+                            }}
+                            isLinkingVoice={isLinkingVoice}
+                            styles={props.styles}
+                        />
+                    )}
                 </div>
             </div>
         </div>

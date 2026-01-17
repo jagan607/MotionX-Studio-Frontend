@@ -6,24 +6,27 @@ export interface CharacterProfile {
     voice_config?: {
         voice_id?: string;
         voice_name?: string;
+        provider?: string;
+        suggestion?: string; // AI voice suggestion
     };
     status?: string;
     visual_traits?: any;
+    base_prompt?: string;
 }
 
 export interface LocationProfile {
     id: string;
-    name: string;
+    name: string;           // Maps to "name" (Full Header)
+    raw_name?: string;      // Maps to "raw_name" (Core Name)
     image_url?: string;
-    visual_traits?: {
-        environment?: string;
-        time_of_day?: string;
-        architectural_style?: string;
-        lighting?: string;
-        weather?: string;
-        vibe?: string;
-        color_palette?: string;
-    };
+
+    // Core traits extracted by AI
+    visual_traits?: string[];
+    atmosphere?: string;    // Maps to "atmosphere"
+    lighting?: string;      // Maps to "lighting"
+    terrain?: 'indoor' | 'outdoor' | string; // Maps to "terrain"
+
     base_prompt?: string;
-    status?: 'active' | 'draft';
+    description?: string;   // Composite description used by the backend
+    status?: 'active' | 'draft' | 'script_detected' | 'auto_detected' | string;
 }

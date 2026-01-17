@@ -31,11 +31,10 @@ export default function CreateSeries() {
       if (!idToken) throw new Error("Failed to get ID token");
 
       const formData = new FormData();
-      formData.append("title", title); // Changed key to 'title'
+      formData.append("title", title);
       formData.append("genre", genre);
       formData.append("style", style);
 
-      // FIX URL: Pointing to 'script' router where the code lives
       const res = await fetch(`${API_BASE_URL}/api/v1/create-series`, {
         method: "POST",
         headers: {
@@ -62,25 +61,54 @@ export default function CreateSeries() {
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#050505',
+      backgroundColor: '#030303', // Matched Dashboard BG
       color: '#EDEDED',
       fontFamily: 'Inter, sans-serif',
+      // UPDATED LAYOUT: Removed vertical centering
       display: 'flex',
-      alignItems: 'center',
       justifyContent: 'center',
-      padding: '40px',
+      alignItems: 'flex-start', // Align to top
+      padding: '60px 80px', // Matches Dashboard/Series Detail padding
+      backgroundImage: 'radial-gradient(circle at 50% 50%, #111 0%, #030303 80%)',
     },
     box: {
       width: '100%',
       maxWidth: '600px',
+      // Added margin top to position it nicely without being dead center
+      marginTop: '20px',
+    },
+    backLink: {
+      textDecoration: 'none',
+      color: '#666',
+      fontSize: '10px',
+      fontWeight: 'bold' as const,
+      letterSpacing: '2px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      // Reduced margin
+      marginBottom: '30px'
+    },
+    title: {
+      fontFamily: 'Anton, sans-serif',
+      fontSize: '48px',
+      lineHeight: 1,
+      marginBottom: '10px',
+      textTransform: 'uppercase' as const,
+      color: '#FFF'
+    },
+    subtitle: {
+      color: '#666',
+      marginBottom: '40px', // Reduced from 50px
+      fontSize: '14px'
     },
     label: {
       display: 'block',
-      fontSize: '11px',
+      fontSize: '10px', // Matches other labels
       color: '#FF0000',
       marginBottom: '10px',
       fontWeight: 'bold' as const,
-      letterSpacing: '1.5px',
+      letterSpacing: '2px',
       textTransform: 'uppercase' as const,
     },
     input: {
@@ -115,24 +143,25 @@ export default function CreateSeries() {
       color: 'white',
       border: 'none',
       padding: '24px',
-      fontSize: '14px',
+      fontSize: '12px',
       fontWeight: 'bold' as const,
       letterSpacing: '2px',
       marginTop: '40px',
       cursor: 'pointer',
       textTransform: 'uppercase' as const,
+      boxShadow: '0 0 30px rgba(255,0,0,0.2)'
     }
   };
 
   return (
     <main style={styles.container}>
       <div style={styles.box}>
-        <Link href="/dashboard" style={{ textDecoration: 'none', color: '#666', fontSize: '11px', fontWeight: 'bold', letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '40px' }}>
+        <Link href="/dashboard" style={styles.backLink}>
           <ArrowLeft size={14} /> BACK TO DASHBOARD
         </Link>
 
-        <h1 style={{ fontFamily: 'Anton, sans-serif', fontSize: '48px', lineHeight: 1, marginBottom: '10px', textTransform: 'uppercase' }}>New Production</h1>
-        <p style={{ color: '#666', marginBottom: '50px' }}>Initialize parameters for your new series.</p>
+        <h1 style={styles.title}>New Production</h1>
+        <p style={styles.subtitle}>Initialize parameters for your new series.</p>
 
         {/* INPUTS */}
         <label style={styles.label}>01 // SERIES TITLE</label>

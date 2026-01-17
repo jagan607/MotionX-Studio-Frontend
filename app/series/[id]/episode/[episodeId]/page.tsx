@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { doc, updateDoc, setDoc } from "firebase/firestore"; // Added setDoc
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 
 // --- CUSTOM IMPORTS ---
@@ -32,6 +32,7 @@ import { useStoryboardTour } from "@/hooks/useStoryboardTour";
 // --- TYPES ---
 import { CharacterProfile, LocationProfile } from "@/lib/types";
 
+// Helper to match Backend ID generation
 const sanitizeId = (name: string) => {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 };
@@ -46,9 +47,9 @@ export default function EpisodeBoard() {
         scenes,
         castMembers,
         setCastMembers,
-        uniqueLocs,
-        locations,      // <--- NEW: Full Location Objects
-        setLocations,   // <--- NEW: Setter
+        uniqueLocs,      // List of names found in script (Strings)
+        locations,       // Full Firestore Documents (Objects with traits)
+        setLocations,
         locationImages,
         setLocationImages,
         loading: dataLoading
@@ -75,25 +76,23 @@ export default function EpisodeBoard() {
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [downloadShot, setDownloadShot] = useState<any>(null);
 
-    // --- HANDLER: UPDATE TRAITS (FIXED) ---
+    // --- HANDLER: UPDATE TRAITS ---
     const handleUpdateTraits = async (newTraits: any) => {
         if (!assetMgr.selectedAsset) return;
 
         try {
-            // A. DETERMINE COLLECTION & ID
             const collectionName = assetMgr.assetType === 'location' ? 'locations' : 'characters';
             const dbDocId = sanitizeId(assetMgr.selectedAsset);
 
-            console.log(`Updating ${collectionName} | ID: ${dbDocId}`);
-
-            // B. UPDATE FIRESTORE (Use setDoc for safety)
+            // Use setDoc with merge to ensure document exists
             const docRef = doc(db, "series", seriesId, collectionName, dbDocId);
             await setDoc(docRef, {
                 visual_traits: newTraits,
-                name: assetMgr.selectedAsset // Ensure name exists if creating new
+                name: assetMgr.selectedAsset, // Fallback name
+                updated_at: new Date()
             }, { merge: true });
 
-            // C. UPDATE LOCAL STATE
+            // Update Local State to reflect changes immediately
             if (assetMgr.assetType === 'character') {
                 setCastMembers((prev: CharacterProfile[]) => prev.map(member =>
                     member.id === dbDocId ? { ...member, visual_traits: newTraits } : member
@@ -110,14 +109,13 @@ export default function EpisodeBoard() {
         }
     };
 
-    // --- HANDLER: LINK VOICE (FIXED) ---
+    // --- HANDLER: LINK VOICE ---
     const handleLinkVoice = async (voiceData: { voice_id: string; voice_name: string }) => {
         if (!assetMgr.selectedAsset) return;
 
         try {
-            const dbDocId = sanitizeId(assetMgr.selectedAsset); // Sanitize here too
+            const dbDocId = sanitizeId(assetMgr.selectedAsset);
 
-            // 1. Update Firestore
             const charRef = doc(db, "series", seriesId, "characters", dbDocId);
             await updateDoc(charRef, {
                 "voice_config.voice_id": voiceData.voice_id,
@@ -125,7 +123,6 @@ export default function EpisodeBoard() {
                 "voice_config.provider": "elevenlabs"
             });
 
-            // 2. Update Local State
             setCastMembers((prev: CharacterProfile[]) => prev.map(member =>
                 member.id === dbDocId
                     ? {
@@ -145,7 +142,7 @@ export default function EpisodeBoard() {
         }
     };
 
-    // --- STANDARD HANDLERS ---
+    // --- UTILITY HANDLERS ---
     const confirmShotDelete = async () => {
         if (!deleteShotId) return;
         setIsDeletingShot(true);
@@ -223,7 +220,8 @@ export default function EpisodeBoard() {
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 castCount={castMembers.length}
-                locCount={uniqueLocs.length}
+                // FIX: Use locations.length (DB records) instead of uniqueLocs (script names)
+                locCount={locations.length}
                 styles={styles}
             />
 
@@ -247,14 +245,16 @@ export default function EpisodeBoard() {
 
             {activeTab === 'locations' && (
                 <LocationsTab
-                    uniqueLocs={uniqueLocs}
+                    // FIX: Pass full locations array to access Traits & Atmosphere
+                    locations={locations}
+                    uniqueLocs={uniqueLocs} // Keep for fallback mapping if needed
                     locationImages={locationImages}
-                    onEditAsset={(loc) => assetMgr.openAssetModal(loc, 'location')}
+                    onEditAsset={(locId) => assetMgr.openAssetModal(locId, 'location')}
                     styles={styles}
                 />
             )}
 
-            {/* --- OVERLAYS --- */}
+            {/* --- STORYBOARD OVERLAY --- */}
             <StoryboardOverlay
                 activeSceneId={activeSceneId}
                 currentScene={currentScene}
@@ -275,14 +275,14 @@ export default function EpisodeBoard() {
                 onTourComplete={sbTour.completeTour}
             />
 
-            {/* ASSET MODAL with CALLBACKS */}
+            {/* --- ASSET MODAL --- */}
             {(() => {
                 const dbDocId = assetMgr.selectedAsset ? sanitizeId(assetMgr.selectedAsset) : null;
 
-                // Select Data based on Type
+                // FIX: Look up data from the correct state array
                 const selectedAssetData = assetMgr.assetType === 'location'
-                    ? locations.find(l => l.id === dbDocId) // Look in Locations State
-                    : castMembers.find(c => c.id === dbDocId); // Look in Characters State
+                    ? locations.find(l => l.id === dbDocId)
+                    : castMembers.find(c => c.id === dbDocId);
 
                 return (
                     <AssetModal
@@ -297,7 +297,7 @@ export default function EpisodeBoard() {
                         assetId={assetMgr.selectedAsset}
                         assetName={selectedAssetData?.name || assetMgr.selectedAsset || 'Unknown Asset'}
                         assetType={assetMgr.assetType}
-                        currentData={selectedAssetData}
+                        currentData={selectedAssetData} // Pass full object (traits, etc.)
 
                         mode={assetMgr.modalMode}
                         setMode={assetMgr.setModalMode}
@@ -305,7 +305,7 @@ export default function EpisodeBoard() {
                         setGenPrompt={assetMgr.setGenPrompt}
                         isProcessing={assetMgr.isProcessing}
 
-                        // Callback Updates
+                        // Callback Updates for Images
                         onUpload={(file) => assetMgr.handleAssetUpload(file, (url) => {
                             if (assetMgr.assetType === 'location') {
                                 setLocationImages(prev => ({ ...prev, [assetMgr.selectedAsset!]: url }));
