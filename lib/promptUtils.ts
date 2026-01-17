@@ -3,69 +3,73 @@ import { LocationProfile, CharacterProfile } from "@/lib/types";
 // --- LOCATION PROMPT BUILDER ---
 export const constructLocationPrompt = (
     locationName: string,
-    traits: LocationProfile['visual_traits']
+    traits: LocationProfile['visual_traits'],
+    additionalData?: Partial<LocationProfile> // Pass atmosphere, lighting, terrain
 ): string => {
     // 1. Start with the Subject
-    let prompt = `Cinematic wide shot of ${locationName}`;
+    let prompt = `Cinematic wide shot of ${locationName.toUpperCase()}`;
 
-    // 2. Append Visual Traits
-    if (traits) {
-        const details = [];
+    const details: string[] = [];
 
-        if (traits.environment) details.push(`set in a ${traits.environment}`);
-        if (traits.architectural_style) details.push(`${traits.architectural_style} architecture`);
-        if (traits.time_of_day) details.push(`during ${traits.time_of_day}`);
-        if (traits.weather) details.push(`${traits.weather} weather`);
-        if (traits.lighting) details.push(`${traits.lighting} lighting`);
-        if (traits.color_palette) details.push(`${traits.color_palette} color palette`);
-        if (traits.vibe) details.push(`atmosphere is ${traits.vibe}`);
-
-        if (details.length > 0) {
-            prompt += `. Location details: ${details.join(', ')}.`;
-        }
+    // 2. Handle the New Array Structure
+    if (Array.isArray(traits)) {
+        details.push(...traits);
+    }
+    // 3. Handle the Old Object Structure (Fallback)
+    else if (traits && typeof traits === 'object') {
+        const t = traits as any;
+        if (t.environment) details.push(t.environment);
+        if (t.architectural_style) details.push(`${t.architectural_style} architecture`);
+        if (t.weather) details.push(`${t.weather} weather`);
+        if (t.color_palette) details.push(`${t.color_palette} color palette`);
+        if (t.vibe) details.push(`${t.vibe} vibe`);
     }
 
-    // 3. Technical Boilerplate
+    // 4. Incorporate New Top-Level Fields
+    if (additionalData?.terrain) details.push(`${additionalData.terrain} environment`);
+    if (additionalData?.atmosphere) details.push(`${additionalData.atmosphere} atmosphere`);
+    if (additionalData?.lighting) details.push(`${additionalData.lighting} lighting`);
+
+    if (details.length > 0) {
+        prompt += `. Visual details: ${details.join(', ')}`;
+    }
+
+    // 5. Technical Boilerplate
     const techSpecs = "Highly detailed, 8k resolution, photorealistic, depth of field, professional cinematography, unreal engine 5 render.";
 
-    return `${prompt} ${techSpecs}`;
+    return `${prompt}. ${techSpecs}`;
 };
 
 
 // --- CHARACTER PROMPT BUILDER ---
 export const constructCharacterPrompt = (
     charName: string,
-    traits: any // Using 'any' for flexibility, or define strict VisualTraits interface
+    traits: any
 ): string => {
     // 1. Start with the Subject
-    let prompt = `Cinematic portrait of ${charName}`;
+    let prompt = `Cinematic portrait of ${charName.toUpperCase()}`;
 
-    // 2. Append Visual Traits
     if (traits) {
-        const details = [];
+        const details: string[] = [];
 
-        // Basic Demographics
-        if (traits.age) details.push(`${traits.age} years old`);
+        // Support for the structure returned for characters like 'Maya'
+        if (traits.age) details.push(`${traits.age}`);
         if (traits.ethnicity) details.push(`${traits.ethnicity}`);
-        if (traits.gender) details.push(`${traits.gender}`); // Optional if implied by name
+        if (traits.hair) details.push(`hair: ${traits.hair}`);
+        if (traits.clothing) details.push(`clothing: ${traits.clothing}`);
+        if (traits.vibe) details.push(`vibe: ${traits.vibe}`);
 
-        // Physicality
-        if (traits.hair) details.push(`with ${traits.hair} hair`);
-        if (traits.facial_features) details.push(`${traits.facial_features}`);
+        // Physicality (Fallbacks for different AI outputs)
+        if (traits.facial_features) details.push(traits.facial_features);
         if (traits.body_type) details.push(`${traits.body_type} build`);
 
-        // Style & Vibe
-        if (traits.clothing) details.push(`wearing ${traits.clothing}`);
-        if (traits.accessories) details.push(`wearing ${traits.accessories}`);
-        if (traits.vibe) details.push(`exuding a ${traits.vibe} vibe`);
-
         if (details.length > 0) {
-            prompt += `, ${details.join(', ')}.`;
+            prompt += `, ${details.join(', ')}`;
         }
     }
 
-    // 3. Technical Boilerplate
-    const techSpecs = "8k resolution, photorealistic, detailed skin texture, dramatic lighting, sharp focus.";
+    // 2. Technical Boilerplate
+    const techSpecs = "8k resolution, photorealistic, detailed skin texture, dramatic lighting, sharp focus, masterpiece.";
 
-    return `${prompt} ${techSpecs}`;
+    return `${prompt}. ${techSpecs}`;
 };

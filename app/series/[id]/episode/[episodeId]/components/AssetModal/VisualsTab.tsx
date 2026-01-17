@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { Upload, Loader2, Sparkles } from 'lucide-react';
 
 interface VisualsTabProps {
@@ -11,23 +11,14 @@ interface VisualsTabProps {
     onUpload: (f: File) => void;
     isProcessing: boolean;
     styles: any;
-    // ADD THIS: Pass the base prompt from the DB/Asset
-    basePrompt?: string;
+    basePrompt?: string; // Kept in interface for prop safety, but logic is handled by parent
 }
 
 export const VisualsTab: React.FC<VisualsTabProps> = ({
     mode, setMode, currentImageUrl, genPrompt, setGenPrompt,
-    onGenerate, onUpload, isProcessing, styles, basePrompt
+    onGenerate, onUpload, isProcessing, styles
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
-
-    // --- EFFECT: Populate prompt on mount or when basePrompt changes ---
-    useEffect(() => {
-        // Only auto-fill if the current prompt box is empty
-        if (basePrompt && !genPrompt) {
-            setGenPrompt(basePrompt);
-        }
-    }, [basePrompt, setGenPrompt]);
 
     return (
         <div style={{ animation: 'fadeIn 0.3s ease', display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -58,19 +49,8 @@ export const VisualsTab: React.FC<VisualsTabProps> = ({
             {mode === 'generate' && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginBottom: '15px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <div style={{ fontSize: '10px', color: '#666', letterSpacing: '0.5px', fontWeight: 'bold' }}>
-                                PROMPT (GENERATED FROM TRAITS)
-                            </div>
-                            {/* Option to reset to original if user edited it */}
-                            {basePrompt && genPrompt !== basePrompt && (
-                                <div
-                                    onClick={() => setGenPrompt(basePrompt)}
-                                    style={{ fontSize: '9px', color: '#FF0000', cursor: 'pointer', fontWeight: 'bold' }}
-                                >
-                                    RESET TO BASE
-                                </div>
-                            )}
+                        <div style={{ fontSize: '10px', color: '#666', marginBottom: '8px', letterSpacing: '0.5px', fontWeight: 'bold' }}>
+                            PROMPT (GENERATED FROM TRAITS)
                         </div>
                         <textarea
                             style={{

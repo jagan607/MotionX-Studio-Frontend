@@ -9,19 +9,35 @@ import { TraitsTab } from './TraitsTab';
 import { VoiceTab } from './VoiceTab';
 
 interface AssetModalProps {
-    isOpen: boolean; onClose: () => void;
-    assetId: string | null; assetName?: string; assetType: 'character' | 'location' | null;
+    isOpen: boolean;
+    onClose: () => void;
+    assetId: string | null;
+    assetName?: string;
+    assetType: 'character' | 'location' | null;
     currentData?: any;
-    mode: 'upload' | 'generate'; setMode: (m: 'upload' | 'generate') => void;
-    genPrompt: string; setGenPrompt: (p: string) => void;
-    isProcessing: boolean; onUpload: (f: File) => void; onGenerate: () => void;
+    mode: 'upload' | 'generate';
+    setMode: (m: 'upload' | 'generate') => void;
+    genPrompt: string;
+    setGenPrompt: (p: string) => void;
+    isProcessing: boolean;
+    onUpload: (f: File) => void;
+    onGenerate: () => void;
     onUpdateTraits: (t: any) => Promise<void>;
     onLinkVoice: (v: { voice_id: string; voice_name: string }) => Promise<void>;
     styles: any;
 }
 
 export const AssetModal: React.FC<AssetModalProps> = (props) => {
-    const { isOpen, assetType, currentData, assetName, onUpdateTraits, setGenPrompt, genPrompt, onClose } = props;
+    const {
+        isOpen,
+        assetType,
+        currentData,
+        assetName,
+        onUpdateTraits,
+        setGenPrompt,
+        genPrompt,
+        onClose
+    } = props;
 
     // State
     const [activeTab, setActiveTab] = useState<'visual' | 'voice' | 'traits'>('visual');
@@ -43,7 +59,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         if (isOpen) {
             setActiveTab('visual');
 
-            // Populate initial trait data from DB
+            // Populate traits based on asset type
             const initialTraits = {
                 ...(currentData?.visual_traits ? { visual_traits: currentData.visual_traits } : {}),
                 ...(currentData?.atmosphere ? { atmosphere: currentData.atmosphere } : {}),
@@ -54,14 +70,16 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             setEditableTraits(initialTraits);
             setSelectedVoiceId(currentData?.voice_config?.voice_id || null);
 
-            // Populate AI Prompt
-            if (!genPrompt) {
-                if (currentData?.base_prompt) {
-                    setGenPrompt(currentData.base_prompt);
-                } else {
-                    // Fallback to construction utilities
-                    if (assetType === 'location') setGenPrompt(constructLocationPrompt(assetName || "Location", currentData?.visual_traits));
-                    else if (assetType === 'character') setGenPrompt(constructCharacterPrompt(assetName || "Character", currentData?.visual_traits));
+            // --- DIRECT LOAD LOGIC ---
+            // Prioritize the base_prompt provided by AI analysis
+            if (currentData?.base_prompt) {
+                setGenPrompt(currentData.base_prompt);
+            } else {
+                // Fallback to dynamic prompt construction
+                if (assetType === 'location') {
+                    setGenPrompt(constructLocationPrompt(assetName || "Location", currentData?.visual_traits, currentData));
+                } else if (assetType === 'character') {
+                    setGenPrompt(constructCharacterPrompt(assetName || "Character", currentData?.visual_traits));
                 }
             }
         }
@@ -95,7 +113,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const handleTraitChange = (key: string, value: string) => {
         let finalValue: any = value;
 
-        // If editing the 'visual_traits' field in a location, convert comma-string back to array
+        // If editing visual_traits in a location, convert comma-string back to array
         if (assetType === 'location' && key === 'visual_traits') {
             finalValue = value.split(',').map(t => t.trim()).filter(t => t !== "");
         }
@@ -158,7 +176,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         <VisualsTab
                             {...props}
                             currentImageUrl={currentData?.face_sample_url || currentData?.image_url}
-                            basePrompt={currentData?.base_prompt} // Ensuring AI-suggested prompt is used
+                            basePrompt={currentData?.base_prompt}
                         />
                     )}
                     {activeTab === 'traits' && (
@@ -173,7 +191,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                     )}
                     {activeTab === 'voice' && (
                         <VoiceTab
-                            voiceSuggestion={currentData?.voice_config?.suggestion} // AI description for voice
+                            voiceSuggestion={currentData?.voice_config?.suggestion}
                             voiceSearch={voiceSearch}
                             setVoiceSearch={setVoiceSearch}
                             isLoadingVoices={isLoadingVoices}
