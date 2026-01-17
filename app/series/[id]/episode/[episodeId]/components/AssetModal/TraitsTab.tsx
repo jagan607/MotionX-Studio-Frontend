@@ -19,7 +19,7 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
         { k: 'terrain', l: 'TERRAIN', p: 'e.g. Indoor, Outdoor' },
         { k: 'atmosphere', l: 'ATMOSPHERE', p: 'e.g. Eerie, Tense' },
         { k: 'lighting', l: 'LIGHTING', p: 'e.g. Dim moonlight, Warm' },
-        // Visual traits are often returned as a list; we join them for easy editing here
+        // Visual keywords are flatted from array to string for editing
         { k: 'visual_traits', l: 'VISUAL KEYWORDS', p: 'e.g. mist, fog, black water' },
     ] : [
         { k: 'age', l: 'AGE / ERA', p: 'e.g. 30s, Ancient' },
@@ -32,6 +32,7 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
     // Helper to handle displaying array data in a text input
     const getDisplayValue = (key: string) => {
         const val = editableTraits[key];
+        // Ensure visual_traits array is joined by commas for the input field
         if (Array.isArray(val)) return val.join(', ');
         if (typeof val === 'object' && val !== null) return JSON.stringify(val);
         return val || '';
@@ -79,7 +80,8 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
                     onClick={handleSaveTraits}
                     disabled={isSavingTraits}
                 >
-                    {isSavingTraits ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                    {/* Fixed: Icon now spins continuously during the save process */}
+                    {isSavingTraits ? <Loader2 className="force-spin" size={16} /> : <Save size={16} />}
                     {isSavingTraits ? "SAVING CONFIG..." : "UPDATE CONFIGURATION"}
                 </button>
             </div>

@@ -5,7 +5,8 @@ interface Character {
     id: string;
     name: string;
     face_sample_url?: string;
-    image_url?: string; // Support both naming conventions
+    image_url?: string;
+    base_prompt?: string; // ADD THIS to support pre-filling the modal
     voice_config?: {
         voice_id?: string;
     };
@@ -14,8 +15,8 @@ interface Character {
 interface CastingTabProps {
     castMembers: Character[];
     loading: boolean;
-    onEditAsset: (id: string, type: 'character') => void;
-    // NEW: Handler for full-screen zoom
+    // UPDATE: onEditAsset now expects the prompt as the 3rd argument
+    onEditAsset: (id: string, type: 'character', prompt?: string) => void;
     onZoom: (data: { url: string, type: 'image' | 'video' }) => void;
     styles: any;
 }
@@ -78,7 +79,7 @@ export const CastingTab: React.FC<CastingTabProps> = ({
                             position: 'relative'
                         }}
                     >
-                        {/* 1. IMAGE AREA (Top Half) */}
+                        {/* 1. IMAGE AREA */}
                         <div style={{
                             height: '220px',
                             width: '100%',
@@ -94,7 +95,6 @@ export const CastingTab: React.FC<CastingTabProps> = ({
                         }}>
                             {!hasVisual && <Users size={48} color="#222" />}
 
-                            {/* EXPAND ICON (Visible on Hover) */}
                             {hasVisual && (
                                 <div
                                     className="zoom-trigger"
@@ -113,17 +113,17 @@ export const CastingTab: React.FC<CastingTabProps> = ({
                                 </div>
                             )}
 
-                            {/* Hover Overlay for Configuration */}
+                            {/* UPDATE: Pass char.base_prompt here */}
                             <div className="group-hover-overlay" style={{
                                 position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 opacity: 0, transition: '0.2s', cursor: 'pointer'
-                            }} onClick={() => onEditAsset(char.id, 'character')}>
+                            }} onClick={() => onEditAsset(char.id, 'character', char.base_prompt)}>
                                 <Settings size={24} color="white" />
                             </div>
                         </div>
 
-                        {/* 2. INFO AREA (Bottom Half) */}
+                        {/* 2. INFO AREA */}
                         <div style={{
                             padding: '20px',
                             display: 'flex',
@@ -141,10 +141,9 @@ export const CastingTab: React.FC<CastingTabProps> = ({
                                 {char.name.toUpperCase()}
                             </div>
 
-                            {/* 3. STATUS INDICATORS */}
                             {renderStatus(hasVisual, hasVoice)}
 
-                            {/* 4. ACTION BUTTON */}
+                            {/* UPDATE: Pass char.base_prompt here too */}
                             <button
                                 style={{
                                     ...styles.genBtn,
@@ -161,7 +160,7 @@ export const CastingTab: React.FC<CastingTabProps> = ({
                                     fontSize: '11px',
                                     letterSpacing: '1px'
                                 }}
-                                onClick={() => onEditAsset(char.id, 'character')}
+                                onClick={() => onEditAsset(char.id, 'character', char.base_prompt)}
                             >
                                 <Settings size={12} />
                                 CONFIGURE

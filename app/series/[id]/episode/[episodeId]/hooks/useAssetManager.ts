@@ -6,9 +6,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
 
-// --- 1. SANITIZATION HELPER ---
 const sanitizeId = (name: string) => {
-    // Converts "INT. CAGE" -> "int_cage"
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 };
 
@@ -18,35 +16,35 @@ export const useAssetManager = (seriesId: string) => {
     const [assetType, setAssetType] = useState<'character' | 'location'>('character');
     const [modalMode, setModalMode] = useState<'upload' | 'generate'>('upload');
     const [genPrompt, setGenPrompt] = useState("");
-    const [isProcessing, setIsProcessing] = useState(false);
 
-    const openAssetModal = (name: string, type: 'character' | 'location') => {
+    // FIX: Change from boolean to string to track WHICH asset is busy
+    const [processingId, setProcessingId] = useState<string | null>(null);
+
+    const openAssetModal = (name: string, type: 'character' | 'location', existingPrompt?: string) => {
         setSelectedAsset(name);
         setAssetType(type);
         setModalOpen(true);
-        setModalMode('upload');
-        setGenPrompt(type === 'character' ? `Cinematic portrait of ${name}...` : `Wide shot of ${name}...`);
+        setModalMode('generate'); // Default to generate for better UX
+
+        // Priority: Load the specific AI-analyzed prompt if available
+        setGenPrompt(existingPrompt || (type === 'character' ? `Cinematic portrait of ${name}...` : `Wide shot of ${name}...`));
     };
 
-    // --- 2. UPLOAD (Client-side control ensures correct ID) ---
     const handleAssetUpload = async (file: File, onSuccess: (url: string) => void) => {
         if (!selectedAsset) return;
-        setIsProcessing(true);
+        const dbDocId = sanitizeId(selectedAsset);
+        setProcessingId(dbDocId); // Lock specifically this ID
 
         try {
-            const dbDocId = sanitizeId(selectedAsset);
             const collectionName = assetType === 'location' ? 'locations' : 'characters';
-
-            // Upload to Storage
-            // Path: series/{id}/{type}s/{sanitized_id}_{timestamp}
             const storageRef = ref(storage, `series/${seriesId}/${assetType}s/${dbDocId}_${Date.now()}`);
+
             await uploadBytes(storageRef, file);
             const downloadURL = await getDownloadURL(storageRef);
 
-            // Write to correct Firestore ID
             const docRef = doc(db, "series", seriesId, collectionName, dbDocId);
             await setDoc(docRef, {
-                name: selectedAsset, // Store original display name
+                name: selectedAsset,
                 image_url: downloadURL,
                 source: "upload",
                 status: "active",
@@ -55,19 +53,18 @@ export const useAssetManager = (seriesId: string) => {
 
             onSuccess(downloadURL);
             setModalOpen(false);
-
         } catch (e) {
             console.error("Upload failed", e);
-            alert("Upload failed. Check console.");
         } finally {
-            setIsProcessing(false);
+            setProcessingId(null); // Unlock
         }
     };
 
-    // --- 3. GENERATE (THE FIX IS HERE) ---
     const handleAssetGenerate = async (onSuccess: (url: string) => void) => {
-        if (!genPrompt || !selectedAsset) return alert("Describe the asset");
-        setIsProcessing(true);
+        if (!genPrompt || !selectedAsset) return;
+
+        const dbDocId = sanitizeId(selectedAsset);
+        setProcessingId(dbDocId); // Lock specifically this ID
 
         try {
             const idToken = await auth.currentUser?.getIdToken();
@@ -75,14 +72,8 @@ export const useAssetManager = (seriesId: string) => {
             formData.append("series_id", seriesId);
             formData.append("prompt", genPrompt);
 
-            // --- CRITICAL FIX: Send SANITIZED ID to API ---
-            // This ensures the backend writes to the lowercase ID (int_cage)
-            // instead of creating a new doc with the raw name (INT. CAGE).
-            const sanitizedName = sanitizeId(selectedAsset);
-
-            if (assetType === 'character') formData.append("character_name", sanitizedName);
-            else formData.append("location_name", sanitizedName);
-            // ---------------------------------------------
+            if (assetType === 'character') formData.append("character_name", dbDocId);
+            else formData.append("location_name", dbDocId);
 
             const endpoint = assetType === 'character'
                 ? `${API_BASE_URL}/api/v1/assets/character/generate`
@@ -97,34 +88,40 @@ export const useAssetManager = (seriesId: string) => {
             const data = await res.json();
 
             if (res.ok && data.image_url) {
-                // Double safety: Force update the local sanitized ID doc
-                const dbDocId = sanitizeId(selectedAsset);
                 const collectionName = assetType === 'location' ? 'locations' : 'characters';
-
                 const docRef = doc(db, "series", seriesId, collectionName, dbDocId);
+
                 await setDoc(docRef, {
-                    name: selectedAsset, // Save original name for display purposes
+                    name: selectedAsset,
                     image_url: data.image_url,
-                    base_prompt: genPrompt,
+                    base_prompt: genPrompt, // Persist the prompt used
                     source: "ai_gen",
                     updated_at: new Date().toISOString()
                 }, { merge: true });
 
                 onSuccess(data.image_url);
                 setModalOpen(false);
-            } else {
-                alert("Error: " + (data.detail || "Generation failed"));
             }
         } catch (e) {
             console.error(e);
-            alert("Generation connection failed");
         } finally {
-            setIsProcessing(false);
+            setProcessingId(null); // Unlock
         }
     };
 
     return {
-        modalOpen, setModalOpen, selectedAsset, assetType, modalMode, setModalMode,
-        genPrompt, setGenPrompt, isProcessing, openAssetModal, handleAssetUpload, handleAssetGenerate
+        modalOpen,
+        setModalOpen,
+        selectedAsset,
+        assetType,
+        modalMode,
+        setModalMode,
+        genPrompt,
+        setGenPrompt,
+        // Derived state: only true if the open modal's ID matches the processing ID
+        isProcessing: selectedAsset ? processingId === sanitizeId(selectedAsset) : false,
+        openAssetModal,
+        handleAssetUpload,
+        handleAssetGenerate
     };
 };

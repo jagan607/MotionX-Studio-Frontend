@@ -3,7 +3,6 @@ import { Search, Loader2, Play, Square, Check, Mic, Info } from 'lucide-react';
 import { Voice } from '@/lib/elevenLabs';
 
 interface VoiceTabProps {
-    // NEW: The AI suggestion text from the database
     voiceSuggestion?: string;
     voiceSearch: string;
     setVoiceSearch: (s: string) => void;
@@ -66,7 +65,10 @@ export const VoiceTab: React.FC<VoiceTabProps> = ({
             {/* VOICE LIST */}
             <div style={{ flex: 1, overflowY: 'auto', paddingRight: '5px', marginBottom: '15px' }}>
                 {isLoadingVoices ? (
-                    <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}><Loader2 className="animate-spin" /></div>
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', color: '#666' }}>
+                        {/* Using force-spin for consistent library loading */}
+                        <Loader2 className="force-spin" size={24} />
+                    </div>
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
                         {filteredVoices.map(voice => (
@@ -103,8 +105,13 @@ export const VoiceTab: React.FC<VoiceTabProps> = ({
                 disabled={linkBtnState.disabled}
                 onClick={handleVoiceSelection}
             >
-                {isLinkingVoice ? <Loader2 className="animate-spin" size={16} /> : <Mic size={16} />}
-                {linkBtnState.text}
+                {/* Fixed: Icon now spins until isLinkingVoice becomes false */}
+                {isLinkingVoice ? (
+                    <Loader2 className="force-spin" size={16} />
+                ) : (
+                    <Mic size={16} />
+                )}
+                <span>{isLinkingVoice ? "LINKING..." : linkBtnState.text}</span>
             </button>
         </div>
     );

@@ -44,32 +44,31 @@ export const constructLocationPrompt = (
 // --- CHARACTER PROMPT BUILDER ---
 export const constructCharacterPrompt = (
     charName: string,
-    traits: any
+    traits: any,
+    additionalData?: any // Added to capture top-level physical_description
 ): string => {
-    // 1. Start with the Subject
     let prompt = `Cinematic portrait of ${charName.toUpperCase()}`;
+    const details: string[] = [];
 
-    if (traits) {
-        const details: string[] = [];
-
-        // Support for the structure returned for characters like 'Maya'
-        if (traits.age) details.push(`${traits.age}`);
-        if (traits.ethnicity) details.push(`${traits.ethnicity}`);
-        if (traits.hair) details.push(`hair: ${traits.hair}`);
-        if (traits.clothing) details.push(`clothing: ${traits.clothing}`);
-        if (traits.vibe) details.push(`vibe: ${traits.vibe}`);
-
-        // Physicality (Fallbacks for different AI outputs)
-        if (traits.facial_features) details.push(traits.facial_features);
-        if (traits.body_type) details.push(`${traits.body_type} build`);
-
-        if (details.length > 0) {
-            prompt += `, ${details.join(', ')}`;
-        }
+    // Prioritize the comprehensive physical description if it exists
+    if (additionalData?.physical_description) {
+        details.push(additionalData.physical_description);
     }
 
-    // 2. Technical Boilerplate
-    const techSpecs = "8k resolution, photorealistic, detailed skin texture, dramatic lighting, sharp focus, masterpiece.";
+    if (traits) {
+        if (traits.age) details.push(`${traits.age}`);
+        if (traits.ethnicity) details.push(traits.ethnicity);
+        if (traits.hair) details.push(`hair: ${traits.hair}`);
+        if (traits.clothing) details.push(`clothing: ${traits.clothing}`);
+        // Support for vibe as a top-level field or trait
+        const vibe = additionalData?.vibe || traits.vibe;
+        if (vibe) details.push(`vibe: ${vibe}`);
+    }
 
+    if (details.length > 0) {
+        prompt += `, ${details.join(', ')}`;
+    }
+
+    const techSpecs = "8k resolution, photorealistic, detailed skin texture, dramatic lighting, sharp focus, masterpiece.";
     return `${prompt}. ${techSpecs}`;
 };

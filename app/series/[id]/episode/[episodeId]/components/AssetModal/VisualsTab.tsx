@@ -11,12 +11,13 @@ interface VisualsTabProps {
     onUpload: (f: File) => void;
     isProcessing: boolean;
     styles: any;
-    basePrompt?: string; // Kept in interface for prop safety, but logic is handled by parent
+    // This now matches the parent interface to resolve the TS error
+    basePrompt?: string;
 }
 
 export const VisualsTab: React.FC<VisualsTabProps> = ({
     mode, setMode, currentImageUrl, genPrompt, setGenPrompt,
-    onGenerate, onUpload, isProcessing, styles
+    onGenerate, onUpload, isProcessing, styles, basePrompt
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,8 +50,20 @@ export const VisualsTab: React.FC<VisualsTabProps> = ({
             {mode === 'generate' && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginBottom: '15px' }}>
-                        <div style={{ fontSize: '10px', color: '#666', marginBottom: '8px', letterSpacing: '0.5px', fontWeight: 'bold' }}>
-                            PROMPT (GENERATED FROM TRAITS)
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <div style={{ fontSize: '10px', color: '#666', letterSpacing: '0.5px', fontWeight: 'bold' }}>
+                                PROMPT (GENERATED FROM TRAITS)
+                            </div>
+
+                            {/* Re-adding Reset CTA if current prompt differs from the original AI base */}
+                            {basePrompt && genPrompt !== basePrompt && (
+                                <div
+                                    onClick={() => setGenPrompt(basePrompt)}
+                                    style={{ fontSize: '9px', color: '#FF0000', cursor: 'pointer', fontWeight: 'bold', letterSpacing: '1px' }}
+                                >
+                                    RESET TO BASE
+                                </div>
+                            )}
                         </div>
                         <textarea
                             style={{
@@ -77,7 +90,7 @@ export const VisualsTab: React.FC<VisualsTabProps> = ({
                     >
                         {isProcessing ? (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                {/* Using the new force-spin class */}
+                                {/* Correctly uses the force-spin class for continuous animation */}
                                 <Loader2 className="force-spin" size={18} />
                                 <span>GENERATING...</span>
                             </div>

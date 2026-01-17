@@ -20,6 +20,7 @@ interface AssetModalProps {
     genPrompt: string;
     setGenPrompt: (p: string) => void;
     isProcessing: boolean;
+    basePrompt?: string; // AI analyzed original prompt
     onUpload: (f: File) => void;
     onGenerate: () => void;
     onUpdateTraits: (t: any) => Promise<void>;
@@ -36,15 +37,17 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         onUpdateTraits,
         setGenPrompt,
         genPrompt,
-        onClose
+        onClose,
+        isProcessing,
+        basePrompt
     } = props;
 
-    // State
+    // --- LOCAL UI STATE ---
     const [activeTab, setActiveTab] = useState<'visual' | 'voice' | 'traits'>('visual');
     const [editableTraits, setEditableTraits] = useState<any>({});
     const [isSavingTraits, setIsSavingTraits] = useState(false);
 
-    // Voice State
+    // Voice Library State
     const [allVoices, setAllVoices] = useState<Voice[]>([]);
     const [filteredVoices, setFilteredVoices] = useState<Voice[]>([]);
     const [voiceSearch, setVoiceSearch] = useState('');
@@ -59,7 +62,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         if (isOpen) {
             setActiveTab('visual');
 
-            // Populate traits based on asset type
+            // 1. Populate Traits Schema for Editing
             const initialTraits = {
                 ...(currentData?.visual_traits ? { visual_traits: currentData.visual_traits } : {}),
                 ...(currentData?.atmosphere ? { atmosphere: currentData.atmosphere } : {}),
@@ -70,25 +73,26 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             setEditableTraits(initialTraits);
             setSelectedVoiceId(currentData?.voice_config?.voice_id || null);
 
-            // --- DIRECT LOAD LOGIC ---
-            // Prioritize the base_prompt provided by AI analysis
+            // 2. Direct Load AI Prompts
             if (currentData?.base_prompt) {
                 setGenPrompt(currentData.base_prompt);
             } else {
-                // Fallback to dynamic prompt construction
+                // Construct fallback if base_prompt is missing in DB
                 if (assetType === 'location') {
                     setGenPrompt(constructLocationPrompt(assetName || "Location", currentData?.visual_traits, currentData));
                 } else if (assetType === 'character') {
-                    setGenPrompt(constructCharacterPrompt(assetName || "Character", currentData?.visual_traits));
+                    setGenPrompt(constructCharacterPrompt(assetName || "Character", currentData?.visual_traits, currentData));
                 }
             }
         }
     }, [isOpen, props.assetId, currentData]);
 
+    // Lazy load voices only when user enters Voice Tab
     useEffect(() => {
         if (activeTab === 'voice' && allVoices.length === 0) loadVoices();
     }, [activeTab]);
 
+    // Client-side voice filtering
     useEffect(() => {
         const query = voiceSearch.toLowerCase();
         setFilteredVoices(allVoices.filter(v => v.name.toLowerCase().includes(query)));
@@ -109,17 +113,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         audio.onended = () => setPlayingVoiceId(null);
     };
 
-    // Robust handler to manage both string fields and arrays
     const handleTraitChange = (key: string, value: string) => {
         let finalValue: any = value;
-
-        // If editing visual_traits in a location, convert comma-string back to array
+        // Transform visual_traits back to array for Firestore
         if (assetType === 'location' && key === 'visual_traits') {
             finalValue = value.split(',').map(t => t.trim()).filter(t => t !== "");
         }
-
-        const newTraits = { ...editableTraits, [key]: finalValue };
-        setEditableTraits(newTraits);
+        setEditableTraits({ ...editableTraits, [key]: finalValue });
     };
 
     const handleSaveTraits = async () => {
@@ -139,12 +139,11 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     if (!isOpen) return null;
 
-    // --- RENDER ---
     return (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ ...props.styles.modal, width: '550px', height: '80vh', display: 'flex', flexDirection: 'column' }}>
 
-                {/* HEADER */}
+                {/* MODAL HEADER */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #222', paddingBottom: '15px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         {assetType === 'location' ? <MapPin size={24} color="#FF0000" /> : <User size={24} color="#FF0000" />}
@@ -156,29 +155,40 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                     <X size={24} style={{ cursor: 'pointer', color: 'white' }} onClick={onClose} />
                 </div>
 
-                {/* TABS */}
+                {/* TAB BAR */}
                 <div style={{ display: 'flex', gap: '5px', marginBottom: '20px', backgroundColor: '#0a0a0a', padding: '4px', borderRadius: '6px', border: '1px solid #222' }}>
                     {[
                         { id: 'visual', label: 'VISUALS', icon: ImageIcon },
                         ...(assetType === 'character' ? [{ id: 'voice', label: 'VOICE', icon: Mic }] : []),
                         { id: 'traits', label: 'TRAITS', icon: FileText }
                     ].map(tab => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold', letterSpacing: '0.5px', backgroundColor: activeTab === tab.id ? '#222' : 'transparent', color: activeTab === tab.id ? 'white' : '#555', transition: 'all 0.2s' }}>
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            style={{
+                                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                padding: '10px', borderRadius: '4px', border: 'none', cursor: 'pointer',
+                                fontSize: '10px', fontWeight: 'bold', letterSpacing: '0.5px',
+                                backgroundColor: activeTab === tab.id ? '#222' : 'transparent',
+                                color: activeTab === tab.id ? 'white' : '#555', transition: 'all 0.2s'
+                            }}
+                        >
                             <tab.icon size={12} /> {tab.label}
                         </button>
                     ))}
                 </div>
 
-                {/* CONTENT AREA */}
+                {/* SCROLLABLE CONTENT AREA */}
                 <div style={{ flex: 1, overflow: 'hidden', padding: '5px' }}>
                     {activeTab === 'visual' && (
                         <VisualsTab
                             {...props}
+                            isProcessing={isProcessing}
                             currentImageUrl={currentData?.face_sample_url || currentData?.image_url}
-                            basePrompt={currentData?.base_prompt}
+                            basePrompt={basePrompt}
                         />
                     )}
+
                     {activeTab === 'traits' && (
                         <TraitsTab
                             assetType={assetType!}
@@ -189,6 +199,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                             styles={props.styles}
                         />
                     )}
+
                     {activeTab === 'voice' && (
                         <VoiceTab
                             voiceSuggestion={currentData?.voice_config?.suggestion}
@@ -203,7 +214,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                             handleVoiceSelection={handleVoiceLink}
                             linkBtnState={{
                                 text: selectedVoiceId === currentData?.voice_config?.voice_id ? "LINKED" : "LINK VOICE",
-                                disabled: !selectedVoiceId || selectedVoiceId === currentData?.voice_config?.voice_id
+                                disabled: !selectedVoiceId || selectedVoiceId === currentData?.voice_config?.voice_id || isLinkingVoice
                             }}
                             isLinkingVoice={isLinkingVoice}
                             styles={props.styles}

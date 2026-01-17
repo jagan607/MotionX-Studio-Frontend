@@ -76,30 +76,38 @@ export default function EpisodeBoard() {
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [downloadShot, setDownloadShot] = useState<any>(null);
 
-    // --- HANDLER: UPDATE TRAITS ---
     const handleUpdateTraits = async (newTraits: any) => {
         if (!assetMgr.selectedAsset) return;
 
         try {
             const collectionName = assetMgr.assetType === 'location' ? 'locations' : 'characters';
             const dbDocId = sanitizeId(assetMgr.selectedAsset);
-
-            // Use setDoc with merge to ensure document exists
             const docRef = doc(db, "series", seriesId, collectionName, dbDocId);
-            await setDoc(docRef, {
-                visual_traits: newTraits,
-                name: assetMgr.selectedAsset, // Fallback name
-                updated_at: new Date()
-            }, { merge: true });
 
-            // Update Local State to reflect changes immediately
+            // 1. Prepare the update payload
+            // We spread newTraits so terrain/atmosphere go to top-level, 
+            // while visual_traits remains its own array/object.
+            const updatePayload = {
+                ...newTraits,
+                name: assetMgr.selectedAsset,
+                updated_at: new Date().toISOString()
+            };
+
+            // 2. Write to Firestore
+            await setDoc(docRef, updatePayload, { merge: true });
+
+            // 3. Update Local State
             if (assetMgr.assetType === 'character') {
                 setCastMembers((prev: CharacterProfile[]) => prev.map(member =>
-                    member.id === dbDocId ? { ...member, visual_traits: newTraits } : member
+                    member.id === dbDocId
+                        ? { ...member, ...updatePayload, visual_traits: newTraits.visual_traits || member.visual_traits }
+                        : member
                 ));
             } else {
                 setLocations((prev: LocationProfile[]) => prev.map(loc =>
-                    loc.id === dbDocId ? { ...loc, visual_traits: newTraits } : loc
+                    loc.id === dbDocId
+                        ? { ...loc, ...updatePayload }
+                        : loc
                 ));
             }
 
@@ -238,7 +246,8 @@ export default function EpisodeBoard() {
                 <CastingTab
                     castMembers={castMembers}
                     loading={dataLoading}
-                    onEditAsset={(id) => assetMgr.openAssetModal(id, 'character')}
+                    // UPDATE: Pass the base_prompt to the asset manager
+                    onEditAsset={(id, type, prompt) => assetMgr.openAssetModal(id, type, prompt)}
                     styles={styles}
                     onZoom={setZoomMedia}
                 />
@@ -246,11 +255,11 @@ export default function EpisodeBoard() {
 
             {activeTab === 'locations' && (
                 <LocationsTab
-                    // FIX: Pass full locations array to access Traits & Atmosphere
                     locations={locations}
-                    uniqueLocs={uniqueLocs} // Keep for fallback mapping if needed
+                    uniqueLocs={uniqueLocs}
                     locationImages={locationImages}
-                    onEditAsset={(locId) => assetMgr.openAssetModal(locId, 'location')}
+                    // UPDATE: Pass the base_prompt to the asset manager
+                    onEditAsset={(locId, type, prompt) => assetMgr.openAssetModal(locId, type, prompt)}
                     styles={styles}
                     onZoom={setZoomMedia}
                 />
@@ -279,9 +288,10 @@ export default function EpisodeBoard() {
 
             {/* --- ASSET MODAL --- */}
             {(() => {
+                // Sanitize the ID to match Firestore keys
                 const dbDocId = assetMgr.selectedAsset ? sanitizeId(assetMgr.selectedAsset) : null;
 
-                // FIX: Look up data from the correct state array
+                // Retrieve the most up-to-date data from local state arrays
                 const selectedAssetData = assetMgr.assetType === 'location'
                     ? locations.find(l => l.id === dbDocId)
                     : castMembers.find(c => c.id === dbDocId);
@@ -290,39 +300,56 @@ export default function EpisodeBoard() {
                     <AssetModal
                         isOpen={assetMgr.modalOpen}
                         onClose={() => assetMgr.setModalOpen(false)}
-
-                        // Handlers
                         onUpdateTraits={handleUpdateTraits}
                         onLinkVoice={handleLinkVoice}
 
-                        // Props
+                        // Asset Identity Props
                         assetId={assetMgr.selectedAsset}
                         assetName={selectedAssetData?.name || assetMgr.selectedAsset || 'Unknown Asset'}
                         assetType={assetMgr.assetType}
-                        currentData={selectedAssetData} // Pass full object (traits, etc.)
+                        currentData={selectedAssetData}
 
+                        // Generation State & Logic
                         mode={assetMgr.modalMode}
                         setMode={assetMgr.setModalMode}
                         genPrompt={assetMgr.genPrompt}
                         setGenPrompt={assetMgr.setGenPrompt}
-                        isProcessing={assetMgr.isProcessing}
+                        isProcessing={assetMgr.isProcessing} // Tied to specific Asset ID
+                        basePrompt={selectedAssetData?.base_prompt} // Analysis-driven fallback
 
-                        // Callback Updates for Images
+                        // --- UPLOAD HANDLER ---
                         onUpload={(file) => assetMgr.handleAssetUpload(file, (url) => {
+                            if (!dbDocId) return;
+
                             if (assetMgr.assetType === 'location') {
-                                setLocationImages(prev => ({ ...prev, [assetMgr.selectedAsset!]: url }));
-                                setLocations(prev => prev.map(l => l.id === dbDocId ? { ...l, image_url: url } : l));
-                            } else if (assetMgr.assetType === 'character') {
-                                setCastMembers((prev: CharacterProfile[]) => prev.map(m => m.id === dbDocId ? { ...m, face_sample_url: url, image_url: url } : m));
+                                // Update location image cache and main array
+                                setLocationImages(prev => ({ ...prev, [dbDocId]: url }));
+                                setLocations(prev => prev.map(l =>
+                                    l.id === dbDocId ? { ...l, image_url: url, source: 'upload' } : l
+                                ));
+                            } else {
+                                // Update character array immediately
+                                setCastMembers((prev: any[]) => prev.map(m =>
+                                    m.id === dbDocId ? { ...m, face_sample_url: url, image_url: url, source: 'upload' } : m
+                                ));
                             }
                         })}
 
+                        // --- GENERATE HANDLER ---
                         onGenerate={() => assetMgr.handleAssetGenerate((url) => {
+                            if (!dbDocId) return;
+
                             if (assetMgr.assetType === 'location') {
-                                setLocationImages(prev => ({ ...prev, [assetMgr.selectedAsset!]: url }));
-                                setLocations(prev => prev.map(l => l.id === dbDocId ? { ...l, image_url: url } : l));
-                            } else if (assetMgr.assetType === 'character') {
-                                setCastMembers((prev: CharacterProfile[]) => prev.map(m => m.id === dbDocId ? { ...m, face_sample_url: url, image_url: url } : m));
+                                // Update location image cache and main array
+                                setLocationImages(prev => ({ ...prev, [dbDocId]: url }));
+                                setLocations(prev => prev.map(l =>
+                                    l.id === dbDocId ? { ...l, image_url: url, source: 'ai_gen' } : l
+                                ));
+                            } else {
+                                // Update character array to reflect the new AI visual
+                                setCastMembers((prev: any[]) => prev.map(m =>
+                                    m.id === dbDocId ? { ...m, face_sample_url: url, image_url: url, source: 'ai_gen' } : m
+                                ));
                             }
                         })}
 

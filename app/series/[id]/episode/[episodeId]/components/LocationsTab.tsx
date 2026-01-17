@@ -6,7 +6,8 @@ interface LocationsTabProps {
     locations: LocationProfile[];
     uniqueLocs?: string[];
     locationImages: Record<string, string>;
-    onEditAsset: (locId: string) => void;
+    // UPDATE: Expected to handle the optional base_prompt string
+    onEditAsset: (locId: string, type: 'location', prompt?: string) => void;
     onZoom: (data: { url: string, type: 'image' | 'video' }) => void;
     styles: any;
 }
@@ -18,6 +19,7 @@ export const LocationsTab: React.FC<LocationsTabProps> = ({
     onZoom,
     styles
 }) => {
+
     const displayList = locations && locations.length > 0 ? locations : [];
 
     if (displayList.length === 0) {
@@ -43,7 +45,7 @@ export const LocationsTab: React.FC<LocationsTabProps> = ({
                         className="loc-card-container"
                         style={{
                             ...styles.assetCard,
-                            height: '380px', // Match the height used in CastingTab for consistency
+                            height: '380px',
                             padding: 0,
                             overflow: 'hidden',
                             display: 'flex',
@@ -54,7 +56,7 @@ export const LocationsTab: React.FC<LocationsTabProps> = ({
                     >
                         {/* 1. IMAGE AREA */}
                         <div style={{
-                            height: '220px', // Increased to match CastingTab layout
+                            height: '220px',
                             width: '100%',
                             backgroundColor: '#0a0a0a',
                             position: 'relative',
@@ -96,11 +98,11 @@ export const LocationsTab: React.FC<LocationsTabProps> = ({
                             padding: '20px',
                             display: 'flex',
                             flexDirection: 'column',
-                            flex: 1 // Takes up remaining space above the button
+                            flex: 1
                         }}>
                             <div style={{
                                 fontWeight: 'bold',
-                                fontSize: '24px', // Match CastingTab font size
+                                fontSize: '24px',
                                 fontFamily: 'Anton, sans-serif',
                                 letterSpacing: '1px',
                                 color: '#FFF',
@@ -111,14 +113,14 @@ export const LocationsTab: React.FC<LocationsTabProps> = ({
                             </div>
                         </div>
 
-                        {/* 3. ACTION BUTTON (Matches 'Configure' style) */}
+                        {/* 3. ACTION BUTTON (Updated to pass loc.base_prompt) */}
                         <button
                             style={{
-                                ...styles.genBtn, // Inherit base button styles if applicable
+                                ...styles.genBtn,
                                 width: '100%',
-                                marginTop: 'auto', // Pushes button to bottom like the cast card
-                                backgroundColor: '#1a1a1a', // Dark background to match
-                                border: '1px solid #333', // Subtle border
+                                marginTop: 'auto',
+                                backgroundColor: '#1a1a1a',
+                                border: '1px solid #333',
                                 color: '#FFF',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -127,12 +129,11 @@ export const LocationsTab: React.FC<LocationsTabProps> = ({
                                 padding: '12px',
                                 fontSize: '11px',
                                 letterSpacing: '1px',
-                                borderRadius: '0', // Maintain the sharp edges of the card layout
+                                borderRadius: '0',
                                 cursor: 'pointer'
                             }}
-                            onClick={() => onEditAsset(loc.id)}
+                            onClick={() => onEditAsset(loc.id, 'location', loc.base_prompt)}
                         >
-                            {/* Optional: Add a Settings or Build icon to match the Cast card's visual weight */}
                             <Settings size={12} />
                             {"CONFIGURE"}
                         </button>
