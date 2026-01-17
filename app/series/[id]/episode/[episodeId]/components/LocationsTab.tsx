@@ -6,8 +6,14 @@ interface LocationsTabProps {
     locations: LocationProfile[];
     uniqueLocs?: string[];
     locationImages: Record<string, string>;
-    // UPDATE: Expected to handle the optional base_prompt string
-    onEditAsset: (locId: string, type: 'location', prompt?: string) => void;
+    /**
+     * Updated signature to ensure stable document targeting:
+     * @param name - The display name (e.g., "INT. CAFE / LOUNGE")
+     * @param type - 'location'
+     * @param prompt - The AI analyzed base prompt
+     * @param existingId - The stable Firestore document ID (e.g., "int_cafe_lounge")
+     */
+    onEditAsset: (name: string, type: 'location', prompt?: string, existingId?: string) => void;
     onZoom: (data: { url: string, type: 'image' | 'video' }) => void;
     styles: any;
 }
@@ -113,7 +119,7 @@ export const LocationsTab: React.FC<LocationsTabProps> = ({
                             </div>
                         </div>
 
-                        {/* 3. ACTION BUTTON (Updated to pass loc.base_prompt) */}
+                        {/* 3. ACTION BUTTON (Updated to pass loc.name AND loc.id) */}
                         <button
                             style={{
                                 ...styles.genBtn,
@@ -132,7 +138,12 @@ export const LocationsTab: React.FC<LocationsTabProps> = ({
                                 borderRadius: '0',
                                 cursor: 'pointer'
                             }}
-                            onClick={() => onEditAsset(loc.id, 'location', loc.base_prompt)}
+                            onClick={() => onEditAsset(
+                                loc.name,           // Display Name
+                                'location',
+                                loc.base_prompt,    // Analyzed AI Prompt
+                                loc.id              // Stable Document ID
+                            )}
                         >
                             <Settings size={12} />
                             {"CONFIGURE"}

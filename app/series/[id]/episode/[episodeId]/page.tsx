@@ -32,9 +32,14 @@ import { useStoryboardTour } from "@/hooks/useStoryboardTour";
 // --- TYPES ---
 import { CharacterProfile, LocationProfile } from "@/lib/types";
 
-// Helper to match Backend ID generation
+/**
+ * Mirror of Backend & Hook Logic:
+ * Ensures we hit the same document ID regardless of special characters like "/"
+ */
 const sanitizeId = (name: string) => {
-    return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    if (!name) return "unknown";
+    const clean = name.replace(/[^a-zA-Z0-9\s]/g, "");
+    return clean.trim().toLowerCase().replace(/\s+/g, "_");
 };
 
 export default function EpisodeBoard() {
@@ -76,27 +81,23 @@ export default function EpisodeBoard() {
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [downloadShot, setDownloadShot] = useState<any>(null);
 
+    // FIX: Standardized to use selectedAssetId from the hook
     const handleUpdateTraits = async (newTraits: any) => {
-        if (!assetMgr.selectedAsset) return;
+        if (!assetMgr.selectedAssetId) return;
 
         try {
             const collectionName = assetMgr.assetType === 'location' ? 'locations' : 'characters';
-            const dbDocId = sanitizeId(assetMgr.selectedAsset);
+            const dbDocId = assetMgr.selectedAssetId;
             const docRef = doc(db, "series", seriesId, collectionName, dbDocId);
 
-            // 1. Prepare the update payload
-            // We spread newTraits so terrain/atmosphere go to top-level, 
-            // while visual_traits remains its own array/object.
             const updatePayload = {
                 ...newTraits,
                 name: assetMgr.selectedAsset,
                 updated_at: new Date().toISOString()
             };
 
-            // 2. Write to Firestore
             await setDoc(docRef, updatePayload, { merge: true });
 
-            // 3. Update Local State
             if (assetMgr.assetType === 'character') {
                 setCastMembers((prev: CharacterProfile[]) => prev.map(member =>
                     member.id === dbDocId
@@ -113,18 +114,16 @@ export default function EpisodeBoard() {
 
         } catch (error) {
             console.error("Failed to update traits:", error);
-            alert("Failed to save traits.");
         }
     };
 
-    // --- HANDLER: LINK VOICE ---
     const handleLinkVoice = async (voiceData: { voice_id: string; voice_name: string }) => {
-        if (!assetMgr.selectedAsset) return;
+        if (!assetMgr.selectedAssetId) return;
 
         try {
-            const dbDocId = sanitizeId(assetMgr.selectedAsset);
-
+            const dbDocId = assetMgr.selectedAssetId;
             const charRef = doc(db, "series", seriesId, "characters", dbDocId);
+
             await updateDoc(charRef, {
                 "voice_config.voice_id": voiceData.voice_id,
                 "voice_config.voice_name": voiceData.voice_name,
@@ -146,7 +145,6 @@ export default function EpisodeBoard() {
 
         } catch (error) {
             console.error("Failed to link voice:", error);
-            alert("Failed to link voice.");
         }
     };
 
@@ -228,7 +226,6 @@ export default function EpisodeBoard() {
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 castCount={castMembers.length}
-                // FIX: Use locations.length (DB records) instead of uniqueLocs (script names)
                 locCount={locations.length}
                 styles={styles}
             />
@@ -246,8 +243,8 @@ export default function EpisodeBoard() {
                 <CastingTab
                     castMembers={castMembers}
                     loading={dataLoading}
-                    // UPDATE: Pass the base_prompt to the asset manager
-                    onEditAsset={(id, type, prompt) => assetMgr.openAssetModal(id, type, prompt)}
+                    // UPDATE: Pass id twice: once as name, once as existingId to ensure hook stability
+                    onEditAsset={(name, type, prompt) => assetMgr.openAssetModal(name, type, prompt, name.toLowerCase())}
                     styles={styles}
                     onZoom={setZoomMedia}
                 />
@@ -258,8 +255,8 @@ export default function EpisodeBoard() {
                     locations={locations}
                     uniqueLocs={uniqueLocs}
                     locationImages={locationImages}
-                    // UPDATE: Pass the base_prompt to the asset manager
-                    onEditAsset={(locId, type, prompt) => assetMgr.openAssetModal(locId, type, prompt)}
+                    // FIX: Standardized pass to Asset Manager
+                    onEditAsset={(name, type, prompt, existingId) => assetMgr.openAssetModal(name, type, prompt, existingId)}
                     styles={styles}
                     onZoom={setZoomMedia}
                 />
@@ -288,10 +285,8 @@ export default function EpisodeBoard() {
 
             {/* --- ASSET MODAL --- */}
             {(() => {
-                // Sanitize the ID to match Firestore keys
-                const dbDocId = assetMgr.selectedAsset ? sanitizeId(assetMgr.selectedAsset) : null;
+                const dbDocId = assetMgr.selectedAssetId;
 
-                // Retrieve the most up-to-date data from local state arrays
                 const selectedAssetData = assetMgr.assetType === 'location'
                     ? locations.find(l => l.id === dbDocId)
                     : castMembers.find(c => c.id === dbDocId);
@@ -303,56 +298,45 @@ export default function EpisodeBoard() {
                         onUpdateTraits={handleUpdateTraits}
                         onLinkVoice={handleLinkVoice}
 
-                        // Asset Identity Props
-                        assetId={assetMgr.selectedAsset}
+                        assetId={assetMgr.selectedAssetId}
                         assetName={selectedAssetData?.name || assetMgr.selectedAsset || 'Unknown Asset'}
                         assetType={assetMgr.assetType}
                         currentData={selectedAssetData}
 
-                        // Generation State & Logic
                         mode={assetMgr.modalMode}
                         setMode={assetMgr.setModalMode}
                         genPrompt={assetMgr.genPrompt}
                         setGenPrompt={assetMgr.setGenPrompt}
-                        isProcessing={assetMgr.isProcessing} // Tied to specific Asset ID
-                        basePrompt={selectedAssetData?.base_prompt} // Analysis-driven fallback
+                        isProcessing={assetMgr.isProcessing}
+                        basePrompt={selectedAssetData?.base_prompt}
 
-                        // --- UPLOAD HANDLER ---
                         onUpload={(file) => assetMgr.handleAssetUpload(file, (url) => {
                             if (!dbDocId) return;
-
                             if (assetMgr.assetType === 'location') {
-                                // Update location image cache and main array
                                 setLocationImages(prev => ({ ...prev, [dbDocId]: url }));
                                 setLocations(prev => prev.map(l =>
                                     l.id === dbDocId ? { ...l, image_url: url, source: 'upload' } : l
                                 ));
                             } else {
-                                // Update character array immediately
                                 setCastMembers((prev: any[]) => prev.map(m =>
                                     m.id === dbDocId ? { ...m, face_sample_url: url, image_url: url, source: 'upload' } : m
                                 ));
                             }
                         })}
 
-                        // --- GENERATE HANDLER ---
                         onGenerate={() => assetMgr.handleAssetGenerate((url) => {
                             if (!dbDocId) return;
-
                             if (assetMgr.assetType === 'location') {
-                                // Update location image cache and main array
                                 setLocationImages(prev => ({ ...prev, [dbDocId]: url }));
                                 setLocations(prev => prev.map(l =>
                                     l.id === dbDocId ? { ...l, image_url: url, source: 'ai_gen' } : l
                                 ));
                             } else {
-                                // Update character array to reflect the new AI visual
                                 setCastMembers((prev: any[]) => prev.map(m =>
                                     m.id === dbDocId ? { ...m, face_sample_url: url, image_url: url, source: 'ai_gen' } : m
                                 ));
                             }
                         })}
-
                         styles={styles}
                     />
                 );
@@ -360,7 +344,6 @@ export default function EpisodeBoard() {
 
             <ZoomOverlay media={zoomMedia} onClose={() => setZoomMedia(null)} styles={styles} />
 
-            {/* --- UTILITIES --- */}
             <TourGuide step={epTour.tourStep} onNext={epTour.nextStep} onComplete={epTour.completeTour} />
 
             {downloadShot && (

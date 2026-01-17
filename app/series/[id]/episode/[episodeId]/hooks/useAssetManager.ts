@@ -6,34 +6,55 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage, auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
 
+/**
+ * Mirror of Python backend logic:
+ * 1. Removes characters that aren't alphanumeric or spaces (like '/')
+ * 2. Trims and replaces internal spaces with underscores
+ */
 const sanitizeId = (name: string) => {
-    return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    if (!name) return "unknown";
+    const clean = name.replace(/[^a-zA-Z0-9\s]/g, "");
+    return clean.trim().toLowerCase().replace(/\s+/g, "_");
 };
 
 export const useAssetManager = (seriesId: string) => {
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
+
+    // NEW: Stable ID state to ensure we always hit the correct Firestore document
+    const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+
     const [assetType, setAssetType] = useState<'character' | 'location'>('character');
     const [modalMode, setModalMode] = useState<'upload' | 'generate'>('upload');
     const [genPrompt, setGenPrompt] = useState("");
-
-    // FIX: Change from boolean to string to track WHICH asset is busy
     const [processingId, setProcessingId] = useState<string | null>(null);
 
-    const openAssetModal = (name: string, type: 'character' | 'location', existingPrompt?: string) => {
+    /**
+     * Updated to accept the existingId from the database.
+     * This prevents the "double underscore" mismatch by using the pre-sanitized ID.
+     */
+    const openAssetModal = (
+        name: string,
+        type: 'character' | 'location',
+        existingPrompt?: string,
+        existingId?: string
+    ) => {
+        const stableId = existingId || sanitizeId(name);
+
         setSelectedAsset(name);
+        setSelectedAssetId(stableId); // Set the document ID here
         setAssetType(type);
         setModalOpen(true);
-        setModalMode('generate'); // Default to generate for better UX
+        setModalMode('generate');
 
-        // Priority: Load the specific AI-analyzed prompt if available
         setGenPrompt(existingPrompt || (type === 'character' ? `Cinematic portrait of ${name}...` : `Wide shot of ${name}...`));
     };
 
     const handleAssetUpload = async (file: File, onSuccess: (url: string) => void) => {
-        if (!selectedAsset) return;
-        const dbDocId = sanitizeId(selectedAsset);
-        setProcessingId(dbDocId); // Lock specifically this ID
+        if (!selectedAssetId || !selectedAsset) return;
+
+        const dbDocId = selectedAssetId;
+        setProcessingId(dbDocId);
 
         try {
             const collectionName = assetType === 'location' ? 'locations' : 'characters';
@@ -44,7 +65,7 @@ export const useAssetManager = (seriesId: string) => {
 
             const docRef = doc(db, "series", seriesId, collectionName, dbDocId);
             await setDoc(docRef, {
-                name: selectedAsset,
+                name: selectedAsset, // Keeps the display name clean
                 image_url: downloadURL,
                 source: "upload",
                 status: "active",
@@ -56,15 +77,15 @@ export const useAssetManager = (seriesId: string) => {
         } catch (e) {
             console.error("Upload failed", e);
         } finally {
-            setProcessingId(null); // Unlock
+            setProcessingId(null);
         }
     };
 
     const handleAssetGenerate = async (onSuccess: (url: string) => void) => {
-        if (!genPrompt || !selectedAsset) return;
+        if (!genPrompt || !selectedAssetId || !selectedAsset) return;
 
-        const dbDocId = sanitizeId(selectedAsset);
-        setProcessingId(dbDocId); // Lock specifically this ID
+        const dbDocId = selectedAssetId;
+        setProcessingId(dbDocId);
 
         try {
             const idToken = await auth.currentUser?.getIdToken();
@@ -72,6 +93,7 @@ export const useAssetManager = (seriesId: string) => {
             formData.append("series_id", seriesId);
             formData.append("prompt", genPrompt);
 
+            // Pass the sanitized ID to the backend generator
             if (assetType === 'character') formData.append("character_name", dbDocId);
             else formData.append("location_name", dbDocId);
 
@@ -94,7 +116,7 @@ export const useAssetManager = (seriesId: string) => {
                 await setDoc(docRef, {
                     name: selectedAsset,
                     image_url: data.image_url,
-                    base_prompt: genPrompt, // Persist the prompt used
+                    base_prompt: genPrompt,
                     source: "ai_gen",
                     updated_at: new Date().toISOString()
                 }, { merge: true });
@@ -105,7 +127,7 @@ export const useAssetManager = (seriesId: string) => {
         } catch (e) {
             console.error(e);
         } finally {
-            setProcessingId(null); // Unlock
+            setProcessingId(null);
         }
     };
 
@@ -113,13 +135,14 @@ export const useAssetManager = (seriesId: string) => {
         modalOpen,
         setModalOpen,
         selectedAsset,
+        selectedAssetId,
         assetType,
         modalMode,
         setModalMode,
         genPrompt,
         setGenPrompt,
-        // Derived state: only true if the open modal's ID matches the processing ID
-        isProcessing: selectedAsset ? processingId === sanitizeId(selectedAsset) : false,
+        // Match against the stable ID for processing state
+        isProcessing: selectedAssetId ? processingId === selectedAssetId : false,
         openAssetModal,
         handleAssetUpload,
         handleAssetGenerate
