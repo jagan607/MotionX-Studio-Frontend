@@ -81,7 +81,6 @@ export default function EpisodeBoard() {
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [downloadShot, setDownloadShot] = useState<any>(null);
 
-    // FIX: Standardized to use selectedAssetId from the hook
     const handleUpdateTraits = async (newTraits: any) => {
         if (!assetMgr.selectedAssetId) return;
 
@@ -90,28 +89,24 @@ export default function EpisodeBoard() {
             const dbDocId = assetMgr.selectedAssetId;
             const docRef = doc(db, "series", seriesId, collectionName, dbDocId);
 
+            // Ensure we are saving flat strings for terrain, atmosphere, lighting
             const updatePayload = {
                 ...newTraits,
-                name: assetMgr.selectedAsset,
                 updated_at: new Date().toISOString()
             };
 
             await setDoc(docRef, updatePayload, { merge: true });
 
+            // CRITICAL: Update local state so currentData passed to Modal is fresh
             if (assetMgr.assetType === 'character') {
-                setCastMembers((prev: CharacterProfile[]) => prev.map(member =>
-                    member.id === dbDocId
-                        ? { ...member, ...updatePayload, visual_traits: newTraits.visual_traits || member.visual_traits }
-                        : member
+                setCastMembers((prev) => prev.map(member =>
+                    member.id === dbDocId ? { ...member, ...updatePayload } : member
                 ));
             } else {
-                setLocations((prev: LocationProfile[]) => prev.map(loc =>
-                    loc.id === dbDocId
-                        ? { ...loc, ...updatePayload }
-                        : loc
+                setLocations((prev) => prev.map(loc =>
+                    loc.id === dbDocId ? { ...loc, ...updatePayload } : loc
                 ));
             }
-
         } catch (error) {
             console.error("Failed to update traits:", error);
         }
@@ -243,8 +238,8 @@ export default function EpisodeBoard() {
                 <CastingTab
                     castMembers={castMembers}
                     loading={dataLoading}
-                    // UPDATE: Pass id twice: once as name, once as existingId to ensure hook stability
-                    onEditAsset={(name, type, prompt) => assetMgr.openAssetModal(name, type, prompt, name.toLowerCase())}
+                    // FIX: Standardized sanitization for characters to match location logic
+                    onEditAsset={(name, type, prompt) => assetMgr.openAssetModal(name, type, prompt, sanitizeId(name))}
                     styles={styles}
                     onZoom={setZoomMedia}
                 />
@@ -255,7 +250,6 @@ export default function EpisodeBoard() {
                     locations={locations}
                     uniqueLocs={uniqueLocs}
                     locationImages={locationImages}
-                    // FIX: Standardized pass to Asset Manager
                     onEditAsset={(name, type, prompt, existingId) => assetMgr.openAssetModal(name, type, prompt, existingId)}
                     styles={styles}
                     onZoom={setZoomMedia}
@@ -308,7 +302,6 @@ export default function EpisodeBoard() {
                         genPrompt={assetMgr.genPrompt}
                         setGenPrompt={assetMgr.setGenPrompt}
                         isProcessing={assetMgr.isProcessing}
-                        basePrompt={selectedAssetData?.base_prompt}
 
                         onUpload={(file) => assetMgr.handleAssetUpload(file, (url) => {
                             if (!dbDocId) return;

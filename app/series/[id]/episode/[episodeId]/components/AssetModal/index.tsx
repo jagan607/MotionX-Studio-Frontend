@@ -57,40 +57,40 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [isLinkingVoice, setIsLinkingVoice] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    // --- EFFECTS ---
     useEffect(() => {
-        if (isOpen) {
-            setActiveTab('visual');
+        if (isOpen && currentData) {
+            // Reset tab only on initial open
+            if (activeTab === 'visual' && !editableTraits.atmosphere) {
+                setActiveTab('visual');
+            }
 
-            // 1. Populate Traits Schema for Editing
-            const initialTraits = {
-                ...(currentData?.visual_traits ? { visual_traits: currentData.visual_traits } : {}),
-                ...(currentData?.atmosphere ? { atmosphere: currentData.atmosphere } : {}),
-                ...(currentData?.lighting ? { lighting: currentData.lighting } : {}),
-                ...(currentData?.terrain ? { terrain: currentData.terrain } : {}),
-                ...(assetType === 'character' ? (currentData?.visual_traits || {}) : {})
+            const initialTraits = assetType === 'location' ? {
+                visual_traits: currentData.visual_traits || [],
+                atmosphere: currentData.atmosphere || "",
+                lighting: currentData.lighting || "",
+                terrain: currentData.terrain || "",
+            } : {
+                age: currentData.age || "",
+                ethnicity: currentData.ethnicity || "",
+                hair: currentData.hair || "",
+                clothing: currentData.clothing || "",
+                vibe: currentData.vibe || "",
             };
-            setEditableTraits(initialTraits);
-            setSelectedVoiceId(currentData?.voice_config?.voice_id || null);
 
-            // 2. Direct Load AI Prompts
-            if (currentData?.base_prompt) {
-                setGenPrompt(currentData.base_prompt);
-            } else {
-                // Construct fallback if base_prompt is missing in DB
-                if (assetType === 'location') {
-                    setGenPrompt(constructLocationPrompt(assetName || "Location", currentData?.visual_traits, currentData));
-                } else if (assetType === 'character') {
-                    setGenPrompt(constructCharacterPrompt(assetName || "Character", currentData?.visual_traits, currentData));
-                }
+            setEditableTraits(initialTraits);
+
+            // Construct prompt using fresh traits
+            if (assetType === 'location') {
+                setGenPrompt(constructLocationPrompt(assetName || "Location", initialTraits.visual_traits, initialTraits));
             }
         }
-    }, [isOpen, props.assetId, currentData]);
+        // Add JSON.stringify(currentData) to catch deep changes in the object
+    }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
     // Lazy load voices only when user enters Voice Tab
     useEffect(() => {
         if (activeTab === 'voice' && allVoices.length === 0) loadVoices();
-    }, [activeTab]);
+    }, [activeTab, allVoices.length]);
 
     // Client-side voice filtering
     useEffect(() => {
@@ -115,11 +115,11 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     const handleTraitChange = (key: string, value: string) => {
         let finalValue: any = value;
-        // Transform visual_traits back to array for Firestore
+        // Transform visual_traits back to array for Firestore if it's a location
         if (assetType === 'location' && key === 'visual_traits') {
             finalValue = value.split(',').map(t => t.trim()).filter(t => t !== "");
         }
-        setEditableTraits({ ...editableTraits, [key]: finalValue });
+        setEditableTraits((prev: any) => ({ ...prev, [key]: finalValue }));
     };
 
     const handleSaveTraits = async () => {

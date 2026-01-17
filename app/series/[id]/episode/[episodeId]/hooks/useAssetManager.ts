@@ -116,7 +116,6 @@ export const useAssetManager = (seriesId: string) => {
                 await setDoc(docRef, {
                     name: selectedAsset,
                     image_url: data.image_url,
-                    base_prompt: genPrompt,
                     source: "ai_gen",
                     updated_at: new Date().toISOString()
                 }, { merge: true });

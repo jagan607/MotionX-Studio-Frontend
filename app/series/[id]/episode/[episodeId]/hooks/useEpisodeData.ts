@@ -71,13 +71,6 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                     setCastMembers([]);
                 }
 
-                // D. LOCATIONS (UPDATED LOGIC)
-                // 1. Extract unique names from the Script Scenes
-                const locs = new Set<string>();
-                scenesData.forEach((s: any) => { if (s.location) locs.add(s.location); });
-                setUniqueLocs(Array.from(locs));
-
-                // 2. Fetch stored Location Profiles from Firestore
                 const locSnapshot = await getDocs(collection(db, "series", seriesId, "locations"));
 
                 const fetchedLocations: LocationProfile[] = [];
@@ -86,24 +79,24 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                 locSnapshot.forEach(doc => {
                     const data = doc.data();
 
-                    // Build the full object
+                    // SPREAD all data first to capture terrain, atmosphere, lighting, etc.
                     const locObj: LocationProfile = {
                         id: doc.id,
+                        ...data, // This captures all top-level strings from DB
                         name: data.name || doc.id,
                         image_url: data.image_url || "",
-                        visual_traits: data.visual_traits || {}, // Default to empty object if missing
-                        base_prompt: data.base_prompt || "",
+                        visual_traits: data.visual_traits || [], // Use array default for locations
                         status: data.status || 'active'
-                    };
+                    } as LocationProfile;
 
                     fetchedLocations.push(locObj);
 
-                    // Build the legacy map (Name -> Image URL) for the grid view
-                    if (data.name) locMap[data.name] = data.image_url;
+                    // Build the legacy map using the ID as the key for stability
+                    if (data.image_url) locMap[doc.id] = data.image_url;
                 });
 
-                setLocations(fetchedLocations); // NEW State
-                setLocationImages(locMap);      // Legacy State
+                setLocations(fetchedLocations);
+                setLocationImages(locMap);
 
             } catch (e) {
                 console.error("Data Load Error:", e);
