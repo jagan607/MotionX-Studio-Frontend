@@ -1,10 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, User, MapPin, Upload, Sparkles, Play, RefreshCw, ArrowLeft } from 'lucide-react';
+import { X, User, MapPin, Upload, Sparkles, Play, Pause, RefreshCw, ArrowLeft, Loader2 } from 'lucide-react';
 import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
 import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils';
 
 // Import Sub-Components
-// VisualsTab is removed as its logic is now inline
 import { TraitsTab } from './TraitsTab';
 import { VoiceTab } from './VoiceTab';
 
@@ -47,7 +46,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [isSavingTraits, setIsSavingTraits] = useState(false);
 
     // Voice State
-    const [isVoiceMode, setIsVoiceMode] = useState(false); // Toggle to show full voice picker
+    const [isVoiceMode, setIsVoiceMode] = useState(false);
     const [allVoices, setAllVoices] = useState<Voice[]>([]);
     const [filteredVoices, setFilteredVoices] = useState<Voice[]>([]);
     const [voiceSearch, setVoiceSearch] = useState('');
@@ -63,11 +62,9 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             setIsVoiceMode(false); // Reset view on open
 
             // 1. Unified Traits Initialization
-            // FIX: Type as 'any' to avoid TS errors
             let initialTraits: any = {};
 
             if (assetType === 'location') {
-                // LOCATION LOGIC (Top-Level Fields)
                 initialTraits = {
                     visual_traits: currentData.visual_traits || [],
                     atmosphere: currentData.atmosphere || "",
@@ -75,7 +72,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                     terrain: currentData.terrain || "",
                 };
             } else {
-                // CHARACTER LOGIC (Nested Map Fields)
                 const vt = currentData.visual_traits || {};
                 initialTraits = {
                     age: vt.age || "",
@@ -90,14 +86,12 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             setEditableTraits(initialTraits);
             setSelectedVoiceId(currentData?.voice_config?.voice_id || null);
 
-            // 2. Local Prompt Construction
             if (assetType === 'location') {
                 setGenPrompt(constructLocationPrompt(assetName || "Location", initialTraits.visual_traits, initialTraits));
             } else if (assetType === 'character') {
                 setGenPrompt(constructCharacterPrompt(assetName || "Character", initialTraits, initialTraits));
             }
         }
-        // FIX: Dependency array includes deep comparison for updates
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
     // Lazy load voices
@@ -117,6 +111,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         const voices = await fetchElevenLabsVoices();
         setAllVoices(voices); setFilteredVoices(voices);
         setIsLoadingVoices(false);
+        return voices;
     };
 
     const handlePlayPreview = (url: string, id: string) => {
@@ -124,6 +119,39 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         if (playingVoiceId === id) { setPlayingVoiceId(null); return; }
         const audio = new Audio(url); audioRef.current = audio; audio.play(); setPlayingVoiceId(id);
         audio.onended = () => setPlayingVoiceId(null);
+    };
+
+    // NEW: Handles playing voice directly from the main inspector view
+    const handleMainViewPlay = async () => {
+        const vid = currentData?.voice_config?.voice_id;
+        if (!vid) return;
+
+        // If currently playing this voice, pause it
+        if (playingVoiceId === vid) {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = null;
+            }
+            setPlayingVoiceId(null);
+            return;
+        }
+
+        // Try to find the voice URL in our loaded list
+        let voice = allVoices.find(v => v.voice_id === vid);
+
+        // If voices aren't loaded yet (user didn't open library), fetch them now
+        if (!voice) {
+            setIsLoadingVoices(true); // Re-use loading state for the spinner on the play button
+            const fetched = await loadVoices();
+            setIsLoadingVoices(false);
+            voice = fetched.find(v => v.voice_id === vid);
+        }
+
+        if (voice?.preview_url) {
+            handlePlayPreview(voice.preview_url, vid);
+        } else {
+            alert("Voice preview not found.");
+        }
     };
 
     const handleTraitChange = (key: string, value: string) => {
@@ -146,7 +174,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             setIsLinkingVoice(true);
             await props.onLinkVoice({ voice_id: v.voice_id, voice_name: v.name });
             setIsLinkingVoice(false);
-            setIsVoiceMode(false); // Go back to main view after linking
+            setIsVoiceMode(false);
         }
     };
 
@@ -158,15 +186,16 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     if (!isOpen) return null;
 
-    // Determine Image to Show
     const displayImage = currentData?.image_url || currentData?.face_sample_url;
+    const currentVoiceId = currentData?.voice_config?.voice_id;
+    const isPlayingCurrent = playingVoiceId === currentVoiceId;
 
     return (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ ...props.styles.modal, width: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
                 {/* 1. HEADER */}
-                <div style={{ padding: '20px', borderBottom: '1px solid #222', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0a0a0a' }}>
+                <div style={{ padding: '20px', borderBottom: '1px solid #222', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0a0a0a', flexShrink: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {isVoiceMode && (
                             <ArrowLeft size={20} style={{ cursor: 'pointer', color: '#FFF', marginRight: '5px' }} onClick={() => setIsVoiceMode(false)} />
@@ -183,10 +212,16 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 </div>
 
                 {/* 2. CONTENT AREA */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                <div style={{
+                    flex: 1,
+                    overflowY: isVoiceMode ? 'hidden' : 'auto',
+                    padding: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '30px'
+                }}>
 
                     {isVoiceMode ? (
-                        // --- VIEW A: FULL VOICE PICKER ---
                         <VoiceTab
                             voiceSuggestion={currentData?.voice_config?.suggestion}
                             voiceSearch={voiceSearch}
@@ -206,9 +241,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                             styles={props.styles}
                         />
                     ) : (
-                        // --- VIEW B: UNIFIED INSPECTOR (Traits + Visuals) ---
                         <>
-                            {/* SECTION: TRAITS (Inputs) */}
+                            {/* SECTION: TRAITS */}
                             <div style={{ animation: 'fadeIn 0.3s ease' }}>
                                 <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#444', marginBottom: '10px', letterSpacing: '1px' }}>
                                     ASSET DEFINITION
@@ -217,13 +251,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                     assetType={assetType!}
                                     editableTraits={editableTraits}
                                     handleTraitChange={handleTraitChange}
-                                    handleSaveTraits={() => { }} // Save handled in footer
+                                    handleSaveTraits={() => { }}
                                     isSavingTraits={false}
                                     styles={props.styles}
                                 />
                             </div>
 
-                            {/* SECTION: VISUALS (Output) */}
+                            {/* SECTION: VISUALS */}
                             <div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                     <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#444', letterSpacing: '1px' }}>
@@ -272,7 +306,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                 </div>
                             </div>
 
-                            {/* SECTION: VOICE (Compact Card) */}
+                            {/* SECTION: VOICE (Interactive Card) */}
                             {assetType === 'character' && (
                                 <div>
                                     <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#444', marginBottom: '10px', letterSpacing: '1px' }}>
@@ -283,11 +317,23 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                         borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <div style={{
-                                                width: '30px', height: '30px', borderRadius: '50%', backgroundColor: '#222',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                            }}>
-                                                <Play size={12} color="white" />
+                                            <div
+                                                onClick={handleMainViewPlay}
+                                                style={{
+                                                    width: '30px', height: '30px', borderRadius: '50%',
+                                                    backgroundColor: isPlayingCurrent ? '#FF4444' : '#222',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    cursor: currentVoiceId ? 'pointer' : 'default',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                {isLoadingVoices && !allVoices.length ? (
+                                                    <Loader2 className="force-spin" size={12} color="white" />
+                                                ) : isPlayingCurrent ? (
+                                                    <Pause size={12} color="white" />
+                                                ) : (
+                                                    <Play size={12} color={currentVoiceId ? "white" : "#555"} />
+                                                )}
                                             </div>
                                             <div>
                                                 <div style={{ color: 'white', fontSize: '12px' }}>
@@ -311,9 +357,9 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                     )}
                 </div>
 
-                {/* 3. FOOTER (Hidden in Voice Mode) */}
+                {/* 3. FOOTER */}
                 {!isVoiceMode && (
-                    <div style={{ padding: '20px', borderTop: '1px solid #222', backgroundColor: '#0a0a0a' }}>
+                    <div style={{ padding: '20px', borderTop: '1px solid #222', backgroundColor: '#0a0a0a', flexShrink: 0 }}>
                         <button
                             onClick={handleSaveTraits}
                             disabled={isSavingTraits}

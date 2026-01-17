@@ -24,32 +24,36 @@ export const VoiceTab: React.FC<VoiceTabProps> = ({
     handleVoiceSelection, linkBtnState, isLinkingVoice, styles
 }) => {
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '15px' }}>
+        // FIX: Ensure this container takes full height of the parent
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '15px', overflow: 'hidden' }}>
 
-            {/* AI SUGGESTION BANNER */}
-            {voiceSuggestion && (
-                <div style={{ padding: '10px 15px', backgroundColor: '#1a1a1a', borderRadius: '6px', borderLeft: '3px solid #FF4444' }}>
-                    <div style={{ fontSize: '9px', fontWeight: 'bold', color: '#666', marginBottom: '2px', letterSpacing: '1px' }}>AI CASTING DIRECTOR SUGGESTION</div>
-                    <div style={{ fontSize: '12px', color: '#DDD', fontStyle: 'italic' }}>"{voiceSuggestion}"</div>
+            {/* 1. FIXED HEADER SECTION */}
+            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                {voiceSuggestion && (
+                    <div style={{ padding: '10px 15px', backgroundColor: '#1a1a1a', borderRadius: '6px', borderLeft: '3px solid #FF4444' }}>
+                        <div style={{ fontSize: '9px', fontWeight: 'bold', color: '#666', marginBottom: '2px', letterSpacing: '1px' }}>AI CASTING DIRECTOR SUGGESTION</div>
+                        <div style={{ fontSize: '12px', color: '#DDD', fontStyle: 'italic' }}>"{voiceSuggestion}"</div>
+                    </div>
+                )}
+
+                <div style={{ position: 'relative' }}>
+                    <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
+                    <input
+                        placeholder="Search voice styles (e.g. Deep, British, Excited)..."
+                        value={voiceSearch}
+                        onChange={(e) => setVoiceSearch(e.target.value)}
+                        style={{
+                            width: '100%', padding: '10px 10px 10px 35px', backgroundColor: '#050505',
+                            border: '1px solid #222', borderRadius: '6px', color: 'white', fontSize: '12px', outline: 'none',
+                            boxSizing: 'border-box'
+                        }}
+                    />
                 </div>
-            )}
-
-            {/* SEARCH BAR */}
-            <div style={{ position: 'relative' }}>
-                <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
-                <input
-                    placeholder="Search voice styles (e.g. Deep, British, Excited)..."
-                    value={voiceSearch}
-                    onChange={(e) => setVoiceSearch(e.target.value)}
-                    style={{
-                        width: '100%', padding: '10px 10px 10px 35px', backgroundColor: '#050505',
-                        border: '1px solid #222', borderRadius: '6px', color: 'white', fontSize: '12px', outline: 'none'
-                    }}
-                />
             </div>
 
-            {/* VOICE LIST */}
-            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #222', borderRadius: '6px', backgroundColor: '#050505' }}>
+            {/* 2. SCROLLABLE LIST SECTION */}
+            {/* FIX: flex: 1 takes up remaining space, overflowY: auto enables scrolling ONLY here */}
+            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #222', borderRadius: '6px', backgroundColor: '#050505', minHeight: 0 }}>
                 {isLoadingVoices ? (
                     <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', flexDirection: 'column', gap: '10px' }}>
                         <Loader2 className="force-spin" size={24} />
@@ -101,8 +105,8 @@ export const VoiceTab: React.FC<VoiceTabProps> = ({
                 )}
             </div>
 
-            {/* ACTION FOOTER */}
-            <div style={{ paddingTop: '10px' }}>
+            {/* 3. FIXED FOOTER SECTION */}
+            <div style={{ flexShrink: 0, paddingTop: '10px' }}>
                 <button
                     onClick={handleVoiceSelection}
                     disabled={linkBtnState.disabled}
