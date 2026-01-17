@@ -1,7 +1,7 @@
 // app/[id]/[episodeId]/components/BoardStyles.ts
 
 export const styles = {
-    // ... (Keep all existing container/header/nav styles same as before) ...
+    // ... (Container & Header styles remain same) ...
     container: { minHeight: '100vh', backgroundColor: '#050505', color: '#EDEDED', fontFamily: 'Inter, sans-serif', padding: '40px' },
     topNav: { display: 'flex', justifyContent: 'space-between', marginBottom: '40px', alignItems: 'center' },
     backLink: { display: 'flex', alignItems: 'center', gap: '8px', color: '#666', fontSize: '11px', fontWeight: 'bold' as const, letterSpacing: '2px', textDecoration: 'none' },
@@ -14,15 +14,18 @@ export const styles = {
 
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '30px' },
 
-    // --- UPDATED CARD STYLE ---
+    // --- UPDATED CARD STYLE WITH TRANSITION ---
     card: {
         backgroundColor: '#0A0A0A',
         border: '1px solid #1F1F1F',
-        padding: '25px', // Slightly reduced padding
+        padding: '25px',
         position: 'relative' as const,
         display: 'flex',
         flexDirection: 'column' as const,
-        gap: '15px' // Tighter gap
+        gap: '15px',
+        // NEW: Smooth transition for the hover effect
+        transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
+        cursor: 'default' // Default cursor, parts can be pointer
     },
 
     // 1. Scene Number Header
@@ -51,7 +54,7 @@ export const styles = {
         minHeight: '40px'
     },
 
-    // 3. Metadata Row (Location + Time)
+    // 3. Compact Metadata Row
     compactRow: {
         display: 'flex',
         alignItems: 'center',
@@ -62,9 +65,8 @@ export const styles = {
         paddingTop: '15px'
     },
 
-    // Less dominant location text
     locationText: {
-        fontFamily: 'Inter, sans-serif', // Switched from Anton to Inter for subtler look
+        fontFamily: 'Inter, sans-serif',
         fontSize: '11px',
         fontWeight: '600' as const,
         color: '#BBB',
@@ -72,7 +74,6 @@ export const styles = {
         letterSpacing: '0.5px'
     },
 
-    // Time Tag (Integrated into row)
     timeBadge: {
         fontSize: '9px',
         fontWeight: 'bold' as const,
@@ -82,7 +83,7 @@ export const styles = {
         color: '#666',
         border: '1px solid #333',
         textTransform: 'uppercase' as const,
-        marginLeft: 'auto' // Pushes to the right
+        marginLeft: 'auto'
     },
 
     // 4. Character Tags

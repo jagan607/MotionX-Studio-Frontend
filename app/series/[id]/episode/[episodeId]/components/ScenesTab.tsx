@@ -18,8 +18,22 @@ export const ScenesTab: React.FC<ScenesTabProps> = ({ scenes, onOpenStoryboard, 
 
     return (
         <div style={styles.grid}>
+            {/* Inject CSS for the Hover Effect */}
+            <style>{`
+                .scene-card:hover {
+                    border-color: #FF0000 !important;
+                    background-color: #0E0E0E !important;
+                    transform: translateY(-4px);
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                }
+            `}</style>
+
             {scenes.map((scene, index) => (
-                <div key={scene.id} style={styles.card}>
+                <div
+                    key={scene.id}
+                    style={styles.card}
+                    className="scene-card" // Apply class for hover effect
+                >
 
                     {/* 1. SCENE HEADER */}
                     <div style={styles.sceneCardHeader}>
