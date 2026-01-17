@@ -240,6 +240,7 @@ export default function EpisodeBoard() {
                     loading={dataLoading}
                     onEditAsset={(id) => assetMgr.openAssetModal(id, 'character')}
                     styles={styles}
+                    onZoom={setZoomMedia}
                 />
             )}
 
@@ -251,6 +252,7 @@ export default function EpisodeBoard() {
                     locationImages={locationImages}
                     onEditAsset={(locId) => assetMgr.openAssetModal(locId, 'location')}
                     styles={styles}
+                    onZoom={setZoomMedia}
                 />
             )}
 
