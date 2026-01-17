@@ -155,12 +155,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             finalValue = value.split(',').map(t => t.trim()).filter(t => t !== "");
         }
 
-        // Update Traits State
         const updatedTraits = { ...editableTraits, [key]: finalValue };
         setEditableTraits(updatedTraits);
 
-        // LIVE UPDATE: Regenerate prompt based on new traits
-        // This ensures the prompt terminal always reflects the inputs above
+        // LIVE UPDATE
         const constructedPrompt = assetType === 'location'
             ? constructLocationPrompt(assetName || "Location", updatedTraits.visual_traits, updatedTraits)
             : constructCharacterPrompt(assetName || "Character", updatedTraits, updatedTraits);
@@ -172,6 +170,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         setIsSavingTraits(true);
         await onUpdateTraits(editableTraits);
         setIsSavingTraits(false);
+        // FIX: Close modal after successful save
+        onClose();
     };
 
     const handleVoiceLink = async () => {
@@ -198,6 +198,15 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     return (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+
+            {/* INJECT CUSTOM SCROLLBAR STYLES */}
+            <style>{`
+                .modal-scroll::-webkit-scrollbar { width: 6px; }
+                .modal-scroll::-webkit-scrollbar-track { background: #0a0a0a; }
+                .modal-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+                .modal-scroll::-webkit-scrollbar-thumb:hover { background: #555; }
+            `}</style>
+
             <div style={{ ...props.styles.modal, width: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
                 {/* 1. HEADER */}
@@ -217,15 +226,19 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                     <X size={20} style={{ cursor: 'pointer', color: '#666' }} onClick={onClose} />
                 </div>
 
-                {/* 2. CONTENT AREA */}
-                <div style={{
-                    flex: 1,
-                    overflowY: isVoiceMode ? 'hidden' : 'auto',
-                    padding: '20px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '30px'
-                }}>
+                {/* 2. CONTENT AREA (Scrollable) */}
+                <div
+                    className="modal-scroll"
+                    style={{
+                        flex: 1,
+                        overflowY: isVoiceMode ? 'hidden' : 'auto',
+                        padding: '20px',
+                        paddingBottom: '40px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '30px'
+                    }}
+                >
 
                     {isVoiceMode ? (
                         <VoiceTab
@@ -295,14 +308,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                     </div>
                                 </div>
 
-                                {/* NEW: PROMPT TERMINAL */}
+                                {/* PROMPT TERMINAL */}
                                 <div style={props.styles.promptBox}>
                                     <div style={props.styles.promptHeader}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <Terminal size={10} color="#00FF00" />
                                             <span>AI GENERATION PROMPT</span>
                                         </div>
-                                        {/* Optional: Add a "Reset" button here if needed in future */}
                                     </div>
                                     <textarea
                                         value={genPrompt}
