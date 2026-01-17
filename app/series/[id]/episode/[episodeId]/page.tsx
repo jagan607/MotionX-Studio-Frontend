@@ -33,12 +33,16 @@ import { useStoryboardTour } from "@/hooks/useStoryboardTour";
 import { CharacterProfile, LocationProfile } from "@/lib/types";
 
 /**
- * Mirror of Backend & Hook Logic:
- * Ensures we hit the same document ID regardless of special characters like "/"
+ * STRICT SANITIZATION LOGIC
+ * Ensures IDs like "INT. CAFE / LOUNGE" become "int_cafe_lounge" (single underscores).
+ * This prevents the "double underscore" duplicate issue.
  */
 const sanitizeId = (name: string) => {
     if (!name) return "unknown";
+    // 1. Remove all special characters except spaces and alphanumerics
     const clean = name.replace(/[^a-zA-Z0-9\s]/g, "");
+    // 2. Trim whitespace, lowercase
+    // 3. Replace ALL sequences of spaces (e.g. "  ") with a SINGLE underscore
     return clean.trim().toLowerCase().replace(/\s+/g, "_");
 };
 
@@ -52,8 +56,8 @@ export default function EpisodeBoard() {
         scenes,
         castMembers,
         setCastMembers,
-        uniqueLocs,      // List of names found in script (Strings)
-        locations,       // Full Firestore Documents (Objects with traits)
+        uniqueLocs,
+        locations,
         setLocations,
         locationImages,
         setLocationImages,
@@ -81,6 +85,7 @@ export default function EpisodeBoard() {
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [downloadShot, setDownloadShot] = useState<any>(null);
 
+    // FIX: Updates traits based on the correct DB structure (Nested for Char, Flat for Loc)
     const handleUpdateTraits = async (newTraits: any) => {
         if (!assetMgr.selectedAssetId) return;
 
@@ -94,7 +99,7 @@ export default function EpisodeBoard() {
             };
 
             if (assetMgr.assetType === 'location') {
-                // Locations: Spread traits to top-level
+                // Locations: Spread traits to top-level (terrain, atmosphere, lighting)
                 updatePayload = { ...updatePayload, ...newTraits };
             } else {
                 // Characters: Nest traits back into 'visual_traits' object
@@ -110,14 +115,13 @@ export default function EpisodeBoard() {
                 };
             }
 
-            // 1. Write to Firestore
+            // 1. Write to Firestore (Merge to keep existing fields)
             await setDoc(docRef, updatePayload, { merge: true });
 
-            // 2. Update Local State
+            // 2. Update Local State (Immediate UI feedback)
             if (assetMgr.assetType === 'character') {
                 setCastMembers((prev: CharacterProfile[]) => prev.map(member =>
                     member.id === dbDocId
-                        // Merge the new visual_traits into the member object
                         ? { ...member, visual_traits: updatePayload.visual_traits }
                         : member
                 ));
@@ -260,7 +264,7 @@ export default function EpisodeBoard() {
                 <CastingTab
                     castMembers={castMembers}
                     loading={dataLoading}
-                    // FIX: Standardized sanitization for characters to match location logic
+                    // Characters: Fallback to strict sanitization if needed
                     onEditAsset={(name, type, prompt) => assetMgr.openAssetModal(name, type, prompt, sanitizeId(name))}
                     styles={styles}
                     onZoom={setZoomMedia}
@@ -272,6 +276,7 @@ export default function EpisodeBoard() {
                     locations={locations}
                     uniqueLocs={uniqueLocs}
                     locationImages={locationImages}
+                    // Locations: Use existing DB ID to guarantee we hit the correct document
                     onEditAsset={(name, type, prompt, existingId) => assetMgr.openAssetModal(name, type, prompt, existingId)}
                     styles={styles}
                     onZoom={setZoomMedia}
@@ -324,6 +329,7 @@ export default function EpisodeBoard() {
                         genPrompt={assetMgr.genPrompt}
                         setGenPrompt={assetMgr.setGenPrompt}
                         isProcessing={assetMgr.isProcessing}
+                        basePrompt={selectedAssetData?.base_prompt}
 
                         onUpload={(file) => assetMgr.handleAssetUpload(file, (url) => {
                             if (!dbDocId) return;

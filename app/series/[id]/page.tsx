@@ -135,30 +135,19 @@ export default function SeriesDetail() {
 
   // --- UPDATED STYLES ---
   const styles = {
-    container: { minHeight: '100vh', backgroundColor: '#030303', color: '#EDEDED', fontFamily: 'Inter, sans-serif', padding: '40px 80px' }, // Reduced top padding
-
-    // REDUCED MARGIN HERE (60px -> 30px)
+    container: { minHeight: '100vh', backgroundColor: '#030303', color: '#EDEDED', fontFamily: 'Inter, sans-serif', padding: '40px 80px' },
     backLink: { display: 'flex', alignItems: 'center', gap: '8px', color: '#666', fontSize: '10px', fontWeight: 'bold' as const, letterSpacing: '2px', textDecoration: 'none', marginBottom: '30px' },
-
-    // REDUCED MARGINS HERE (paddingBottom 40->20, marginBottom 60->30)
     header: { borderBottom: '1px solid #333', paddingBottom: '20px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' },
-
-    // TIGHTER TITLE LINE HEIGHT
     title: { fontFamily: 'Anton, sans-serif', fontSize: '80px', lineHeight: '0.9', textTransform: 'uppercase' as const, color: '#FFF', marginBottom: '10px' },
-
     metaRow: { display: 'flex', gap: '30px', fontSize: '11px', color: '#FF0000', fontFamily: 'monospace', textTransform: 'uppercase' as const },
     addButton: { backgroundColor: '#EDEDED', color: '#050505', border: 'none', padding: '15px 30px', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', textTransform: 'uppercase' as const, boxShadow: '0 0 20px rgba(255,255,255,0.1)' },
-
-    // REDUCED SECTION TITLE MARGIN (30px -> 20px)
     sectionTitle: { fontSize: '12px', color: '#666', fontWeight: 'bold' as const, letterSpacing: '4px', marginBottom: '20px', textTransform: 'uppercase' as const, paddingLeft: '2px' },
-
-    episodeGrid: { display: 'flex', flexDirection: 'column' as const, gap: '10px' }, // Reduced gap
+    episodeGrid: { display: 'flex', flexDirection: 'column' as const, gap: '10px' },
     episodeCard: {
-      backgroundColor: '#080808', border: '1px solid #1A1A1A', padding: '20px 40px', // Slightly tighter padding
+      backgroundColor: '#080808', border: '1px solid #1A1A1A', padding: '20px 40px',
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       cursor: 'pointer', transition: 'all 0.2s', position: 'relative' as const
     },
-    // ... Modal Styles (Unchanged) ...
     overlay: { position: 'fixed' as const, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 },
     modal: { width: '500px', backgroundColor: '#0A0A0A', border: '1px solid #333', padding: '40px' },
     modalTitle: { fontFamily: 'Anton, sans-serif', fontSize: '32px', textTransform: 'uppercase' as const, marginBottom: '30px', color: 'white' },
@@ -178,6 +167,7 @@ export default function SeriesDetail() {
         .ep-card:hover { border-color: #FF0000 !important; background-color: #0E0E0E !important; transform: translateY(-2px); }
         .delete-icon { color: #444 !important; opacity: 1 !important; transition: color 0.2s ease !important; }
         .delete-icon:hover { color: #FF0000 !important; }
+        
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
       `}</style>
 
@@ -263,9 +253,12 @@ export default function SeriesDetail() {
               {selectedFile ? <div style={{ color: '#FFF' }}>{selectedFile.name}</div> : <> <Upload size={24} style={{ marginBottom: '15px' }} /> <div>UPLOAD SCRIPT (.PDF/.TXT)</div> </>}
             </div>
             <input type="file" ref={fileInputRef} hidden accept=".pdf,.docx,.txt" onChange={(e) => e.target.files && setSelectedFile(e.target.files[0])} />
+
+            {/* FIX: Use the global "force-spin" class from globals.css */}
             <button style={{ ...styles.confirmBtn, opacity: isUploading ? 0.7 : 1 }} onClick={handleCreateEpisode} disabled={isUploading}>
-              {isUploading ? <Loader2 className="spin-loader" /> : "EXECUTE"}
+              {isUploading ? <Loader2 className="force-spin" size={24} /> : "EXECUTE"}
             </button>
+
             {isUploading && <div style={styles.statusText}>{uploadStatus}</div>}
           </div>
         </div>
