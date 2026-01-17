@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Loader2, Play, Square, Check, Mic, Info } from 'lucide-react';
+import { Search, Play, Pause, Check, Loader2, Music } from 'lucide-react';
 import { Voice } from '@/lib/elevenLabs';
 
 interface VoiceTabProps {
@@ -24,95 +24,100 @@ export const VoiceTab: React.FC<VoiceTabProps> = ({
     handleVoiceSelection, linkBtnState, isLinkingVoice, styles
 }) => {
     return (
-        <div style={{ animation: 'fadeIn 0.3s ease', height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '15px' }}>
 
-            {/* AI VOICE SUGGESTION BOX */}
+            {/* AI SUGGESTION BANNER */}
             {voiceSuggestion && (
-                <div style={{
-                    backgroundColor: '#0a0a0a',
-                    border: '1px solid #222',
-                    borderRadius: '6px',
-                    padding: '12px',
-                    marginBottom: '15px',
-                    display: 'flex',
-                    gap: '12px',
-                    alignItems: 'flex-start'
-                }}>
-                    <Info size={16} color="#FF0000" style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <div>
-                        <div style={{ fontSize: '9px', color: '#666', letterSpacing: '1px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px' }}>
-                            AI ANALYSIS SUGGESTION
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#CCC', fontStyle: 'italic', lineHeight: '1.4' }}>
-                            "{voiceSuggestion}"
-                        </div>
-                    </div>
+                <div style={{ padding: '10px 15px', backgroundColor: '#1a1a1a', borderRadius: '6px', borderLeft: '3px solid #FF4444' }}>
+                    <div style={{ fontSize: '9px', fontWeight: 'bold', color: '#666', marginBottom: '2px', letterSpacing: '1px' }}>AI CASTING DIRECTOR SUGGESTION</div>
+                    <div style={{ fontSize: '12px', color: '#DDD', fontStyle: 'italic' }}>"{voiceSuggestion}"</div>
                 </div>
             )}
 
-            {/* SEARCH BOX */}
-            <div style={{ position: 'relative', marginBottom: '15px' }}>
+            {/* SEARCH BAR */}
+            <div style={{ position: 'relative' }}>
                 <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
                 <input
-                    type="text"
-                    placeholder="Search voice library..."
+                    placeholder="Search voice styles (e.g. Deep, British, Excited)..."
                     value={voiceSearch}
                     onChange={(e) => setVoiceSearch(e.target.value)}
-                    style={{ width: '100%', padding: '12px 12px 12px 38px', backgroundColor: '#0a0a0a', color: 'white', border: '1px solid #333', borderRadius: '6px', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
+                    style={{
+                        width: '100%', padding: '10px 10px 10px 35px', backgroundColor: '#050505',
+                        border: '1px solid #222', borderRadius: '6px', color: 'white', fontSize: '12px', outline: 'none'
+                    }}
                 />
             </div>
 
             {/* VOICE LIST */}
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '5px', marginBottom: '15px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #222', borderRadius: '6px', backgroundColor: '#050505' }}>
                 {isLoadingVoices ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '40px', color: '#666' }}>
-                        {/* Using force-spin for consistent library loading */}
+                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', flexDirection: 'column', gap: '10px' }}>
                         <Loader2 className="force-spin" size={24} />
+                        <div style={{ fontSize: '10px' }}>FETCHING ELEVENLABS VOICES...</div>
                     </div>
+                ) : filteredVoices.length === 0 ? (
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#444', fontSize: '11px' }}>No voices found matching "{voiceSearch}"</div>
                 ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                        {filteredVoices.map(voice => (
-                            <div key={voice.voice_id} onClick={() => setSelectedVoiceId(voice.voice_id)}
-                                style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px',
-                                    borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s',
-                                    backgroundColor: selectedVoiceId === voice.voice_id ? '#1a1a1a' : '#0a0a0a',
-                                    border: selectedVoiceId === voice.voice_id ? '1px solid #FF0000' : '1px solid #222'
-                                }}>
-                                <div>
-                                    <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#EEE', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        {voice.name}
-                                        {selectedVoiceId === voice.voice_id && <Check size={14} color="#FF0000" />}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {filteredVoices.map((voice) => {
+                            const isSelected = selectedVoiceId === voice.voice_id;
+                            const isPlaying = playingVoiceId === voice.voice_id;
+
+                            return (
+                                <div
+                                    key={voice.voice_id}
+                                    onClick={() => setSelectedVoiceId(voice.voice_id)}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        padding: '12px 15px', borderBottom: '1px solid #1a1a1a', cursor: 'pointer',
+                                        backgroundColor: isSelected ? '#151515' : 'transparent',
+                                        transition: 'background 0.2s'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <div
+                                            onClick={(e) => { e.stopPropagation(); handlePlayPreview(voice.preview_url, voice.voice_id); }}
+                                            style={{
+                                                width: '28px', height: '28px', borderRadius: '50%', backgroundColor: isPlaying ? '#FF4444' : '#222',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            {isPlaying ? <Pause size={12} color="white" /> : <Play size={12} color={isSelected ? "white" : "#666"} />}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '13px', color: isSelected ? 'white' : '#CCC', fontWeight: isSelected ? 'bold' : 'normal' }}>
+                                                {voice.name}
+                                            </div>
+                                            <div style={{ fontSize: '10px', color: '#555', marginTop: '2px' }}>
+                                                {voice.labels ? Object.values(voice.labels).slice(0, 3).join(" • ") : "Generic"}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-                                        {voice.labels?.accent && <span style={styles.tag}>{voice.labels.accent}</span>}
-                                        {voice.labels?.age && <span style={styles.tag}>{voice.labels.age}</span>}
-                                    </div>
+                                    {isSelected && <Check size={16} color="#FF4444" />}
                                 </div>
-                                <button onClick={(e) => { e.stopPropagation(); handlePlayPreview(voice.preview_url, voice.voice_id); }}
-                                    style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #333', backgroundColor: playingVoiceId === voice.voice_id ? '#FF0000' : 'transparent', color: playingVoiceId === voice.voice_id ? 'white' : '#666', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                                    {playingVoiceId === voice.voice_id ? <Square size={10} fill="currentColor" /> : <Play size={10} fill="currentColor" />}
-                                </button>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>
 
-            {/* ACTION BUTTON */}
-            <button
-                style={{ ...styles.primaryBtn, width: '100%', opacity: linkBtnState.disabled ? 0.5 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                disabled={linkBtnState.disabled}
-                onClick={handleVoiceSelection}
-            >
-                {/* Fixed: Icon now spins until isLinkingVoice becomes false */}
-                {isLinkingVoice ? (
-                    <Loader2 className="force-spin" size={16} />
-                ) : (
-                    <Mic size={16} />
-                )}
-                <span>{isLinkingVoice ? "LINKING..." : linkBtnState.text}</span>
-            </button>
+            {/* ACTION FOOTER */}
+            <div style={{ paddingTop: '10px' }}>
+                <button
+                    onClick={handleVoiceSelection}
+                    disabled={linkBtnState.disabled}
+                    style={{
+                        width: '100%', padding: '12px', backgroundColor: linkBtnState.disabled ? '#222' : '#FFF',
+                        color: linkBtnState.disabled ? '#555' : '#000', border: 'none', borderRadius: '4px',
+                        fontWeight: 'bold', fontSize: '11px', letterSpacing: '1px',
+                        cursor: linkBtnState.disabled ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                    }}
+                >
+                    {isLinkingVoice ? <Loader2 className="force-spin" size={14} /> : <Music size={14} />}
+                    {linkBtnState.text}
+                </button>
+            </div>
         </div>
     );
 };

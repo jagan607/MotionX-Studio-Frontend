@@ -49,15 +49,30 @@ export const styles = {
     metaTag: { fontSize: '10px', backgroundColor: '#222', padding: '2px 6px', borderRadius: '4px', color: '#888' },
     locRow: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px', fontWeight: 'bold' as const, marginBottom: '15px', color: '#FFF' },
     actionText: { fontSize: '14px', lineHeight: '1.6', color: '#CCC', marginBottom: '20px', minHeight: '80px' },
-    modal: { width: '600px', backgroundColor: '#0A0A0A', border: '1px solid #333', padding: '40px' },
+
+    // MODAL STYLES (UPDATED)
+    modal: { width: '600px', backgroundColor: '#0A0A0A', border: '1px solid #333', padding: '0px' }, // Removed padding for flex layout
     modalTitle: { fontFamily: 'Anton, sans-serif', fontSize: '32px', textTransform: 'uppercase' as const, marginBottom: '10px', color: 'white' },
     modalSub: { fontSize: '12px', color: '#666', marginBottom: '30px' },
+
+    // NEW: Action Toolbar Styles
+    actionToolbar: { display: 'flex', gap: '10px' },
+    actionBtn: (active: boolean) => ({
+        cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: '6px',
+        fontSize: '10px', color: active ? '#FFF' : '#888',
+        padding: '4px 8px',
+        border: '1px solid #333',
+        backgroundColor: active ? '#222' : 'transparent',
+        borderRadius: '4px'
+    }),
+
     toggleRow: { display: 'flex', marginBottom: '30px', borderBottom: '1px solid #222' },
     toggleBtn: (active: boolean) => ({ flex: 1, padding: '15px', textAlign: 'center' as const, cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '1px', color: active ? 'white' : '#444', borderBottom: active ? '2px solid #FF0000' : 'none' }),
     uploadBox: { border: '1px dashed #333', padding: '50px', textAlign: 'center' as const, color: '#666', cursor: 'pointer', marginBottom: '20px' },
     textareaInput: { width: '100%', backgroundColor: '#111', border: '1px solid #333', padding: '15px', color: '#EEE', fontSize: '14px', marginBottom: '20px', resize: 'none' as const },
     primaryBtn: { width: '100%', padding: '20px', backgroundColor: '#FF0000', color: 'white', border: 'none', fontWeight: 'bold' as const, cursor: 'pointer', letterSpacing: '2px', fontSize: '14px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' },
 
-    // NEW: Info Box for Credits
+    // Info Box for Credits
     infoBox: { display: 'flex', alignItems: 'center', gap: '10px', borderRight: '1px solid #333', paddingRight: '20px', marginRight: '20px' },
 };

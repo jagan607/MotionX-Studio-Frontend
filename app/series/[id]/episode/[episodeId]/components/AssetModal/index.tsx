@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, User, Mic, FileText, MapPin, Image as ImageIcon } from 'lucide-react';
+import { X, User, MapPin, Upload, Sparkles, Play, RefreshCw, ArrowLeft } from 'lucide-react';
 import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
 import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils';
 
 // Import Sub-Components
-import { VisualsTab } from './VisualsTab';
+// VisualsTab is removed as its logic is now inline
 import { TraitsTab } from './TraitsTab';
 import { VoiceTab } from './VoiceTab';
 
@@ -38,15 +38,16 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         setGenPrompt,
         onClose,
         isProcessing,
-        basePrompt
+        onGenerate,
+        onUpload
     } = props;
 
     // --- LOCAL UI STATE ---
-    const [activeTab, setActiveTab] = useState<'visual' | 'voice' | 'traits'>('visual');
     const [editableTraits, setEditableTraits] = useState<any>({});
     const [isSavingTraits, setIsSavingTraits] = useState(false);
 
-    // Voice Library State
+    // Voice State
+    const [isVoiceMode, setIsVoiceMode] = useState(false); // Toggle to show full voice picker
     const [allVoices, setAllVoices] = useState<Voice[]>([]);
     const [filteredVoices, setFilteredVoices] = useState<Voice[]>([]);
     const [voiceSearch, setVoiceSearch] = useState('');
@@ -59,9 +60,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     // --- EFFECTS ---
     useEffect(() => {
         if (isOpen && currentData) {
-            setActiveTab('visual');
+            setIsVoiceMode(false); // Reset view on open
 
-            // FIX: Type as 'any' to avoid TS errors when accessing properties later
+            // 1. Unified Traits Initialization
+            // FIX: Type as 'any' to avoid TS errors
             let initialTraits: any = {};
 
             if (assetType === 'location') {
@@ -81,7 +83,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                     hair: vt.hair || "",
                     clothing: vt.clothing || "",
                     vibe: vt.vibe || "",
-                    // Keep the original object for reference if needed
                     visual_traits: vt
                 };
             }
@@ -96,12 +97,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 setGenPrompt(constructCharacterPrompt(assetName || "Character", initialTraits, initialTraits));
             }
         }
+        // FIX: Dependency array includes deep comparison for updates
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
     // Lazy load voices
     useEffect(() => {
-        if (activeTab === 'voice' && allVoices.length === 0) loadVoices();
-    }, [activeTab, allVoices.length]);
+        if (isVoiceMode && allVoices.length === 0) loadVoices();
+    }, [isVoiceMode, allVoices.length]);
 
     // Filter voices
     useEffect(() => {
@@ -126,7 +128,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     const handleTraitChange = (key: string, value: string) => {
         let finalValue: any = value;
-        // Transform visual_traits back to array for Firestore if it's a location
         if (assetType === 'location' && key === 'visual_traits') {
             finalValue = value.split(',').map(t => t.trim()).filter(t => t !== "");
         }
@@ -145,73 +146,47 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             setIsLinkingVoice(true);
             await props.onLinkVoice({ voice_id: v.voice_id, voice_name: v.name });
             setIsLinkingVoice(false);
+            setIsVoiceMode(false); // Go back to main view after linking
+        }
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            onUpload(e.target.files[0]);
         }
     };
 
     if (!isOpen) return null;
 
+    // Determine Image to Show
+    const displayImage = currentData?.image_url || currentData?.face_sample_url;
+
     return (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ ...props.styles.modal, width: '550px', height: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ ...props.styles.modal, width: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-                {/* MODAL HEADER */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #222', paddingBottom: '15px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        {assetType === 'location' ? <MapPin size={24} color="#FF0000" /> : <User size={24} color="#FF0000" />}
+                {/* 1. HEADER */}
+                <div style={{ padding: '20px', borderBottom: '1px solid #222', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0a0a0a' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {isVoiceMode && (
+                            <ArrowLeft size={20} style={{ cursor: 'pointer', color: '#FFF', marginRight: '5px' }} onClick={() => setIsVoiceMode(false)} />
+                        )}
+                        {assetType === 'location' ? <MapPin size={20} color="#FF4444" /> : <User size={20} color="#FF4444" />}
                         <div>
-                            <h2 style={{ ...props.styles.modalTitle, marginBottom: '2px' }}>{assetName}</h2>
-                            <div style={{ fontSize: '10px', color: '#555', letterSpacing: '1px' }}>CONFIGURATION STUDIO</div>
+                            <h2 style={{ ...props.styles.modalTitle, fontSize: '18px', marginBottom: '2px' }}>{assetName}</h2>
+                            <div style={{ fontSize: '10px', color: '#666', letterSpacing: '1px' }}>
+                                {isVoiceMode ? "VOICE LIBRARY" : "CONFIGURATION STUDIO"}
+                            </div>
                         </div>
                     </div>
-                    <X size={24} style={{ cursor: 'pointer', color: 'white' }} onClick={onClose} />
+                    <X size={20} style={{ cursor: 'pointer', color: '#666' }} onClick={onClose} />
                 </div>
 
-                {/* TAB BAR */}
-                <div style={{ display: 'flex', gap: '5px', marginBottom: '20px', backgroundColor: '#0a0a0a', padding: '4px', borderRadius: '6px', border: '1px solid #222' }}>
-                    {[
-                        { id: 'visual', label: 'VISUALS', icon: ImageIcon },
-                        ...(assetType === 'character' ? [{ id: 'voice', label: 'VOICE', icon: Mic }] : []),
-                        { id: 'traits', label: 'TRAITS', icon: FileText }
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            style={{
-                                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                                padding: '10px', borderRadius: '4px', border: 'none', cursor: 'pointer',
-                                fontSize: '10px', fontWeight: 'bold', letterSpacing: '0.5px',
-                                backgroundColor: activeTab === tab.id ? '#222' : 'transparent',
-                                color: activeTab === tab.id ? 'white' : '#555', transition: 'all 0.2s'
-                            }}
-                        >
-                            <tab.icon size={12} /> {tab.label}
-                        </button>
-                    ))}
-                </div>
+                {/* 2. CONTENT AREA */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '30px' }}>
 
-                {/* SCROLLABLE CONTENT AREA */}
-                <div style={{ flex: 1, overflow: 'hidden', padding: '5px' }}>
-                    {activeTab === 'visual' && (
-                        <VisualsTab
-                            {...props}
-                            isProcessing={isProcessing}
-                            currentImageUrl={currentData?.face_sample_url || currentData?.image_url}
-                            basePrompt={basePrompt}
-                        />
-                    )}
-
-                    {activeTab === 'traits' && (
-                        <TraitsTab
-                            assetType={assetType!}
-                            editableTraits={editableTraits}
-                            handleTraitChange={handleTraitChange}
-                            handleSaveTraits={handleSaveTraits}
-                            isSavingTraits={isSavingTraits}
-                            styles={props.styles}
-                        />
-                    )}
-
-                    {activeTab === 'voice' && (
+                    {isVoiceMode ? (
+                        // --- VIEW A: FULL VOICE PICKER ---
                         <VoiceTab
                             voiceSuggestion={currentData?.voice_config?.suggestion}
                             voiceSearch={voiceSearch}
@@ -224,14 +199,134 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                             handlePlayPreview={handlePlayPreview}
                             handleVoiceSelection={handleVoiceLink}
                             linkBtnState={{
-                                text: selectedVoiceId === currentData?.voice_config?.voice_id ? "LINKED" : "LINK VOICE",
+                                text: selectedVoiceId === currentData?.voice_config?.voice_id ? "CURRENTLY LINKED" : "LINK SELECTED VOICE",
                                 disabled: !selectedVoiceId || selectedVoiceId === currentData?.voice_config?.voice_id || isLinkingVoice
                             }}
                             isLinkingVoice={isLinkingVoice}
                             styles={props.styles}
                         />
+                    ) : (
+                        // --- VIEW B: UNIFIED INSPECTOR (Traits + Visuals) ---
+                        <>
+                            {/* SECTION: TRAITS (Inputs) */}
+                            <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#444', marginBottom: '10px', letterSpacing: '1px' }}>
+                                    ASSET DEFINITION
+                                </div>
+                                <TraitsTab
+                                    assetType={assetType!}
+                                    editableTraits={editableTraits}
+                                    handleTraitChange={handleTraitChange}
+                                    handleSaveTraits={() => { }} // Save handled in footer
+                                    isSavingTraits={false}
+                                    styles={props.styles}
+                                />
+                            </div>
+
+                            {/* SECTION: VISUALS (Output) */}
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                    <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#444', letterSpacing: '1px' }}>
+                                        VISUAL REPRESENTATION
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <label style={{
+                                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                                            fontSize: '10px', color: '#888', padding: '4px 8px',
+                                            border: '1px solid #333', borderRadius: '4px'
+                                        }}>
+                                            <Upload size={12} /> UPLOAD REF
+                                            <input type="file" hidden onChange={handleFileUpload} accept="image/*" />
+                                        </label>
+                                        <button
+                                            onClick={onGenerate}
+                                            disabled={isProcessing}
+                                            style={{
+                                                cursor: isProcessing ? 'not-allowed' : 'pointer',
+                                                display: 'flex', alignItems: 'center', gap: '6px',
+                                                fontSize: '10px', color: isProcessing ? '#555' : '#FFF',
+                                                backgroundColor: isProcessing ? '#222' : '#FF4444',
+                                                padding: '4px 12px', border: 'none', borderRadius: '4px'
+                                            }}
+                                        >
+                                            {isProcessing ? <RefreshCw className="force-spin" size={12} /> : <Sparkles size={12} />}
+                                            {isProcessing ? "GENERATING..." : "GENERATE AI"}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div style={{
+                                    width: '100%', height: '220px', backgroundColor: '#050505',
+                                    border: '1px dashed #333', borderRadius: '6px', overflow: 'hidden',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    position: 'relative'
+                                }}>
+                                    {displayImage ? (
+                                        <img src={displayImage} alt="Asset" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                    ) : (
+                                        <div style={{ textAlign: 'center', color: '#333' }}>
+                                            <Sparkles size={32} style={{ margin: '0 auto 10px', opacity: 0.2 }} />
+                                            <div style={{ fontSize: '10px' }}>NO VISUAL GENERATED</div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* SECTION: VOICE (Compact Card) */}
+                            {assetType === 'character' && (
+                                <div>
+                                    <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#444', marginBottom: '10px', letterSpacing: '1px' }}>
+                                        VOICE CONFIGURATION
+                                    </div>
+                                    <div style={{
+                                        padding: '15px', backgroundColor: '#0a0a0a', border: '1px solid #222',
+                                        borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <div style={{
+                                                width: '30px', height: '30px', borderRadius: '50%', backgroundColor: '#222',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                            }}>
+                                                <Play size={12} color="white" />
+                                            </div>
+                                            <div>
+                                                <div style={{ color: 'white', fontSize: '12px' }}>
+                                                    {currentData?.voice_config?.voice_name || "No Voice Linked"}
+                                                </div>
+                                                <div style={{ color: '#555', fontSize: '10px' }}>
+                                                    {currentData?.voice_config?.suggestion || "Neutral Tone"}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setIsVoiceMode(true)}
+                                            style={{ fontSize: '10px', color: '#888', background: 'none', border: '1px solid #333', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                                        >
+                                            CHANGE
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
+
+                {/* 3. FOOTER (Hidden in Voice Mode) */}
+                {!isVoiceMode && (
+                    <div style={{ padding: '20px', borderTop: '1px solid #222', backgroundColor: '#0a0a0a' }}>
+                        <button
+                            onClick={handleSaveTraits}
+                            disabled={isSavingTraits}
+                            style={{
+                                width: '100%', padding: '12px', backgroundColor: '#FFF', color: '#000',
+                                border: 'none', borderRadius: '4px', fontWeight: 'bold', fontSize: '11px', letterSpacing: '1px',
+                                cursor: isSavingTraits ? 'wait' : 'pointer', opacity: isSavingTraits ? 0.7 : 1
+                            }}
+                        >
+                            {isSavingTraits ? "SAVING..." : "SAVE CONFIGURATION"}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
