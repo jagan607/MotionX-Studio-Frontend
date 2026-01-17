@@ -20,7 +20,7 @@ interface AssetModalProps {
     genPrompt: string;
     setGenPrompt: (p: string) => void;
     isProcessing: boolean;
-    basePrompt?: string; // AI analyzed original prompt
+    basePrompt?: string;
     onUpload: (f: File) => void;
     onGenerate: () => void;
     onUpdateTraits: (t: any) => Promise<void>;
@@ -36,7 +36,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         assetName,
         onUpdateTraits,
         setGenPrompt,
-        genPrompt,
         onClose,
         isProcessing,
         basePrompt
@@ -57,42 +56,54 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [isLinkingVoice, setIsLinkingVoice] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
+    // --- EFFECTS ---
     useEffect(() => {
         if (isOpen && currentData) {
-            // Reset tab only on initial open
-            if (activeTab === 'visual' && !editableTraits.atmosphere) {
-                setActiveTab('visual');
-            }
+            setActiveTab('visual');
 
-            const initialTraits = assetType === 'location' ? {
-                visual_traits: currentData.visual_traits || [],
-                atmosphere: currentData.atmosphere || "",
-                lighting: currentData.lighting || "",
-                terrain: currentData.terrain || "",
-            } : {
-                age: currentData.age || "",
-                ethnicity: currentData.ethnicity || "",
-                hair: currentData.hair || "",
-                clothing: currentData.clothing || "",
-                vibe: currentData.vibe || "",
-            };
+            // FIX: Type as 'any' to avoid TS errors when accessing properties later
+            let initialTraits: any = {};
+
+            if (assetType === 'location') {
+                // LOCATION LOGIC (Top-Level Fields)
+                initialTraits = {
+                    visual_traits: currentData.visual_traits || [],
+                    atmosphere: currentData.atmosphere || "",
+                    lighting: currentData.lighting || "",
+                    terrain: currentData.terrain || "",
+                };
+            } else {
+                // CHARACTER LOGIC (Nested Map Fields)
+                const vt = currentData.visual_traits || {};
+                initialTraits = {
+                    age: vt.age || "",
+                    ethnicity: vt.ethnicity || "",
+                    hair: vt.hair || "",
+                    clothing: vt.clothing || "",
+                    vibe: vt.vibe || "",
+                    // Keep the original object for reference if needed
+                    visual_traits: vt
+                };
+            }
 
             setEditableTraits(initialTraits);
+            setSelectedVoiceId(currentData?.voice_config?.voice_id || null);
 
-            // Construct prompt using fresh traits
+            // 2. Local Prompt Construction
             if (assetType === 'location') {
                 setGenPrompt(constructLocationPrompt(assetName || "Location", initialTraits.visual_traits, initialTraits));
+            } else if (assetType === 'character') {
+                setGenPrompt(constructCharacterPrompt(assetName || "Character", initialTraits, initialTraits));
             }
         }
-        // Add JSON.stringify(currentData) to catch deep changes in the object
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
-    // Lazy load voices only when user enters Voice Tab
+    // Lazy load voices
     useEffect(() => {
         if (activeTab === 'voice' && allVoices.length === 0) loadVoices();
     }, [activeTab, allVoices.length]);
 
-    // Client-side voice filtering
+    // Filter voices
     useEffect(() => {
         const query = voiceSearch.toLowerCase();
         setFilteredVoices(allVoices.filter(v => v.name.toLowerCase().includes(query)));

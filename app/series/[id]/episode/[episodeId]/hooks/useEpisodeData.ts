@@ -61,8 +61,9 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                             fetchedChars.push({
                                 id: doc.id,
                                 ...data,
-                                face_sample_url: data.face_sample_url || data.image_url,
-                                visual_traits: data.visual_traits || {} // Ensure this exists
+                                face_sample_url: data.face_sample_url || data.image_url || "",
+                                // CRITICAL: Ensure visual_traits is passed. Default to empty object if missing.
+                                visual_traits: data.visual_traits || {}
                             } as CharacterProfile);
                         });
                     }
@@ -71,6 +72,7 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                     setCastMembers([]);
                 }
 
+                // D. FETCH GLOBAL LOCATIONS (Optimized Batch Fetch)
                 const locSnapshot = await getDocs(collection(db, "series", seriesId, "locations"));
 
                 const fetchedLocations: LocationProfile[] = [];

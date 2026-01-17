@@ -89,24 +89,46 @@ export default function EpisodeBoard() {
             const dbDocId = assetMgr.selectedAssetId;
             const docRef = doc(db, "series", seriesId, collectionName, dbDocId);
 
-            // Ensure we are saving flat strings for terrain, atmosphere, lighting
-            const updatePayload = {
-                ...newTraits,
+            let updatePayload: any = {
                 updated_at: new Date().toISOString()
             };
 
+            if (assetMgr.assetType === 'location') {
+                // Locations: Spread traits to top-level
+                updatePayload = { ...updatePayload, ...newTraits };
+            } else {
+                // Characters: Nest traits back into 'visual_traits' object
+                updatePayload = {
+                    ...updatePayload,
+                    visual_traits: {
+                        age: newTraits.age || "",
+                        ethnicity: newTraits.ethnicity || "",
+                        hair: newTraits.hair || "",
+                        clothing: newTraits.clothing || "",
+                        vibe: newTraits.vibe || ""
+                    }
+                };
+            }
+
+            // 1. Write to Firestore
             await setDoc(docRef, updatePayload, { merge: true });
 
-            // CRITICAL: Update local state so currentData passed to Modal is fresh
+            // 2. Update Local State
             if (assetMgr.assetType === 'character') {
-                setCastMembers((prev) => prev.map(member =>
-                    member.id === dbDocId ? { ...member, ...updatePayload } : member
+                setCastMembers((prev: CharacterProfile[]) => prev.map(member =>
+                    member.id === dbDocId
+                        // Merge the new visual_traits into the member object
+                        ? { ...member, visual_traits: updatePayload.visual_traits }
+                        : member
                 ));
             } else {
-                setLocations((prev) => prev.map(loc =>
-                    loc.id === dbDocId ? { ...loc, ...updatePayload } : loc
+                setLocations((prev: LocationProfile[]) => prev.map(loc =>
+                    loc.id === dbDocId
+                        ? { ...loc, ...updatePayload }
+                        : loc
                 ));
             }
+
         } catch (error) {
             console.error("Failed to update traits:", error);
         }
