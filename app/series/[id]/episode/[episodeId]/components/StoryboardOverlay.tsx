@@ -14,14 +14,12 @@ import { SortableShotCard } from "./SortableShotCard";
 import { StoryboardTour } from "@/components/StoryboardTour";
 
 interface StoryboardOverlayProps {
-    // Data Props
     activeSceneId: string | null;
     currentScene: any;
     credits: number | null;
     styles: any;
     castMembers: any[];
 
-    // Shot Manager Hook Data
     shotMgr: {
         shots: any[];
         aspectRatio: string;
@@ -37,19 +35,16 @@ interface StoryboardOverlayProps {
         isAutoDirecting: boolean;
     };
 
-    // Inpaint Props
     inpaintData: { src: string, shotId: string } | null;
     setInpaintData: (data: { src: string, shotId: string } | null) => void;
     onSaveInpaint: (prompt: string, maskBase64: string) => Promise<string | null>;
     onApplyInpaint: (url: string) => void;
 
-    // Action Handlers
     onClose: () => void;
     onZoom: (media: { url: string, type: 'image' | 'video' }) => void;
     onDownload: (shot: any) => void;
     onDeleteShot: (shotId: string) => void;
 
-    // Tour Props
     tourStep: number;
     onTourNext: () => void;
     onTourComplete: () => void;
@@ -62,7 +57,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     tourStep, onTourNext, onTourComplete
 }) => {
 
-    // Defined sensors here to keep the component self-contained
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -89,7 +83,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     </div>
                 </div>
 
-                {/* Aspect Ratio Selector */}
                 <div style={{ marginLeft: '40px', display: 'flex', alignItems: 'center', gap: '10px' }} id="tour-sb-aspect">
                     <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#666' }}>ASPECT:</span>
                     <select value={shotMgr.aspectRatio} onChange={(e) => shotMgr.setAspectRatio(e.target.value)} style={{ backgroundColor: '#111', color: 'white', border: '1px solid #333', padding: '8px', fontSize: '12px', fontWeight: 'bold' }}>
@@ -99,7 +92,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     </select>
                 </div>
 
-                {/* Main Actions */}
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
                     <button
                         id="tour-sb-autodirect"
@@ -128,10 +120,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
             {/* --- MAIN CONTENT AREA --- */}
             {shotMgr.shots.length === 0 ? (
-                /* EMPTY STATE */
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', border: '1px dashed #222', backgroundColor: 'rgba(10, 10, 10, 0.5)', marginTop: '20px', position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', backgroundColor: 'rgba(255, 0, 0, 0.1)', boxShadow: '0 0 20px rgba(255, 0, 0, 0.2)', animation: 'scanline 3s linear infinite' }} />
-                    <style>{`@keyframes scanline { 0% { top: 0%; opacity: 0; } 50% { opacity: 1; } 100% { top: 100%; opacity: 0; } }`}</style>
                     <Film size={80} style={{ opacity: 0.1, color: '#FFF', marginBottom: '20px' }} />
                     <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '32px', color: '#333', letterSpacing: '4px', textTransform: 'uppercase' }}>SEQUENCE_BUFFER_EMPTY</h3>
                     <p style={{ fontFamily: 'monospace', fontSize: '12px', color: '#555', marginTop: '10px', letterSpacing: '2px' }}>// NO VISUAL DATA DETECTED IN THIS SECTOR</p>
@@ -145,7 +135,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     </div>
                 </div>
             ) : (
-                /* SHOT GRID (DnD ENABLED) */
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={shotMgr.handleDragEnd}>
                     <SortableContext items={shotMgr.shots?.map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
                         <div style={styles.sbGrid}>
@@ -174,13 +163,19 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                         />
                                     </div>
                                     <label style={styles.label}>SHOT TYPE</label>
-                                    <select style={styles.select} value={shot.type} onChange={(e) => shotMgr.updateShot(shot.id, "type", e.target.value)}>
-                                        <option>Wide Shot</option><option>Medium Shot</option><option>Close Up</option><option>Over the Shoulder</option>
+                                    <select
+                                        style={styles.select}
+                                        value={shot.shot_type || "Wide Shot"}
+                                        onChange={(e) => shotMgr.updateShot(shot.id, "shot_type", e.target.value)}
+                                    >
+                                        <option>Wide Shot</option>
+                                        <option>Medium Shot</option>
+                                        <option>Close Up</option>
+                                        <option>Over the Shoulder</option>
                                     </select>
 
                                     <label style={styles.label}>CASTING</label>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '15px' }}>
-                                        {/* Dynamic Casting Toggles based on Global Series Characters */}
                                         {castMembers.map((char: any) => (
                                             <button
                                                 key={char.id}
@@ -200,14 +195,25 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     </div>
 
                                     <label style={styles.label}>VISUAL ACTION</label>
-                                    <textarea style={styles.textArea} value={shot.prompt} onChange={(e) => shotMgr.updateShot(shot.id, "prompt", e.target.value)} />
+                                    {/* Corrected mapping to visual_action */}
+                                    <textarea
+                                        style={styles.textArea}
+                                        value={shot.visual_action || ""}
+                                        onChange={(e) => shotMgr.updateShot(shot.id, "visual_action", e.target.value)}
+                                        placeholder="Describe the framing and action..."
+                                    />
 
                                     <button
                                         style={shotMgr.loadingShots.has(shot.id) ? styles.renderBtnLoading : styles.renderBtn}
                                         onClick={() => shotMgr.handleRenderShot(shot, currentScene)}
                                         disabled={shotMgr.loadingShots.has(shot.id)}
                                     >
-                                        {shotMgr.loadingShots.has(shot.id) ? <Loader2 className="spin-loader" size={14} /> : <Sparkles size={14} />}
+                                        {/* Corrected class to force-spin */}
+                                        {shotMgr.loadingShots.has(shot.id) ? (
+                                            <Loader2 className="force-spin" size={14} />
+                                        ) : (
+                                            <Sparkles size={14} />
+                                        )}
                                         {shotMgr.loadingShots.has(shot.id) ? "GENERATING..." : (shot.image_url ? "REGENERATE SHOT" : "RENDER SHOT")}
                                     </button>
                                 </SortableShotCard>
@@ -217,17 +223,16 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </DndContext>
             )}
 
-            {/* --- TERMINAL OVERLAY (AUTO-DIRECT) --- */}
+            {/* --- TERMINAL OVERLAY --- */}
             {shotMgr.isAutoDirecting && (
                 <div style={styles.terminalOverlay}>
                     <div style={styles.terminalBox}>
                         {shotMgr.terminalLog.map((log: string, i: number) => (<div key={i} style={styles.terminalLine}>{log}</div>))}
-                        <div style={styles.terminalLine}>_ <span className="spin-loader">|</span></div>
+                        <div style={styles.terminalLine}>_ <span className="force-spin">|</span></div>
                     </div>
                 </div>
             )}
 
-            {/* --- STORYBOARD TOUR --- */}
             <StoryboardTour step={tourStep} onNext={onTourNext} onComplete={onTourComplete} />
         </div>
     );

@@ -34,17 +34,21 @@ export const ShotImage = ({
     const hasVideo = Boolean(videoUrl);
     const hasImage = Boolean(src);
 
-    // --- FIX 1: LOADING LOGIC ---
-    // Only wait for image decoding if we are NOT showing a video.
-    // If hasVideo is true, we skip the image check so the loader turns off and video plays.
+    // --- LOADING LOGIC ---
+    // Update: isSystemLoading now covers the 'GENERATING...' phase from useShotManager
     const isLoading = isSystemLoading || isAnimating || (!hasVideo && hasImage && !imageFullyDecoded);
 
-    // --- FIX 2: EMPTY STATE ---
-    // Shown only if no media exists and we aren't currently generating anything.
+    // --- EMPTY STATE ---
     const isEmpty = !hasVideo && !hasImage && !isSystemLoading && !isAnimating;
 
-    useEffect(() => { setImageFullyDecoded(false); }, [src]);
-    useEffect(() => { if (imgRef.current?.complete) setImageFullyDecoded(true); }, [src]);
+    // Reset decode state when source changes to prevent flickering old images
+    useEffect(() => {
+        setImageFullyDecoded(false);
+    }, [src]);
+
+    useEffect(() => {
+        if (imgRef.current?.complete) setImageFullyDecoded(true);
+    }, [src]);
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor: '#000', overflow: 'hidden' }}>
@@ -55,7 +59,8 @@ export const ShotImage = ({
                     position: 'absolute', inset: 0, zIndex: 10, backgroundColor: 'rgba(5,5,5,0.9)',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                 }}>
-                    <Loader2 className="spin-loader" size={32} color="#FF0000" />
+                    {/* UPDATED: Using force-spin for continuous rotation */}
+                    <Loader2 className="force-spin" size={32} color="#FF0000" />
 
                     {isAnimating && (
                         <div style={{ marginTop: '15px', textAlign: 'center' }}>
@@ -63,7 +68,7 @@ export const ShotImage = ({
                                 ANIMATING...
                             </p>
                             <p style={{ color: '#666', fontSize: '9px', marginTop: '5px', fontFamily: 'monospace' }}>
-                                SEEDANCE 1.5 PRO
+                                VEO ENGINE V1
                             </p>
                         </div>
                     )}
@@ -86,10 +91,9 @@ export const ShotImage = ({
 
             {/* --- 3. MEDIA CONTENT --- */}
             {hasVideo ? (
-                // VIDEO PLAYER
                 <video
                     src={videoUrl}
-                    controls
+                    controls={false} // Overlay controls used instead
                     autoPlay
                     loop
                     muted
@@ -97,7 +101,6 @@ export const ShotImage = ({
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 5 }}
                 />
             ) : (
-                // STATIC IMAGE
                 hasImage && (
                     <img
                         ref={imgRef}
@@ -105,7 +108,7 @@ export const ShotImage = ({
                         alt={`Shot ${shotId}`}
                         style={{
                             position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 5,
-                            opacity: imageFullyDecoded ? 1 : 0, transition: 'opacity 0.3s ease-in'
+                            opacity: imageFullyDecoded ? 1 : 0, transition: 'opacity 0.4s ease-in'
                         }}
                         onLoad={() => setImageFullyDecoded(true)}
                     />
@@ -113,11 +116,10 @@ export const ShotImage = ({
             )}
 
             {/* --- 4. CONTROLS OVERLAY --- */}
-            {/* Show controls if not loading and content exists */}
             {!isLoading && !isEmpty && (
                 <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 20 }}>
 
-                    {/* ANIMATE BUTTON (Hidden if video already exists) */}
+                    {/* ANIMATE BUTTON (Only for images) */}
                     {!hasVideo && (
                         <button
                             onClick={(e) => { e.stopPropagation(); onAnimate(); }}
@@ -133,20 +135,28 @@ export const ShotImage = ({
                         </button>
                     )}
 
-                    <button onClick={onClickZoom} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Maximize2 size={14} /></button>
-                    <button onClick={onDownload} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Download size={14} /></button>
+                    <button onClick={onClickZoom} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}>
+                        <Maximize2 size={14} />
+                    </button>
+                    <button onClick={onDownload} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}>
+                        <Download size={14} />
+                    </button>
 
-                    {/* INPAINT BUTTON (Images only, hidden for video) */}
+                    {/* INPAINT BUTTON (Images only) */}
                     {!hasVideo && (
-                        <button onClick={onStartInpaint} style={{ padding: '6px', backgroundColor: 'rgba(255,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}><Wand2 size={14} /></button>
+                        <button
+                            onClick={onStartInpaint}
+                            style={{ padding: '6px', backgroundColor: 'rgba(255,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}
+                            title="Edit Image"
+                        >
+                            <Wand2 size={14} />
+                        </button>
                     )}
                 </div>
             )}
 
             <style>{`
                 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-                .spin-loader { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}</style>
         </div>
     );
