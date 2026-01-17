@@ -33,16 +33,19 @@ import { useStoryboardTour } from "@/hooks/useStoryboardTour";
 import { CharacterProfile, LocationProfile } from "@/lib/types";
 
 /**
- * STRICT SANITIZATION LOGIC
- * Ensures IDs like "INT. CAFE / LOUNGE" become "int_cafe_lounge" (single underscores).
- * This prevents the "double underscore" duplicate issue.
+ * ROBUST SANITIZATION LOGIC
+ * 1. Convert separators (-, _) to spaces first.
+ * 2. Remove illegal chars.
+ * 3. Trim and underscore spaces.
+ * Example: "RED-WATTLED_LAPWING" -> "red wattled lapwing" -> "red_wattled_lapwing"
  */
 const sanitizeId = (name: string) => {
     if (!name) return "unknown";
-    // 1. Remove all special characters except spaces and alphanumerics
-    const clean = name.replace(/[^a-zA-Z0-9\s]/g, "");
-    // 2. Trim whitespace, lowercase
-    // 3. Replace ALL sequences of spaces (e.g. "  ") with a SINGLE underscore
+    // 1. Replace hyphens and underscores with spaces to preserve word separation
+    let clean = name.replace(/[-_]/g, " ");
+    // 2. Remove all special characters except spaces and alphanumerics
+    clean = clean.replace(/[^a-zA-Z0-9\s]/g, "");
+    // 3. Trim whitespace, lowercase, and underscores spaces
     return clean.trim().toLowerCase().replace(/\s+/g, "_");
 };
 
@@ -99,7 +102,7 @@ export default function EpisodeBoard() {
             };
 
             if (assetMgr.assetType === 'location') {
-                // Locations: Spread traits to top-level (terrain, atmosphere, lighting)
+                // Locations: Spread traits to top-level
                 updatePayload = { ...updatePayload, ...newTraits };
             } else {
                 // Characters: Nest traits back into 'visual_traits' object
@@ -115,10 +118,10 @@ export default function EpisodeBoard() {
                 };
             }
 
-            // 1. Write to Firestore (Merge to keep existing fields)
+            // 1. Write to Firestore
             await setDoc(docRef, updatePayload, { merge: true });
 
-            // 2. Update Local State (Immediate UI feedback)
+            // 2. Update Local State
             if (assetMgr.assetType === 'character') {
                 setCastMembers((prev: CharacterProfile[]) => prev.map(member =>
                     member.id === dbDocId
@@ -264,8 +267,12 @@ export default function EpisodeBoard() {
                 <CastingTab
                     castMembers={castMembers}
                     loading={dataLoading}
-                    // Characters: Fallback to strict sanitization if needed
-                    onEditAsset={(name, type, prompt) => assetMgr.openAssetModal(name, type, prompt, sanitizeId(name))}
+                    // CRITICAL FIX: Check if 'name' is actually an ID or Name by looking it up in the list
+                    onEditAsset={(name, type, prompt) => {
+                        const existingChar = castMembers.find(c => c.name === name || c.id === name);
+                        const stableId = existingChar ? existingChar.id : sanitizeId(name);
+                        assetMgr.openAssetModal(name, type, prompt, stableId);
+                    }}
                     styles={styles}
                     onZoom={setZoomMedia}
                 />
@@ -276,7 +283,6 @@ export default function EpisodeBoard() {
                     locations={locations}
                     uniqueLocs={uniqueLocs}
                     locationImages={locationImages}
-                    // Locations: Use existing DB ID to guarantee we hit the correct document
                     onEditAsset={(name, type, prompt, existingId) => assetMgr.openAssetModal(name, type, prompt, existingId)}
                     styles={styles}
                     onZoom={setZoomMedia}

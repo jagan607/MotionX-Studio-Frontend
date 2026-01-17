@@ -10,10 +10,10 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
     // State holds full CharacterProfile objects
     const [castMembers, setCastMembers] = useState<CharacterProfile[]>([]);
 
-    // --- UPDATED LOCATION STATES ---
-    const [uniqueLocs, setUniqueLocs] = useState<string[]>([]); // Just the names (from script)
+    // --- LOCATION STATES ---
+    const [uniqueLocs, setUniqueLocs] = useState<string[]>([]); // Just the names (from script headers)
     const [locations, setLocations] = useState<LocationProfile[]>([]); // The Full DB Objects
-    const [locationImages, setLocationImages] = useState<Record<string, string>>({}); // Legacy Map (Name -> URL)
+    const [locationImages, setLocationImages] = useState<Record<string, string>>({}); // Legacy Map (ID -> URL)
 
     const [loading, setLoading] = useState(true);
 
@@ -44,7 +44,7 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                 if (castIds.length > 0) {
                     const charRef = collection(db, "series", seriesId, "characters");
 
-                    // Batch request in chunks of 10 (Firestore 'IN' limit)
+                    // Batch request in chunks of 10 (Firestore 'IN' query limit)
                     const chunks = [];
                     for (let i = 0; i < castIds.length; i += 10) {
                         chunks.push(castIds.slice(i, i + 10));
@@ -59,10 +59,10 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                         snap.forEach(doc => {
                             const data = doc.data();
                             fetchedChars.push({
-                                id: doc.id,
+                                id: doc.id, // CRITICAL: Use the stable Firestore Document ID
                                 ...data,
                                 face_sample_url: data.face_sample_url || data.image_url || "",
-                                // CRITICAL: Ensure visual_traits is passed. Default to empty object if missing.
+                                // Ensure visual_traits is passed. Default to empty object if missing.
                                 visual_traits: data.visual_traits || {}
                             } as CharacterProfile);
                         });
@@ -72,7 +72,13 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                     setCastMembers([]);
                 }
 
-                // D. FETCH GLOBAL LOCATIONS (Optimized Batch Fetch)
+                // D. LOCATIONS (Updated Logic)
+                // 1. Extract unique names from the Script Scenes for display
+                const locs = new Set<string>();
+                scenesData.forEach((s: any) => { if (s.location) locs.add(s.location); });
+                setUniqueLocs(Array.from(locs));
+
+                // 2. Fetch stored Location Profiles from Firestore
                 const locSnapshot = await getDocs(collection(db, "series", seriesId, "locations"));
 
                 const fetchedLocations: LocationProfile[] = [];
@@ -81,19 +87,19 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                 locSnapshot.forEach(doc => {
                     const data = doc.data();
 
-                    // SPREAD all data first to capture terrain, atmosphere, lighting, etc.
+                    // Build the full object
                     const locObj: LocationProfile = {
-                        id: doc.id,
-                        ...data, // This captures all top-level strings from DB
+                        id: doc.id, // CRITICAL: Use the stable Firestore Document ID
+                        ...data, // This spreads top-level fields like terrain, atmosphere, lighting
                         name: data.name || doc.id,
                         image_url: data.image_url || "",
-                        visual_traits: data.visual_traits || [], // Use array default for locations
+                        visual_traits: data.visual_traits || [], // Default to array for locations
                         status: data.status || 'active'
                     } as LocationProfile;
 
                     fetchedLocations.push(locObj);
 
-                    // Build the legacy map using the ID as the key for stability
+                    // Build map (ID -> Image URL) for the grid view
                     if (data.image_url) locMap[doc.id] = data.image_url;
                 });
 
@@ -116,9 +122,9 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
         castMembers,
         setCastMembers,
         uniqueLocs,      // List of strings (Scene headers)
-        locations,       // List of Objects (Full DB Profile) <--- NEW EXPORT
-        setLocations,    // Setter for updates <--- NEW EXPORT
-        locationImages,  // Simple Map (Name -> URL)
+        locations,       // List of Objects (Full DB Profile)
+        setLocations,    // Setter for updates
+        locationImages,  // Map (ID -> URL)
         setLocationImages,
         loading
     };

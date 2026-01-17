@@ -1,5 +1,3 @@
-// app/series/[id]/episode/[episodeId]/hooks/useAssetManager.ts
-
 import { useState } from "react";
 import { doc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -7,21 +5,23 @@ import { db, storage, auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
 
 /**
- * Mirror of Python backend logic:
- * 1. Removes characters that aren't alphanumeric or spaces (like '/')
- * 2. Trims and replaces internal spaces with underscores
+ * ROBUST SANITIZATION
+ * Treats hyphens and underscores as spaces so they don't get deleted.
+ * "red-wattled" -> "red wattled" -> "red_wattled"
  */
 const sanitizeId = (name: string) => {
     if (!name) return "unknown";
-    const clean = name.replace(/[^a-zA-Z0-9\s]/g, "");
+    // 1. Replace separators with space
+    let clean = name.replace(/[-_]/g, " ");
+    // 2. Remove illegals
+    clean = clean.replace(/[^a-zA-Z0-9\s]/g, "");
+    // 3. Normalize
     return clean.trim().toLowerCase().replace(/\s+/g, "_");
 };
 
 export const useAssetManager = (seriesId: string) => {
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
-
-    // NEW: Stable ID state to ensure we always hit the correct Firestore document
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
 
     const [assetType, setAssetType] = useState<'character' | 'location'>('character');
@@ -29,20 +29,19 @@ export const useAssetManager = (seriesId: string) => {
     const [genPrompt, setGenPrompt] = useState("");
     const [processingId, setProcessingId] = useState<string | null>(null);
 
-    /**
-     * Updated to accept the existingId from the database.
-     * This prevents the "double underscore" mismatch by using the pre-sanitized ID.
-     */
     const openAssetModal = (
         name: string,
         type: 'character' | 'location',
         existingPrompt?: string,
         existingId?: string
     ) => {
+        // Prioritize existing DB ID. Fallback to robust sanitizer.
         const stableId = existingId || sanitizeId(name);
 
+        console.log(`Opening Asset: "${name}" -> ID: "${stableId}"`);
+
         setSelectedAsset(name);
-        setSelectedAssetId(stableId); // Set the document ID here
+        setSelectedAssetId(stableId);
         setAssetType(type);
         setModalOpen(true);
         setModalMode('generate');
@@ -64,8 +63,9 @@ export const useAssetManager = (seriesId: string) => {
             const downloadURL = await getDownloadURL(storageRef);
 
             const docRef = doc(db, "series", seriesId, collectionName, dbDocId);
+
             await setDoc(docRef, {
-                name: selectedAsset, // Keeps the display name clean
+                name: selectedAsset,
                 image_url: downloadURL,
                 source: "upload",
                 status: "active",
@@ -93,7 +93,6 @@ export const useAssetManager = (seriesId: string) => {
             formData.append("series_id", seriesId);
             formData.append("prompt", genPrompt);
 
-            // Pass the sanitized ID to the backend generator
             if (assetType === 'character') formData.append("character_name", dbDocId);
             else formData.append("location_name", dbDocId);
 
@@ -140,7 +139,6 @@ export const useAssetManager = (seriesId: string) => {
         setModalMode,
         genPrompt,
         setGenPrompt,
-        // Match against the stable ID for processing state
         isProcessing: selectedAssetId ? processingId === selectedAssetId : false,
         openAssetModal,
         handleAssetUpload,
