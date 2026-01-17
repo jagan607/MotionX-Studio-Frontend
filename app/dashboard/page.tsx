@@ -3,12 +3,10 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Film, Tv, ChevronRight, Loader2, LogOut, Trash2, Zap } from "lucide-react";
+import { Tv, ChevronRight, Loader2, Film, Trash2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
-import { useCredits } from "@/hooks/useCredits";
 import { DashboardTour } from "@/components/DashboardTour";
 import { useDashboardTour } from "@/hooks/useDashboardTour";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
@@ -18,11 +16,10 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
-    // USE THE HOOK
-    const { credits } = useCredits();
+    // TOUR HOOK
     const { tourStep, nextStep, completeTour } = useDashboardTour();
 
-    // --- DELETE STATE ---
+    // DELETE STATE
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -45,22 +42,13 @@ export default function Dashboard() {
         fetchUserScopedSeries();
     }, []);
 
-    // Handle Logout
-    const handleLogout = async () => {
-        await signOut(auth);
-        router.push("/login");
-    };
-
-    // --- DELETE LOGIC ---
-
-    // 1. Triggered by clicking trash icon (Opens Modal)
+    // DELETE LOGIC
     const confirmDeleteRequest = (e: React.MouseEvent, seriesId: string) => {
         e.preventDefault();
         e.stopPropagation();
-        setDeleteId(seriesId); // Open the custom modal
+        setDeleteId(seriesId);
     };
 
-    // 2. Triggered by "CONFIRM DELETE" button in Modal (Actual API Call)
     const performDelete = async () => {
         if (!deleteId) return;
         setIsDeleting(true);
@@ -74,7 +62,7 @@ export default function Dashboard() {
 
             if (res.ok) {
                 setSeriesList(prev => prev.filter(s => s.id !== deleteId));
-                setDeleteId(null); // Close modal on success
+                setDeleteId(null);
             } else {
                 const data = await res.json();
                 alert("DELETE FAILED: " + (data.detail || "Server error"));
@@ -87,35 +75,18 @@ export default function Dashboard() {
         }
     };
 
-    // --- STYLES ---
+    // STYLES
     const styles = {
         container: {
             minHeight: '100vh',
             backgroundColor: '#030303',
             color: '#EDEDED',
             fontFamily: 'Inter, sans-serif',
-            padding: '60px 80px',
+            padding: '40px 80px', // Reduced top padding since header is gone
             backgroundImage: 'radial-gradient(circle at 50% 50%, #111 0%, #030303 80%)',
         },
-        header: {
-            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-            borderBottom: '1px solid #333', paddingBottom: '30px', marginBottom: '50px'
-        },
-        logo: { fontSize: '42px', fontFamily: 'Anton, sans-serif', textTransform: 'uppercase' as const, lineHeight: '1', letterSpacing: '1px' },
-        subLogo: { fontSize: '10px', color: '#FF0000', letterSpacing: '4px', fontWeight: 'bold' as const, marginTop: '10px', textTransform: 'uppercase' as const },
-
-        // Header Info Box (Operator / Credits)
-        infoBox: {
-            display: 'flex', alignItems: 'center', gap: '20px',
-            borderRight: '1px solid #333', paddingRight: '20px', marginRight: '20px'
-        },
-
-        // Buttons
-        logoutBtn: { backgroundColor: 'transparent', color: '#666', border: '1px solid #333', padding: '12px 20px', fontSize: '10px', fontWeight: 'bold' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase' as const },
-        createButton: { backgroundColor: '#FF0000', color: 'black', border: 'none', padding: '16px 32px', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', textTransform: 'uppercase' as const, boxShadow: '0 0 20px rgba(255, 0, 0, 0.2)' },
-
         // Grid & Cards
-        grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '30px' },
+        grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '30px', marginTop: '40px' },
         card: {
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
             border: '1px solid #222', padding: '30px', cursor: 'pointer',
@@ -130,47 +101,13 @@ export default function Dashboard() {
     return (
         <main style={styles.container}>
             <style>{`
-        .series-card:hover { border-color: #FF0000 !important; transform: translateY(-5px); background-color: #0A0A0A !important; }
-        .series-card:hover .open-link { color: #FF0000 !important; }
-        .series-card:hover .delete-btn { color: #666 !important; }
-        .delete-btn:hover { color: #FF0000 !important; }
-      `}</style>
+                .series-card:hover { border-color: #FF0000 !important; transform: translateY(-5px); background-color: #0A0A0A !important; }
+                .series-card:hover .open-link { color: #FF0000 !important; }
+                .series-card:hover .delete-btn { color: #666 !important; }
+                .delete-btn:hover { color: #FF0000 !important; }
+            `}</style>
 
-            {/* HEADER SECTION */}
-            <header style={styles.header}>
-                <div>
-                    <h1 style={styles.logo}>MotionX</h1>
-                    <div style={styles.subLogo}>Production Mainframe</div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                    {/* INFO BOX: OPERATOR & CREDITS */}
-                    <div style={styles.infoBox}>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '9px', color: '#666', marginBottom: '2px', letterSpacing: '1px' }}>OPERATOR</div>
-                            <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{auth.currentUser?.email?.split('@')[0].toUpperCase() || 'UNKNOWN'}</div>
-                        </div>
-                        <div style={{ textAlign: 'right', borderLeft: '1px solid #333', paddingLeft: '15px' }}>
-                            <div style={{ fontSize: '9px', color: '#666', marginBottom: '2px', letterSpacing: '1px' }}>CREDITS</div>
-                            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#FF0000', display: 'flex', alignItems: 'center', gap: '5px', justifyContent: 'flex-end' }}>
-                                <Zap size={10} fill="#FF0000" /> {credits ?? '---'}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '15px' }}>
-                        <button onClick={handleLogout} style={styles.logoutBtn}>
-                            <LogOut size={12} /> LOGOUT
-                        </button>
-
-                        <Link href="/new">
-                            <button style={styles.createButton}>
-                                <Plus size={16} /> INITIALIZE SERIES
-                            </button>
-                        </Link>
-                    </div>
-                </div>
-            </header>
+            {/* REMOVED DUPLICATE HEADER SECTION HERE */}
 
             {/* CONTENT GRID */}
             {loading ? (
@@ -179,7 +116,7 @@ export default function Dashboard() {
                     <p style={{ fontFamily: 'monospace', fontSize: '12px' }}>ACCESSING MAINFRAME...</p>
                 </div>
             ) : seriesList.length === 0 ? (
-                <div style={{ border: '1px dashed #333', padding: '100px', textAlign: 'center', color: '#444' }}>
+                <div style={{ border: '1px dashed #333', padding: '100px', textAlign: 'center', color: '#444', marginTop: '50px' }}>
                     <Film size={48} style={{ marginBottom: '20px', opacity: 0.5 }} />
                     <h3 style={{ fontSize: '24px', fontFamily: 'Anton', textTransform: 'uppercase' }}>No Active Data</h3>
                     <p style={{ fontSize: '12px', marginTop: '10px' }}>INITIALIZE A NEW SERIES TO BEGIN</p>
@@ -227,13 +164,12 @@ export default function Dashboard() {
             {deleteId && (
                 <DeleteConfirmModal
                     title="DELETE SERIES?"
-                    message="This will permanently destroy the entire production, including all episodes, scripts, characters, locations and generated assets. This action is irreversible."
+                    message="This will permanently destroy the entire production, including all episodes, scripts, and generated assets. This action is irreversible."
                     isDeleting={isDeleting}
                     onConfirm={performDelete}
                     onCancel={() => setDeleteId(null)}
                 />
             )}
-
         </main>
     );
 }

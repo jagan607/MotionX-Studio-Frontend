@@ -24,11 +24,12 @@ export const EpisodeHeader: React.FC<EpisodeHeaderProps> = ({
     return (
         <>
             {/* --- TOP NAV --- */}
-            <div style={styles.topNav}>
+            {/* Added marginBottom here to separate Back CTA from the Title */}
+            <div style={{ ...styles.topNav, marginBottom: '50px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Link href={`/series/${seriesId}`} style={styles.backLink}>
                     <ArrowLeft size={14} /> BACK TO EPISODES
                 </Link>
-                <div style={{ fontSize: '12px', color: '#444' }}>MOTION X STUDIO</div>
+                <div style={{ fontSize: '11px', color: '#666', letterSpacing: '1px', fontWeight: 'bold' }}>MOTION X STUDIO</div>
             </div>
 
             {/* --- HEADER BLOCK --- */}
@@ -39,14 +40,28 @@ export const EpisodeHeader: React.FC<EpisodeHeaderProps> = ({
                 </div>
 
                 <div style={styles.tabRow} id="tour-assets-target">
-                    <div style={styles.tabBtn(activeTab === 'scenes')} onClick={() => setActiveTab('scenes')}>
-                        <LayoutTemplate size={16} /> SCENES
+                    <div
+                        style={styles.tabBtn(activeTab === 'scenes')}
+                        onClick={() => setActiveTab('scenes')}
+                    >
+                        <LayoutTemplate size={16} />
+                        <span>SCENES</span>
                     </div>
-                    <div style={styles.tabBtn(activeTab === 'casting')} onClick={() => setActiveTab('casting')}>
-                        <Users size={16} /> CASTING ({castCount})
+
+                    <div
+                        style={styles.tabBtn(activeTab === 'casting')}
+                        onClick={() => setActiveTab('casting')}
+                    >
+                        <Users size={16} />
+                        <span>CASTING ({castCount})</span>
                     </div>
-                    <div style={styles.tabBtn(activeTab === 'locations')} onClick={() => setActiveTab('locations')}>
-                        <MapPin size={16} /> LOCATIONS ({locCount})
+
+                    <div
+                        style={styles.tabBtn(activeTab === 'locations')}
+                        onClick={() => setActiveTab('locations')}
+                    >
+                        <MapPin size={16} />
+                        <span>LOCATIONS ({locCount})</span>
                     </div>
                 </div>
             </div>
