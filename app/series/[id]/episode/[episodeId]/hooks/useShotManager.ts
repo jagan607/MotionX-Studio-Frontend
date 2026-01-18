@@ -37,7 +37,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
 
         await setDoc(doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", newShotId), {
             shot_type: "Wide Shot",
-            // FIX: Changed 'prompt' to 'visual_action' to match Storyboard UI
             visual_action: currentScene?.visual_action || "",
             characters: [],
             location: currentScene?.location || "",
@@ -64,7 +63,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             const oldIndex = shots.findIndex((s) => s.id === active.id);
             const newIndex = shots.findIndex((s) => s.id === over.id);
             setShots(arrayMove(shots, oldIndex, newIndex));
-            // Note: In a production app, you would also update a 'position' index in Firestore here
         }
     };
 
@@ -94,38 +92,51 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             if (res.ok && data.shots) {
                 setTerminalLog(prev => [...prev, "> GENERATING SHOT LIST..."]);
                 const batch = writeBatch(db);
-                const newShotsToRender: any[] = [];
 
+                // No longer need newShotsToRender for loop, just for DB write
                 data.shots.forEach((shot: any, index: number) => {
                     const newShotId = `shot_${String(index + 1).padStart(2, '0')}`;
                     const docRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", newShotId);
 
+                    let charArray: string[] = [];
+                    if (typeof shot.characters === 'string') {
+                        charArray = shot.characters.split(',').map((c: string) => c.trim()).filter((c: string) => c !== "");
+                    } else if (Array.isArray(shot.characters)) {
+                        charArray = shot.characters;
+                    }
+
                     const payload = {
                         id: newShotId,
                         shot_type: shot.type,
-                        // FIX: Consistently using 'visual_action'
                         visual_action: shot.description,
-                        characters: shot.characters || [],
+                        characters: charArray,
                         location: shot.location || "",
                         status: "draft"
                     };
 
                     batch.set(docRef, payload);
-                    newShotsToRender.push(payload);
                 });
 
                 await batch.commit();
                 setIsAutoDirecting(false);
-
-                // Trigger Generation Loop
-                for (const shot of newShotsToRender) {
-                    await handleRenderShot(shot, currentScene);
-                    await new Promise(r => setTimeout(r, 1000));
-                }
+                // LOOP REMOVED HERE
             }
         } catch (e) {
             console.error(e);
             setIsAutoDirecting(false);
+        }
+    };
+
+    // NEW: Function to manually trigger generation for all shots
+    const handleGenerateAll = async (currentScene: any) => {
+        if (!shots || shots.length === 0) return;
+
+        for (const shot of shots) {
+            // Check if we should skip shots that already have images?
+            // For now, we assume "Generate All" means generate everything in the list.
+            await handleRenderShot(shot, currentScene);
+            // 1s delay to prevent rate limiting or race conditions
+            await new Promise(r => setTimeout(r, 1000));
         }
     };
 
@@ -136,7 +147,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         formData.append("episode_id", episodeId);
         formData.append("scene_id", activeSceneId!);
         formData.append("shot_id", shot.id);
-        // FIX: Ensure the API receives the prompt correctly from the visual_action field
+
         formData.append("shot_prompt", shot.visual_action || shot.prompt || "");
         formData.append("shot_type", shot.shot_type || shot.type || "Wide Shot");
         formData.append("characters", Array.isArray(shot.characters) ? shot.characters.join(",") : "");
@@ -167,7 +178,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             formData.append("scene_id", activeSceneId!);
             formData.append("shot_id", shot.id);
             formData.append("image_url", shot.image_url);
-            // FIX: Use visual_action for animation context
             formData.append("prompt", shot.visual_action || "Cinematic movement");
 
             await fetch(`${API_BASE_URL}/api/v1/shot/animate_shot`, {
@@ -184,6 +194,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     return {
         shots, loadingShots, isAutoDirecting, terminalLog, aspectRatio, setAspectRatio,
         handleAddShot, updateShot, handleDeleteShot, handleDragEnd, handleAutoDirect,
+        handleGenerateAll, // Exporting the new function
         handleRenderShot, handleAnimateShot
     };
 };

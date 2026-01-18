@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Zap, Wand2, Plus, Film, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Zap, Wand2, Plus, Film, Loader2, Sparkles, Layers } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
 } from '@dnd-kit/core';
@@ -25,6 +25,7 @@ interface StoryboardOverlayProps {
         aspectRatio: string;
         setAspectRatio: (val: string) => void;
         handleAutoDirect: (scene: any) => void;
+        handleGenerateAll: (scene: any) => void;
         handleAddShot: (scene: any) => void;
         handleDragEnd: (event: any) => void;
         loadingShots: Set<string>;
@@ -93,6 +94,32 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </div>
 
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
+
+                    {/* NEW: GENERATE ALL FRAMES BUTTON (Updated Style) */}
+                    {shotMgr.shots.length > 0 && (
+                        <button
+                            onClick={() => shotMgr.handleGenerateAll(currentScene)}
+                            disabled={shotMgr.loadingShots.size > 0 || shotMgr.isAutoDirecting}
+                            style={{
+                                padding: '12px 24px',
+                                backgroundColor: '#222', // Changed from Red to Dark Grey to match Auto-Direct
+                                color: '#FFF',
+                                fontWeight: 'bold',
+                                border: '1px solid #333',
+                                cursor: (shotMgr.loadingShots.size > 0 || shotMgr.isAutoDirecting) ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '12px',
+                                letterSpacing: '1px',
+                                opacity: (shotMgr.loadingShots.size > 0 || shotMgr.isAutoDirecting) ? 0.5 : 1
+                            }}
+                        >
+                            {shotMgr.loadingShots.size > 0 ? <Loader2 size={16} className="force-spin" /> : <Layers size={16} />}
+                            GENERATE ALL FRAMES
+                        </button>
+                    )}
+
                     <button
                         id="tour-sb-autodirect"
                         onClick={() => shotMgr.handleAutoDirect(currentScene)}
@@ -145,7 +172,11 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     index={index}
                                     styles={styles}
                                     onDelete={() => onDeleteShot(shot.id)}
+                                    // PASS DATA DOWN for Internal UI
+                                    castMembers={castMembers}
+                                    onUpdateShot={shotMgr.updateShot}
                                 >
+                                    {/* 1. Image Preview */}
                                     <div style={styles.shotImageContainer}>
                                         <ShotImage
                                             src={shot.image_url}
@@ -162,53 +193,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                             onAnimate={() => shotMgr.handleAnimateShot(shot)}
                                         />
                                     </div>
-                                    <label style={styles.label}>SHOT TYPE</label>
-                                    <select
-                                        style={styles.select}
-                                        value={shot.shot_type || "Wide Shot"}
-                                        onChange={(e) => shotMgr.updateShot(shot.id, "shot_type", e.target.value)}
-                                    >
-                                        <option>Wide Shot</option>
-                                        <option>Medium Shot</option>
-                                        <option>Close Up</option>
-                                        <option>Over the Shoulder</option>
-                                    </select>
 
-                                    <label style={styles.label}>CASTING</label>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '15px' }}>
-                                        {castMembers.map((char: any) => (
-                                            <button
-                                                key={char.id}
-                                                onClick={() => {
-                                                    const current = shot.characters || [];
-                                                    const charName = char.name;
-                                                    const updated = current.includes(charName)
-                                                        ? current.filter((c: string) => c !== charName)
-                                                        : [...current, charName];
-                                                    shotMgr.updateShot(shot.id, "characters", updated);
-                                                }}
-                                                style={styles.charToggle(shot.characters?.includes(char.name))}
-                                            >
-                                                {char.name}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    <label style={styles.label}>VISUAL ACTION</label>
-                                    {/* Corrected mapping to visual_action */}
-                                    <textarea
-                                        style={styles.textArea}
-                                        value={shot.visual_action || ""}
-                                        onChange={(e) => shotMgr.updateShot(shot.id, "visual_action", e.target.value)}
-                                        placeholder="Describe the framing and action..."
-                                    />
-
+                                    {/* 2. Render Button (Appears below Image, above Inputs) */}
                                     <button
                                         style={shotMgr.loadingShots.has(shot.id) ? styles.renderBtnLoading : styles.renderBtn}
                                         onClick={() => shotMgr.handleRenderShot(shot, currentScene)}
                                         disabled={shotMgr.loadingShots.has(shot.id)}
                                     >
-                                        {/* Corrected class to force-spin */}
                                         {shotMgr.loadingShots.has(shot.id) ? (
                                             <Loader2 className="force-spin" size={14} />
                                         ) : (
