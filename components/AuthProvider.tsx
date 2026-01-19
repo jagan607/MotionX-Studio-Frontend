@@ -12,14 +12,19 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      // Redirect to login if no user is found and we aren't already on the login page
-      if (!user && pathname !== "/login") {
+      // 1. Define pages that guests are allowed to see
+      const publicPaths = ["/", "/login", "/pricing"];
+
+      // 2. LOGIC: If no user AND we are trying to visit a protected page -> Kick to Home
+      if (!user && !publicPaths.includes(pathname)) {
         router.push("/");
       }
-      // If user is logged in but tries to access login page, send to dashboard
+
+      // 3. LOGIC: If user is logged in but tries to access login -> Send to Dashboard
       else if (user && pathname === "/login") {
         router.push("/dashboard");
       }
+
       setLoading(false);
     });
 

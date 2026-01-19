@@ -71,11 +71,11 @@ export default function PricingPage() {
                 {/* HEADLINES */}
                 <div className="text-center mb-16 max-w-3xl">
                     <p className="text-[#FF0000] text-[10px] font-bold tracking-[3px] mb-4 uppercase animate-pulse">
-                /// Production Economy
+                /// STUDIO INFRASTRUCTURE
                     </p>
                     {/* Using standard H1 to inherit global font-family */}
                     <h1 className="text-5xl md:text-7xl text-white mb-6 uppercase tracking-tight">
-                        Membership Access
+                        PRODUCTION CAPACITY
                     </h1>
                     <p className="text-[#666] text-xs tracking-[2px] uppercase leading-relaxed max-w-lg mx-auto">
                         Upgrade your terminal to unlock 4K rendering, private generation mode, and collaborative seats.
