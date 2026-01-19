@@ -28,4 +28,11 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+# Magic Card
+
+Card Number	5555 5555 5555 4444
+Expiry	Any future date (e.g., 12/30)
+CVV	123
+Card Holder	Any Name (e.g., "Test User")
+
 ## Deploy on Vercel

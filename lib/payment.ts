@@ -78,7 +78,6 @@ export const usePayment = () => {
             const { subscription_id, key_id } = await response.json();
 
             // B. Open Razorpay Modal
-            // We cast to 'any' here to fix the TypeScript error about missing 'amount'/'currency'
             const options: any = {
                 key: key_id,
                 subscription_id: subscription_id,
@@ -101,10 +100,14 @@ export const usePayment = () => {
                     if (isValid) onSuccess?.();
                     else onError?.(new Error("Payment verification failed. If you were charged, please contact support."));
                 },
+                // --- FIX: Handle User Cancellation ---
                 modal: {
-                    ondismiss: () => setIsProcessing(false)
+                    ondismiss: () => {
+                        setIsProcessing(false);
+                        if (onError) onError("Payment Cancelled");
+                    }
                 },
-                theme: { color: "#22c55e" }
+                theme: { color: "#FF0000" } // Red to match Brand
             };
 
             const rzp = new Razorpay(options);
@@ -156,7 +159,6 @@ export const usePayment = () => {
             const { order_id, amount, currency, key_id } = await response.json();
 
             // B. Open Razorpay Modal
-            // Cast to 'any' to ensure flexibility with the SDK types
             const options: any = {
                 key: key_id,
                 amount: amount,
@@ -180,10 +182,14 @@ export const usePayment = () => {
                     if (isValid) onSuccess?.();
                     else onError?.(new Error("Payment verification failed. If you were charged, please contact support."));
                 },
+                // --- FIX: Handle User Cancellation ---
                 modal: {
-                    ondismiss: () => setIsProcessing(false)
+                    ondismiss: () => {
+                        setIsProcessing(false);
+                        if (onError) onError("Payment Cancelled");
+                    }
                 },
-                theme: { color: "#22c55e" }
+                theme: { color: "#FF0000" } // Red to match Brand
             };
 
             const rzp = new Razorpay(options);
