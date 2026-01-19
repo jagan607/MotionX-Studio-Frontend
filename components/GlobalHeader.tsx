@@ -12,8 +12,9 @@ export default function GlobalHeader() {
     const pathname = usePathname();
     const { credits } = useCredits();
 
-    // 1. HIDE ON LOGIN PAGE
-    if (pathname === "/login" || pathname === "/") return null;
+    // 1. HIDE ON LOGIN, HOME, AND PRICING PAGES
+    // Added "/pricing" so the custom header can take over there
+    if (pathname === "/login" || pathname === "/" || pathname === "/pricing") return null;
 
     const handleLogout = async () => {
         await signOut(auth);
