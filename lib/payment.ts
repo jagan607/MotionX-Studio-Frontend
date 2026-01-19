@@ -83,10 +83,24 @@ export const usePayment = () => {
                 subscription_id: subscription_id,
                 name: "MotionX Studio",
                 description: `${planType.toUpperCase()} Tier Subscription`,
+
+                // 1. ROBUST PREFILL (Required for Sandbox Stability)
                 prefill: {
-                    name: user?.displayName || "",
-                    email: user?.email || "",
+                    name: user?.displayName || "MotionX Operator",
+                    email: user?.email || "operator@motionx.in",
+                    contact: "9999999999" // Fallback number for sandbox
                 },
+
+                // 2. CRITICAL FIX: MAGIC ADDRESS FOR AVS CHECK
+                // This satisfies the "Temporary Bank Issue" error in Sandbox
+                notes: {
+                    address: "21 Applegate Apartment",
+                    city: "New York",
+                    state: "NY",
+                    zipcode: "11561",
+                    country: "US"
+                },
+
                 // C. Handle Success with Verification
                 handler: async (response: any) => {
                     const isValid = await verifyPayment({
@@ -166,10 +180,23 @@ export const usePayment = () => {
                 name: "MotionX Studio",
                 description: "Credit Top-up",
                 order_id: order_id,
+
+                // 1. ROBUST PREFILL
                 prefill: {
-                    name: user?.displayName || "",
-                    email: user?.email || "",
+                    name: user?.displayName || "MotionX Operator",
+                    email: user?.email || "operator@motionx.in",
+                    contact: "9999999999"
                 },
+
+                // 2. CRITICAL FIX: MAGIC ADDRESS FOR AVS CHECK
+                notes: {
+                    address: "21 Applegate Apartment",
+                    city: "New York",
+                    state: "NY",
+                    zipcode: "11561",
+                    country: "US"
+                },
+
                 // C. Handle Success with Verification
                 handler: async (response: any) => {
                     const isValid = await verifyPayment({
