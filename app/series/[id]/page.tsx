@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { Toaster } from "react-hot-toast";
 import {
   ArrowLeft, Plus, Loader2, X, Upload, Trash2, FileText
 } from "lucide-react";
@@ -164,6 +165,7 @@ export default function SeriesDetail() {
 
   return (
     <main style={styles.container}>
+      <Toaster position="bottom-right" reverseOrder={false} />
       <style>{`
         .ep-card:hover { border-color: #FF0000 !important; background-color: #0E0E0E !important; transform: translateY(-2px); }
         .delete-icon { color: #444 !important; opacity: 1 !important; transition: color 0.2s ease !important; }

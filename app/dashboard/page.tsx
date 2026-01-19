@@ -11,6 +11,7 @@ import { DashboardTour } from "@/components/DashboardTour";
 import { useDashboardTour } from "@/hooks/useDashboardTour";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { toastError } from "@/lib/toast";
+import { Toaster } from "react-hot-toast";
 
 export default function Dashboard() {
     const [seriesList, setSeriesList] = useState<any[]>([]);

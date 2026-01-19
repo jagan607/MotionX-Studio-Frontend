@@ -7,6 +7,7 @@ import { useParams } from "next/navigation"; // New import
 import { ArrowLeft, Clapperboard, MapPin, Save, Pencil, X } from "lucide-react";
 import Link from "next/link";
 import { toastError } from "@/lib/toast";
+import { Toaster } from "react-hot-toast";
 
 interface Scene {
   id: string;
@@ -71,6 +72,7 @@ export default function ProjectBoard() {
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-200 p-8 font-sans">
+      <Toaster position="bottom-right" reverseOrder={false} />
       <header className="mb-10 flex items-center justify-between border-b border-neutral-800 pb-6">
         <div className="flex items-center gap-4">
           <Link href="/dashboard" className="p-2 hover:bg-neutral-800 rounded-full transition-colors">

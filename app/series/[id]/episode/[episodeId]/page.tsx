@@ -9,6 +9,7 @@ import { db, auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
 import { useCredits } from "@/hooks/useCredits";
 import { toastError } from "@/lib/toast";
+import { Toaster } from "react-hot-toast";
 import { styles } from "./components/BoardStyles";
 
 // --- MODULAR COMPONENTS ---
@@ -244,6 +245,7 @@ export default function EpisodeBoard() {
 
     return (
         <main style={styles.container}>
+            <Toaster position="bottom-right" reverseOrder={false} />
 
             <EpisodeHeader
                 seriesId={seriesId}

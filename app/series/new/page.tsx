@@ -6,6 +6,7 @@ import { ArrowLeft, Film, Zap } from "lucide-react";
 import Link from "next/link";
 import { API_BASE_URL } from "@/lib/config";
 import { toastError } from "@/lib/toast";
+import { Toaster } from "react-hot-toast";
 
 export default function CreateSeries() {
   const router = useRouter();
