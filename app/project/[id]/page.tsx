@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useParams } from "next/navigation"; // New import
-import { Clapperboard, MapPin, Save, Pencil, X, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Clapperboard, MapPin, Save, Pencil, X } from "lucide-react";
 import Link from "next/link";
+import { toastError } from "@/lib/toast";
 
 interface Scene {
   id: string;
@@ -64,7 +65,7 @@ export default function ProjectBoard() {
       });
       setEditingId(null);
     } catch (error) {
-      alert("Failed to save.");
+      toastError("Failed to save.");
     }
   };
 

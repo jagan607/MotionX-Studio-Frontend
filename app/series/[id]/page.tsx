@@ -10,6 +10,7 @@ import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
 import { checkJobStatus } from "@/lib/api";
+import { toastError } from "@/lib/toast";
 
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { SeriesTour } from "@/components/SeriesTour";
@@ -61,7 +62,7 @@ export default function SeriesDetail() {
 
   // 2. CREATE EPISODE
   const handleCreateEpisode = async () => {
-    if (!newEpTitle || !selectedFile) return alert("REQ: TITLE & FILE");
+    if (!newEpTitle || !selectedFile) return toastError("REQ: TITLE & FILE");
     setIsUploading(true);
     setUploadStatus("Starting upload...");
 
@@ -97,14 +98,14 @@ export default function SeriesDetail() {
         } else if (jobData.status === "failed") {
           clearInterval(pollInterval);
           setIsUploading(false);
-          alert(`Error: ${jobData.error}`);
+          toastError(`Error: ${jobData.error}`);
         }
       }, 2000);
 
     } catch (error: any) {
       console.error(error);
       setIsUploading(false);
-      alert(error.message || "Upload failed");
+      toastError(error.message || "Upload failed");
     }
   };
 
@@ -123,11 +124,11 @@ export default function SeriesDetail() {
         setEpisodes(prev => prev.filter(ep => ep.id !== deleteId));
         setDeleteId(null);
       } else {
-        alert("FAILED TO DELETE EPISODE");
+        toastError("FAILED TO DELETE EPISODE");
       }
     } catch (err) {
       console.error(err);
-      alert("Network Error");
+      toastError("Network Error");
     } finally {
       setIsDeleting(false);
     }

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, User, MapPin, Upload, Sparkles, Play, Pause, RefreshCw, ArrowLeft, Loader2, Terminal } from 'lucide-react';
 import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
 import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils';
+import { toastError } from '@/lib/toast';
 
 // Import Sub-Components
 import { TraitsTab } from './TraitsTab';
@@ -145,7 +146,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         if (voice?.preview_url) {
             handlePlayPreview(voice.preview_url, vid);
         } else {
-            alert("Voice preview not found.");
+            toastError("Voice preview not found.");
         }
     };
 

@@ -10,6 +10,7 @@ import { API_BASE_URL } from "@/lib/config";
 import { DashboardTour } from "@/components/DashboardTour";
 import { useDashboardTour } from "@/hooks/useDashboardTour";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import { toastError } from "@/lib/toast";
 
 export default function Dashboard() {
     const [seriesList, setSeriesList] = useState<any[]>([]);
@@ -65,11 +66,11 @@ export default function Dashboard() {
                 setDeleteId(null);
             } else {
                 const data = await res.json();
-                alert("DELETE FAILED: " + (data.detail || "Server error"));
+                toastError("DELETE FAILED: " + (data.detail || "Server error"));
             }
         } catch (err) {
             console.error(err);
-            alert("CONNECTION ERROR");
+            toastError("CONNECTION ERROR");
         } finally {
             setIsDeleting(false);
         }

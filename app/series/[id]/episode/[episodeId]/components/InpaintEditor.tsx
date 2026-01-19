@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Loader2, Image as ImageIcon, Sparkles, Zap } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits"; // Ensure this path matches your project structure
+import { toastError } from "@/lib/toast";
 
 interface InpaintEditorProps {
     src: string;
@@ -49,7 +50,7 @@ export const InpaintEditor = ({ src, onSave, onClose, styles, onApply }: Inpaint
     };
 
     const handleGenerateFix = async () => {
-        if (!prompt) return alert("Please describe what to change.");
+        if (!prompt) return toastError("Please describe what to change.");
         setIsProcessing(true);
         const maskCanvas = document.createElement('canvas');
         maskCanvas.width = 800; maskCanvas.height = 450;

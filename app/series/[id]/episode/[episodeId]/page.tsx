@@ -8,6 +8,7 @@ import { db, auth } from "@/lib/firebase";
 // --- CUSTOM IMPORTS ---
 import { API_BASE_URL } from "@/lib/config";
 import { useCredits } from "@/hooks/useCredits";
+import { toastError } from "@/lib/toast";
 import { styles } from "./components/BoardStyles";
 
 // --- MODULAR COMPONENTS ---
@@ -180,7 +181,7 @@ export default function EpisodeBoard() {
             await shotMgr.handleDeleteShot(deleteShotId);
             setDeleteShotId(null);
         } catch (error) {
-            alert("Error deleting shot");
+            toastError("Error deleting shot");
         } finally {
             setIsDeletingShot(false);
         }
@@ -205,7 +206,7 @@ export default function EpisodeBoard() {
             const data = await res.json();
             return data.status === "success" ? data.image_url : null;
         } catch (e) {
-            alert("Inpaint failed");
+            toastError("Inpaint failed");
             return null;
         }
     };

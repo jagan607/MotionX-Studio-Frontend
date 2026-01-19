@@ -5,6 +5,7 @@ import { auth } from "@/lib/firebase";
 import { ArrowLeft, Film, Zap } from "lucide-react";
 import Link from "next/link";
 import { API_BASE_URL } from "@/lib/config";
+import { toastError } from "@/lib/toast";
 
 export default function CreateSeries() {
   const router = useRouter();
@@ -22,8 +23,8 @@ export default function CreateSeries() {
   }, []);
 
   const handleCreate = async () => {
-    if (!title || !genre) return alert("ENTER ALL DETAILS.");
-    if (!userId) return alert("NOT AUTHENTICATED. PLEASE LOG IN.");
+    if (!title || !genre) return toastError("ENTER ALL DETAILS.");
+    if (!userId) return toastError("NOT AUTHENTICATED. PLEASE LOG IN.");
     setLoading(true);
 
     try {
@@ -48,11 +49,11 @@ export default function CreateSeries() {
       if (res.ok && data.series_id) {
         router.push(`/series/${data.series_id}`);
       } else {
-        alert("CREATION FAILED: " + (data.detail || JSON.stringify(data)));
+        toastError("CREATION FAILED: " + (data.detail || JSON.stringify(data)));
       }
     } catch (e) {
       console.error(e);
-      alert("CREATION FAILED");
+      toastError("CREATION FAILED");
     } finally {
       setLoading(false);
     }

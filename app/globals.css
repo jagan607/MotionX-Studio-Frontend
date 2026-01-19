@@ -1,12 +1,19 @@
 /* 1. GOOGLE FONTS IMPORT */
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600&display=swap');
 
-/* 2. TAILWIND DIRECTIVES (CRITICAL) */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* 2. TAILWIND V4 IMPORT */
+@import "tailwindcss";
 
-/* 3. YOUR CUSTOM VARIABLES */
+/* 3. TAILWIND CONFIG & VARIABLES */
+@theme {
+  --color-background: #050505;
+  --font-anton: "Anton", sans-serif;
+  --font-inter: "Inter", sans-serif;
+
+  /* Extend existing breakpoints if needed, but defaults are usually fine */
+}
+
+/* 4. CUSTOM VARIABLES (Keeping your CSS variables for backward compat) */
 :root {
   --bg-black: #050505;
   --text-white: #EDEDED;
@@ -14,7 +21,7 @@
   --border-dim: #1F1F1F;
 }
 
-/* 4. BASE STYLES */
+/* 5. BASE STYLES */
 body {
   background-color: var(--bg-black);
   color: var(--text-white);
@@ -37,7 +44,7 @@ button {
   outline: none;
 }
 
-/* 5. ANIMATIONS */
+/* 6. ANIMATIONS */
 @keyframes spin-custom {
   from {
     transform: rotate(0deg);

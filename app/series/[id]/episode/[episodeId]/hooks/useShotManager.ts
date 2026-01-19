@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { collection, onSnapshot, doc, setDoc, writeBatch, deleteDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
+import { toastError } from "@/lib/toast";
 import { arrayMove } from "@dnd-kit/sortable";
 
 export const useShotManager = (seriesId: string, episodeId: string, activeSceneId: string | null) => {
@@ -169,7 +170,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     };
 
     const handleAnimateShot = async (shot: any) => {
-        if (!shot.image_url) return alert("Generate image first");
+        if (!shot.image_url) return toastError("Generate image first");
         try {
             const idToken = await auth.currentUser?.getIdToken();
             const formData = new FormData();
@@ -187,7 +188,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             });
         } catch (e) {
             console.error(e);
-            alert("Animation failed");
+            toastError("Animation failed");
         }
     };
 
