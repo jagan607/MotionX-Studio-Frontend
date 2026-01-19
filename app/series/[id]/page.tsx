@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Toaster } from "react-hot-toast";
 import {
-  ArrowLeft, Plus, Loader2, X, Upload, Trash2, FileText
+  ArrowLeft, Plus, Loader2, X, Upload, Trash2, FileText, CheckCircle
 } from "lucide-react";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
@@ -61,11 +61,29 @@ export default function SeriesDetail() {
     fetchData();
   }, [seriesId]);
 
-  // 2. CREATE EPISODE
+  // 2. FILE HANDLING
+  const handleRemoveFile = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the file input click
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  // 3. CREATE EPISODE
   const handleCreateEpisode = async () => {
     if (!newEpTitle || !selectedFile) return toastError("REQ: TITLE & FILE");
     setIsUploading(true);
     setUploadStatus("Starting upload...");
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
       const idToken = await auth.currentUser?.getIdToken();
@@ -78,7 +96,10 @@ export default function SeriesDetail() {
         method: "POST",
         headers: { Authorization: `Bearer ${idToken}` },
         body: formData,
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Upload failed");
@@ -104,13 +125,14 @@ export default function SeriesDetail() {
       }, 2000);
 
     } catch (error: any) {
+      clearTimeout(timeoutId);
       console.error(error);
       setIsUploading(false);
       toastError(error.message || "Upload failed");
     }
   };
 
-  // 3. DELETE EPISODE
+  // 4. DELETE EPISODE
   const performDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
@@ -135,7 +157,7 @@ export default function SeriesDetail() {
     }
   };
 
-  // --- UPDATED STYLES ---
+  // --- STYLES ---
   const styles = {
     container: { minHeight: '100vh', backgroundColor: '#030303', color: '#EDEDED', fontFamily: 'Inter, sans-serif', padding: '40px 80px' },
     backLink: { display: 'flex', alignItems: 'center', gap: '8px', color: '#666', fontSize: '10px', fontWeight: 'bold' as const, letterSpacing: '2px', textDecoration: 'none', marginBottom: '30px' },
@@ -155,7 +177,32 @@ export default function SeriesDetail() {
     modalTitle: { fontFamily: 'Anton, sans-serif', fontSize: '32px', textTransform: 'uppercase' as const, marginBottom: '30px', color: 'white' },
     label: { fontSize: '10px', fontWeight: 'bold' as const, color: '#FF0000', letterSpacing: '2px', marginBottom: '10px', display: 'block' },
     input: { width: '100%', backgroundColor: '#111', border: 'none', padding: '15px', color: 'white', fontSize: '16px', marginBottom: '30px', outline: 'none' },
-    fileBox: { border: '1px dashed #333', padding: '40px', textAlign: 'center' as const, color: '#666', cursor: 'pointer', marginBottom: '30px' },
+
+    // --- UPDATED FILE BOX STYLES ---
+    fileBox: {
+      border: '1px dashed #333',
+      padding: '30px',
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '12px',
+      color: '#666',
+      cursor: 'pointer',
+      marginBottom: '30px',
+      transition: 'border-color 0.2s, background-color 0.2s',
+      backgroundColor: 'transparent'
+    },
+    fileBoxSelected: {
+      border: '1px solid #333', // Subtle border
+      backgroundColor: '#0C0C0C', // Dark background (No red)
+      padding: '20px',
+      marginBottom: '30px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    },
+
     confirmBtn: { width: '100%', padding: '20px', backgroundColor: '#FF0000', border: 'none', color: 'white', fontWeight: 'bold' as const, cursor: 'pointer', letterSpacing: '1px', display: 'flex', justifyContent: 'center', alignItems: 'center' },
     statusText: { textAlign: 'center' as const, color: '#666', fontSize: '12px', marginTop: '15px', fontFamily: 'monospace', animation: 'pulse 1.5s infinite' }
   };
@@ -166,11 +213,12 @@ export default function SeriesDetail() {
   return (
     <main style={styles.container}>
       <Toaster position="bottom-right" reverseOrder={false} />
+
       <style>{`
         .ep-card:hover { border-color: #FF0000 !important; background-color: #0E0E0E !important; transform: translateY(-2px); }
         .delete-icon { color: #444 !important; opacity: 1 !important; transition: color 0.2s ease !important; }
         .delete-icon:hover { color: #FF0000 !important; }
-        
+        .file-box-hover:hover { border-color: #666 !important; background-color: #111 !important; }
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
       `}</style>
 
@@ -245,19 +293,74 @@ export default function SeriesDetail() {
       {isUploadModalOpen && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
+
+            {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={styles.modalTitle}>Injest Protocol</h2>
               {!isUploading && <X size={24} style={{ cursor: 'pointer', color: '#666' }} onClick={() => setIsUploadModalOpen(false)} />}
             </div>
+
+            {/* Title Input */}
             <label style={styles.label}>EPISODE_ID</label>
             <input style={styles.input} placeholder="ENTER TITLE" value={newEpTitle} onChange={(e) => setNewEpTitle(e.target.value)} autoFocus disabled={isUploading} />
-            <label style={styles.label}>SOURCE_FILE</label>
-            <div style={{ ...styles.fileBox, opacity: isUploading ? 0.5 : 1 }} onClick={() => !isUploading && fileInputRef.current?.click()}>
-              {selectedFile ? <div style={{ color: '#FFF' }}>{selectedFile.name}</div> : <> <Upload size={24} style={{ marginBottom: '15px' }} /> <div>UPLOAD SCRIPT (.PDF/.TXT)</div> </>}
-            </div>
-            <input type="file" ref={fileInputRef} hidden accept=".pdf,.docx,.txt" onChange={(e) => e.target.files && setSelectedFile(e.target.files[0])} />
 
-            {/* FIX: Use the global "force-spin" class from globals.css */}
+            {/* File Input Area */}
+            <label style={styles.label}>SOURCE_FILE</label>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              hidden
+              accept=".pdf,.docx,.txt"
+              onChange={handleFileSelect}
+            />
+
+            {!selectedFile ? (
+              // EMPTY STATE - Centered & Tight
+              <div
+                style={{ ...styles.fileBox, opacity: isUploading ? 0.5 : 1 }}
+                className="file-box-hover"
+                onClick={() => !isUploading && fileInputRef.current?.click()}
+              >
+                <Upload size={24} style={{ color: '#444' }} />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', color: '#888' }}>
+                    UPLOAD SCRIPT
+                  </div>
+                  <div style={{ fontSize: '9px', color: '#444', marginTop: '4px', fontFamily: 'monospace' }}>
+                    .PDF, .DOCX, .TXT
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // SELECTED STATE - Clean Row, Dark BG
+              <div style={styles.fileBoxSelected}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <div style={{ padding: '0px' }}>
+                    {/* Accent color only on icon */}
+                    <FileText size={20} color="#FF0000" />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ color: 'white', fontSize: '13px', fontFamily: 'monospace', maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {selectedFile.name}
+                    </span>
+                    <span style={{ color: '#444', fontSize: '10px', marginTop: '2px', letterSpacing: '0.5px' }}>
+                      READY FOR INJEST
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleRemoveFile}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '5px', color: '#666', transition: 'color 0.2s' }}
+                  title="Remove File"
+                  className="hover:text-white"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            )}
+
+            {/* Execute Button */}
             <button style={{ ...styles.confirmBtn, opacity: isUploading ? 0.7 : 1 }} onClick={handleCreateEpisode} disabled={isUploading}>
               {isUploading ? <Loader2 className="force-spin" size={24} /> : "EXECUTE"}
             </button>
