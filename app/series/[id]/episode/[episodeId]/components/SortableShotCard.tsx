@@ -2,7 +2,7 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, MapPin } from "lucide-react";
+import { GripVertical, Trash2, MapPin, Sparkles, Loader2, Film, RefreshCw } from "lucide-react";
 
 // --- 1. TYPE SAFETY: Explicit Interfaces ---
 interface CastMember {
@@ -17,6 +17,8 @@ interface Shot {
     visual_action: string;
     video_prompt?: string;
     location?: string;
+    image_url?: string;
+    video_url?: string;
 }
 
 interface SortableShotCardProps {
@@ -26,10 +28,14 @@ interface SortableShotCardProps {
     onDelete: (id: string) => void;
     castMembers: CastMember[];
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
+    // --- NEW ACTION PROPS ---
+    onRender: () => void;
+    onAnimate: () => void;
+    isRendering: boolean;
     children: React.ReactNode;
 }
 
-// --- 2. OPTIMIZATION: Helper moved outside component to prevent re-creation ---
+// --- 2. OPTIMIZATION: Helper moved outside ---
 const normalize = (str: string) => str ? str.toLowerCase().trim() : "";
 
 export const SortableShotCard = ({
@@ -39,6 +45,9 @@ export const SortableShotCard = ({
     onDelete,
     castMembers,
     onUpdateShot,
+    onRender,
+    onAnimate,
+    isRendering,
     children
 }: SortableShotCardProps) => {
 
@@ -64,6 +73,10 @@ export const SortableShotCard = ({
 
         onUpdateShot(shot.id, "characters", updated);
     };
+
+    // Derived States
+    const hasImage = Boolean(shot.image_url);
+    const hasVideo = Boolean(shot.video_url);
 
     return (
         <div ref={setNodeRef} style={{ ...styles.shotCard, ...dragStyle }}>
@@ -91,12 +104,65 @@ export const SortableShotCard = ({
                 </button>
             </div>
 
-            {/* 2. IMAGE PREVIEW (Reduced Margin) */}
-            <div style={{ position: 'relative', marginBottom: '12px' }}>
+            {/* 2. IMAGE PREVIEW (Children passed from Overlay) */}
+            <div style={{ position: 'relative', marginBottom: '10px' }}>
                 {children}
             </div>
 
-            {/* 3. ZONE 1: CONTEXT (Shot Type + Location) */}
+            {/* 3. DUAL ACTION ROW (REPLACES OLD LARGE BUTTON) */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+
+                {/* BUTTON 1: REGENERATE IMAGE (Foundation) */}
+                <button
+                    onClick={onRender}
+                    disabled={isRendering}
+                    style={{
+                        flex: 1,
+                        padding: '10px',
+                        backgroundColor: '#222', // Dark Grey (Foundation Step)
+                        border: '1px solid #333',
+                        color: isRendering ? '#666' : '#FFF',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                        cursor: isRendering ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    {isRendering ? <Loader2 size={12} className="force-spin" /> : <Sparkles size={12} />}
+                    {hasImage ? "REGENERATE IMG" : "GENERATE IMG"}
+                </button>
+
+                {/* BUTTON 2: ANIMATE / VIDEO (Next Step) */}
+                <button
+                    onClick={onAnimate}
+                    disabled={!hasImage || isRendering} // Can't animate without an image
+                    style={{
+                        flex: 1,
+                        padding: '10px',
+                        backgroundColor: (!hasImage) ? '#111' : '#FF0000', // Red Highlight for Action
+                        border: (!hasImage) ? '1px solid #222' : 'none',
+                        color: (!hasImage) ? '#444' : 'white',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
+                        cursor: (!hasImage || isRendering) ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s'
+                    }}
+                    title={!hasImage ? "Generate an image first to enable animation" : "Generate Video"}
+                >
+                    {hasVideo ? <RefreshCw size={12} /> : <Film size={12} fill={hasImage ? "white" : "gray"} />}
+                    {hasVideo ? "REGENERATE VID" : "ANIMATE"}
+                </button>
+            </div>
+
+            {/* 4. ZONE 1: CONTEXT */}
             <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
                 <div style={{ flex: 1 }}>
                     <label style={styles.label}>SHOT TYPE</label>
@@ -133,7 +199,7 @@ export const SortableShotCard = ({
                 </div>
             </div>
 
-            {/* 4. ZONE 2: CASTING (Reduced Margin) */}
+            {/* 5. ZONE 2: CASTING */}
             <label style={styles.label}>CASTING</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '10px', gap: '6px' }}>
                 {castMembers.map((char) => {
@@ -152,10 +218,8 @@ export const SortableShotCard = ({
                 })}
             </div>
 
-            {/* 5. ZONE 3: PROMPTS (Unified Style, No Icons, Tighter Spacing) */}
-            <label style={styles.label}>
-                IMAGE PROMPT (STATIC)
-            </label>
+            {/* 6. ZONE 3: PROMPTS */}
+            <label style={styles.label}>IMAGE PROMPT (STATIC)</label>
             <textarea
                 style={styles.textArea}
                 value={shot.visual_action || ""}
@@ -163,9 +227,7 @@ export const SortableShotCard = ({
                 placeholder="Visual description..."
             />
 
-            <label style={{ ...styles.label, marginTop: '8px' }}>
-                VIDEO PROMPT (MOTION)
-            </label>
+            <label style={{ ...styles.label, marginTop: '8px' }}>VIDEO PROMPT (MOTION)</label>
             <textarea
                 style={styles.textArea}
                 value={shot.video_prompt || ""}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Zap, Wand2, Plus, Film, Loader2, Sparkles, Layers } from 'lucide-react';
+import { ArrowLeft, Zap, Wand2, Plus, Film, Loader2, Layers } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
 } from '@dnd-kit/core';
@@ -94,7 +94,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </div>
 
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
-
                     {/* GENERATE ALL BUTTON */}
                     {shotMgr.shots.length > 0 && (
                         <button
@@ -178,10 +177,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     onDelete={() => onDeleteShot(shot.id)}
                                     castMembers={castMembers}
                                     onUpdateShot={shotMgr.updateShot}
-                                >
-                                    {/* PASSED CHILDREN: These render inside the Image Preview Zone of the Card */}
 
-                                    {/* 1. The Image/Video Component */}
+                                    // --- NEW PROPS FOR DUAL ACTION ROW ---
+                                    onRender={() => shotMgr.handleRenderShot(shot, currentScene)}
+                                    onAnimate={() => shotMgr.handleAnimateShot(shot)}
+                                    isRendering={shotMgr.loadingShots.has(shot.id)}
+                                >
+                                    {/* PREVIEW CONTENT (Passed as children) */}
                                     <div style={styles.shotImageContainer}>
                                         <ShotImage
                                             src={shot.image_url}
@@ -198,20 +200,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                             onAnimate={() => shotMgr.handleAnimateShot(shot)}
                                         />
                                     </div>
-
-                                    {/* 2. The Render/Regenerate Button */}
-                                    <button
-                                        style={shotMgr.loadingShots.has(shot.id) ? styles.renderBtnLoading : styles.renderBtn}
-                                        onClick={() => shotMgr.handleRenderShot(shot, currentScene)}
-                                        disabled={shotMgr.loadingShots.has(shot.id)}
-                                    >
-                                        {shotMgr.loadingShots.has(shot.id) ? (
-                                            <Loader2 className="force-spin" size={14} />
-                                        ) : (
-                                            <Sparkles size={14} />
-                                        )}
-                                        {shotMgr.loadingShots.has(shot.id) ? "GENERATING..." : (shot.image_url ? "REGENERATE SHOT" : "RENDER SHOT")}
-                                    </button>
+                                    {/* REMOVED: Old Regenerate Button */}
                                 </SortableShotCard>
                             ))}
                         </div>
