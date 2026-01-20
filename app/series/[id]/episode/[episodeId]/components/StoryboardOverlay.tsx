@@ -114,7 +114,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 opacity: (shotMgr.loadingShots.size > 0 || shotMgr.isAutoDirecting) ? 0.5 : 1
                             }}
                         >
-                            {shotMgr.loadingShots.size > 0 ? <Loader2 size={16} className="force-spin" /> : <Layers size={16} />}
+                            {/* UPDATED: Removed Loader2 to keep loading isolated to preview cards */}
+                            <Layers size={16} />
                             GENERATE ALL FRAMES
                         </button>
                     )}

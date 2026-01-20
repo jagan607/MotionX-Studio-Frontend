@@ -2,7 +2,7 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Sparkles, Loader2, Film, RefreshCw } from "lucide-react";
+import { GripVertical, Trash2, Sparkles, Film, RefreshCw } from "lucide-react";
 
 // --- 1. TYPE SAFETY: Explicit Interfaces ---
 interface CastMember {
@@ -28,7 +28,7 @@ interface SortableShotCardProps {
     onDelete: (id: string) => void;
     castMembers: CastMember[];
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
-    // --- NEW ACTION PROPS ---
+    // --- ACTION PROPS ---
     onRender: () => void;
     onAnimate: () => void;
     isRendering: boolean;
@@ -87,7 +87,6 @@ export const SortableShotCard = ({
                     <div {...attributes} {...listeners} style={{ cursor: 'grab', color: '#666', padding: '4px' }} aria-label="Drag handle">
                         <GripVertical size={18} />
                     </div>
-                    {/* CLEANUP: Removed duplicate ID subtitle, keeping only the main Red Title */}
                     <span style={{ color: '#FF0000', fontWeight: 'bold', fontSize: '12px', letterSpacing: '1px' }}>
                         SHOT {String(index + 1).padStart(2, '0')}
                     </span>
@@ -102,7 +101,7 @@ export const SortableShotCard = ({
                 </button>
             </div>
 
-            {/* 2. IMAGE PREVIEW (Children passed from Overlay) */}
+            {/* 2. IMAGE PREVIEW (Children passed from Overlay - contains the Loader) */}
             <div style={{ position: 'relative', marginBottom: '10px' }}>
                 {children}
             </div>
@@ -110,16 +109,16 @@ export const SortableShotCard = ({
             {/* 3. DUAL ACTION ROW */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
 
-                {/* BUTTON 1: REGENERATE IMAGE (Foundation) */}
+                {/* BUTTON 1: REGENERATE IMAGE */}
                 <button
                     onClick={onRender}
                     disabled={isRendering}
                     style={{
                         flex: 1,
                         padding: '10px',
-                        backgroundColor: '#222', // Dark Grey (Foundation Step)
+                        backgroundColor: '#222',
                         border: '1px solid #333',
-                        color: isRendering ? '#666' : '#FFF',
+                        color: isRendering ? '#666' : '#FFF', // Dim text when loading
                         fontSize: '10px',
                         fontWeight: 'bold',
                         cursor: isRendering ? 'not-allowed' : 'pointer',
@@ -130,11 +129,12 @@ export const SortableShotCard = ({
                         transition: 'all 0.2s'
                     }}
                 >
-                    {isRendering ? <Loader2 size={12} className="force-spin" /> : <Sparkles size={12} />}
+                    {/* FIXED: Removed Loader2. Always shows Sparkles. Loading is now only in preview. */}
+                    <Sparkles size={12} />
                     {hasImage ? "REGENERATE IMG" : "GENERATE IMG"}
                 </button>
 
-                {/* BUTTON 2: ANIMATE / VIDEO (Next Step) */}
+                {/* BUTTON 2: ANIMATE / VIDEO */}
                 <button
                     onClick={onAnimate}
                     disabled={!hasImage || isRendering}
@@ -142,7 +142,7 @@ export const SortableShotCard = ({
                     style={{
                         flex: 1,
                         padding: '10px',
-                        backgroundColor: (!hasImage) ? '#111' : '#FF0000', // Red Highlight for Action
+                        backgroundColor: (!hasImage) ? '#111' : '#FF0000',
                         border: (!hasImage) ? '1px solid #222' : 'none',
                         color: (!hasImage) ? '#444' : 'white',
                         fontSize: '10px',
@@ -183,7 +183,6 @@ export const SortableShotCard = ({
                 </div>
 
                 <div style={{ flex: 1 }}>
-                    {/* CLEANUP: Removed MapPin Icon */}
                     <label style={styles.label}>LOCATION</label>
                     <input
                         type="text"
