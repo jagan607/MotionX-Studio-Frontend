@@ -72,13 +72,14 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     };
 
     // --- AI APIs ---
-    const handleAutoDirect = async (currentScene: any) => {
+    // UPDATED: Accepts overrideSummary from the UI
+    const handleAutoDirect = async (currentScene: any, overrideSummary?: string) => {
         if (!activeSceneId) return;
         setIsAutoDirecting(true);
         setTerminalLog(["> INITIALIZING AI DIRECTOR..."]);
 
-        // 1. Robust Input Mapping
-        const sceneAction =
+        // 1. Robust Input Mapping (Prioritize Override)
+        const sceneAction = overrideSummary ||
             currentScene.description ||
             currentScene.visual_action ||
             currentScene.action ||
@@ -88,8 +89,8 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
 
         const sceneLocation =
             currentScene.location_name ||
-            currentScene.location || currentScene.location_id
-        "Unknown";
+            currentScene.location || currentScene.location_id ||
+            "Unknown";
 
         let sceneChars = "None";
         if (Array.isArray(currentScene.characters)) {
@@ -102,7 +103,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         formData.append("series_id", seriesId);
         formData.append("episode_id", episodeId);
         formData.append("scene_id", activeSceneId);
-        formData.append("scene_action", sceneAction);
+        formData.append("scene_action", sceneAction); // Sends the edited text
         formData.append("characters", sceneChars);
         formData.append("location", sceneLocation);
 
@@ -197,7 +198,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
     };
 
-    // Updated Signature to match StoryboardOverlay
     const handleAnimateShot = async (shot: any, currentScene?: any) => {
         if (!shot.image_url) return toastError("Generate image first");
         try {
@@ -209,8 +209,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             formData.append("shot_id", shot.id);
             formData.append("image_url", shot.image_url);
 
-            // --- CRITICAL UPDATE ---
-            // Use the specific video_prompt if available, otherwise fall back to visual_action
             const motionPrompt = shot.video_prompt || shot.visual_action || "Cinematic movement";
             formData.append("prompt", motionPrompt);
 

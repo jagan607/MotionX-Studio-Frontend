@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowLeft, Zap, Wand2, Plus, Film, Loader2, Layers, MapPin, Clock, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Zap, Wand2, Plus, Film, Loader2, Layers, MapPin, Clock, Users, Sparkles } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
 } from '@dnd-kit/core';
@@ -27,7 +27,7 @@ interface StoryboardOverlayProps {
         shots: any[];
         aspectRatio: string;
         setAspectRatio: (val: string) => void;
-        handleAutoDirect: (scene: any) => void;
+        handleAutoDirect: (scene: any, overrideSummary?: string) => void;
         handleGenerateAll: (scene: any) => void;
         handleAddShot: (scene: any) => void;
         handleDragEnd: (event: any) => void;
@@ -67,13 +67,23 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
+    // --- LOCAL STATE FOR EDITABLE SUMMARY ---
+    const [localSummary, setLocalSummary] = useState("");
+    const [isFocused, setIsFocused] = useState(false);
+
+    // Initialize local state when scene opens
+    useEffect(() => {
+        if (currentScene) {
+            setLocalSummary(currentScene.summary || currentScene.description || "");
+        }
+    }, [currentScene]);
+
     if (!activeSceneId) return null;
 
     // --- LOGISTICS RESOLVER ---
 
     // 1. Resolve Location Name from ID
     const rawLoc = currentScene?.location || currentScene?.location_name || currentScene?.location_id;
-    // Try to find the matching location object in the global list
     const foundLoc = locations.find(l => l.id === rawLoc || l.name === rawLoc);
     const sceneLoc = foundLoc ? foundLoc.name : (rawLoc || "UNKNOWN LOCATION");
 
@@ -146,7 +156,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
                     <button
                         id="tour-sb-autodirect"
-                        onClick={() => shotMgr.handleAutoDirect(currentScene)}
+                        // Main Global Auto-Direct (Uses local summary)
+                        onClick={() => shotMgr.handleAutoDirect(currentScene, localSummary)}
                         disabled={shotMgr.isAutoDirecting}
                         style={{ padding: '12px 24px', backgroundColor: '#222', color: '#FFF', fontWeight: 'bold', border: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', letterSpacing: '1px' }}
                     >
@@ -158,45 +169,87 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </div>
             </div>
 
-            {/* --- 2. SCENE CONTEXT STRIP (IMPROVED) --- */}
+            {/* --- 2. SCENE CONTEXT STRIP (IMPROVED UI) --- */}
             <div style={{
                 display: 'flex',
-                alignItems: 'center',
-                gap: '20px',
-                padding: '12px 25px',
+                alignItems: 'flex-start', // Align items to top to handle multi-line text
+                gap: '25px',
+                padding: '15px 25px',
                 backgroundColor: '#111',
                 borderBottom: '1px solid #222',
-                fontSize: '12px',
-                marginBottom: '20px' // <--- ADDED SPACING
+                marginBottom: '20px'
             }}>
-                {/* Identity */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '180px' }}>
+                {/* Identity Block */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '180px', paddingTop: '4px' }}>
                     <div style={{ color: '#666', fontSize: '9px', fontWeight: 'bold', letterSpacing: '1px' }}>
                         {seriesName.toUpperCase()} / {episodeTitle.toUpperCase()}
                     </div>
-                    <div style={{ color: '#FF0000', fontFamily: 'Anton, sans-serif', fontSize: '20px', letterSpacing: '1px', lineHeight: '1' }}>
+                    <div style={{ color: '#FF0000', fontFamily: 'Anton, sans-serif', fontSize: '24px', letterSpacing: '1px', lineHeight: '1' }}>
                         SCENE {currentScene.scene_number}
                     </div>
                 </div>
 
-                {/* Summary (Beat) */}
-                <div style={{
-                    flex: 1,
-                    borderLeft: '1px solid #222',
-                    paddingLeft: '20px',
-                    color: '#ddd',
-                    fontStyle: 'italic',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    maxWidth: '600px', // Constrain width to force ellipsis if needed
-                    opacity: 0.9
-                }}>
-                    "{currentScene.summary || currentScene.description || "No scene summary available."}"
+                {/* Editable Summary Container */}
+                <div style={{ flex: 1, maxWidth: '800px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '9px', fontWeight: 'bold', color: '#555', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                        Scene Summary (Editable)
+                    </label>
+
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        backgroundColor: '#050505', // Distinct dark background
+                        border: isFocused ? '1px solid #555' : '1px solid #222',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        transition: 'border-color 0.2s'
+                    }}>
+                        <textarea
+                            value={localSummary}
+                            onChange={(e) => setLocalSummary(e.target.value)}
+                            onFocus={() => setIsFocused(true)}
+                            onBlur={() => setIsFocused(false)}
+                            placeholder="Describe scene action here..."
+                            rows={2}
+                            style={{
+                                width: '100%',
+                                backgroundColor: 'transparent',
+                                border: 'none',
+                                color: '#eee',
+                                fontSize: '13px',
+                                outline: 'none',
+                                resize: 'none',
+                                fontFamily: 'inherit',
+                                lineHeight: '1.4'
+                            }}
+                        />
+
+                        {/* Inline Auto-Direct Action */}
+                        <button
+                            onClick={() => shotMgr.handleAutoDirect(currentScene, localSummary)}
+                            disabled={shotMgr.isAutoDirecting}
+                            title="Auto-Direct shots based on this summary"
+                            style={{
+                                marginLeft: '10px',
+                                padding: '8px',
+                                backgroundColor: shotMgr.isAutoDirecting ? '#333' : '#222',
+                                border: '1px solid #333',
+                                borderRadius: '4px',
+                                color: shotMgr.isAutoDirecting ? '#666' : '#4CAF50', // Green tint for "Action"
+                                cursor: shotMgr.isAutoDirecting ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {shotMgr.isAutoDirecting ? <Loader2 size={16} className="force-spin" /> : <Sparkles size={16} />}
+                        </button>
+                    </div>
                 </div>
 
-                {/* Logistics Tags */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginLeft: 'auto' }}>
+                {/* Logistics Tags (Right Aligned) */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginLeft: 'auto', paddingTop: '15px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#1a1a1a', padding: '6px 12px', borderRadius: '4px', border: '1px solid #222' }}>
                         <MapPin size={12} color="#666" />
                         <span style={{ fontWeight: 'bold', color: '#ccc', fontSize: '10px', maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -236,7 +289,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     <p style={{ fontFamily: 'monospace', fontSize: '12px', color: '#555', marginTop: '10px', letterSpacing: '2px' }}>// NO VISUAL DATA DETECTED IN THIS SECTOR</p>
                     <div style={{ display: 'flex', gap: '20px', marginTop: '40px' }}>
                         <button
-                            onClick={() => shotMgr.handleAutoDirect(currentScene)}
+                            onClick={() => shotMgr.handleAutoDirect(currentScene, localSummary)}
                             disabled={shotMgr.isAutoDirecting}
                             style={{ padding: '15px 30px', backgroundColor: '#FF0000', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '12px', letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 0 30px rgba(255,0,0,0.2)' }}
                         >
