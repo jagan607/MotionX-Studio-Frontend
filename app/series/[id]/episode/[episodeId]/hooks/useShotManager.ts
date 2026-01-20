@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { collection, onSnapshot, doc, setDoc, writeBatch, deleteDoc } from "firebase/firestore";
-import { ref, deleteObject } from "firebase/storage"; // <--- NEW IMPORT
-import { db, auth, storage } from "@/lib/firebase";   // <--- Added storage
+import { ref, deleteObject } from "firebase/storage";
+import { db, auth, storage } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
 import { toastError } from "@/lib/toast";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -9,44 +9,85 @@ import { arrayMove } from "@dnd-kit/sortable";
 export const useShotManager = (seriesId: string, episodeId: string, activeSceneId: string | null) => {
     const [shots, setShots] = useState<any[]>([]);
     const [loadingShots, setLoadingShots] = useState<Set<string>>(new Set());
+
+    // Process States
     const [isAutoDirecting, setIsAutoDirecting] = useState(false);
+    const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+    const [isStopping, setIsStopping] = useState(false);
+
     const [terminalLog, setTerminalLog] = useState<string[]>([]);
     const [aspectRatio, setAspectRatio] = useState("9:16");
 
-    // Real-time listener
+    // Cancellation Ref
+    const cancelGenerationRef = useRef(false);
+
+    // State Ref to fix Stale Closures during batch generation
+    const shotsRef = useRef<any[]>([]);
+    useEffect(() => {
+        shotsRef.current = shots;
+    }, [shots]);
+
+    // --- REAL-TIME LISTENER (SORTED BY ORDER) ---
     useEffect(() => {
         if (!activeSceneId) return;
         const q = collection(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots");
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const shotData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            // Ensure we sort by shot ID (shot_01, shot_02, etc.)
-            shotData.sort((a, b) => a.id.localeCompare(b.id));
+
+            // Sort by 'order' field ascending. 
+            // Fallback to 'created_at' if order is missing.
+            shotData.sort((a: any, b: any) => {
+                const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+                const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+
+                if (orderA !== orderB) return orderA - orderB;
+
+                const timeA = new Date(a.created_at || 0).getTime();
+                const timeB = new Date(b.created_at || 0).getTime();
+                return timeA - timeB;
+            });
+
             setShots(shotData);
         });
         return () => unsubscribe();
     }, [activeSceneId, seriesId, episodeId]);
 
-    // Helpers
     const addLoadingShot = (id: string) => setLoadingShots(prev => new Set(prev).add(id));
     const removeLoadingShot = (id: string) => setLoadingShots(prev => { const next = new Set(prev); next.delete(id); return next; });
 
-    // --- CRUD ---
+    // --- CRUD: ADD SHOT (PERSIST ORDER) ---
     const handleAddShot = async (currentScene: any) => {
         if (!activeSceneId) return;
 
-        const newShotId = `shot_${String(shots.length + 1).padStart(2, '0')}`;
+        // 1. Calculate ID to prevent collision
+        let maxId = 0;
+        shots.forEach(s => {
+            try {
+                const parts = s.id.split('_');
+                if (parts.length > 1) {
+                    const num = parseInt(parts[1], 10);
+                    if (!isNaN(num) && num > maxId) maxId = num;
+                }
+            } catch (e) { }
+        });
+        const newShotId = `shot_${String(maxId + 1).padStart(2, '0')}`;
 
-        // Robust Fallback for manual add
-        const fallbackAction = currentScene?.description || currentScene?.visual_action || currentScene?.action || currentScene?.summary || "";
-        const fallbackLoc = currentScene?.location_name || currentScene?.location || currentScene?.location_id || "";
+        // 2. Calculate Order (Append to end)
+        const currentMaxOrder = shots.length > 0
+            ? Math.max(...shots.map(s => s.order || 0))
+            : -1;
+
+        const fallbackAction = currentScene?.description || currentScene?.visual_action || "";
+        const fallbackLoc = currentScene?.location_name || currentScene?.location || "";
 
         await setDoc(doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", newShotId), {
             shot_type: "Wide Shot",
             visual_action: fallbackAction,
-            video_prompt: "", // Initialize empty
+            video_prompt: "",
             characters: [],
             location: fallbackLoc,
             status: "draft",
+            order: currentMaxOrder + 1, // <--- PERSIST ORDER
             created_at: new Date().toISOString()
         });
     };
@@ -63,89 +104,109 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         await deleteDoc(ref);
     };
 
-    // --- NEW: WIPE SCENE DATA (STORAGE + FIRESTORE) ---
-    const wipeSceneData = async () => {
-        if (!activeSceneId || shots.length === 0) return;
+    // --- DRAG AND DROP (PERSIST REORDERING) ---
+    const handleDragEnd = async (event: any) => {
+        // FIX: Early return to satisfy TypeScript that activeSceneId is not null
+        if (!activeSceneId) return;
 
-        setIsAutoDirecting(true); // Show busy state during cleanup
-        setTerminalLog(["> CLEANING UP OLD ASSETS..."]);
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
 
+        const oldIndex = shots.findIndex((s) => s.id === active.id);
+        const newIndex = shots.findIndex((s) => s.id === over.id);
+
+        // 1. Optimistic UI Update
+        const newShots = arrayMove(shots, oldIndex, newIndex);
+        setShots(newShots);
+
+        // 2. Persist to Firestore
         try {
-            // 1. Delete Media from Storage (Parallel execution)
-            const storagePromises: Promise<void>[] = [];
+            const batch = writeBatch(db);
 
-            shots.forEach((shot) => {
-                if (shot.image_url) {
-                    try {
-                        const imgRef = ref(storage, shot.image_url);
-                        storagePromises.push(deleteObject(imgRef).catch((e) => console.warn("Failed to delete image:", e)));
-                    } catch (e) { console.warn("Invalid image ref", e); }
-                }
-                if (shot.video_url) {
-                    try {
-                        const vidRef = ref(storage, shot.video_url);
-                        storagePromises.push(deleteObject(vidRef).catch((e) => console.warn("Failed to delete video:", e)));
-                    } catch (e) { console.warn("Invalid video ref", e); }
+            newShots.forEach((shot, index) => {
+                if (shot.order !== index) {
+                    // activeSceneId is safe to use here due to early return
+                    const ref = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", shot.id);
+                    batch.update(ref, { order: index });
                 }
             });
 
-            await Promise.all(storagePromises);
-            setTerminalLog((prev) => [...prev, "> STORAGE CLEARED."]);
+            await batch.commit();
+        } catch (error) {
+            console.error("Failed to reorder shots:", error);
+            toastError("Failed to save new order");
+        }
+    };
 
-            // 2. Delete Documents from Firestore (Batch)
+    // --- WIPE LOGIC ---
+    const wipeShotImagesOnly = async () => {
+        if (!activeSceneId || shots.length === 0) return;
+        const shotsWithMedia = shots.filter(s => s.image_url || s.video_url);
+        if (shotsWithMedia.length === 0) return;
+
+        setTerminalLog(["> CLEARING EXISTING MEDIA..."]);
+        try {
+            const storagePromises: Promise<void>[] = [];
+            const batch = writeBatch(db);
+
+            shotsWithMedia.forEach((shot) => {
+                if (shot.image_url) {
+                    try { storagePromises.push(deleteObject(ref(storage, shot.image_url)).catch(e => console.warn(e))); } catch (e) { }
+                }
+                if (shot.video_url) {
+                    try { storagePromises.push(deleteObject(ref(storage, shot.video_url)).catch(e => console.warn(e))); } catch (e) { }
+                }
+                const shotRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", shot.id);
+                batch.update(shotRef, { image_url: null, video_url: null, status: "draft" });
+            });
+
+            await Promise.all(storagePromises);
+            await batch.commit();
+            setTerminalLog(prev => [...prev, "> MEDIA CLEARED."]);
+        } catch (error) {
+            console.error(error);
+            toastError("Failed to clear media");
+        }
+    };
+
+    const wipeSceneData = async () => {
+        if (!activeSceneId || shots.length === 0) return;
+        setIsAutoDirecting(true);
+        setTerminalLog(["> CLEANING UP OLD ASSETS..."]);
+
+        try {
+            const storagePromises: Promise<void>[] = [];
+            shots.forEach((shot) => {
+                if (shot.image_url) try { storagePromises.push(deleteObject(ref(storage, shot.image_url)).catch(e => console.warn(e))); } catch (e) { }
+                if (shot.video_url) try { storagePromises.push(deleteObject(ref(storage, shot.video_url)).catch(e => console.warn(e))); } catch (e) { }
+            });
+
+            await Promise.all(storagePromises);
             const batch = writeBatch(db);
             shots.forEach((shot) => {
                 const shotRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", shot.id);
                 batch.delete(shotRef);
             });
-
             await batch.commit();
-            setShots([]); // Clear local state immediately
-            setTerminalLog((prev) => [...prev, "> DATABASE RESET."]);
-
+            setShots([]);
+            setTerminalLog(prev => [...prev, "> DATABASE RESET."]);
         } catch (error) {
-            console.error("Wipe failed:", error);
-            toastError("Failed to clean up scene data");
+            console.error(error);
+            toastError("Failed to clean up");
         } finally {
             setIsAutoDirecting(false);
         }
     };
 
-    const handleDragEnd = (event: any) => {
-        const { active, over } = event;
-        if (active.id !== over.id) {
-            const oldIndex = shots.findIndex((s) => s.id === active.id);
-            const newIndex = shots.findIndex((s) => s.id === over.id);
-            setShots(arrayMove(shots, oldIndex, newIndex));
-        }
-    };
-
-    // --- AI APIs ---
+    // --- AI: AUTO DIRECT (WITH ORDERING) ---
     const handleAutoDirect = async (currentScene: any, overrideSummary?: string) => {
         if (!activeSceneId) return;
         setIsAutoDirecting(true);
         setTerminalLog(["> INITIALIZING AI DIRECTOR..."]);
 
-        // 1. Robust Input Mapping (Prioritize Override)
-        const sceneAction = overrideSummary ||
-            currentScene.description ||
-            currentScene.visual_action ||
-            currentScene.action ||
-            currentScene.text ||
-            currentScene.summary ||
-            "";
-
-        const sceneLocation =
-            currentScene.location_name ||
-            currentScene.location || currentScene.location_id ||
-            "Unknown";
-
-        let sceneChars = "None";
-        if (Array.isArray(currentScene.characters)) {
-            sceneChars = currentScene.characters.join(", ");
-        } else if (typeof currentScene.characters === 'string') {
-            sceneChars = currentScene.characters;
-        }
+        const sceneAction = overrideSummary || currentScene.description || "";
+        const sceneLocation = currentScene.location_name || "Unknown";
+        let sceneChars = Array.isArray(currentScene.characters) ? currentScene.characters.join(", ") : (currentScene.characters || "None");
 
         const formData = new FormData();
         formData.append("series_id", seriesId);
@@ -186,27 +247,50 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                         video_prompt: shot.video_prompt || "",
                         characters: charArray,
                         location: shot.location || sceneLocation,
-                        status: "draft"
+                        status: "draft",
+                        order: index // <--- PERSIST ORDER FROM AI
                     };
-
                     batch.set(docRef, payload);
                 });
 
                 await batch.commit();
-                setIsAutoDirecting(false);
             }
         } catch (e) {
             console.error(e);
+        } finally {
             setIsAutoDirecting(false);
         }
     };
 
+    // --- RENDER & ANIMATE ---
+    const stopGeneration = () => {
+        cancelGenerationRef.current = true;
+        setIsStopping(true);
+    };
+
     const handleGenerateAll = async (currentScene: any) => {
         if (!shots || shots.length === 0) return;
-        for (const shot of shots) {
-            await handleRenderShot(shot, currentScene);
-            await new Promise(r => setTimeout(r, 1000));
+        setIsGeneratingAll(true);
+        setIsStopping(false);
+        cancelGenerationRef.current = false;
+
+        const shotIds = shots.map(s => s.id);
+
+        for (const shotId of shotIds) {
+            if (cancelGenerationRef.current) {
+                console.log("Stopped.");
+                break;
+            }
+            // Use ref to get latest shot data (prevents stale state)
+            const currentShot = shotsRef.current.find(s => s.id === shotId);
+            if (currentShot) {
+                await handleRenderShot(currentShot, currentScene);
+                await new Promise(r => setTimeout(r, 1000));
+            }
         }
+        setIsGeneratingAll(false);
+        setIsStopping(false);
+        cancelGenerationRef.current = false;
     };
 
     const handleRenderShot = async (shot: any, currentScene: any) => {
@@ -216,12 +300,10 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         formData.append("episode_id", episodeId);
         formData.append("scene_id", activeSceneId!);
         formData.append("shot_id", shot.id);
-        formData.append("shot_prompt", shot.visual_action || shot.prompt || "");
-        formData.append("shot_type", shot.shot_type || shot.type || "Wide Shot");
+        formData.append("shot_prompt", shot.visual_action || "");
+        formData.append("shot_type", shot.shot_type || "Wide Shot");
         formData.append("characters", Array.isArray(shot.characters) ? shot.characters.join(",") : "");
-
-        const sceneLoc = currentScene?.location_name || currentScene?.location || "";
-        formData.append("location", shot.location || sceneLoc);
+        formData.append("location", shot.location || "");
         formData.append("aspect_ratio", aspectRatio);
 
         try {
@@ -248,9 +330,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             formData.append("scene_id", activeSceneId!);
             formData.append("shot_id", shot.id);
             formData.append("image_url", shot.image_url);
-
-            const motionPrompt = shot.video_prompt || shot.visual_action || "Cinematic movement";
-            formData.append("prompt", motionPrompt);
+            formData.append("prompt", shot.video_prompt || shot.visual_action || "Cinematic movement");
 
             await fetch(`${API_BASE_URL}/api/v1/shot/animate_shot`, {
                 method: "POST",
@@ -264,9 +344,10 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     };
 
     return {
-        shots, loadingShots, isAutoDirecting, terminalLog, aspectRatio, setAspectRatio,
-        handleAddShot, updateShot, handleDeleteShot, handleDragEnd, handleAutoDirect,
-        handleGenerateAll, handleRenderShot, handleAnimateShot,
-        wipeSceneData // <--- EXPORTED
+        shots, loadingShots, terminalLog, aspectRatio, setAspectRatio,
+        isAutoDirecting, isGeneratingAll, isStopping,
+        handleAddShot, updateShot, handleDeleteShot, handleDragEnd,
+        handleAutoDirect, handleRenderShot, handleAnimateShot,
+        handleGenerateAll, stopGeneration, wipeSceneData, wipeShotImagesOnly
     };
 };

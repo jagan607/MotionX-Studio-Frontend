@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Zap, Wand2, Plus, Film, Layers } from 'lucide-react';
+import { ArrowLeft, Zap, Wand2, Plus, Film, Layers, Square, Loader2 } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
 } from '@dnd-kit/core';
@@ -13,7 +13,7 @@ import { InpaintEditor } from "./InpaintEditor";
 import { SortableShotCard } from "./SortableShotCard";
 import { SceneContextStrip } from "./SceneContextStrip";
 import { StoryboardTour } from "@/components/StoryboardTour";
-import { DeleteConfirmModal } from "@/components/DeleteConfirmModal"; // <--- REUSED
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 
 interface StoryboardOverlayProps {
     activeSceneId: string | null;
@@ -39,7 +39,11 @@ interface StoryboardOverlayProps {
         handleAnimateShot: (shot: any) => void;
         terminalLog: string[];
         isAutoDirecting: boolean;
-        wipeSceneData: () => Promise<void>; // <--- NEW FUNCTION
+        wipeSceneData: () => Promise<void>;
+        wipeShotImagesOnly: () => Promise<void>;
+        isGeneratingAll: boolean;
+        isStopping: boolean; // <--- NEW PROP
+        stopGeneration: () => void;
     };
 
     inpaintData: { src: string, shotId: string } | null;
@@ -72,19 +76,19 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
     // --- SAFETY STATE ---
     const [showOverwriteWarning, setShowOverwriteWarning] = useState(false);
+    const [showGenerateWarning, setShowGenerateWarning] = useState(false);
+
     const [pendingSummary, setPendingSummary] = useState<string | undefined>(undefined);
     const [isWiping, setIsWiping] = useState(false);
 
     if (!activeSceneId) return null;
 
-    // --- LOGIC: INTERCEPT AUTO-DIRECT ---
+    // --- LOGIC 1: AUTO-DIRECT SAFETY ---
     const handleSafeAutoDirect = (overrideSummary?: string) => {
         if (shotMgr.shots.length > 0) {
-            // If shots exist, warn the user
             setPendingSummary(overrideSummary);
             setShowOverwriteWarning(true);
         } else {
-            // Safe to proceed
             shotMgr.handleAutoDirect(currentScene, overrideSummary);
         }
     };
@@ -92,9 +96,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const confirmOverwrite = async () => {
         setIsWiping(true);
         try {
-            // 1. Wipe Storage & DB
             await shotMgr.wipeSceneData();
-            // 2. Trigger Auto-Direct with the pending summary
             await shotMgr.handleAutoDirect(currentScene, pendingSummary);
         } catch (error) {
             console.error("Overwrite failed:", error);
@@ -102,6 +104,40 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
             setIsWiping(false);
             setShowOverwriteWarning(false);
             setPendingSummary(undefined);
+        }
+    };
+
+    // --- LOGIC 2: GENERATE ALL SAFETY ---
+    const handleSafeGenerateAll = () => {
+        // Prevent action if stopping
+        if (shotMgr.isStopping) return;
+
+        // If currently generating, stop it
+        if (shotMgr.isGeneratingAll) {
+            shotMgr.stopGeneration();
+            return;
+        }
+
+        // Check for existing media
+        const hasMedia = shotMgr.shots.some(s => s.image_url || s.video_url);
+
+        if (hasMedia) {
+            setShowGenerateWarning(true);
+        } else {
+            shotMgr.handleGenerateAll(currentScene);
+        }
+    };
+
+    const confirmGenerateAll = async () => {
+        setIsWiping(true);
+        try {
+            await shotMgr.wipeShotImagesOnly();
+            shotMgr.handleGenerateAll(currentScene);
+        } catch (error) {
+            console.error("Generate reset failed:", error);
+        } finally {
+            setIsWiping(false);
+            setShowGenerateWarning(false);
         }
     };
 
@@ -149,36 +185,54 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </div>
 
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
-                    {/* GENERATE ALL BUTTON */}
+                    {/* DYNAMIC GENERATE ALL / STOP BUTTON */}
                     {shotMgr.shots.length > 0 && (
                         <button
-                            onClick={() => shotMgr.handleGenerateAll(currentScene)}
-                            disabled={shotMgr.loadingShots.size > 0 || shotMgr.isAutoDirecting}
+                            onClick={handleSafeGenerateAll}
+                            disabled={
+                                (shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || // Individual loading
+                                shotMgr.isAutoDirecting ||                                     // Auto-Directing
+                                shotMgr.isStopping                                             // Stopping in progress
+                            }
                             style={{
                                 padding: '12px 24px',
-                                backgroundColor: '#222',
-                                color: '#FFF',
+                                backgroundColor: shotMgr.isGeneratingAll ? '#450a0a' : '#222',
+                                color: shotMgr.isGeneratingAll ? '#f87171' : '#FFF',
                                 fontWeight: 'bold',
-                                border: '1px solid #333',
-                                cursor: (shotMgr.loadingShots.size > 0 || shotMgr.isAutoDirecting) ? 'not-allowed' : 'pointer',
+                                border: shotMgr.isGeneratingAll ? '1px solid #7f1d1d' : '1px solid #333',
+                                cursor: (shotMgr.isStopping || (shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting) ? 'not-allowed' : 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '8px',
                                 fontSize: '12px',
                                 letterSpacing: '1px',
-                                opacity: (shotMgr.loadingShots.size > 0 || shotMgr.isAutoDirecting) ? 0.5 : 1
+                                opacity: ((shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping) ? 0.5 : 1,
+                                transition: 'all 0.2s ease',
+                                minWidth: '180px', // Prevent layout jump
+                                justifyContent: 'center'
                             }}
                         >
-                            <Layers size={16} />
-                            GENERATE ALL FRAMES
+                            {/* LOGIC: Show Stop if Generating, Show 'Stopping' if Stopping, else Generate */}
+                            {shotMgr.isStopping ? (
+                                <>
+                                    <Loader2 size={14} className="force-spin" /> STOPPING...
+                                </>
+                            ) : shotMgr.isGeneratingAll ? (
+                                <>
+                                    <Square size={14} fill="currentColor" /> STOP GENERATING
+                                </>
+                            ) : (
+                                <>
+                                    <Layers size={16} /> GENERATE ALL FRAMES
+                                </>
+                            )}
                         </button>
                     )}
 
                     <button
                         id="tour-sb-autodirect"
-                        // INTERCEPTED CLICK
                         onClick={() => handleSafeAutoDirect()}
-                        disabled={shotMgr.isAutoDirecting}
+                        disabled={shotMgr.isAutoDirecting || shotMgr.isGeneratingAll || shotMgr.isStopping}
                         style={{ padding: '12px 24px', backgroundColor: '#222', color: '#FFF', fontWeight: 'bold', border: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', letterSpacing: '1px' }}
                     >
                         <Wand2 size={16} /> AUTO-DIRECT
@@ -198,7 +252,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 locationName={sceneLoc}
                 timeOfDay={currentScene.time_of_day || "DAY"}
                 castList={charDisplay}
-                // INTERCEPTED CLICK
                 onAutoDirect={(newSummary) => handleSafeAutoDirect(newSummary)}
                 isAutoDirecting={shotMgr.isAutoDirecting}
             />
@@ -223,7 +276,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     <p style={{ fontFamily: 'monospace', fontSize: '12px', color: '#555', marginTop: '10px', letterSpacing: '2px' }}>// NO VISUAL DATA DETECTED IN THIS SECTOR</p>
                     <div style={{ display: 'flex', gap: '20px', marginTop: '40px' }}>
                         <button
-                            // INTERCEPTED CLICK
                             onClick={() => handleSafeAutoDirect()}
                             disabled={shotMgr.isAutoDirecting}
                             style={{ padding: '15px 30px', backgroundColor: '#FF0000', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '12px', letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 0 30px rgba(255,0,0,0.2)' }}
@@ -287,7 +339,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </div>
             )}
 
-            {/* --- 6. SAFETY MODAL --- */}
+            {/* --- 6. SAFETY MODALS --- */}
             {showOverwriteWarning && (
                 <DeleteConfirmModal
                     title="OVERWRITE SCENE?"
@@ -298,6 +350,16 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         setShowOverwriteWarning(false);
                         setPendingSummary(undefined);
                     }}
+                />
+            )}
+
+            {showGenerateWarning && (
+                <DeleteConfirmModal
+                    title="RE-GENERATE FRAMES?"
+                    message="Generating all frames will PERMANENTLY DELETE any existing images or videos created for these shots. The shot descriptions will be preserved."
+                    isDeleting={isWiping}
+                    onConfirm={confirmGenerateAll}
+                    onCancel={() => setShowGenerateWarning(false)}
                 />
             )}
 
