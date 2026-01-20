@@ -95,14 +95,14 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
 
-                    {/* NEW: GENERATE ALL FRAMES BUTTON (Updated Style) */}
+                    {/* GENERATE ALL BUTTON */}
                     {shotMgr.shots.length > 0 && (
                         <button
                             onClick={() => shotMgr.handleGenerateAll(currentScene)}
                             disabled={shotMgr.loadingShots.size > 0 || shotMgr.isAutoDirecting}
                             style={{
                                 padding: '12px 24px',
-                                backgroundColor: '#222', // Changed from Red to Dark Grey to match Auto-Direct
+                                backgroundColor: '#222',
                                 color: '#FFF',
                                 fontWeight: 'bold',
                                 border: '1px solid #333',
@@ -153,7 +153,11 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '32px', color: '#333', letterSpacing: '4px', textTransform: 'uppercase' }}>SEQUENCE_BUFFER_EMPTY</h3>
                     <p style={{ fontFamily: 'monospace', fontSize: '12px', color: '#555', marginTop: '10px', letterSpacing: '2px' }}>// NO VISUAL DATA DETECTED IN THIS SECTOR</p>
                     <div style={{ display: 'flex', gap: '20px', marginTop: '40px' }}>
-                        <button onClick={() => shotMgr.handleAutoDirect(currentScene)} disabled={shotMgr.isAutoDirecting} style={{ padding: '15px 30px', backgroundColor: '#FF0000', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '12px', letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 0 30px rgba(255,0,0,0.2)' }}>
+                        <button
+                            onClick={() => shotMgr.handleAutoDirect(currentScene)}
+                            disabled={shotMgr.isAutoDirecting}
+                            style={{ padding: '15px 30px', backgroundColor: '#FF0000', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '12px', letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 0 30px rgba(255,0,0,0.2)' }}
+                        >
                             <Wand2 size={18} /> INITIALIZE AUTO-DIRECTOR
                         </button>
                         <button onClick={() => shotMgr.handleAddShot(currentScene)} style={{ padding: '15px 30px', backgroundColor: 'transparent', color: '#666', border: '1px solid #333', fontWeight: 'bold', fontSize: '12px', letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -172,11 +176,12 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     index={index}
                                     styles={styles}
                                     onDelete={() => onDeleteShot(shot.id)}
-                                    // PASS DATA DOWN for Internal UI
                                     castMembers={castMembers}
                                     onUpdateShot={shotMgr.updateShot}
                                 >
-                                    {/* 1. Image Preview */}
+                                    {/* PASSED CHILDREN: These render inside the Image Preview Zone of the Card */}
+
+                                    {/* 1. The Image/Video Component */}
                                     <div style={styles.shotImageContainer}>
                                         <ShotImage
                                             src={shot.image_url}
@@ -194,7 +199,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                         />
                                     </div>
 
-                                    {/* 2. Render Button (Appears below Image, above Inputs) */}
+                                    {/* 2. The Render/Regenerate Button */}
                                     <button
                                         style={shotMgr.loadingShots.has(shot.id) ? styles.renderBtnLoading : styles.renderBtn}
                                         onClick={() => shotMgr.handleRenderShot(shot, currentScene)}

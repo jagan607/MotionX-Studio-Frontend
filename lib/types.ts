@@ -30,3 +30,25 @@ export interface LocationProfile {
     description?: string;   // Composite description used by the backend
     status?: 'active' | 'draft' | 'script_detected' | 'auto_detected' | string;
 }
+
+// --- NEW: SHOT INTERFACE ---
+export interface Shot {
+    id: string;
+    shot_type: string;
+
+    // Prompts
+    visual_action: string;      // Mapped from 'image_prompt' (Static)
+    video_prompt?: string;      // Mapped from 'video_prompt' (Motion) - NEW
+
+    // Context
+    location?: string;          // NEW
+    characters: string[];       // Array of Character Names
+
+    // Media & Status
+    image_url?: string;
+    video_url?: string;
+    video_status?: 'queued' | 'processing' | 'completed' | 'failed' | null;
+    status?: 'draft' | 'rendered' | 'animating' | 'completed';
+
+    created_at?: string;
+}
