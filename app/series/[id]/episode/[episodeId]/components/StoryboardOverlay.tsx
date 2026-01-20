@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Zap, Wand2, Plus, Film, Layers } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
@@ -11,8 +11,9 @@ import {
 import { ShotImage } from "./ShotImage";
 import { InpaintEditor } from "./InpaintEditor";
 import { SortableShotCard } from "./SortableShotCard";
-import { SceneContextStrip } from "./SceneContextStrip"; // <--- IMPORT MODULE
+import { SceneContextStrip } from "./SceneContextStrip";
 import { StoryboardTour } from "@/components/StoryboardTour";
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal"; // <--- REUSED
 
 interface StoryboardOverlayProps {
     activeSceneId: string | null;
@@ -38,6 +39,7 @@ interface StoryboardOverlayProps {
         handleAnimateShot: (shot: any) => void;
         terminalLog: string[];
         isAutoDirecting: boolean;
+        wipeSceneData: () => Promise<void>; // <--- NEW FUNCTION
     };
 
     inpaintData: { src: string, shotId: string } | null;
@@ -68,15 +70,46 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
+    // --- SAFETY STATE ---
+    const [showOverwriteWarning, setShowOverwriteWarning] = useState(false);
+    const [pendingSummary, setPendingSummary] = useState<string | undefined>(undefined);
+    const [isWiping, setIsWiping] = useState(false);
+
     if (!activeSceneId) return null;
 
+    // --- LOGIC: INTERCEPT AUTO-DIRECT ---
+    const handleSafeAutoDirect = (overrideSummary?: string) => {
+        if (shotMgr.shots.length > 0) {
+            // If shots exist, warn the user
+            setPendingSummary(overrideSummary);
+            setShowOverwriteWarning(true);
+        } else {
+            // Safe to proceed
+            shotMgr.handleAutoDirect(currentScene, overrideSummary);
+        }
+    };
+
+    const confirmOverwrite = async () => {
+        setIsWiping(true);
+        try {
+            // 1. Wipe Storage & DB
+            await shotMgr.wipeSceneData();
+            // 2. Trigger Auto-Direct with the pending summary
+            await shotMgr.handleAutoDirect(currentScene, pendingSummary);
+        } catch (error) {
+            console.error("Overwrite failed:", error);
+        } finally {
+            setIsWiping(false);
+            setShowOverwriteWarning(false);
+            setPendingSummary(undefined);
+        }
+    };
+
     // --- DATA RESOLVER ---
-    // 1. Resolve Location Name from ID
     const rawLoc = currentScene?.location || currentScene?.location_name || currentScene?.location_id;
     const foundLoc = locations.find(l => l.id === rawLoc || l.name === rawLoc);
     const sceneLoc = foundLoc ? foundLoc.name : (rawLoc || "UNKNOWN");
 
-    // 2. Resolve Character Names from IDs
     let charDisplay = "NO CAST";
     if (Array.isArray(currentScene?.characters) && currentScene.characters.length > 0) {
         charDisplay = currentScene.characters.map((charKey: string) => {
@@ -143,7 +176,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
                     <button
                         id="tour-sb-autodirect"
-                        onClick={() => shotMgr.handleAutoDirect(currentScene)}
+                        // INTERCEPTED CLICK
+                        onClick={() => handleSafeAutoDirect()}
                         disabled={shotMgr.isAutoDirecting}
                         style={{ padding: '12px 24px', backgroundColor: '#222', color: '#FFF', fontWeight: 'bold', border: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', letterSpacing: '1px' }}
                     >
@@ -164,7 +198,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 locationName={sceneLoc}
                 timeOfDay={currentScene.time_of_day || "DAY"}
                 castList={charDisplay}
-                onAutoDirect={(newSummary) => shotMgr.handleAutoDirect(currentScene, newSummary)}
+                // INTERCEPTED CLICK
+                onAutoDirect={(newSummary) => handleSafeAutoDirect(newSummary)}
                 isAutoDirecting={shotMgr.isAutoDirecting}
             />
 
@@ -188,7 +223,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     <p style={{ fontFamily: 'monospace', fontSize: '12px', color: '#555', marginTop: '10px', letterSpacing: '2px' }}>// NO VISUAL DATA DETECTED IN THIS SECTOR</p>
                     <div style={{ display: 'flex', gap: '20px', marginTop: '40px' }}>
                         <button
-                            onClick={() => shotMgr.handleAutoDirect(currentScene)}
+                            // INTERCEPTED CLICK
+                            onClick={() => handleSafeAutoDirect()}
                             disabled={shotMgr.isAutoDirecting}
                             style={{ padding: '15px 30px', backgroundColor: '#FF0000', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '12px', letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 0 30px rgba(255,0,0,0.2)' }}
                         >
@@ -249,6 +285,20 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         <div style={styles.terminalLine}>_ <span className="force-spin">|</span></div>
                     </div>
                 </div>
+            )}
+
+            {/* --- 6. SAFETY MODAL --- */}
+            {showOverwriteWarning && (
+                <DeleteConfirmModal
+                    title="OVERWRITE SCENE?"
+                    message="Running Auto-Director will PERMANENTLY DELETE all existing shots and generated media for this scene. This action cannot be undone."
+                    isDeleting={isWiping}
+                    onConfirm={confirmOverwrite}
+                    onCancel={() => {
+                        setShowOverwriteWarning(false);
+                        setPendingSummary(undefined);
+                    }}
+                />
             )}
 
             <StoryboardTour step={tourStep} onNext={onTourNext} onComplete={onTourComplete} />

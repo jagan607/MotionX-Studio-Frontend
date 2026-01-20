@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { collection, onSnapshot, doc, setDoc, writeBatch, deleteDoc } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+import { ref, deleteObject } from "firebase/storage"; // <--- NEW IMPORT
+import { db, auth, storage } from "@/lib/firebase";   // <--- Added storage
 import { API_BASE_URL } from "@/lib/config";
 import { toastError } from "@/lib/toast";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -62,6 +63,54 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         await deleteDoc(ref);
     };
 
+    // --- NEW: WIPE SCENE DATA (STORAGE + FIRESTORE) ---
+    const wipeSceneData = async () => {
+        if (!activeSceneId || shots.length === 0) return;
+
+        setIsAutoDirecting(true); // Show busy state during cleanup
+        setTerminalLog(["> CLEANING UP OLD ASSETS..."]);
+
+        try {
+            // 1. Delete Media from Storage (Parallel execution)
+            const storagePromises: Promise<void>[] = [];
+
+            shots.forEach((shot) => {
+                if (shot.image_url) {
+                    try {
+                        const imgRef = ref(storage, shot.image_url);
+                        storagePromises.push(deleteObject(imgRef).catch((e) => console.warn("Failed to delete image:", e)));
+                    } catch (e) { console.warn("Invalid image ref", e); }
+                }
+                if (shot.video_url) {
+                    try {
+                        const vidRef = ref(storage, shot.video_url);
+                        storagePromises.push(deleteObject(vidRef).catch((e) => console.warn("Failed to delete video:", e)));
+                    } catch (e) { console.warn("Invalid video ref", e); }
+                }
+            });
+
+            await Promise.all(storagePromises);
+            setTerminalLog((prev) => [...prev, "> STORAGE CLEARED."]);
+
+            // 2. Delete Documents from Firestore (Batch)
+            const batch = writeBatch(db);
+            shots.forEach((shot) => {
+                const shotRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", shot.id);
+                batch.delete(shotRef);
+            });
+
+            await batch.commit();
+            setShots([]); // Clear local state immediately
+            setTerminalLog((prev) => [...prev, "> DATABASE RESET."]);
+
+        } catch (error) {
+            console.error("Wipe failed:", error);
+            toastError("Failed to clean up scene data");
+        } finally {
+            setIsAutoDirecting(false);
+        }
+    };
+
     const handleDragEnd = (event: any) => {
         const { active, over } = event;
         if (active.id !== over.id) {
@@ -72,7 +121,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     };
 
     // --- AI APIs ---
-    // UPDATED: Accepts overrideSummary from the UI
     const handleAutoDirect = async (currentScene: any, overrideSummary?: string) => {
         if (!activeSceneId) return;
         setIsAutoDirecting(true);
@@ -103,7 +151,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         formData.append("series_id", seriesId);
         formData.append("episode_id", episodeId);
         formData.append("scene_id", activeSceneId);
-        formData.append("scene_action", sceneAction); // Sends the edited text
+        formData.append("scene_action", sceneAction);
         formData.append("characters", sceneChars);
         formData.append("location", sceneLocation);
 
@@ -131,16 +179,11 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                         charArray = shot.characters;
                     }
 
-                    // --- NEW MAPPING LOGIC ---
                     const payload = {
                         id: newShotId,
                         shot_type: shot.type,
-                        // 1. Map 'image_prompt' (API) -> 'visual_action' (DB/UI)
                         visual_action: shot.image_prompt || shot.description || "",
-
-                        // 2. Map 'video_prompt' (API) -> 'video_prompt' (DB)
                         video_prompt: shot.video_prompt || "",
-
                         characters: charArray,
                         location: shot.location || sceneLocation,
                         status: "draft"
@@ -173,15 +216,12 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         formData.append("episode_id", episodeId);
         formData.append("scene_id", activeSceneId!);
         formData.append("shot_id", shot.id);
-
-        // Use visual_action (which now holds the static image_prompt)
         formData.append("shot_prompt", shot.visual_action || shot.prompt || "");
         formData.append("shot_type", shot.shot_type || shot.type || "Wide Shot");
         formData.append("characters", Array.isArray(shot.characters) ? shot.characters.join(",") : "");
 
         const sceneLoc = currentScene?.location_name || currentScene?.location || "";
         formData.append("location", shot.location || sceneLoc);
-
         formData.append("aspect_ratio", aspectRatio);
 
         try {
@@ -226,7 +266,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     return {
         shots, loadingShots, isAutoDirecting, terminalLog, aspectRatio, setAspectRatio,
         handleAddShot, updateShot, handleDeleteShot, handleDragEnd, handleAutoDirect,
-        handleGenerateAll,
-        handleRenderShot, handleAnimateShot
+        handleGenerateAll, handleRenderShot, handleAnimateShot,
+        wipeSceneData // <--- EXPORTED
     };
 };
