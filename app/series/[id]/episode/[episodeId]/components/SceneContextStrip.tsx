@@ -37,7 +37,7 @@ const LogisticsChip = ({ label, value, icon: Icon }: { label: string, value: str
             border: '1px solid #222',
             borderRadius: '4px',
             padding: '4px 10px',
-            height: '38px' // Fixed height to align perfectly with summary box
+            height: '38px' // Fixed height for single-line chips
         }}>
             <Icon size={12} color="#666" />
             <span style={{
@@ -81,7 +81,7 @@ export const SceneContextStrip: React.FC<SceneContextStripProps> = ({
     return (
         <div style={{
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: 'flex-start', // Ensures tops of all boxes align even if heights differ
             gap: '25px',
             padding: '15px 25px',
             backgroundColor: '#111',
@@ -110,9 +110,9 @@ export const SceneContextStrip: React.FC<SceneContextStripProps> = ({
                     backgroundColor: '#050505',
                     border: isFocused ? '1px solid #555' : '1px solid #222',
                     borderRadius: '4px',
-                    padding: '4px 8px',
+                    padding: '6px 10px',
                     transition: 'border-color 0.2s',
-                    height: '38px'
+                    minHeight: '38px' // Allows growth for 2 lines
                 }}>
                     <textarea
                         value={localText}
@@ -120,7 +120,7 @@ export const SceneContextStrip: React.FC<SceneContextStripProps> = ({
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => setIsFocused(false)}
                         placeholder="Describe scene action here..."
-                        rows={1}
+                        rows={2} // Shows 2 lines by default
                         style={{
                             width: '100%',
                             backgroundColor: 'transparent',
@@ -131,7 +131,9 @@ export const SceneContextStrip: React.FC<SceneContextStripProps> = ({
                             resize: 'none',
                             fontFamily: 'inherit',
                             lineHeight: '1.4',
-                            paddingTop: '4px'
+                            height: 'auto',
+                            padding: '0',
+                            margin: '0'
                         }}
                     />
 
@@ -141,7 +143,10 @@ export const SceneContextStrip: React.FC<SceneContextStripProps> = ({
                         overflow: 'hidden',
                         transition: 'all 0.3s ease',
                         marginLeft: showAction ? '10px' : '0px',
-                        opacity: showAction ? 1 : 0
+                        opacity: showAction ? 1 : 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                     }}>
                         <button
                             onClick={() => onAutoDirect(localText)}
@@ -168,7 +173,7 @@ export const SceneContextStrip: React.FC<SceneContextStripProps> = ({
             </div>
 
             {/* 3. LOGISTICS TAGS (Right Aligned) */}
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginLeft: 'auto' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginLeft: 'auto' }}>
                 <LogisticsChip label="LOCATION" value={locationName.toUpperCase()} icon={MapPin} />
                 <LogisticsChip label="TIME" value={timeOfDay.toUpperCase()} icon={Clock} />
                 <LogisticsChip label="CASTING" value={castList.toUpperCase()} icon={Users} />
