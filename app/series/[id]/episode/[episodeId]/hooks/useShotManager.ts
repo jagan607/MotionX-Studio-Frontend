@@ -33,14 +33,18 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     const handleAddShot = async (currentScene: any) => {
         if (!activeSceneId) return;
 
-        // Generate next ID based on current length
         const newShotId = `shot_${String(shots.length + 1).padStart(2, '0')}`;
+
+        // Robust Fallback for manual add
+        const fallbackAction = currentScene?.description || currentScene?.visual_action || currentScene?.action || currentScene?.summary || "";
+        const fallbackLoc = currentScene?.location_name || currentScene?.location || currentScene?.location_id || "";
 
         await setDoc(doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", newShotId), {
             shot_type: "Wide Shot",
-            visual_action: currentScene?.visual_action || "",
+            visual_action: fallbackAction,
+            video_prompt: "", // Initialize empty
             characters: [],
-            location: currentScene?.location || "",
+            location: fallbackLoc,
             status: "draft",
             created_at: new Date().toISOString()
         });
@@ -73,13 +77,34 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         setIsAutoDirecting(true);
         setTerminalLog(["> INITIALIZING AI DIRECTOR..."]);
 
+        // 1. Robust Input Mapping
+        const sceneAction =
+            currentScene.description ||
+            currentScene.visual_action ||
+            currentScene.action ||
+            currentScene.text ||
+            currentScene.summary ||
+            "";
+
+        const sceneLocation =
+            currentScene.location_name ||
+            currentScene.location || currentScene.location_id
+        "Unknown";
+
+        let sceneChars = "None";
+        if (Array.isArray(currentScene.characters)) {
+            sceneChars = currentScene.characters.join(", ");
+        } else if (typeof currentScene.characters === 'string') {
+            sceneChars = currentScene.characters;
+        }
+
         const formData = new FormData();
         formData.append("series_id", seriesId);
         formData.append("episode_id", episodeId);
         formData.append("scene_id", activeSceneId);
-        formData.append("scene_action", currentScene.visual_action || "");
-        formData.append("characters", currentScene.characters?.join(", ") || "None");
-        formData.append("location", currentScene.location || "Unknown");
+        formData.append("scene_action", sceneAction);
+        formData.append("characters", sceneChars);
+        formData.append("location", sceneLocation);
 
         try {
             const idToken = await auth.currentUser?.getIdToken();
@@ -94,7 +119,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                 setTerminalLog(prev => [...prev, "> GENERATING SHOT LIST..."]);
                 const batch = writeBatch(db);
 
-                // No longer need newShotsToRender for loop, just for DB write
                 data.shots.forEach((shot: any, index: number) => {
                     const newShotId = `shot_${String(index + 1).padStart(2, '0')}`;
                     const docRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", newShotId);
@@ -106,12 +130,18 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                         charArray = shot.characters;
                     }
 
+                    // --- NEW MAPPING LOGIC ---
                     const payload = {
                         id: newShotId,
                         shot_type: shot.type,
-                        visual_action: shot.description,
+                        // 1. Map 'image_prompt' (API) -> 'visual_action' (DB/UI)
+                        visual_action: shot.image_prompt || shot.description || "",
+
+                        // 2. Map 'video_prompt' (API) -> 'video_prompt' (DB)
+                        video_prompt: shot.video_prompt || "",
+
                         characters: charArray,
-                        location: shot.location || "",
+                        location: shot.location || sceneLocation,
                         status: "draft"
                     };
 
@@ -120,7 +150,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
 
                 await batch.commit();
                 setIsAutoDirecting(false);
-                // LOOP REMOVED HERE
             }
         } catch (e) {
             console.error(e);
@@ -128,15 +157,10 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
     };
 
-    // NEW: Function to manually trigger generation for all shots
     const handleGenerateAll = async (currentScene: any) => {
         if (!shots || shots.length === 0) return;
-
         for (const shot of shots) {
-            // Check if we should skip shots that already have images?
-            // For now, we assume "Generate All" means generate everything in the list.
             await handleRenderShot(shot, currentScene);
-            // 1s delay to prevent rate limiting or race conditions
             await new Promise(r => setTimeout(r, 1000));
         }
     };
@@ -149,10 +173,14 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         formData.append("scene_id", activeSceneId!);
         formData.append("shot_id", shot.id);
 
+        // Use visual_action (which now holds the static image_prompt)
         formData.append("shot_prompt", shot.visual_action || shot.prompt || "");
         formData.append("shot_type", shot.shot_type || shot.type || "Wide Shot");
         formData.append("characters", Array.isArray(shot.characters) ? shot.characters.join(",") : "");
-        formData.append("location", shot.location || currentScene?.location || "");
+
+        const sceneLoc = currentScene?.location_name || currentScene?.location || "";
+        formData.append("location", shot.location || sceneLoc);
+
         formData.append("aspect_ratio", aspectRatio);
 
         try {
@@ -169,7 +197,8 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
     };
 
-    const handleAnimateShot = async (shot: any) => {
+    // Updated Signature to match StoryboardOverlay
+    const handleAnimateShot = async (shot: any, currentScene?: any) => {
         if (!shot.image_url) return toastError("Generate image first");
         try {
             const idToken = await auth.currentUser?.getIdToken();
@@ -179,7 +208,11 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             formData.append("scene_id", activeSceneId!);
             formData.append("shot_id", shot.id);
             formData.append("image_url", shot.image_url);
-            formData.append("prompt", shot.visual_action || "Cinematic movement");
+
+            // --- CRITICAL UPDATE ---
+            // Use the specific video_prompt if available, otherwise fall back to visual_action
+            const motionPrompt = shot.video_prompt || shot.visual_action || "Cinematic movement";
+            formData.append("prompt", motionPrompt);
 
             await fetch(`${API_BASE_URL}/api/v1/shot/animate_shot`, {
                 method: "POST",
@@ -195,7 +228,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     return {
         shots, loadingShots, isAutoDirecting, terminalLog, aspectRatio, setAspectRatio,
         handleAddShot, updateShot, handleDeleteShot, handleDragEnd, handleAutoDirect,
-        handleGenerateAll, // Exporting the new function
+        handleGenerateAll,
         handleRenderShot, handleAnimateShot
     };
 };
