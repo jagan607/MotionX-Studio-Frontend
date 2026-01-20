@@ -62,7 +62,7 @@ export default function EpisodeBoard() {
         castMembers,
         setCastMembers,
         uniqueLocs,
-        locations,
+        locations, // Locations fetched here
         setLocations,
         locationImages,
         setLocationImages,
@@ -300,6 +300,7 @@ export default function EpisodeBoard() {
                 credits={credits}
                 styles={styles}
                 castMembers={castMembers}
+                locations={locations} // <--- UPDATED: PASSING LOCATIONS DOWN
                 shotMgr={shotMgr}
                 inpaintData={inpaintData}
                 setInpaintData={setInpaintData}

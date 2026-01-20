@@ -10,6 +10,11 @@ interface CastMember {
     name: string;
 }
 
+interface Location {
+    id: string;
+    name: string;
+}
+
 interface Shot {
     id: string;
     shot_type: string;
@@ -19,6 +24,7 @@ interface Shot {
     location?: string;
     image_url?: string;
     video_url?: string;
+    video_status?: string; // Tracks animation state (animating, processing, etc.)
 }
 
 interface SortableShotCardProps {
@@ -27,6 +33,7 @@ interface SortableShotCardProps {
     styles: any;
     onDelete: (id: string) => void;
     castMembers: CastMember[];
+    locations: Location[];
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
     // --- ACTION PROPS ---
     onRender: () => void;
@@ -44,6 +51,7 @@ export const SortableShotCard = ({
     styles,
     onDelete,
     castMembers,
+    locations,
     onUpdateShot,
     onRender,
     onAnimate,
@@ -78,6 +86,12 @@ export const SortableShotCard = ({
     const hasImage = Boolean(shot.image_url);
     const hasVideo = Boolean(shot.video_url);
 
+    // --- ANIMATION LOCK LOGIC ---
+    // Check if video is currently generating/processing
+    const isAnimating = ['animating', 'processing', 'queued', 'pending'].includes(shot.video_status || '');
+    // Master lock: disable inputs if Image is Rendering OR Video is Animating
+    const isBusy = isRendering || isAnimating;
+
     // --- 3. UNIFIED STYLES ---
 
     // Style for ALL Titles (Shot Type, Location, Casting, Prompts)
@@ -89,21 +103,32 @@ export const SortableShotCard = ({
         fontWeight: 'bold',
         letterSpacing: '1px',
         textTransform: 'uppercase',
-        fontFamily: 'inherit' // Ensure it matches app font
+        fontFamily: 'inherit'
     };
 
-    // Style for ALL Inputs (Select, Text Input, Textarea)
+    // Base Style for Inputs
     const commonInputStyle: React.CSSProperties = {
         width: '100%',
         backgroundColor: '#111',
         border: '1px solid #222',
-        color: '#e0e0e0', // Consistent bright grey text
-        fontSize: '11px', // Unified font size for content
+        color: '#e0e0e0',
+        fontSize: '11px',
         padding: '8px 10px',
         borderRadius: '4px',
         outline: 'none',
-        fontFamily: 'inherit', // Prevents browser defaults (like monospace in textareas)
+        fontFamily: 'inherit',
         lineHeight: '1.4'
+    };
+
+    // Specific Style for Dropdowns (Selects) to handle truncation & chevron overlap
+    const selectStyle: React.CSSProperties = {
+        ...commonInputStyle,
+        appearance: 'none',
+        cursor: 'pointer',
+        paddingRight: '25px', // Extra padding on right so text doesn't hit the chevron
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
     };
 
     return (
@@ -134,13 +159,15 @@ export const SortableShotCard = ({
                 {children}
             </div>
 
-            {/* 3. METADATA ROW (Shot Type & Location) */}
+            {/* 3. METADATA ROW (Shot Type & Location Dropdowns) */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <div style={{ flex: 1 }}>
+
+                {/* SHOT TYPE DROPDOWN */}
+                <div style={{ flex: 1, minWidth: 0 }}>
                     <label style={labelStyle}>SHOT TYPE</label>
                     <div style={{ position: 'relative' }}>
                         <select
-                            style={{ ...commonInputStyle, appearance: 'none', cursor: 'pointer' }}
+                            style={selectStyle}
                             value={shot.shot_type || "Wide Shot"}
                             onChange={(e) => onUpdateShot(shot.id, "shot_type", e.target.value)}
                         >
@@ -155,19 +182,29 @@ export const SortableShotCard = ({
                             <option>Low Angle</option>
                             <option>High Angle</option>
                         </select>
-                        <ChevronDown size={12} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666', pointerEvents: 'none' }} />
+                        <ChevronDown size={12} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color: '#666', pointerEvents: 'none' }} />
                     </div>
                 </div>
 
-                <div style={{ flex: 1 }}>
+                {/* LOCATION DROPDOWN */}
+                <div style={{ flex: 1, minWidth: 0 }}>
                     <label style={labelStyle}>LOCATION</label>
-                    <input
-                        type="text"
-                        style={commonInputStyle}
-                        value={shot.location || ""}
-                        onChange={(e) => onUpdateShot(shot.id, "location", e.target.value)}
-                        placeholder="INT. ROOM"
-                    />
+                    <div style={{ position: 'relative' }}>
+                        <select
+                            style={selectStyle}
+                            value={shot.location || ""}
+                            onChange={(e) => onUpdateShot(shot.id, "location", e.target.value)}
+                        >
+                            {/* Hidden disabled option acts as placeholder but won't show in the dropdown list */}
+                            <option value="" disabled hidden>Select Location...</option>
+                            {locations.map((loc) => (
+                                <option key={loc.id} value={loc.id}>
+                                    {loc.name.toUpperCase()}
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronDown size={12} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color: '#666', pointerEvents: 'none' }} />
+                    </div>
                 </div>
             </div>
 
@@ -224,16 +261,16 @@ export const SortableShotCard = ({
                 {/* BUTTON 1: REGENERATE IMAGE */}
                 <button
                     onClick={onRender}
-                    disabled={isRendering}
+                    disabled={isBusy} // Locked if Image Rendering OR Video Animating
                     style={{
                         flex: 1,
                         padding: '12px',
                         backgroundColor: '#1a1a1a',
                         border: '1px solid #333',
-                        color: isRendering ? '#666' : '#FFF',
+                        color: isBusy ? '#666' : '#FFF',
                         fontSize: '11px',
                         fontWeight: 'bold',
-                        cursor: isRendering ? 'not-allowed' : 'pointer',
+                        cursor: isBusy ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -249,7 +286,7 @@ export const SortableShotCard = ({
                 {/* BUTTON 2: ANIMATE / VIDEO */}
                 <button
                     onClick={onAnimate}
-                    disabled={!hasImage || isRendering}
+                    disabled={!hasImage || isBusy} // Locked if No Image OR Image Rendering OR Video Animating
                     title={!hasImage ? "Generate an image first to enable animation" : "Generate Video"}
                     style={{
                         flex: 1,
@@ -259,7 +296,7 @@ export const SortableShotCard = ({
                         color: (!hasImage) ? '#444' : 'white',
                         fontSize: '11px',
                         fontWeight: 'bold',
-                        cursor: (!hasImage || isRendering) ? 'not-allowed' : 'pointer',
+                        cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -268,6 +305,7 @@ export const SortableShotCard = ({
                         borderRadius: '4px'
                     }}
                 >
+                    {/* FIXED: No Loader2 here. Only Static Icons. */}
                     {hasVideo ? <RefreshCw size={14} /> : <Film size={14} fill={hasImage ? "white" : "gray"} />}
                     {hasVideo ? "REGENERATE VID" : "ANIMATE"}
                 </button>

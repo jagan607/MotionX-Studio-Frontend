@@ -19,6 +19,7 @@ interface StoryboardOverlayProps {
     credits: number | null;
     styles: any;
     castMembers: any[];
+    locations: any[]; // <--- NEW PROP
 
     shotMgr: {
         shots: any[];
@@ -52,7 +53,7 @@ interface StoryboardOverlayProps {
 }
 
 export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
-    activeSceneId, currentScene, onClose, credits, styles, castMembers,
+    activeSceneId, currentScene, onClose, credits, styles, castMembers, locations,
     shotMgr, inpaintData, setInpaintData, onSaveInpaint, onApplyInpaint,
     onZoom, onDownload, onDeleteShot,
     tourStep, onTourNext, onTourComplete
@@ -114,7 +115,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 opacity: (shotMgr.loadingShots.size > 0 || shotMgr.isAutoDirecting) ? 0.5 : 1
                             }}
                         >
-                            {/* UPDATED: Removed Loader2 to keep loading isolated to preview cards */}
                             <Layers size={16} />
                             GENERATE ALL FRAMES
                         </button>
@@ -177,14 +177,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     styles={styles}
                                     onDelete={() => onDeleteShot(shot.id)}
                                     castMembers={castMembers}
+                                    locations={locations} // <--- PASSING DOWN
                                     onUpdateShot={shotMgr.updateShot}
-
-                                    // --- NEW PROPS FOR DUAL ACTION ROW ---
                                     onRender={() => shotMgr.handleRenderShot(shot, currentScene)}
                                     onAnimate={() => shotMgr.handleAnimateShot(shot)}
                                     isRendering={shotMgr.loadingShots.has(shot.id)}
                                 >
-                                    {/* PREVIEW CONTENT (Passed as children) */}
+                                    {/* PREVIEW CONTENT */}
                                     <div style={styles.shotImageContainer}>
                                         <ShotImage
                                             src={shot.image_url}
@@ -201,7 +200,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                             onAnimate={() => shotMgr.handleAnimateShot(shot)}
                                         />
                                     </div>
-                                    {/* REMOVED: Old Regenerate Button */}
                                 </SortableShotCard>
                             ))}
                         </div>
