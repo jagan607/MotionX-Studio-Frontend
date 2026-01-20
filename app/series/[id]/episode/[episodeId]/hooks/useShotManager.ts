@@ -204,8 +204,8 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         setIsAutoDirecting(true);
         setTerminalLog(["> INITIALIZING AI DIRECTOR..."]);
 
-        const sceneAction = overrideSummary || currentScene.description || "";
-        const sceneLocation = currentScene.location_name || "Unknown";
+        const sceneAction = overrideSummary || currentScene.description || currentScene.summary || "";
+        const sceneLocation = currentScene.location_name || currentScene.location_id || "Unknown";
         let sceneChars = Array.isArray(currentScene.characters) ? currentScene.characters.join(", ") : (currentScene.characters || "None");
 
         const formData = new FormData();
