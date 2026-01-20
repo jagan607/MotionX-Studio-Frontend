@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Film, Maximize2, Download, Wand2, Image as ImageIcon, PlayCircle } from "lucide-react";
+import { Loader2, Maximize2, Download, Wand2, Image as ImageIcon, PlayCircle, Sparkles } from "lucide-react";
 
 interface ShotImageProps {
     src: string;
@@ -12,7 +12,7 @@ interface ShotImageProps {
     onClickZoom: () => void;
     onDownload: () => void;
     onStartInpaint: () => void;
-    onAnimate: () => void;
+    onAnimate: () => void; // Kept in props to avoid breaking parent usage, though unused in UI now
 }
 
 export const ShotImage = ({
@@ -36,6 +36,7 @@ export const ShotImage = ({
     const isLoading = isSystemLoading || isAnimating || (!hasVideo && hasImage && !imageFullyDecoded && viewMode === 'image');
     const isEmpty = !hasVideo && !hasImage && !isSystemLoading && !isAnimating;
 
+    // Auto-switch to video when it becomes available
     useEffect(() => {
         if (hasVideo) {
             setViewMode('video');
@@ -77,16 +78,23 @@ export const ShotImage = ({
                 <div style={{
                     position: 'absolute', inset: 0, zIndex: 5,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: '#050505', color: '#222', border: '1px solid #111'
+                    backgroundColor: '#080808', color: '#333', border: '1px solid #111'
                 }}>
-                    <ImageIcon size={32} strokeWidth={1} style={{ opacity: 0.5 }} />
-                    <p style={{ marginTop: '10px', fontSize: '9px', fontFamily: 'monospace', letterSpacing: '1px', color: '#333' }}>
-                        NO SIGNAL
+                    <div style={{
+                        padding: '15px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                        marginBottom: '10px'
+                    }}>
+                        <Sparkles size={24} style={{ opacity: 0.3 }} />
+                    </div>
+                    <p style={{ fontSize: '10px', fontFamily: 'monospace', letterSpacing: '1px', color: '#444', fontWeight: 'bold' }}>
+                        READY TO GENERATE
                     </p>
                 </div>
             )}
 
-            {/* --- 3. SOURCE / RESULT TOGGLE (MOVED TO BOTTOM) --- */}
+            {/* --- 3. SOURCE / RESULT TOGGLE (BOTTOM CENTER) --- */}
             {hasVideo && !isLoading && (
                 <div style={{
                     position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)',
@@ -149,34 +157,19 @@ export const ShotImage = ({
                 )
             )}
 
-            {/* --- 5. TOP RIGHT CONTROLS (UNOBSTRUCTED) --- */}
+            {/* --- 5. TOP RIGHT CONTROLS --- */}
             {!isLoading && !isEmpty && (
                 <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 20 }}>
 
-                    {/* SHOW ONLY IN IMAGE MODE: ANIMATE & INPAINT */}
+                    {/* SHOW ONLY IN IMAGE MODE: INPAINT ONLY (Animate removed) */}
                     {viewMode === 'image' && (
-                        <>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onAnimate(); }}
-                                style={{
-                                    padding: '6px 12px', backgroundColor: '#FF0000', color: 'white', border: 'none',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                                    fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
-                                }}
-                                title="Generate Video from this Image"
-                            >
-                                <Film size={12} fill="white" /> ANIMATE
-                            </button>
-
-                            <button
-                                onClick={(e) => { e.stopPropagation(); onStartInpaint(); }}
-                                style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}
-                                title="Edit/Inpaint Image"
-                            >
-                                <Wand2 size={14} />
-                            </button>
-                        </>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onStartInpaint(); }}
+                            style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}
+                            title="Edit/Inpaint Image"
+                        >
+                            <Wand2 size={14} />
+                        </button>
                     )}
 
                     {/* COMMON TOOLS */}

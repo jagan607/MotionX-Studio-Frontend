@@ -2,7 +2,7 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, MapPin, Sparkles, Loader2, Film, RefreshCw } from "lucide-react";
+import { GripVertical, Trash2, Sparkles, Loader2, Film, RefreshCw } from "lucide-react";
 
 // --- 1. TYPE SAFETY: Explicit Interfaces ---
 interface CastMember {
@@ -87,12 +87,10 @@ export const SortableShotCard = ({
                     <div {...attributes} {...listeners} style={{ cursor: 'grab', color: '#666', padding: '4px' }} aria-label="Drag handle">
                         <GripVertical size={18} />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ color: '#FF0000', fontWeight: 'bold', fontSize: '12px', letterSpacing: '1px' }}>
-                            SHOT {String(index + 1).padStart(2, '0')}
-                        </span>
-                        <span style={{ fontSize: '8px', color: '#444', fontFamily: 'monospace' }}>{shot.id.toUpperCase()}</span>
-                    </div>
+                    {/* CLEANUP: Removed duplicate ID subtitle, keeping only the main Red Title */}
+                    <span style={{ color: '#FF0000', fontWeight: 'bold', fontSize: '12px', letterSpacing: '1px' }}>
+                        SHOT {String(index + 1).padStart(2, '0')}
+                    </span>
                 </div>
 
                 <button
@@ -109,7 +107,7 @@ export const SortableShotCard = ({
                 {children}
             </div>
 
-            {/* 3. DUAL ACTION ROW (REPLACES OLD LARGE BUTTON) */}
+            {/* 3. DUAL ACTION ROW */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
 
                 {/* BUTTON 1: REGENERATE IMAGE (Foundation) */}
@@ -139,7 +137,8 @@ export const SortableShotCard = ({
                 {/* BUTTON 2: ANIMATE / VIDEO (Next Step) */}
                 <button
                     onClick={onAnimate}
-                    disabled={!hasImage || isRendering} // Can't animate without an image
+                    disabled={!hasImage || isRendering}
+                    title={!hasImage ? "Generate an image first to enable animation" : "Generate Video"}
                     style={{
                         flex: 1,
                         padding: '10px',
@@ -155,7 +154,6 @@ export const SortableShotCard = ({
                         gap: '6px',
                         transition: 'all 0.2s'
                     }}
-                    title={!hasImage ? "Generate an image first to enable animation" : "Generate Video"}
                 >
                     {hasVideo ? <RefreshCw size={12} /> : <Film size={12} fill={hasImage ? "white" : "gray"} />}
                     {hasVideo ? "REGENERATE VID" : "ANIMATE"}
@@ -185,10 +183,8 @@ export const SortableShotCard = ({
                 </div>
 
                 <div style={{ flex: 1 }}>
-                    <label style={styles.label}>
-                        <MapPin size={10} style={{ marginRight: '4px', display: 'inline' }} />
-                        LOCATION
-                    </label>
+                    {/* CLEANUP: Removed MapPin Icon */}
+                    <label style={styles.label}>LOCATION</label>
                     <input
                         type="text"
                         style={{ ...styles.select, width: '100%', cursor: 'text' }}
