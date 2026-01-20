@@ -300,7 +300,9 @@ export default function EpisodeBoard() {
                 credits={credits}
                 styles={styles}
                 castMembers={castMembers}
-                locations={locations} // <--- UPDATED: PASSING LOCATIONS DOWN
+                locations={locations} // <--- PASSING LOCATIONS DOWN
+                seriesName={episodeData?.series_name || 'SERIES'} // <--- NEW PROP
+                episodeTitle={episodeData?.title || 'EPISODE'}   // <--- NEW PROP
                 shotMgr={shotMgr}
                 inpaintData={inpaintData}
                 setInpaintData={setInpaintData}

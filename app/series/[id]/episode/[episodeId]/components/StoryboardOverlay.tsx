@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Zap, Wand2, Plus, Film, Loader2, Layers } from 'lucide-react';
+import { ArrowLeft, Zap, Wand2, Plus, Film, Loader2, Layers, MapPin, Clock, Users } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
 } from '@dnd-kit/core';
@@ -19,7 +19,9 @@ interface StoryboardOverlayProps {
     credits: number | null;
     styles: any;
     castMembers: any[];
-    locations: any[]; // <--- NEW PROP
+    locations: any[];
+    seriesName: string;
+    episodeTitle: string;
 
     shotMgr: {
         shots: any[];
@@ -54,6 +56,7 @@ interface StoryboardOverlayProps {
 
 export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     activeSceneId, currentScene, onClose, credits, styles, castMembers, locations,
+    seriesName, episodeTitle,
     shotMgr, inpaintData, setInpaintData, onSaveInpaint, onApplyInpaint,
     onZoom, onDownload, onDeleteShot,
     tourStep, onTourNext, onTourComplete
@@ -66,9 +69,30 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
     if (!activeSceneId) return null;
 
+    // --- LOGISTICS RESOLVER ---
+
+    // 1. Resolve Location Name from ID
+    const rawLoc = currentScene?.location || currentScene?.location_name || currentScene?.location_id;
+    // Try to find the matching location object in the global list
+    const foundLoc = locations.find(l => l.id === rawLoc || l.name === rawLoc);
+    const sceneLoc = foundLoc ? foundLoc.name : (rawLoc || "UNKNOWN LOCATION");
+
+    // 2. Resolve Character Names from IDs
+    let charDisplay = "NO CAST";
+    if (Array.isArray(currentScene?.characters) && currentScene.characters.length > 0) {
+        charDisplay = currentScene.characters.map((charKey: string) => {
+            const member = castMembers.find(c => c.id === charKey || c.name === charKey);
+            return member ? member.name.toUpperCase() : charKey.toUpperCase();
+        }).join(", ");
+    } else if (typeof currentScene?.characters === 'string') {
+        charDisplay = currentScene.characters.toUpperCase();
+    }
+
+    const sceneTime = currentScene?.time_of_day || "DAY";
+
     return (
         <div style={styles.sbOverlay}>
-            {/* --- HEADER --- */}
+            {/* --- 1. HEADER --- */}
             <div style={styles.sbHeader}>
                 <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', fontWeight: 'bold' }}>
                     <ArrowLeft size={20} /> CLOSE BOARD
@@ -134,7 +158,65 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </div>
             </div>
 
-            {/* --- INPAINT EDITOR OVERLAY --- */}
+            {/* --- 2. SCENE CONTEXT STRIP (IMPROVED) --- */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '20px',
+                padding: '12px 25px',
+                backgroundColor: '#111',
+                borderBottom: '1px solid #222',
+                fontSize: '12px',
+                marginBottom: '20px' // <--- ADDED SPACING
+            }}>
+                {/* Identity */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: '180px' }}>
+                    <div style={{ color: '#666', fontSize: '9px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                        {seriesName.toUpperCase()} / {episodeTitle.toUpperCase()}
+                    </div>
+                    <div style={{ color: '#FF0000', fontFamily: 'Anton, sans-serif', fontSize: '20px', letterSpacing: '1px', lineHeight: '1' }}>
+                        SCENE {currentScene.scene_number}
+                    </div>
+                </div>
+
+                {/* Summary (Beat) */}
+                <div style={{
+                    flex: 1,
+                    borderLeft: '1px solid #222',
+                    paddingLeft: '20px',
+                    color: '#ddd',
+                    fontStyle: 'italic',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '600px', // Constrain width to force ellipsis if needed
+                    opacity: 0.9
+                }}>
+                    "{currentScene.summary || currentScene.description || "No scene summary available."}"
+                </div>
+
+                {/* Logistics Tags */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginLeft: 'auto' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#1a1a1a', padding: '6px 12px', borderRadius: '4px', border: '1px solid #222' }}>
+                        <MapPin size={12} color="#666" />
+                        <span style={{ fontWeight: 'bold', color: '#ccc', fontSize: '10px', maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {sceneLoc.toUpperCase()}
+                        </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#1a1a1a', padding: '6px 12px', borderRadius: '4px', border: '1px solid #222' }}>
+                        <Clock size={12} color="#666" />
+                        <span style={{ fontWeight: 'bold', color: '#ccc', fontSize: '10px' }}>{sceneTime.toUpperCase()}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#1a1a1a', padding: '6px 12px', borderRadius: '4px', border: '1px solid #222' }}>
+                        <Users size={12} color="#666" />
+                        <span style={{ fontWeight: 'bold', color: '#ccc', fontSize: '10px', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {charDisplay}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* --- 3. INPAINT EDITOR OVERLAY --- */}
             {inpaintData && (
                 <InpaintEditor
                     src={inpaintData.src}
@@ -145,9 +227,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 />
             )}
 
-            {/* --- MAIN CONTENT AREA --- */}
+            {/* --- 4. MAIN CONTENT AREA --- */}
             {shotMgr.shots.length === 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', border: '1px dashed #222', backgroundColor: 'rgba(10, 10, 10, 0.5)', marginTop: '20px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', border: '1px dashed #222', backgroundColor: 'rgba(10, 10, 10, 0.5)', margin: '20px', position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', backgroundColor: 'rgba(255, 0, 0, 0.1)', boxShadow: '0 0 20px rgba(255, 0, 0, 0.2)', animation: 'scanline 3s linear infinite' }} />
                     <Film size={80} style={{ opacity: 0.1, color: '#FFF', marginBottom: '20px' }} />
                     <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '32px', color: '#333', letterSpacing: '4px', textTransform: 'uppercase' }}>SEQUENCE_BUFFER_EMPTY</h3>
@@ -177,7 +259,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     styles={styles}
                                     onDelete={() => onDeleteShot(shot.id)}
                                     castMembers={castMembers}
-                                    locations={locations} // <--- PASSING DOWN
+                                    locations={locations}
                                     onUpdateShot={shotMgr.updateShot}
                                     onRender={() => shotMgr.handleRenderShot(shot, currentScene)}
                                     onAnimate={() => shotMgr.handleAnimateShot(shot)}
@@ -207,7 +289,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </DndContext>
             )}
 
-            {/* --- TERMINAL OVERLAY --- */}
+            {/* --- 5. TERMINAL OVERLAY --- */}
             {shotMgr.isAutoDirecting && (
                 <div style={styles.terminalOverlay}>
                     <div style={styles.terminalBox}>
