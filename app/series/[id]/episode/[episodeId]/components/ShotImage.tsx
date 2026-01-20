@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Film, Maximize2, Download, Wand2, Image as ImageIcon } from "lucide-react";
+import { Loader2, Film, Maximize2, Download, Wand2, Image as ImageIcon, PlayCircle } from "lucide-react";
 
 interface ShotImageProps {
     src: string;
     videoUrl?: string;
-    videoStatus?: 'animating' | 'ready' | 'error';
+    videoStatus?: 'animating' | 'ready' | 'error' | 'queued' | 'processing' | 'completed' | 'failed' | null;
     shotId: string;
     isSystemLoading: boolean;
     onClickZoom: () => void;
@@ -27,21 +27,23 @@ export const ShotImage = ({
     onAnimate
 }: ShotImageProps) => {
     const [imageFullyDecoded, setImageFullyDecoded] = useState(false);
+    const [viewMode, setViewMode] = useState<'image' | 'video'>('image');
     const imgRef = useRef<HTMLImageElement>(null);
 
-    // --- STATE CHECKS ---
-    const isAnimating = videoStatus === 'animating';
+    const isAnimating = videoStatus === 'animating' || videoStatus === 'processing' || videoStatus === 'queued';
     const hasVideo = Boolean(videoUrl);
     const hasImage = Boolean(src);
-
-    // --- LOADING LOGIC ---
-    // Update: isSystemLoading now covers the 'GENERATING...' phase from useShotManager
-    const isLoading = isSystemLoading || isAnimating || (!hasVideo && hasImage && !imageFullyDecoded);
-
-    // --- EMPTY STATE ---
+    const isLoading = isSystemLoading || isAnimating || (!hasVideo && hasImage && !imageFullyDecoded && viewMode === 'image');
     const isEmpty = !hasVideo && !hasImage && !isSystemLoading && !isAnimating;
 
-    // Reset decode state when source changes to prevent flickering old images
+    useEffect(() => {
+        if (hasVideo) {
+            setViewMode('video');
+        } else {
+            setViewMode('image');
+        }
+    }, [hasVideo]);
+
     useEffect(() => {
         setImageFullyDecoded(false);
     }, [src]);
@@ -53,29 +55,24 @@ export const ShotImage = ({
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor: '#000', overflow: 'hidden' }}>
 
-            {/* --- 1. LOADER OVERLAY --- */}
+            {/* --- 1. LOADER --- */}
             {isLoading && (
                 <div style={{
                     position: 'absolute', inset: 0, zIndex: 10, backgroundColor: 'rgba(5,5,5,0.9)',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                 }}>
-                    {/* UPDATED: Using force-spin for continuous rotation */}
                     <Loader2 className="force-spin" size={32} color="#FF0000" />
-
                     {isAnimating && (
                         <div style={{ marginTop: '15px', textAlign: 'center' }}>
                             <p style={{ color: '#FF0000', fontSize: '10px', fontWeight: 'bold', letterSpacing: '2px', animation: 'pulse 1.5s infinite' }}>
                                 ANIMATING...
-                            </p>
-                            <p style={{ color: '#666', fontSize: '9px', marginTop: '5px', fontFamily: 'monospace' }}>
-                                VEO ENGINE V1
                             </p>
                         </div>
                     )}
                 </div>
             )}
 
-            {/* --- 2. EMPTY STATE (Placeholder) --- */}
+            {/* --- 2. EMPTY STATE --- */}
             {isEmpty && (
                 <div style={{
                     position: 'absolute', inset: 0, zIndex: 5,
@@ -89,11 +86,48 @@ export const ShotImage = ({
                 </div>
             )}
 
-            {/* --- 3. MEDIA CONTENT --- */}
-            {hasVideo ? (
+            {/* --- 3. SOURCE / RESULT TOGGLE (MOVED TO BOTTOM) --- */}
+            {hasVideo && !isLoading && (
+                <div style={{
+                    position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)',
+                    zIndex: 30, display: 'flex', backgroundColor: 'rgba(0,0,0,0.8)',
+                    borderRadius: '20px', padding: '2px', border: '1px solid #333',
+                    backdropFilter: 'blur(4px)'
+                }}>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setViewMode('image'); }}
+                        style={{
+                            padding: '4px 10px', borderRadius: '15px', border: 'none',
+                            backgroundColor: viewMode === 'image' ? '#333' : 'transparent',
+                            color: viewMode === 'image' ? 'white' : '#888',
+                            fontSize: '9px', fontWeight: 'bold', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '4px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <ImageIcon size={10} /> IMG
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setViewMode('video'); }}
+                        style={{
+                            padding: '4px 10px', borderRadius: '15px', border: 'none',
+                            backgroundColor: viewMode === 'video' ? '#FF0000' : 'transparent',
+                            color: viewMode === 'video' ? 'white' : '#888',
+                            fontSize: '9px', fontWeight: 'bold', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '4px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <PlayCircle size={10} /> VID
+                    </button>
+                </div>
+            )}
+
+            {/* --- 4. MEDIA CONTENT --- */}
+            {(hasVideo && viewMode === 'video') ? (
                 <video
                     src={videoUrl}
-                    controls={false} // Overlay controls used instead
+                    controls={false}
                     autoPlay
                     loop
                     muted
@@ -115,43 +149,44 @@ export const ShotImage = ({
                 )
             )}
 
-            {/* --- 4. CONTROLS OVERLAY --- */}
+            {/* --- 5. TOP RIGHT CONTROLS (UNOBSTRUCTED) --- */}
             {!isLoading && !isEmpty && (
                 <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '8px', zIndex: 20 }}>
 
-                    {/* ANIMATE BUTTON (Only for images) */}
-                    {!hasVideo && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onAnimate(); }}
-                            style={{
-                                padding: '6px 12px', backgroundColor: '#FF0000', color: 'white', border: 'none',
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                                fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
-                            }}
-                            title="Generate Video"
-                        >
-                            <Film size={12} fill="white" /> ANIMATE
-                        </button>
+                    {/* SHOW ONLY IN IMAGE MODE: ANIMATE & INPAINT */}
+                    {viewMode === 'image' && (
+                        <>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onAnimate(); }}
+                                style={{
+                                    padding: '6px 12px', backgroundColor: '#FF0000', color: 'white', border: 'none',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                                    fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                                }}
+                                title="Generate Video from this Image"
+                            >
+                                <Film size={12} fill="white" /> ANIMATE
+                            </button>
+
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onStartInpaint(); }}
+                                style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}
+                                title="Edit/Inpaint Image"
+                            >
+                                <Wand2 size={14} />
+                            </button>
+                        </>
                     )}
 
+                    {/* COMMON TOOLS */}
                     <button onClick={onClickZoom} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}>
                         <Maximize2 size={14} />
                     </button>
+
                     <button onClick={onDownload} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}>
                         <Download size={14} />
                     </button>
-
-                    {/* INPAINT BUTTON (Images only) */}
-                    {!hasVideo && (
-                        <button
-                            onClick={onStartInpaint}
-                            style={{ padding: '6px', backgroundColor: 'rgba(255,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}
-                            title="Edit Image"
-                        >
-                            <Wand2 size={14} />
-                        </button>
-                    )}
                 </div>
             )}
 
