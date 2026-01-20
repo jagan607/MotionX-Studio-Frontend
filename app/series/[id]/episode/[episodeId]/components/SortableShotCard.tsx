@@ -2,7 +2,7 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, MapPin, Eye, Clapperboard } from "lucide-react";
+import { GripVertical, Trash2, MapPin } from "lucide-react";
 
 // --- 1. TYPE SAFETY: Explicit Interfaces ---
 interface CastMember {
@@ -22,7 +22,7 @@ interface Shot {
 interface SortableShotCardProps {
     shot: Shot;
     index: number;
-    styles: any; // Ideally this should be typed too, but 'any' is acceptable for legacy style objects
+    styles: any;
     onDelete: (id: string) => void;
     castMembers: CastMember[];
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
@@ -69,7 +69,7 @@ export const SortableShotCard = ({
         <div ref={setNodeRef} style={{ ...styles.shotCard, ...dragStyle }}>
 
             {/* 1. HEADER ROW */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div {...attributes} {...listeners} style={{ cursor: 'grab', color: '#666', padding: '4px' }} aria-label="Drag handle">
                         <GripVertical size={18} />
@@ -91,13 +91,13 @@ export const SortableShotCard = ({
                 </button>
             </div>
 
-            {/* 2. IMAGE PREVIEW */}
-            <div style={{ position: 'relative', marginBottom: '15px' }}>
+            {/* 2. IMAGE PREVIEW (Reduced Margin) */}
+            <div style={{ position: 'relative', marginBottom: '12px' }}>
                 {children}
             </div>
 
             {/* 3. ZONE 1: CONTEXT (Shot Type + Location) */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
                 <div style={{ flex: 1 }}>
                     <label style={styles.label}>SHOT TYPE</label>
                     <select
@@ -133,9 +133,9 @@ export const SortableShotCard = ({
                 </div>
             </div>
 
-            {/* 4. ZONE 2: CASTING */}
+            {/* 4. ZONE 2: CASTING (Reduced Margin) */}
             <label style={styles.label}>CASTING</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '15px', gap: '6px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: '10px', gap: '6px' }}>
                 {castMembers.map((char) => {
                     const isActive = Array.isArray(shot.characters) &&
                         shot.characters.some((c) => normalize(c) === normalize(char.name));
@@ -152,9 +152,8 @@ export const SortableShotCard = ({
                 })}
             </div>
 
-            {/* 5. ZONE 3: PROMPTS */}
+            {/* 5. ZONE 3: PROMPTS (Unified Style, No Icons, Tighter Spacing) */}
             <label style={styles.label}>
-                <Eye size={10} style={{ marginRight: '4px', display: 'inline', color: '#666' }} />
                 IMAGE PROMPT (STATIC)
             </label>
             <textarea
@@ -164,19 +163,11 @@ export const SortableShotCard = ({
                 placeholder="Visual description..."
             />
 
-            <label style={{ ...styles.label, marginTop: '10px' }}>
-                <Clapperboard size={10} style={{ marginRight: '4px', display: 'inline', color: '#00ccff' }} />
+            <label style={{ ...styles.label, marginTop: '8px' }}>
                 VIDEO PROMPT (MOTION)
             </label>
-            {/* 3. STYLING: Consolidating video specific styles is recommended in BoardStyles.ts, kept here for immediate visibility */}
             <textarea
-                style={{
-                    ...styles.textArea,
-                    backgroundColor: '#1a1a1a',
-                    border: '1px solid #333',
-                    color: '#ccc',
-                    minHeight: '60px'
-                }}
+                style={styles.textArea}
                 value={shot.video_prompt || ""}
                 onChange={(e) => onUpdateShot(shot.id, "video_prompt", e.target.value)}
                 placeholder="Motion description..."
