@@ -21,6 +21,8 @@ interface AssetModalProps {
     setGenPrompt: (p: string) => void;
     isProcessing: boolean;
     basePrompt?: string;
+    genre: string;
+    style: string;
     onUpload: (f: File) => void;
     onGenerate: () => void;
     onUpdateTraits: (t: any) => Promise<void>;
@@ -40,7 +42,9 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         onClose,
         isProcessing,
         onGenerate,
-        onUpload
+        onUpload,
+        genre,
+        style
     } = props;
 
     // --- LOCAL UI STATE ---
@@ -56,6 +60,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
     const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
     const [isLinkingVoice, setIsLinkingVoice] = useState(false);
+
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     // --- EFFECTS ---
@@ -90,8 +95,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
             // 2. Initial Prompt Construction
             const constructedPrompt = assetType === 'location'
-                ? constructLocationPrompt(assetName || "Location", initialTraits.visual_traits, initialTraits)
-                : constructCharacterPrompt(assetName || "Character", initialTraits, initialTraits);
+                ? constructLocationPrompt(assetName || "Location", initialTraits.visual_traits, initialTraits, genre, style)
+                : constructCharacterPrompt(assetName || "Character", initialTraits, initialTraits, genre, style);
 
             setGenPrompt(constructedPrompt);
         }
@@ -161,8 +166,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
         // LIVE UPDATE
         const constructedPrompt = assetType === 'location'
-            ? constructLocationPrompt(assetName || "Location", updatedTraits.visual_traits, updatedTraits)
-            : constructCharacterPrompt(assetName || "Character", updatedTraits, updatedTraits);
+            ? constructLocationPrompt(assetName || "Location", updatedTraits.visual_traits, updatedTraits, genre, style)
+            : constructCharacterPrompt(assetName || "Character", updatedTraits, updatedTraits, genre, style);
 
         setGenPrompt(constructedPrompt);
     };

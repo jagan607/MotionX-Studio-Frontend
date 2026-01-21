@@ -342,6 +342,8 @@ export default function EpisodeBoard() {
                         setGenPrompt={assetMgr.setGenPrompt}
                         isProcessing={assetMgr.isProcessing}
                         basePrompt={selectedAssetData?.base_prompt}
+                        genre={episodeData?.genre}
+                        style={episodeData?.style}
 
                         onUpload={(file) => assetMgr.handleAssetUpload(file, (url) => {
                             if (!dbDocId) return;

@@ -1,12 +1,13 @@
 // lib/promptUtils.ts
 
-import { LocationProfile, CharacterProfile } from "@/lib/types";
 
 // --- LOCATION PROMPT BUILDER ---
 export const constructLocationPrompt = (
     locationName: string,
     visualTraits: string[] | any, // Can be array or object depending on legacy data
-    allTraits: any // The full flat object containing atmosphere, lighting, terrain
+    allTraits: any, // The full flat object containing atmosphere, lighting, terrain
+    genre: string,
+    style: string
 ): string => {
     // 1. Base Identity
     let prompt = `Cinematic wide shot of ${locationName.toUpperCase()}.`;
@@ -30,8 +31,12 @@ export const constructLocationPrompt = (
     // 4. Terrain/Setting
     if (allTraits.terrain) prompt += ` Setting: ${allTraits.terrain}.`;
 
-    // 5. Hardcoded Stylistic Suffix (Ensures high quality)
-    prompt += " Highly detailed, 8k resolution, photorealistic, depth of field, professional cinematography, unreal engine 5 render.";
+    // 5. Genre & Style
+    if (genre) prompt += ` Genre: ${genre}.`;
+    if (style) prompt += ` Style: ${style}.`;
+
+    // 6. Hardcoded Stylistic Suffix (Ensures high quality)
+    prompt += "Detailed facial features, dramatic lighting, 8k";
 
     return prompt;
 };
@@ -41,7 +46,9 @@ export const constructLocationPrompt = (
 export const constructCharacterPrompt = (
     charName: string,
     traits: any, // The specific visual_traits object (age, hair, etc.)
-    allTraits: any // The full object (in case we need top-level fields like physical_description)
+    allTraits: any, // The full object (in case we need top-level fields like physical_description)
+    genre: string,
+    style: string
 ): string => {
     // 1. Base Identity & Demographics
     let prompt = `Cinematic portrait of ${charName.toUpperCase()}`;
@@ -68,8 +75,13 @@ export const constructCharacterPrompt = (
         prompt += ` Description: ${allTraits.physical_description}.`;
     }
 
+    // retrieve genre and style from the series DB using getStorage in firebase.ts and append to the prompt
+    // storage is a function in firebase.ts that returns the series data
+    if (genre) prompt += ` Genre: ${genre}.`;
+    if (style) prompt += ` Style: ${style}.`;
+
     // 5. Hardcoded Stylistic Suffix
-    prompt += " Detailed facial features, dramatic lighting, 8k, photorealistic, character concept art, masterpiece.";
+    prompt += " Detailed facial features, dramatic lighting, 8k";
 
     return prompt;
 };

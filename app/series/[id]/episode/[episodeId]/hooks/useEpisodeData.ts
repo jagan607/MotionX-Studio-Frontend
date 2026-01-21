@@ -27,9 +27,17 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                 const epRef = doc(db, "series", seriesId, "episodes", episodeId);
                 const epDoc = await getDoc(epRef);
 
+                const seriesRef = doc(db, "series", seriesId);
+                const seriesDoc = await getDoc(seriesRef);
+
                 if (!epDoc.exists()) return;
                 const epData = epDoc.data();
                 setEpisodeData(epData);
+
+                if (seriesDoc.exists()) {
+                    const seriesData = seriesDoc.data();
+                    setEpisodeData({ ...epData, ...seriesData });
+                }
 
                 // B. FETCH SCENES
                 const querySnapshot = await getDocs(collection(epRef, "scenes"));
