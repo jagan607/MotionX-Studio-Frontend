@@ -4,7 +4,7 @@ import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Plus, LogOut, Zap } from "lucide-react";
+import { Plus, LogOut, Zap, ChevronUp } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 
 export default function GlobalHeader() {
@@ -13,7 +13,6 @@ export default function GlobalHeader() {
     const { credits } = useCredits();
 
     // 1. HIDE ON LOGIN, HOME, AND PRICING PAGES
-    // Added "/pricing" so the custom header can take over there
     if (pathname === "/login" || pathname === "/" || pathname === "/pricing") return null;
 
     const handleLogout = async () => {
@@ -34,6 +33,23 @@ export default function GlobalHeader() {
         infoBox: { display: 'flex', alignItems: 'center', gap: '10px', borderRight: '1px solid #333', paddingRight: '20px', marginRight: '20px' },
         logoutBtn: { backgroundColor: 'transparent', color: '#666', border: '1px solid #333', padding: '8px 16px', fontSize: '10px', fontWeight: 'bold' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase' as const },
         createButton: { backgroundColor: '#FF0000', color: 'white', border: 'none', padding: '10px 20px', fontSize: '10px', fontWeight: 'bold' as const, letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', textTransform: 'uppercase' as const },
+
+        // New Style for the Upgrade Button
+        upgradeBtn: {
+            backgroundColor: '#111',
+            border: '1px solid #333',
+            color: '#EDEDED',
+            padding: '4px 8px',
+            fontSize: '9px',
+            fontWeight: 'bold' as const,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            marginLeft: '5px',
+            textTransform: 'uppercase' as const,
+            transition: 'all 0.2s ease'
+        }
     };
 
     return (
@@ -58,7 +74,7 @@ export default function GlobalHeader() {
                     </div>
                 </div>
 
-                {/* 2. CREDITS INFO (Target ID Added) */}
+                {/* 2. CREDITS INFO (With Upgrade Button) */}
                 <div id="tour-credits-target" style={styles.infoBox}>
                     <Zap size={14} color="#FF0000" />
                     <div style={{ textAlign: 'right' }}>
@@ -67,6 +83,13 @@ export default function GlobalHeader() {
                             {credits !== null ? credits : '...'}
                         </p>
                     </div>
+
+                    {/* UPGRADE BUTTON */}
+                    <Link href="/pricing" style={{ textDecoration: 'none' }}>
+                        <button style={styles.upgradeBtn} title="Upgrade Plan">
+                            <Plus size={10} /> GET
+                        </button>
+                    </Link>
                 </div>
 
                 <button onClick={handleLogout} style={styles.logoutBtn}> <LogOut size={14} /> EXIT</button>
