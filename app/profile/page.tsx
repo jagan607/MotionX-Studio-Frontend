@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { auth } from "@/lib/firebase";
-import { signOut, updateProfile } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { updateProfile } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore"; // Added Firestore imports
 import { useRouter } from "next/navigation";
 import { useCredits } from "@/hooks/useCredits";
 import Link from "next/link";
@@ -12,8 +13,8 @@ import {
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
-// --- MOCK PLAN DATA (Replace with real DB data later) ---
-const PLAN_LIMITS = {
+// --- PLAN CONFIGURATION ---
+const PLAN_LIMITS: Record<string, number> = {
     free: 10,
     starter: 50,
     pro: 100,
@@ -22,8 +23,9 @@ const PLAN_LIMITS = {
 
 export default function ProfilePage() {
     const router = useRouter();
-    const { credits } = useCredits(); // Real-time credits from your hook
+    const { credits } = useCredits();
     const [user, setUser] = useState<any>(null);
+    const [plan, setPlan] = useState<string>("free"); // Default to free
     const [activeTab, setActiveTab] = useState<"subscription" | "settings">("subscription");
     const [loading, setLoading] = useState(true);
 
@@ -31,13 +33,28 @@ export default function ProfilePage() {
     const [displayName, setDisplayName] = useState("");
     const [isSaving, setIsSaving] = useState(false);
 
-    // 1. Fetch User Data
+    // 1. Fetch User Data & Plan from Firestore
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((u) => {
+        const unsubscribe = auth.onAuthStateChanged(async (u) => {
             if (u) {
                 setUser(u);
                 setDisplayName(u.displayName || "");
-                setLoading(false);
+
+                // FETCH PLAN FROM DB
+                try {
+                    const userDocRef = doc(db, "users", u.uid);
+                    const userDocSnap = await getDoc(userDocRef);
+
+                    if (userDocSnap.exists()) {
+                        const userData = userDocSnap.data();
+                        // Use plan from DB, fallback to 'free'
+                        setPlan(userData.plan || "free");
+                    }
+                } catch (error) {
+                    console.error("Error fetching user plan:", error);
+                } finally {
+                    setLoading(false);
+                }
             } else {
                 router.push("/login");
             }
@@ -46,11 +63,12 @@ export default function ProfilePage() {
     }, [router]);
 
     // 2. Calculate Usage Stats
-    // In production, fetch 'planType' from Firestore user doc to determine maxCredits
-    const maxCredits = PLAN_LIMITS.pro;
+    // Normalize plan string (handle case sensitivity)
+    const currentPlanKey = plan.toLowerCase();
+    const maxCredits = PLAN_LIMITS[currentPlanKey] || PLAN_LIMITS.free;
     const usagePercent = Math.min(100, ((credits || 0) / maxCredits) * 100);
 
-    // 3. Handle Actions
+    // 3. Handle Profile Update
     const handleUpdateProfile = async () => {
         if (!user) return;
         setIsSaving(true);
@@ -67,7 +85,7 @@ export default function ProfilePage() {
 
     const handleLogout = async () => {
         try {
-            await signOut(auth);
+            await auth.signOut();
             router.push("/");
         } catch (error) {
             console.error("Logout failed", error);
@@ -95,11 +113,9 @@ export default function ProfilePage() {
             maxWidth: '1000px',
             margin: '0 auto',
         },
-        // Header
         headerTitle: { fontFamily: 'Anton, sans-serif', fontSize: '48px', textTransform: 'uppercase' as const, lineHeight: 1 },
         headerSub: { fontFamily: 'monospace', color: '#666', fontSize: '12px', letterSpacing: '2px' },
 
-        // Tabs
         tabContainer: { display: 'flex', gap: '2px', marginTop: '40px', borderBottom: '1px solid #222' },
         tabBtn: (isActive: boolean) => ({
             padding: '12px 24px',
@@ -116,7 +132,6 @@ export default function ProfilePage() {
             transition: 'all 0.2s'
         }),
 
-        // Cards
         card: {
             backgroundColor: '#0A0A0A',
             border: '1px solid #222',
@@ -126,7 +141,6 @@ export default function ProfilePage() {
         },
         sectionTitle: { fontFamily: 'Anton', fontSize: '24px', textTransform: 'uppercase' as const, marginBottom: '20px' },
 
-        // Inputs
         inputGroup: { marginBottom: '20px' },
         label: { display: 'block', fontFamily: 'monospace', fontSize: '10px', color: '#666', marginBottom: '8px', textTransform: 'uppercase' as const },
         input: {
@@ -147,7 +161,6 @@ export default function ProfilePage() {
             display: 'flex', alignItems: 'center', gap: '8px'
         },
 
-        // Credits Bar
         progressBarBg: { width: '100%', height: '8px', backgroundColor: '#222', marginTop: '15px', borderRadius: '4px', overflow: 'hidden' },
         progressBarFill: { width: `${usagePercent}%`, height: '100%', backgroundColor: credits && credits < 10 ? '#FF0000' : '#00FF41', transition: 'width 1s ease' }
     };
@@ -209,8 +222,12 @@ export default function ProfilePage() {
                             </div>
 
                             <h2 style={styles.sectionTitle}>Current Plan</h2>
-                            <p className="text-4xl font-mono font-bold text-white mb-2">PRO LICENSE</p>
-                            <p className="text-xs text-gray-500 font-mono mb-8">RENEWS ON FEB 20, 2026</p>
+                            <p className="text-4xl font-mono font-bold text-white mb-2 uppercase">
+                                {currentPlanKey} LICENSE
+                            </p>
+                            <p className="text-xs text-gray-500 font-mono mb-8">
+                                {currentPlanKey === 'free' ? "UPGRADE TO UNLOCK FULL POWER" : "RENEWS AUTOMATICALLY"}
+                            </p>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {["Access to Flux Models", "Private Generation Mode", "Commercial License", "Priority Queue"].map((feat, i) => (
@@ -243,7 +260,7 @@ export default function ProfilePage() {
                                 <div style={styles.progressBarFill} />
                             </div>
 
-                            {credits !== null && credits < 20 && (
+                            {credits !== null && credits < 10 && (
                                 <div className="mt-4 flex items-center gap-3 bg-[#110505] border border-[#330000] p-3">
                                     <AlertTriangle size={16} className="text-[#FF0000]" />
                                     <p className="text-xs text-[#FF8888] font-mono">
