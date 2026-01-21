@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { usePayment } from "@/lib/payment";
 import PricingCard from "@/app/components/PricingCard";
 import { useRouter } from "next/navigation";
@@ -9,10 +9,30 @@ import toast, { Toaster } from "react-hot-toast";
 import { ArrowRight } from "lucide-react";
 import { auth } from "@/lib/firebase";
 
+// --- PRICING CONFIGURATION ---
+const PRICING_MAP = {
+    starter: { USD: "$20", INR: "₹1,832" },
+    pro: { USD: "$40", INR: "₹3,663" },
+    agency: { USD: "$80", INR: "₹7,325" }
+};
+
 export default function PricingPage() {
     const { subscribe } = usePayment();
     const [loading, setLoading] = useState<string | null>(null);
+    const [currency, setCurrency] = useState<"USD" | "INR">("USD");
     const router = useRouter();
+
+    // --- 1. DETECT USER REGION ON MOUNT ---
+    useEffect(() => {
+        try {
+            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (timeZone === "Asia/Kolkata" || timeZone === "IST") {
+                setCurrency("INR");
+            }
+        } catch (e) {
+            console.warn("Timezone check failed, defaulting to USD");
+        }
+    }, []);
 
     // Custom Toast Style for Terminal Look
     const terminalToast = (message: string, type: "success" | "error") => {
@@ -32,7 +52,7 @@ export default function PricingPage() {
     const handleSubscribe = useCallback((plan: "starter" | "pro" | "agency") => {
         if (loading) return; // Prevent double clicks
 
-        // 1. Guest Check (Redirect to Login if not authenticated)
+        // 2. Guest Check (Redirect to Login if not authenticated)
         if (!auth.currentUser) {
             terminalToast("AUTHENTICATION REQUIRED", "error");
             setTimeout(() => router.push("/login"), 1000);
@@ -41,6 +61,7 @@ export default function PricingPage() {
 
         setLoading(plan);
 
+        // 3. Trigger Subscription (Currency is handled inside usePayment via detection)
         subscribe({
             planType: plan,
             onSuccess: () => {
@@ -63,7 +84,7 @@ export default function PricingPage() {
             {/* --- CUSTOM HEADER --- */}
             <div className="flex justify-between items-end px-6 md:px-10 py-6 border-b border-[#1F1F1F] bg-[#030303] sticky top-0 z-50">
 
-                {/* LEFT: BRAND LOGO (Matches GlobalHeader) */}
+                {/* LEFT: BRAND LOGO */}
                 <Link href="/dashboard" className="no-underline group">
                     <div>
                         <h1 className="font-anton text-2xl uppercase leading-none tracking-[1px] text-white group-hover:opacity-80 transition-opacity">
@@ -97,6 +118,10 @@ export default function PricingPage() {
                     </h1>
                     <p className="text-[#666] text-xs tracking-[2px] uppercase leading-relaxed max-w-lg mx-auto">
                         Upgrade your terminal to unlock 4K rendering, private generation mode, and collaborative seats.
+                        <br />
+                        <span className="text-[#FF0000] font-bold mt-2 block">
+                            REGION DETECTED: {currency === "INR" ? "INDIA (INR PRICING)" : "GLOBAL (USD PRICING)"}
+                        </span>
                     </p>
                 </div>
 
@@ -109,7 +134,7 @@ export default function PricingPage() {
                     {/* 1. STARTER */}
                     <PricingCard
                         title="Starter"
-                        price="$20"
+                        price={PRICING_MAP.starter[currency]} // Dynamic Price
                         description="Entry Level"
                         credits="50 CREDITS"
                         features={[
@@ -128,7 +153,7 @@ export default function PricingPage() {
                     {/* 2. PRO (Popular) */}
                     <PricingCard
                         title="Pro"
-                        price="$40"
+                        price={PRICING_MAP.pro[currency]} // Dynamic Price
                         description="Studio Standard"
                         credits="100 CREDITS"
                         isPopular={true}
@@ -149,7 +174,7 @@ export default function PricingPage() {
                     {/* 3. AGENCY */}
                     <PricingCard
                         title="Agency"
-                        price="$80"
+                        price={PRICING_MAP.agency[currency]} // Dynamic Price
                         description="Production House"
                         credits="200 CREDITS"
                         features={[

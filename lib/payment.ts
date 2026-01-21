@@ -28,6 +28,19 @@ export const usePayment = () => {
         return { Authorization: `Bearer ${token}` };
     };
 
+    const getUserCurrency = () => {
+        try {
+            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            console.log("🕒 System Timezone Detected:", timeZone); // CHECK THIS LOG
+            if (timeZone === "Asia/Calcutta" || timeZone === "IST") {
+                return "INR";
+            }
+        } catch (e) {
+            console.warn("Timezone detection failed");
+        }
+        return "USD"; // Default fallback
+    };
+
     // --- HELPER: VERIFY PAYMENT ON SERVER ---
     const verifyPayment = async (payload: any, endpoint: string) => {
         try {
@@ -48,17 +61,22 @@ export const usePayment = () => {
 
     // --- 1. HANDLE SUBSCRIPTION (Monthly) ---
     const subscribe = async ({ planType, onSuccess, onError }: SubscriptionOptions) => {
-        if (isProcessing) return; // Prevent double-clicks
+        if (isProcessing) return;
         setIsProcessing(true);
 
+        // 1. Detect Currency
+        const detectedCurrency = getUserCurrency();
+        console.log(`📍 Detected User Currency: ${detectedCurrency}`);
+
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
         try {
             const headers = await getAuthHeaders();
             const user = auth.currentUser;
             const formData = new FormData();
             formData.append("plan_type", planType);
+            formData.append("currency", detectedCurrency); // <--- Send to Backend
 
             // A. Create Subscription
             const response = await fetch(`${API_BASE_URL}/api/v1/payment/create-subscription`, {
