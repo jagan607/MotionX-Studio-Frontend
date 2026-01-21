@@ -3,7 +3,7 @@
 import { User, Loader2, LogOut } from "lucide-react";
 
 interface SettingsTabProps {
-    user: any; // In a strict setup, use User from firebase/auth
+    user: any;
     displayName: string;
     setDisplayName: (value: string) => void;
     handleUpdateProfile: () => void;
@@ -25,13 +25,13 @@ export default function SettingsTab({
         card: {
             backgroundColor: '#0A0A0A',
             border: '1px solid #222',
-            padding: '30px',
-            marginTop: '30px',
+            padding: '24px', // Compact padding
+            marginTop: '20px', // Compact margin
             position: 'relative' as const
         },
         sectionTitle: {
             fontFamily: 'Anton, sans-serif',
-            fontSize: '24px',
+            fontSize: '20px', // Reduced font size
             textTransform: 'uppercase' as const,
             marginBottom: '20px',
             color: '#EDEDED'
@@ -42,31 +42,31 @@ export default function SettingsTab({
         label: {
             display: 'block',
             fontFamily: 'monospace',
-            fontSize: '10px',
+            fontSize: '9px', // Smaller label
             color: '#666',
-            marginBottom: '8px',
+            marginBottom: '6px',
             textTransform: 'uppercase' as const
         },
         input: {
             width: '100%',
             backgroundColor: '#050505',
             border: '1px solid #333',
-            padding: '12px',
+            padding: '10px 12px', // Tighter padding
             color: 'white',
             fontFamily: 'monospace',
-            fontSize: '14px',
+            fontSize: '12px', // Smaller input font
             outline: 'none',
             transition: 'border-color 0.2s'
         },
         saveBtn: {
             backgroundColor: '#FFF',
             color: '#000',
-            padding: '12px 24px',
+            padding: '10px 20px',
             border: 'none',
             fontWeight: 'bold' as const,
             cursor: isSaving ? 'not-allowed' : 'pointer',
-            marginTop: '10px',
-            fontSize: '12px',
+            marginTop: '5px',
+            fontSize: '11px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
@@ -74,18 +74,18 @@ export default function SettingsTab({
             opacity: isSaving ? 0.7 : 1
         },
         dangerBtn: {
-            border: '1px solid #330000',
-            color: '#FF0000',
+            border: '1px solid #333', // Milder border (was #330000)
+            color: '#EF4444', // Softer Red
             backgroundColor: 'transparent',
-            padding: '12px 24px',
-            fontSize: '12px',
+            padding: '10px 20px',
+            fontSize: '11px',
             fontWeight: 'bold' as const,
             fontFamily: 'monospace',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            transition: 'background-color 0.2s'
+            transition: 'all 0.2s'
         }
     };
 
@@ -138,9 +138,11 @@ export default function SettingsTab({
             </div>
 
             {/* DANGER ZONE CARD */}
-            <div style={{ ...styles.card, borderColor: '#330000' }}>
-                <h2 style={{ ...styles.sectionTitle, color: '#FF0000' }}>Danger Zone</h2>
-                <p className="text-xs text-gray-500 font-mono mb-4">
+            {/* Removed the red border color to "mild" it down */}
+            <div style={styles.card}>
+                {/* Kept title red but slightly softer hue or kept standard red */}
+                <h2 style={{ ...styles.sectionTitle, color: '#EF4444' }}>Danger Zone</h2>
+                <p className="text-[10px] text-gray-500 font-mono mb-4">
                     TERMINATING YOUR SESSION WILL REQUIRE RE-AUTHENTICATION.
                 </p>
                 <button
