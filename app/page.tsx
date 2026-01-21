@@ -1,31 +1,39 @@
 "use client";
 import Link from "next/link";
-import { ChevronRight, Check, X } from "lucide-react";
+import { ChevronRight, Check } from "lucide-react";
 
 // --- HELPER COMPONENT FOR LANDING PAGE ---
 const CompactPricingCard = ({ title, price, features, isPopular = false }: { title: string, price: string, features: string[], isPopular?: boolean }) => (
-  <div style={{
-    border: isPopular ? '1px solid #FF0000' : '1px solid #222',
-    backgroundColor: isPopular ? 'rgba(255,0,0,0.05)' : '#0A0A0A',
-    padding: '30px',
-    textAlign: 'left',
-    position: 'relative'
-  }}>
-    {isPopular && (
-      <div style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#FF0000', color: 'black', fontSize: '9px', fontWeight: 'bold', padding: '2px 8px', fontFamily: 'monospace' }}>
-        RECOMMENDED
-      </div>
-    )}
-    <h3 style={{ fontFamily: 'Anton', fontSize: '24px', textTransform: 'uppercase', marginBottom: '10px' }}>{title}</h3>
-    <div style={{ fontSize: '32px', fontFamily: 'monospace', fontWeight: 'bold', marginBottom: '20px' }}>{price}</div>
-    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-      {features.map((f, i) => (
-        <li key={i} style={{ fontSize: '12px', color: '#888', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Check size={12} color="#FF0000" /> {f}
-        </li>
-      ))}
-    </ul>
-  </div>
+  <Link href="/pricing" style={{ textDecoration: 'none', display: 'block' }}>
+    <div style={{
+      border: isPopular ? '1px solid #FF0000' : '1px solid #222',
+      backgroundColor: isPopular ? 'rgba(255,0,0,0.05)' : '#0A0A0A',
+      padding: '30px',
+      textAlign: 'left',
+      position: 'relative',
+      cursor: 'pointer', // Indicates clickability
+      transition: 'all 0.3s ease', // Smooth hover transition
+    }}
+      // Inline hover styles are tricky in React, usually done via CSS classes or styled-components.
+      // For this pasteable snippet, I'm adding a class "pricing-card" and handling hover in the <style jsx> block below.
+      className="pricing-card"
+    >
+      {isPopular && (
+        <div style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#FF0000', color: 'black', fontSize: '9px', fontWeight: 'bold', padding: '2px 8px', fontFamily: 'monospace' }}>
+          RECOMMENDED
+        </div>
+      )}
+      <h3 style={{ fontFamily: 'Anton', fontSize: '24px', textTransform: 'uppercase', marginBottom: '10px', color: '#FFF' }}>{title}</h3>
+      <div style={{ fontSize: '32px', fontFamily: 'monospace', fontWeight: 'bold', marginBottom: '20px', color: '#FFF' }}>{price}</div>
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        {features.map((f, i) => (
+          <li key={i} style={{ fontSize: '12px', color: '#888', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Check size={12} color="#FF0000" /> {f}
+          </li>
+        ))}
+      </ul>
+    </div>
+  </Link>
 );
 
 export default function LandingPage() {
@@ -52,6 +60,13 @@ export default function LandingPage() {
         .pricing-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-top: 60px; }
         .nav-link { color: #888; text-decoration: none; font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; transition: color 0.3s; }
         .nav-link:hover { color: #FFF; }
+
+        /* Pricing Card Hover Effect */
+        .pricing-card:hover {
+          transform: translateY(-5px);
+          border-color: #FF0000 !important;
+          box-shadow: 0 10px 30px rgba(255, 0, 0, 0.1);
+        }
 
         @media (min-width: 768px) {
           .nav-container { padding: 24px 40px; }
