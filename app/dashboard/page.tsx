@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Tv, ChevronRight, Loader2, Film, Trash2 } from "lucide-react";
@@ -11,11 +12,10 @@ import { DashboardTour } from "@/components/DashboardTour";
 import { useDashboardTour } from "@/hooks/useDashboardTour";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { toastError } from "@/lib/toast";
-import { Toaster } from "react-hot-toast";
 
 export default function Dashboard() {
     const [seriesList, setSeriesList] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [authLoading, setAuthLoading] = useState(true); // Default to TRUE to block render
     const router = useRouter();
 
     // TOUR HOOK
@@ -25,24 +25,32 @@ export default function Dashboard() {
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // Fetch Data
+    // --- AUTH & DATA FETCH ---
     useEffect(() => {
-        async function fetchUserScopedSeries() {
-            if (!auth.currentUser) return;
-            setLoading(true);
-            try {
-                const seriesRef = collection(db, "series");
-                const q = query(seriesRef, where("owner_id", "==", auth.currentUser.uid));
-                const querySnapshot = await getDocs(q);
-                setSeriesList(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            } catch (e) {
-                console.error("Fetch failed:", e);
-            } finally {
-                setLoading(false);
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // 1. User is confirmed. Fetch Data.
+                try {
+                    const seriesRef = collection(db, "series");
+                    const q = query(seriesRef, where("owner_id", "==", user.uid));
+                    const querySnapshot = await getDocs(q);
+                    setSeriesList(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                } catch (e) {
+                    console.error("Fetch failed:", e);
+                } finally {
+                    // 2. Only NOW do we reveal the dashboard
+                    setAuthLoading(false);
+                }
+            } else {
+                // 3. No User. Redirect.
+                // CRITICAL: We DO NOT setAuthLoading(false). 
+                // We keep the loader on screen until the page fully unmounts.
+                router.replace("/login");
             }
-        }
-        fetchUserScopedSeries();
-    }, []);
+        });
+
+        return () => unsubscribe();
+    }, [router]);
 
     // DELETE LOGIC
     const confirmDeleteRequest = (e: React.MouseEvent, seriesId: string) => {
@@ -84,10 +92,9 @@ export default function Dashboard() {
             backgroundColor: '#030303',
             color: '#EDEDED',
             fontFamily: 'Inter, sans-serif',
-            padding: '40px 80px', // Reduced top padding since header is gone
+            padding: '40px 80px',
             backgroundImage: 'radial-gradient(circle at 50% 50%, #111 0%, #030303 80%)',
         },
-        // Grid & Cards
         grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '30px', marginTop: '40px' },
         card: {
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
@@ -100,6 +107,17 @@ export default function Dashboard() {
         deleteBtn: { position: 'absolute' as const, bottom: '20px', right: '20px', background: 'transparent', border: 'none', color: '#444', cursor: 'pointer', zIndex: 10, transition: 'color 0.2s' }
     };
 
+    // --- STRICT AUTH GUARD ---
+    // This ensures NO dashboard content is rendered until auth is 100% confirmed.
+    if (authLoading) {
+        return (
+            <div style={{ minHeight: '100vh', backgroundColor: '#030303', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444', flexDirection: 'column', gap: '15px' }}>
+                <Loader2 className="animate-spin" size={40} />
+                <p style={{ fontFamily: 'monospace', fontSize: '12px', letterSpacing: '2px' }}>AUTHENTICATING...</p>
+            </div>
+        );
+    }
+
     return (
         <main style={styles.container}>
             <style>{`
@@ -109,15 +127,7 @@ export default function Dashboard() {
                 .delete-btn:hover { color: #FF0000 !important; }
             `}</style>
 
-            {/* REMOVED DUPLICATE HEADER SECTION HERE */}
-
-            {/* CONTENT GRID */}
-            {loading ? (
-                <div style={{ height: '50vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#444' }}>
-                    <Loader2 className="animate-spin mb-4" />
-                    <p style={{ fontFamily: 'monospace', fontSize: '12px' }}>ACCESSING MAINFRAME...</p>
-                </div>
-            ) : seriesList.length === 0 ? (
+            {seriesList.length === 0 ? (
                 <div style={{ border: '1px dashed #333', padding: '100px', textAlign: 'center', color: '#444', marginTop: '50px' }}>
                     <Film size={48} style={{ marginBottom: '20px', opacity: 0.5 }} />
                     <h3 style={{ fontSize: '24px', fontFamily: 'Anton', textTransform: 'uppercase' }}>No Active Data</h3>
@@ -140,7 +150,6 @@ export default function Dashboard() {
                                     ACCESS DATA <ChevronRight size={10} />
                                 </div>
 
-                                {/* DELETE BUTTON */}
                                 <button
                                     className="delete-btn"
                                     onClick={(e) => confirmDeleteRequest(e, series.id)}
@@ -155,14 +164,12 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* TOUR GUIDE */}
             <DashboardTour
                 step={tourStep}
                 onNext={nextStep}
                 onComplete={completeTour}
             />
 
-            {/* DELETE CONFIRMATION MODAL */}
             {deleteId && (
                 <DeleteConfirmModal
                     title="DELETE SERIES?"

@@ -1,10 +1,35 @@
 "use client";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Check, X } from "lucide-react";
+
+// --- HELPER COMPONENT FOR LANDING PAGE ---
+const CompactPricingCard = ({ title, price, features, isPopular = false }: { title: string, price: string, features: string[], isPopular?: boolean }) => (
+  <div style={{
+    border: isPopular ? '1px solid #FF0000' : '1px solid #222',
+    backgroundColor: isPopular ? 'rgba(255,0,0,0.05)' : '#0A0A0A',
+    padding: '30px',
+    textAlign: 'left',
+    position: 'relative'
+  }}>
+    {isPopular && (
+      <div style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#FF0000', color: 'black', fontSize: '9px', fontWeight: 'bold', padding: '2px 8px', fontFamily: 'monospace' }}>
+        RECOMMENDED
+      </div>
+    )}
+    <h3 style={{ fontFamily: 'Anton', fontSize: '24px', textTransform: 'uppercase', marginBottom: '10px' }}>{title}</h3>
+    <div style={{ fontSize: '32px', fontFamily: 'monospace', fontWeight: 'bold', marginBottom: '20px' }}>{price}</div>
+    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+      {features.map((f, i) => (
+        <li key={i} style={{ fontSize: '12px', color: '#888', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Check size={12} color="#FF0000" /> {f}
+        </li>
+      ))}
+    </ul>
+  </div>
+);
 
 export default function LandingPage() {
 
-  // --- ASSETS ---
   const castingImages = [
     "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-1%20(1).png?alt=media&token=4125c260-6236-49d0-abb5-d06b20278eb0",
     "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-3%20(2).png?alt=media&token=07a27ac4-8a69-4d8d-bcde-f6a079eb5f4d",
@@ -15,29 +40,29 @@ export default function LandingPage() {
   return (
     <main style={{ backgroundColor: '#050505', minHeight: '100vh', color: 'white', fontFamily: 'Inter, sans-serif', overflowX: 'hidden' }}>
 
-      {/* --- RESPONSIVE CSS OVERRIDES --- */}
-      {/* This block handles the mobile-to-desktop switching logic */}
       <style jsx>{`
-        /* 1. Base Mobile Styles (Default) */
         .nav-container { padding: 20px; }
         .hero-title { font-size: 48px; line-height: 1; }
         .section-padding { padding: 80px 20px; }
-        .grid-split { display: grid; grid-template-columns: 1fr; gap: 40px; } /* Stacked on mobile */
+        .grid-split { display: grid; grid-template-columns: 1fr; gap: 40px; } 
         .flex-between { display: flex; flex-direction: column; gap: 20px; }
         .hide-mobile { display: none; }
         .show-mobile { display: inline; }
         .script-box { border-left: 2px solid #FF0000; border-top: none; }
-        
-        /* 2. Desktop Overrides (min-width: 768px) */
+        .pricing-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-top: 60px; }
+        .nav-link { color: #888; text-decoration: none; font-size: 12px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; transition: color 0.3s; }
+        .nav-link:hover { color: #FFF; }
+
         @media (min-width: 768px) {
           .nav-container { padding: 24px 40px; }
           .hero-title { font-size: 120px; line-height: 0.9; }
           .section-padding { padding: 100px 40px; }
-          .grid-split { grid-template-columns: 1fr 1fr; gap: 60px; } /* Side-by-side on desktop */
+          .grid-split { grid-template-columns: 1fr 1fr; gap: 60px; } 
           .flex-between { flex-direction: row; justify-content: space-between; align-items: flex-end; }
           .hide-mobile { display: inline; }
           .show-mobile { display: none; }
           .script-box { border-left: 2px solid #FF0000; border-top: none; }
+          .pricing-grid { grid-template-columns: 1fr 1fr 1fr; }
         }
       `}</style>
 
@@ -47,12 +72,16 @@ export default function LandingPage() {
           <div style={{ backgroundColor: '#FF0000', color: 'black', padding: '4px 8px', fontFamily: 'Anton', fontSize: '18px' }}>MX</div>
           <div><h1 style={{ fontFamily: 'Anton', fontSize: '20px', lineHeight: 1, textTransform: 'uppercase' }}>Motion X</h1></div>
         </div>
-        <Link href="/login" style={{ textDecoration: 'none' }}>
-          <button style={{ backgroundColor: 'white', color: 'black', border: 'none', padding: '10px 20px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="hide-mobile">Initialize Studio</span>
-            <span className="show-mobile">Login</span> <ChevronRight size={14} />
-          </button>
-        </Link>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
+          <Link href="/pricing" className="nav-link hide-mobile">Pricing</Link>
+          <Link href="/login" style={{ textDecoration: 'none' }}>
+            <button style={{ backgroundColor: 'white', color: 'black', border: 'none', padding: '10px 20px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="hide-mobile">Initialize Studio</span>
+              <span className="show-mobile">Login</span> <ChevronRight size={14} />
+            </button>
+          </Link>
+        </div>
       </nav>
 
       {/* 2. HERO SECTION */}
@@ -66,7 +95,6 @@ export default function LandingPage() {
           <div style={{ marginBottom: '20px', display: 'inline-block', border: '1px solid rgba(255,255,255,0.2)', padding: '6px 12px', borderRadius: '20px', backgroundColor: 'rgba(0,0,0,0.5)' }}>
             <span style={{ fontSize: '10px', color: '#AAA', letterSpacing: '3px', fontWeight: 'bold', textTransform: 'uppercase' }}>/// SYSTEM ONLINE: V1.0</span>
           </div>
-          {/* Responsive Font Size Class used here */}
           <h1 className="hero-title" style={{ fontFamily: 'Anton', textTransform: 'uppercase', marginBottom: '30px', textShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
             Direct <br /> <span style={{ color: '#888' }}>AI Cinema</span>
           </h1>
@@ -99,7 +127,6 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* The Grid of Faces */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px' }}>
           {castingImages.map((src, i) => (
             <div key={i} style={{ aspectRatio: '1/1', backgroundColor: '#111', border: '1px solid #333', position: 'relative', overflow: 'hidden' }}>
@@ -117,9 +144,7 @@ export default function LandingPage() {
         <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#FF0000', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '20px', display: 'block' }}>/// MODULE 02: AUTO-DIRECTOR</span>
         <h2 style={{ fontFamily: 'Anton', fontSize: '48px', textTransform: 'uppercase', lineHeight: 0.9 }}>Script to Screen</h2>
 
-        {/* RESPONSIVE GRID (Stacked on Mobile, Side-by-Side Desktop) */}
         <div className="grid-split" style={{ marginTop: '60px' }}>
-          {/* Left: The Script */}
           <div className="script-box" style={{ backgroundColor: '#0A0A0A', padding: '40px' }}>
             <h3 style={{ fontFamily: 'monospace', color: '#666', marginBottom: '20px' }}>INPUT: RAW_SCRIPT.TXT</h3>
             <p style={{ fontFamily: 'Courier New', fontSize: '14px', lineHeight: 1.8, color: '#DDD' }}>
@@ -129,7 +154,6 @@ export default function LandingPage() {
               Red neon lights reflect in the puddles.
             </p>
           </div>
-          {/* Right: The Visual */}
           <div style={{ aspectRatio: '16/9', backgroundColor: '#000', border: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
             <video
               autoPlay loop muted playsInline
@@ -140,51 +164,28 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 6. PRICING / COMING SOON SECTION */}
+      {/* 6. PRICING SECTION (NEW) */}
       <section className="section-padding" style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
         <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#FF0000', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '20px', display: 'block' }}>/// PRODUCTION ECONOMY</span>
         <h2 style={{ fontFamily: 'Anton', fontSize: '48px', textTransform: 'uppercase', lineHeight: 0.9 }}>Membership Access</h2>
 
-        <div style={{
-          marginTop: '60px',
-          border: '1px solid #222',
-          backgroundColor: '#0A0A0A',
-          padding: '80px 20px', // Less padding on mobile
-          position: 'relative',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111)', backgroundSize: '20px 20px', opacity: 0.1 }} />
-
-          <div style={{ position: 'relative', zIndex: 10, maxWidth: '600px', width: '100%' }}>
-            <div style={{ display: 'inline-block', padding: '8px 16px', border: '1px solid #FF0000', color: '#FF0000', fontSize: '10px', fontFamily: 'monospace', letterSpacing: '2px', marginBottom: '30px', backgroundColor: 'rgba(255, 0, 0, 0.1)' }}>
-              SYSTEM STATUS: INITIALIZING PRICING MODULE
-            </div>
-
-            <h3 style={{ fontFamily: 'Anton', fontSize: '32px', color: '#FFF', marginBottom: '20px', textTransform: 'uppercase' }}>
-              Public Access Opening Soon
-            </h3>
-
-            <p style={{ color: '#888', fontSize: '14px', lineHeight: 1.6, marginBottom: '40px' }}>
-              We are currently onboarding studios and independent creators in waves to ensure GPU stability.
-            </p>
-
-            <div style={{ width: '100%', height: '4px', backgroundColor: '#222', marginBottom: '15px', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '75%', backgroundColor: '#FF0000', boxShadow: '0 0 10px #FF0000' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '10px', fontFamily: 'monospace', color: '#666' }}>
-              <span>LOADING_ASSETS...</span>
-              <span>75% COMPLETE</span>
-            </div>
-
-            <div className="flex-between" style={{ marginTop: '50px', gap: '10px' }}>
-              <input type="email" placeholder="ENTER EMAIL FOR EARLY ACCESS" style={{ backgroundColor: '#111', border: '1px solid #333', padding: '15px', color: 'white', fontSize: '12px', width: '100%', outline: 'none', fontFamily: 'monospace' }} />
-              <button style={{ backgroundColor: '#FFF', color: 'black', border: 'none', padding: '15px 30px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', fontFamily: 'monospace', width: '100%' }}>NOTIFY ME</button>
-            </div>
-          </div>
+        <div className="pricing-grid">
+          <CompactPricingCard
+            title="Starter"
+            price="$20"
+            features={["50 Images OR 16 Videos", "5 GB Cloud Storage", "Public Gallery"]}
+          />
+          <CompactPricingCard
+            title="Pro"
+            price="$40"
+            features={["100 Images OR 34 Videos", "Commercial License", "Private Mode"]}
+            isPopular={true}
+          />
+          <CompactPricingCard
+            title="Agency"
+            price="$80"
+            features={["200 Images OR 67 Videos", "Turbo Queue", "3 Operator Seats"]}
+          />
         </div>
       </section>
 
