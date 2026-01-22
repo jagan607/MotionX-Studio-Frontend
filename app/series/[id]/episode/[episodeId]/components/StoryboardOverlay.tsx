@@ -34,7 +34,7 @@ interface StoryboardOverlayProps {
         handleAddShot: (scene: any) => void;
         handleDragEnd: (event: any) => void;
         loadingShots: Set<string>;
-        handleRenderShot: (shot: any, scene: any) => void;
+        handleRenderShot: (shot: any, scene: any, referenceFile?: File | null) => void;
         updateShot: (id: string, field: string, value: any) => void;
         handleAnimateShot: (shot: any) => void;
         terminalLog: string[];
@@ -301,7 +301,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     castMembers={castMembers}
                                     locations={locations}
                                     onUpdateShot={shotMgr.updateShot}
-                                    onRender={() => shotMgr.handleRenderShot(shot, currentScene)}
+                                    onRender={(referenceFile?: File | null) => shotMgr.handleRenderShot(shot, currentScene, referenceFile)}
                                     onAnimate={() => shotMgr.handleAnimateShot(shot)}
                                     isRendering={shotMgr.loadingShots.has(shot.id)}
                                 >

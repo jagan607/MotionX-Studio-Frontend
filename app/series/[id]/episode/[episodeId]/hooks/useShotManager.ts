@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { collection, onSnapshot, doc, setDoc, writeBatch, deleteDoc } from "firebase/firestore";
-import { ref, deleteObject } from "firebase/storage";
+import { collection, onSnapshot, doc, setDoc, writeBatch, deleteDoc, getDoc } from "firebase/firestore";
+import { ref, deleteObject, getStorage } from "firebase/storage";
 import { db, auth, storage } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
 import { toastError } from "@/lib/toast";
@@ -293,18 +293,47 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         cancelGenerationRef.current = false;
     };
 
-    const handleRenderShot = async (shot: any, currentScene: any) => {
+    const handleRenderShot = async (shot: any, currentScene: any, referenceFile?: File | null) => {
         addLoadingShot(shot.id);
+        //appeend series genre and style to the shot prompt
+        let style = ""
+        try {
+            // 1. Reference the document in the 'series' collection
+            const seriesRef = doc(db, "series", seriesId);
+
+            // 2. Fetch the document
+            const seriesSnap = await getDoc(seriesRef);
+
+            if (seriesSnap.exists()) {
+                const data = seriesSnap.data() || {};
+
+                // 3. Access the 'style' field (e.g., "realistic")
+                style = data.style;
+                console.log("Series Style:", style);
+
+            } else {
+                console.log("No such series found!");
+                return null;
+            }
+        } catch (error) {
+            console.error("Error fetching style:", error);
+        }
+
+
         const formData = new FormData();
         formData.append("series_id", seriesId);
         formData.append("episode_id", episodeId);
         formData.append("scene_id", activeSceneId!);
         formData.append("shot_id", shot.id);
-        formData.append("shot_prompt", shot.visual_action || "");
+        formData.append("shot_prompt", shot.visual_action + " " + style || "");
         formData.append("shot_type", shot.shot_type || "Wide Shot");
         formData.append("characters", Array.isArray(shot.characters) ? shot.characters.join(",") : "");
         formData.append("location", shot.location || "");
         formData.append("aspect_ratio", aspectRatio);
+
+        if (referenceFile) {
+            formData.append("reference_image", referenceFile);
+        }
 
         try {
             const idToken = await auth.currentUser?.getIdToken();
@@ -315,6 +344,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             });
         } catch (e) {
             console.error(e);
+            // toastError(e.message || "Failed to render shot");
         } finally {
             removeLoadingShot(shot.id);
         }

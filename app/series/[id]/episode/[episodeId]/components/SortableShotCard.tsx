@@ -2,7 +2,8 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Sparkles, Film, RefreshCw, ChevronDown } from "lucide-react";
+import { GripVertical, Trash2, Sparkles, Film, RefreshCw, ChevronDown, ImagePlus, X } from "lucide-react";
+import { useState, useRef } from 'react';
 
 // --- 1. TYPE SAFETY: Explicit Interfaces ---
 interface CastMember {
@@ -36,7 +37,7 @@ interface SortableShotCardProps {
     locations: Location[];
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
     // --- ACTION PROPS ---
-    onRender: () => void;
+    onRender: (referenceFile?: File | null) => void;
     onAnimate: () => void;
     isRendering: boolean;
     children: React.ReactNode;
@@ -80,6 +81,24 @@ export const SortableShotCard = ({
             : [...current, charName];
 
         onUpdateShot(shot.id, "characters", updated);
+    };
+
+    const [refFile, setRefFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setRefFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
+
+    const clearFile = () => {
+        setRefFile(null);
+        setPreviewUrl(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     // Derived States
@@ -236,13 +255,63 @@ export const SortableShotCard = ({
 
             {/* 5. PROMPTS */}
             <div style={{ marginBottom: '12px' }}>
-                <label style={labelStyle}>IMAGE PROMPT</label>
+                {/* --- UPDATE: Header with Upload Button --- */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ ...labelStyle, marginBottom: 0 }}>IMAGE PROMPT</label>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileSelect}
+                            style={{ display: 'none' }}
+                            accept="image/*"
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            style={{
+                                background: 'none', border: 'none', color: refFile ? '#00FF41' : '#666',
+                                cursor: 'pointer', fontSize: '9px', display: 'flex', alignItems: 'center', gap: '4px',
+                                fontWeight: 'bold', textTransform: 'uppercase'
+                            }}
+                            title="Upload Reference Image for Composition"
+                        >
+                            <ImagePlus size={10} /> {refFile ? "REF LOADED" : "ADD COMPOSITION REF"}
+                        </button>
+                    </div>
+                </div>
+
                 <textarea
                     style={{ ...commonInputStyle, minHeight: '60px', resize: 'vertical' }}
                     value={shot.visual_action || ""}
                     onChange={(e) => onUpdateShot(shot.id, "visual_action", e.target.value)}
                     placeholder="Visual description..."
                 />
+
+                {/* --- REFERENCE IMAGE PREVIEW (IF UPLOADED) --- */}
+                {previewUrl && (
+                    <div style={{
+                        marginTop: '8px',
+                        padding: '8px',
+                        backgroundColor: '#111',
+                        border: '1px dashed #333',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderRadius: '4px'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <img src={previewUrl} alt="Ref" style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '2px' }} />
+                            <div>
+                                <div style={{ fontSize: '9px', color: '#fff', fontWeight: 'bold', textTransform: 'uppercase' }}>Composition Ref</div>
+                                <div style={{ fontSize: '9px', color: '#666' }}>Using camera angle & framing</div>
+                            </div>
+                        </div>
+                        <button onClick={clearFile} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}>
+                            <X size={12} />
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div style={{ marginBottom: '15px' }}>
@@ -260,7 +329,7 @@ export const SortableShotCard = ({
 
                 {/* BUTTON 1: REGENERATE IMAGE */}
                 <button
-                    onClick={onRender}
+                    onClick={() => onRender(refFile)}
                     disabled={isBusy} // Locked if Image Rendering OR Video Animating
                     style={{
                         flex: 1,
