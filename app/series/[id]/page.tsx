@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Toaster } from "react-hot-toast";
 import {
-  ArrowLeft, Plus, Loader2, X, Upload, Trash2, FileText, CheckCircle
+  ArrowLeft, Plus, Loader2, X, Upload, Trash2, FileText,
+  Terminal, Sparkles, Disc, Cpu, FileEdit, FileCode
 } from "lucide-react";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, deleteDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
 import { checkJobStatus } from "@/lib/api";
@@ -17,41 +18,56 @@ import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { SeriesTour } from "@/components/SeriesTour";
 import { useSeriesTour } from "@/hooks/useSeriesTour";
 
+type InputMethod = 'upload' | 'paste' | 'synopsis';
+
 export default function SeriesDetail() {
   const params = useParams();
   const seriesId = params.id as string;
-
-  // --- TOUR & DATA STATE ---
   const { tourStep, completeTour } = useSeriesTour();
+
+  // Data State
   const [seriesData, setSeriesData] = useState<any>(null);
   const [episodes, setEpisodes] = useState<any[]>([]);
+  const [drafts, setDrafts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // --- UPLOAD STATE ---
+  // Ingest State
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [newEpTitle, setNewEpTitle] = useState("");
+  const [inputMethod, setInputMethod] = useState<InputMethod>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [pastedScript, setPastedScript] = useState("");
+  const [synopsisText, setSynopsisText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- DELETE STATE ---
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteType, setDeleteType] = useState<'episode' | 'draft' | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // 1. FETCH DATA
+  // 1. FETCH DATA (Episodes AND Drafts)
   useEffect(() => {
     async function fetchData() {
       if (!seriesId) return;
       try {
+        // Series Info
         const docRef = doc(db, "series", seriesId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) setSeriesData(docSnap.data());
 
+        // Fetch Episodes
         const epRef = collection(db, "series", seriesId, "episodes");
         const epSnap = await getDocs(epRef);
         const sortedEps = epSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setEpisodes(sortedEps);
+        setEpisodes(sortedEps.sort((a, b) => (a.title > b.title ? 1 : -1)));
+
+        // Fetch Drafts
+        const draftRef = collection(db, "series", seriesId, "drafts");
+        const draftSnap = await getDocs(draftRef);
+        const sortedDrafts = draftSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setDrafts(sortedDrafts);
+
       } catch (e) {
         console.error(e);
       } finally {
@@ -61,37 +77,44 @@ export default function SeriesDetail() {
     fetchData();
   }, [seriesId]);
 
-  // 2. FILE HANDLING
-  const handleRemoveFile = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent triggering the file input click
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
+    if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
   };
 
-  // 3. CREATE EPISODE
-  const handleCreateEpisode = async () => {
-    if (!newEpTitle || !selectedFile) return toastError("REQ: TITLE & FILE");
+  // 3. EXECUTE PROTOCOL (ROBUST NAVIGATION FIX)
+  const handleExecuteProtocol = async () => {
+    if (!newEpTitle) return toastError("PROTOCOL ERROR: MISSING IDENTIFIER");
+
+    const formData = new FormData();
+    formData.append("series_id", seriesId);
+    formData.append("episode_title", newEpTitle);
+
+    if (inputMethod === 'upload') {
+      if (!selectedFile) return toastError("PROTOCOL ERROR: NO SOURCE FILE");
+      formData.append("file", selectedFile);
+    }
+    else if (inputMethod === 'paste') {
+      if (!pastedScript.trim()) return toastError("PROTOCOL ERROR: EMPTY BUFFER");
+      const blob = new Blob([pastedScript], { type: "text/plain" });
+      const file = new File([blob], "terminal_paste.txt", { type: "text/plain" });
+      formData.append("file", file);
+    }
+    else if (inputMethod === 'synopsis') {
+      if (!synopsisText.trim()) return toastError("PROTOCOL ERROR: EMPTY SYNOPSIS");
+      const content = `[TYPE: SYNOPSIS/TREATMENT]\n\n${synopsisText}`;
+      const blob = new Blob([content], { type: "text/plain" });
+      const file = new File([blob], "synopsis.txt", { type: "text/plain" });
+      formData.append("file", file);
+    }
+
     setIsUploading(true);
-    setUploadStatus("Starting upload...");
+    setUploadStatus("INITIALIZING UPLINK...");
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
 
     try {
       const idToken = await auth.currentUser?.getIdToken();
-      const formData = new FormData();
-      formData.append("series_id", seriesId);
-      formData.append("episode_title", newEpTitle);
-      formData.append("file", selectedFile);
-
       const res = await fetch(`${API_BASE_URL}/api/v1/script/upload-episode`, {
         method: "POST",
         headers: { Authorization: `Bearer ${idToken}` },
@@ -100,57 +123,65 @@ export default function SeriesDetail() {
       });
 
       clearTimeout(timeoutId);
-
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Upload failed");
+      if (!res.ok) throw new Error(data.detail || "Ingest failed");
 
       const jobId = data.job_id;
-      setUploadStatus("Queued...");
+      setUploadStatus(inputMethod === 'synopsis' ? "AI GENERATING SCRIPT..." : "PARSING DATA STREAM...");
 
       const pollInterval = setInterval(async () => {
         const jobData = await checkJobStatus(jobId);
-        if (jobData.progress) setUploadStatus(jobData.progress);
+
+        if (jobData.progress) {
+          // Only update if not completed to avoid re-render flicker
+          if (jobData.status !== "completed") setUploadStatus(jobData.progress.toUpperCase());
+        }
 
         if (jobData.status === "completed") {
           clearInterval(pollInterval);
-          setIsUploading(false);
-          setUploadStatus("Complete!");
-          setIsUploadModalOpen(false);
-          window.location.reload();
+
+          if (jobData.redirect_url) {
+            // --- CRITICAL FIX: FORCE HARD REDIRECT ---
+            // Using window.location forces the browser to jump, bypassing React state issues
+            window.location.href = jobData.redirect_url;
+          } else {
+            toastError("SYSTEM ERROR: Missing Redirect Coordinates");
+            setIsUploading(false);
+          }
         } else if (jobData.status === "failed") {
           clearInterval(pollInterval);
           setIsUploading(false);
-          toastError(`Error: ${jobData.error}`);
+          toastError(`ERROR: ${jobData.error}`);
         }
       }, 2000);
 
     } catch (error: any) {
       clearTimeout(timeoutId);
-      console.error(error);
       setIsUploading(false);
-      toastError(error.message || "Upload failed");
+      toastError(error.message || "Execution Failed");
     }
   };
 
-  // 4. DELETE EPISODE
+  // --- DELETE HANDLER ---
   const performDelete = async () => {
     if (!deleteId) return;
     setIsDeleting(true);
     try {
-      const idToken = await auth.currentUser?.getIdToken();
-      const res = await fetch(`${API_BASE_URL}/api/v1/script/episode/${seriesId}/${deleteId}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${idToken}` }
-      });
-
-      if (res.ok) {
-        setEpisodes(prev => prev.filter(ep => ep.id !== deleteId));
-        setDeleteId(null);
+      if (deleteType === 'draft') {
+        await deleteDoc(doc(db, "series", seriesId, "drafts", deleteId));
+        setDrafts(prev => prev.filter(d => d.id !== deleteId));
+        toastError("DRAFT TERMINATED");
       } else {
-        toastError("FAILED TO DELETE EPISODE");
+        const idToken = await auth.currentUser?.getIdToken();
+        await fetch(`${API_BASE_URL}/api/v1/script/episode/${seriesId}/${deleteId}`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${idToken}` }
+        });
+        setEpisodes(prev => prev.filter(ep => ep.id !== deleteId));
       }
+      setDeleteId(null);
+      setDeleteType(null);
     } catch (err) {
-      console.error(err);
       toastError("Network Error");
     } finally {
       setIsDeleting(false);
@@ -165,211 +196,169 @@ export default function SeriesDetail() {
     title: { fontFamily: 'Anton, sans-serif', fontSize: '80px', lineHeight: '0.9', textTransform: 'uppercase' as const, color: '#FFF', marginBottom: '10px' },
     metaRow: { display: 'flex', gap: '30px', fontSize: '11px', color: '#FF0000', fontFamily: 'monospace', textTransform: 'uppercase' as const },
     addButton: { backgroundColor: '#EDEDED', color: '#050505', border: 'none', padding: '15px 30px', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', textTransform: 'uppercase' as const, boxShadow: '0 0 20px rgba(255,255,255,0.1)' },
-    sectionTitle: { fontSize: '12px', color: '#666', fontWeight: 'bold' as const, letterSpacing: '4px', marginBottom: '20px', textTransform: 'uppercase' as const, paddingLeft: '2px' },
+    sectionTitle: { fontSize: '12px', color: '#666', fontWeight: 'bold' as const, letterSpacing: '4px', marginBottom: '20px', textTransform: 'uppercase' as const, paddingLeft: '2px', marginTop: '40px' },
     episodeGrid: { display: 'flex', flexDirection: 'column' as const, gap: '10px' },
-    episodeCard: {
-      backgroundColor: '#080808', border: '1px solid #1A1A1A', padding: '20px 40px',
+
+    // --- UPDATED DRAFT CARD (CYAN THEME) ---
+    draftCard: {
+      backgroundColor: 'rgba(6, 182, 212, 0.05)', // Subtle Blue/Cyan bg
+      border: '1px dashed #FFF',
+      padding: '20px 40px',
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      cursor: 'pointer', transition: 'all 0.2s', position: 'relative' as const
-    },
-    overlay: { position: 'fixed' as const, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 },
-    modal: { width: '500px', backgroundColor: '#0A0A0A', border: '1px solid #333', padding: '40px' },
-    modalTitle: { fontFamily: 'Anton, sans-serif', fontSize: '32px', textTransform: 'uppercase' as const, marginBottom: '30px', color: 'white' },
-    label: { fontSize: '10px', fontWeight: 'bold' as const, color: '#FF0000', letterSpacing: '2px', marginBottom: '10px', display: 'block' },
-    input: { width: '100%', backgroundColor: '#111', border: 'none', padding: '15px', color: 'white', fontSize: '16px', marginBottom: '30px', outline: 'none' },
-
-    // --- UPDATED FILE BOX STYLES ---
-    fileBox: {
-      border: '1px dashed #333',
-      padding: '30px',
-      display: 'flex',
-      flexDirection: 'column' as const,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '12px',
-      color: '#666',
-      cursor: 'pointer',
-      marginBottom: '30px',
-      transition: 'border-color 0.2s, background-color 0.2s',
-      backgroundColor: 'transparent'
-    },
-    fileBoxSelected: {
-      border: '1px solid #333', // Subtle border
-      backgroundColor: '#0C0C0C', // Dark background (No red)
-      padding: '20px',
-      marginBottom: '30px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between'
+      cursor: 'pointer', transition: 'all 0.2s',
+      marginBottom: '10px'
     },
 
-    confirmBtn: { width: '100%', padding: '20px', backgroundColor: '#FF0000', border: 'none', color: 'white', fontWeight: 'bold' as const, cursor: 'pointer', letterSpacing: '1px', display: 'flex', justifyContent: 'center', alignItems: 'center' },
-    statusText: { textAlign: 'center' as const, color: '#666', fontSize: '12px', marginTop: '15px', fontFamily: 'monospace', animation: 'pulse 1.5s infinite' }
+    episodeCard: { backgroundColor: '#080808', border: '1px solid #1A1A1A', padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: 'all 0.2s', position: 'relative' as const },
+    overlay: { position: 'fixed' as const, inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 },
+    deck: { width: '900px', height: '600px', backgroundColor: '#050505', border: '1px solid #333', display: 'flex', boxShadow: '0 0 100px rgba(0,0,0,0.8)', position: 'relative' as const, overflow: 'hidden' },
+    deckSidebar: { width: '260px', borderRight: '1px solid #222', padding: '30px', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between', backgroundColor: '#080808', zIndex: 20 },
+    deckContent: { flex: 1, padding: '40px', display: 'flex', flexDirection: 'column' as const, position: 'relative' as const, zIndex: 20, backgroundColor: 'rgba(5,5,5,0.95)' },
+    menuItem: (active: boolean) => ({ display: 'flex', alignItems: 'center', gap: '12px', padding: '15px', marginBottom: '8px', backgroundColor: active ? '#111' : 'transparent', border: active ? '1px solid #333' : '1px solid transparent', color: active ? '#FFF' : '#666', fontSize: '11px', fontWeight: 'bold' as const, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s', borderLeft: active ? '2px solid #FF0000' : '2px solid transparent' }),
+    input: { width: '100%', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', padding: '15px 0', color: 'white', fontSize: '24px', fontFamily: 'Anton', outline: 'none', marginBottom: '30px', textTransform: 'uppercase' as const },
+    textAreaTerm: { width: '100%', flex: 1, backgroundColor: '#090909', border: '1px solid #222', color: '#00FF41', fontFamily: 'monospace', fontSize: '12px', padding: '20px', outline: 'none', resize: 'none' as const, lineHeight: '1.6' },
+    textAreaSyn: { width: '100%', flex: 1, backgroundColor: '#090909', border: '1px solid #333', color: '#DDD', fontFamily: 'Inter, sans-serif', fontSize: '14px', padding: '20px', outline: 'none', resize: 'none' as const, lineHeight: '1.6' },
+    uploadBox: { flex: 1, border: '1px dashed #333', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', gap: '20px', color: '#444', cursor: 'pointer', backgroundColor: '#090909', transition: 'all 0.2s' },
+    executeBtn: { marginTop: '20px', width: '100%', padding: '20px', backgroundColor: '#FF0000', color: 'white', border: 'none', fontWeight: 'bold' as const, letterSpacing: '2px', fontSize: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }
   };
 
-  if (loading) return <div style={styles.container}>ACCESSING DATABASE...</div>;
-  if (!seriesData) return <div style={styles.container}>DATA CORRUPTED</div>;
+  if (loading) return <div style={styles.container}>INITIALIZING...</div>;
 
   return (
     <main style={styles.container}>
       <Toaster position="bottom-right" reverseOrder={false} />
-
       <style>{`
         .ep-card:hover { border-color: #FF0000 !important; background-color: #0E0E0E !important; transform: translateY(-2px); }
-        .delete-icon { color: #444 !important; opacity: 1 !important; transition: color 0.2s ease !important; }
-        .delete-icon:hover { color: #FF0000 !important; }
-        .file-box-hover:hover { border-color: #666 !important; background-color: #111 !important; }
-        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+        /* Cyan Hover Effect for Drafts */
+        .draft-card:hover { border-color: #FF0000 !important; background-color: rgba(6, 182, 212, 0.1) !important; transform: translateY(-2px); }
+        .menu-hover:hover { color: #FFF !important; background-color: #0c0c0c !important; }
+        .upload-hover:hover { border-color: #666 !important; background-color: #111 !important; }
+        .animate-scanline { background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(255,0,0,0.1) 50%, rgba(255,0,0,0.1)); background-size: 100% 4px; pointer-events: none; position: absolute; inset: 0; z-index: 10; opacity: 0.15; }
+        .glow-text { text-shadow: 0 0 10px rgba(255,0,0,0.5); }
       `}</style>
 
-      {/* --- BREADCRUMB --- */}
       <Link href="/dashboard" style={styles.backLink}> <ArrowLeft size={14} /> TERMINAL ROOT </Link>
-
-      {/* --- HEADER --- */}
       <div style={styles.header}>
         <div>
-          <h1 style={styles.title}>{seriesData.title}</h1>
+          <h1 style={styles.title}>{seriesData?.title}</h1>
           <div style={styles.metaRow}>
             <span>ID: {seriesData?.style?.toUpperCase() || 'UNK'}</span>
             <span>TYPE: {seriesData?.genre?.toUpperCase() || 'UNK'}</span>
           </div>
         </div>
-
-        <button
-          id="tour-series-new-ep"
-          style={styles.addButton}
-          onClick={() => setIsUploadModalOpen(true)}
-        >
-          <Plus size={20} strokeWidth={3} /> NEW EPISODE
+        <button style={styles.addButton} onClick={() => setIsUploadModalOpen(true)}>
+          <Plus size={20} /> NEW EPISODE
         </button>
       </div>
 
-      <div style={styles.sectionTitle}>// EPISODE_SEQUENCE</div>
-
-      {/* --- EPISODE LIST --- */}
-      <div style={styles.episodeGrid}>
-        {episodes.length === 0 ? (
-          <div style={{ padding: '40px', border: '1px dashed #222', textAlign: 'center', color: '#444' }}>
-            NO EPISODES FOUND.
-          </div>
-        ) : (
-          episodes.map((ep, i) => (
-            <Link key={ep.id} href={`/series/${seriesId}/episode/${ep.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div style={styles.episodeCard} className="ep-card">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-                  <div style={{ fontSize: '14px', fontFamily: 'monospace', color: '#333' }}>{(i + 1).toString().padStart(2, '0')}</div>
-                  <div>
-                    <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '20px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                      {ep.title}
-                    </h3>
-                    <p style={{ fontSize: '10px', color: '#666', fontFamily: 'monospace', marginTop: '5px' }}>
-                      SCENES: {ep.scene_count || 0} // STATUS: {ep.status?.toUpperCase() || 'READY'}
-                    </p>
+      {/* --- SECTION 1: WORKSPACE DRAFTS (Blue/Cyan) --- */}
+      {drafts.length > 0 && (
+        <>
+          <div style={{ ...styles.sectionTitle, color: '#FFFFFF' }}>// WORKSPACE_DRAFTS</div>
+          <div style={styles.episodeGrid}>
+            {drafts.map((draft) => (
+              <Link key={draft.id} href={`/series/${seriesId}/draft/${draft.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div style={styles.draftCard} className="draft-card">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
+                    <div style={{ fontSize: '14px', fontFamily: 'monospace', color: '#fff', fontWeight: 'bold' }}>WIP</div>
+                    <div>
+                      <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '20px', color: '#fff', textTransform: 'uppercase' }}>{draft.title}</h3>
+                      <div style={{ fontSize: '10px', color: '#888', marginTop: '5px', fontFamily: 'monospace' }}>
+                        SCENES: {draft.scenes?.length || 0} // STATUS: STAGING
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <FileCode size={18} color="#FF0000" />
+                    <button className="delete-icon" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteId(draft.id); setDeleteType('draft'); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                      <Trash2 size={18} color="#444" />
+                    </button>
                   </div>
                 </div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                  <FileText size={18} color="#333" />
-                  <button
-                    className="delete-icon"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setDeleteId(ep.id);
-                    }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-                    title="Delete Episode"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
+      {/* --- SECTION 2: FINALIZED EPISODES --- */}
+      <div style={styles.sectionTitle}>// EPISODE_SEQUENCE</div>
+      <div style={styles.episodeGrid}>
+        {episodes.map((ep, i) => (
+          <Link key={ep.id} href={`/series/${seriesId}/episode/${ep.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={styles.episodeCard} className="ep-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
+                <div style={{ fontSize: '14px', fontFamily: 'monospace', color: '#333' }}>{(i + 1).toString().padStart(2, '0')}</div>
+                <div><h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '20px' }}>{ep.title}</h3></div>
               </div>
-            </Link>
-          ))
-        )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <FileText size={18} color="#333" />
+                <button className="delete-icon" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteId(ep.id); setDeleteType('episode'); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={18} color="#444" /></button>
+              </div>
+            </div>
+          </Link>
+        ))}
+        {episodes.length === 0 && <div style={{ padding: '40px', border: '1px dashed #222', textAlign: 'center', color: '#444' }}>NO FINALIZED EPISODES</div>}
       </div>
 
-      {/* --- MODALS --- */}
+      {/* --- COMMAND DECK (MODAL) --- */}
       {isUploadModalOpen && (
         <div style={styles.overlay}>
-          <div style={styles.modal}>
+          <div style={styles.deck}>
+            <div className="animate-scanline" />
 
-            {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={styles.modalTitle}>Injest Protocol</h2>
-              {!isUploading && <X size={24} style={{ cursor: 'pointer', color: '#666' }} onClick={() => setIsUploadModalOpen(false)} />}
+            <div style={styles.deckSidebar}>
+              <div>
+                <div style={{ fontSize: '9px', color: '#444', fontWeight: 'bold', marginBottom: '20px', letterSpacing: '2px' }}>INPUT PROTOCOL</div>
+                <div style={styles.menuItem(inputMethod === 'upload')} onClick={() => setInputMethod('upload')} className="menu-hover"><Upload size={14} /> DATA UPLOAD</div>
+                <div style={styles.menuItem(inputMethod === 'paste')} onClick={() => setInputMethod('paste')} className="menu-hover"><Terminal size={14} /> TERMINAL PASTE</div>
+                <div style={styles.menuItem(inputMethod === 'synopsis')} onClick={() => setInputMethod('synopsis')} className="menu-hover"><Sparkles size={14} color={inputMethod === 'synopsis' ? '#FF0000' : '#666'} /> AI GENERATION</div>
+              </div>
+              <div onClick={() => setIsUploadModalOpen(false)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', color: '#666', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' }}><X size={14} /> ABORT SEQUENCE</div>
             </div>
 
-            {/* Title Input */}
-            <label style={styles.label}>EPISODE_ID</label>
-            <input style={styles.input} placeholder="ENTER TITLE" value={newEpTitle} onChange={(e) => setNewEpTitle(e.target.value)} autoFocus disabled={isUploading} />
+            <div style={styles.deckContent}>
+              <input style={styles.input} placeholder="ENTER EPISODE IDENTIFIER..." value={newEpTitle} onChange={(e) => setNewEpTitle(e.target.value)} autoFocus disabled={isUploading} />
 
-            {/* File Input Area */}
-            <label style={styles.label}>SOURCE_FILE</label>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              hidden
-              accept=".pdf,.docx,.txt"
-              onChange={handleFileSelect}
-            />
-
-            {!selectedFile ? (
-              // EMPTY STATE - Centered & Tight
-              <div
-                style={{ ...styles.fileBox, opacity: isUploading ? 0.5 : 1 }}
-                className="file-box-hover"
-                onClick={() => !isUploading && fileInputRef.current?.click()}
-              >
-                <Upload size={24} style={{ color: '#444' }} />
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', color: '#888' }}>
-                    UPLOAD SCRIPT
-                  </div>
-                  <div style={{ fontSize: '9px', color: '#444', marginTop: '4px', fontFamily: 'monospace' }}>
-                    .PDF, .DOCX, .TXT
-                  </div>
+              {inputMethod === 'upload' && (
+                <div style={styles.uploadBox} className="upload-hover" onClick={() => fileInputRef.current?.click()}>
+                  <input type="file" ref={fileInputRef} hidden onChange={handleFileSelect} accept=".pdf,.docx,.txt" />
+                  {selectedFile ? (
+                    <>
+                      <Disc size={40} color="#FF0000" className="force-spin" style={{ animationDuration: '3s' }} />
+                      <div style={{ textAlign: 'center' }}><div style={{ color: 'white', fontWeight: 'bold', letterSpacing: '1px' }}>{selectedFile.name}</div><div style={{ fontSize: '10px', marginTop: '5px', color: '#666' }}>READY FOR DECRYPTION</div></div>
+                    </>
+                  ) : (
+                    <><Upload size={40} /><div style={{ fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px' }}>DRAG SCRIPT FILE</div></>
+                  )}
                 </div>
-              </div>
-            ) : (
-              // SELECTED STATE - Clean Row, Dark BG
-              <div style={styles.fileBoxSelected}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{ padding: '0px' }}>
-                    {/* Accent color only on icon */}
-                    <FileText size={20} color="#FF0000" />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ color: 'white', fontSize: '13px', fontFamily: 'monospace', maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {selectedFile.name}
-                    </span>
-                    <span style={{ color: '#444', fontSize: '10px', marginTop: '2px', letterSpacing: '0.5px' }}>
-                      READY FOR INJEST
-                    </span>
-                  </div>
+              )}
+
+              {inputMethod === 'paste' && <textarea style={styles.textAreaTerm} placeholder="// PASTE RAW SCRIPT DATA HERE..." value={pastedScript} onChange={(e) => setPastedScript(e.target.value)} disabled={isUploading} />}
+
+              {inputMethod === 'synopsis' && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <textarea style={styles.textAreaSyn} placeholder="Describe the scene sequence... (e.g., A cyberpunk detective chases a rogue android through a neon market...)" value={synopsisText} onChange={(e) => setSynopsisText(e.target.value)} disabled={isUploading} />
+                  <div style={{ fontSize: '10px', color: '#FF0000', marginTop: '10px', display: 'flex', gap: '6px', alignItems: 'center' }}><Cpu size={12} /> AI AGENT ACTIVE: STORY_ENGINE_V2</div>
                 </div>
-                <button
-                  onClick={handleRemoveFile}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '5px', color: '#666', transition: 'color 0.2s' }}
-                  title="Remove File"
-                  className="hover:text-white"
-                >
-                  <X size={18} />
+              )}
+
+              <div style={{ marginTop: 'auto' }}>
+                {isUploading && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontFamily: 'monospace', color: '#FF0000', marginBottom: '10px' }}>
+                    <span className="glow-text">STATUS: {uploadStatus}</span><span className="force-spin">///</span>
+                  </div>
+                )}
+                <button style={{ ...styles.executeBtn, opacity: isUploading ? 0.5 : 1 }} onClick={handleExecuteProtocol} disabled={isUploading}>
+                  {isUploading ? <Loader2 className="force-spin" size={14} /> : (inputMethod === 'synopsis' ? "GENERATE & INGEST" : "INITIALIZE INGESTION")}
                 </button>
               </div>
-            )}
-
-            {/* Execute Button */}
-            <button style={{ ...styles.confirmBtn, opacity: isUploading ? 0.7 : 1 }} onClick={handleCreateEpisode} disabled={isUploading}>
-              {isUploading ? <Loader2 className="force-spin" size={24} /> : "EXECUTE"}
-            </button>
-
-            {isUploading && <div style={styles.statusText}>{uploadStatus}</div>}
+            </div>
           </div>
         </div>
       )}
-      {deleteId && <DeleteConfirmModal title="DELETE EPISODE?" message="This will permanently delete this episode and all script data." isDeleting={isDeleting} onConfirm={performDelete} onCancel={() => setDeleteId(null)} />}
+
+      {deleteId && <DeleteConfirmModal title="DELETE?" message="Confirm destruction of data." isDeleting={isDeleting} onConfirm={performDelete} onCancel={() => { setDeleteId(null); setDeleteType(null); }} />}
       <SeriesTour step={tourStep} onComplete={completeTour} />
     </main>
   );

@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { doc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 
 // --- CUSTOM IMPORTS ---
 import { API_BASE_URL } from "@/lib/config";
 import { useCredits } from "@/hooks/useCredits";
-import { toastError } from "@/lib/toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 import { Toaster } from "react-hot-toast";
 import { styles } from "./components/BoardStyles";
+import { Users, MapPin } from "lucide-react";
 
 // --- MODULAR COMPONENTS ---
 import { EpisodeHeader } from "./components/EpisodeHeader";
@@ -23,6 +24,7 @@ import { DownloadModal } from "./components/DownloadModal";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { TourGuide } from "./components/TourGuide";
 import { AssetModal } from './components/AssetModal';
+import { LibraryModal } from "./components/LibraryModal"; // <--- NEW COMPONENT
 
 // --- HOOKS ---
 import { useEpisodeData } from "./hooks/useEpisodeData";
@@ -30,24 +32,16 @@ import { useAssetManager } from "./hooks/useAssetManager";
 import { useShotManager } from "./hooks/useShotManager";
 import { useEpisodeTour } from "./hooks/useEpisodeTour";
 import { useStoryboardTour } from "@/hooks/useStoryboardTour";
+import { useSeriesAssets } from "@/hooks/useSeriesAssets"; // <--- NEW HOOK
 
 // --- TYPES ---
 import { CharacterProfile, LocationProfile } from "@/lib/types";
 
-/**
- * ROBUST SANITIZATION LOGIC
- * 1. Convert separators (-, _) to spaces first.
- * 2. Remove illegal chars.
- * 3. Trim and underscore spaces.
- * Example: "RED-WATTLED_LAPWING" -> "red wattled lapwing" -> "red_wattled_lapwing"
- */
+// --- HELPERS ---
 const sanitizeId = (name: string) => {
     if (!name) return "unknown";
-    // 1. Replace hyphens and underscores with spaces to preserve word separation
     let clean = name.replace(/[-_]/g, " ");
-    // 2. Remove all special characters except spaces and alphanumerics
     clean = clean.replace(/[^a-zA-Z0-9\s]/g, "");
-    // 3. Trim whitespace, lowercase, and underscores spaces
     return clean.trim().toLowerCase().replace(/\s+/g, "_");
 };
 
@@ -62,12 +56,17 @@ export default function EpisodeBoard() {
         castMembers,
         setCastMembers,
         uniqueLocs,
-        locations, // Locations fetched here
+        locations,
         setLocations,
         locationImages,
         setLocationImages,
         loading: dataLoading
     } = useEpisodeData(seriesId, episodeId);
+
+    // 2. SERIES MASTER LIBRARY (For Importing)
+    const { masterCast, masterLocations } = useSeriesAssets(seriesId);
+    const [libModalOpen, setLibModalOpen] = useState(false);
+    const [libType, setLibType] = useState<'character' | 'location'>('character');
 
     const { credits } = useCredits();
     const assetMgr = useAssetManager(seriesId);
@@ -77,37 +76,30 @@ export default function EpisodeBoard() {
     const [zoomMedia, setZoomMedia] = useState<{ url: string, type: 'image' | 'video' } | null>(null);
     const [inpaintData, setInpaintData] = useState<{ src: string, shotId: string } | null>(null);
 
-    // 2. MANAGERS
+    // 3. MANAGERS
     const shotMgr = useShotManager(seriesId, episodeId, activeSceneId);
     const currentScene = scenes.find(s => s.id === activeSceneId);
 
-    // 3. TOURS
     const epTour = useEpisodeTour();
     const sbTour = useStoryboardTour();
 
-    // 4. ACTION HANDLERS
     const [deleteShotId, setDeleteShotId] = useState<string | null>(null);
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [downloadShot, setDownloadShot] = useState<any>(null);
 
-    // FIX: Updates traits based on the correct DB structure (Nested for Char, Flat for Loc)
+    // --- TRAITS UPDATE ---
     const handleUpdateTraits = async (newTraits: any) => {
         if (!assetMgr.selectedAssetId) return;
-
         try {
             const collectionName = assetMgr.assetType === 'location' ? 'locations' : 'characters';
             const dbDocId = assetMgr.selectedAssetId;
             const docRef = doc(db, "series", seriesId, collectionName, dbDocId);
 
-            let updatePayload: any = {
-                updated_at: new Date().toISOString()
-            };
+            let updatePayload: any = { updated_at: new Date().toISOString() };
 
             if (assetMgr.assetType === 'location') {
-                // Locations: Spread traits to top-level
                 updatePayload = { ...updatePayload, ...newTraits };
             } else {
-                // Characters: Nest traits back into 'visual_traits' object
                 updatePayload = {
                     ...updatePayload,
                     visual_traits: {
@@ -120,24 +112,17 @@ export default function EpisodeBoard() {
                 };
             }
 
-            // 1. Write to Firestore
             await setDoc(docRef, updatePayload, { merge: true });
 
-            // 2. Update Local State
             if (assetMgr.assetType === 'character') {
                 setCastMembers((prev: CharacterProfile[]) => prev.map(member =>
-                    member.id === dbDocId
-                        ? { ...member, visual_traits: updatePayload.visual_traits }
-                        : member
+                    member.id === dbDocId ? { ...member, visual_traits: updatePayload.visual_traits } : member
                 ));
             } else {
                 setLocations((prev: LocationProfile[]) => prev.map(loc =>
-                    loc.id === dbDocId
-                        ? { ...loc, ...updatePayload }
-                        : loc
+                    loc.id === dbDocId ? { ...loc, ...updatePayload } : loc
                 ));
             }
-
         } catch (error) {
             console.error("Failed to update traits:", error);
         }
@@ -145,36 +130,65 @@ export default function EpisodeBoard() {
 
     const handleLinkVoice = async (voiceData: { voice_id: string; voice_name: string }) => {
         if (!assetMgr.selectedAssetId) return;
-
         try {
             const dbDocId = assetMgr.selectedAssetId;
             const charRef = doc(db, "series", seriesId, "characters", dbDocId);
-
             await updateDoc(charRef, {
                 "voice_config.voice_id": voiceData.voice_id,
                 "voice_config.voice_name": voiceData.voice_name,
                 "voice_config.provider": "elevenlabs"
             });
-
             setCastMembers((prev: CharacterProfile[]) => prev.map(member =>
                 member.id === dbDocId
-                    ? {
-                        ...member,
-                        voice_config: {
-                            ...member.voice_config,
-                            voice_id: voiceData.voice_id,
-                            voice_name: voiceData.voice_name
-                        }
-                    }
+                    ? { ...member, voice_config: { ...member.voice_config, voice_id: voiceData.voice_id, voice_name: voiceData.voice_name } }
                     : member
             ));
-
         } catch (error) {
             console.error("Failed to link voice:", error);
         }
     };
 
-    // --- UTILITY HANDLERS ---
+    // --- IMPORT HANDLER (NEW) ---
+    const handleImportAssets = async (selectedIds: string[]) => {
+        if (selectedIds.length === 0) return;
+
+        try {
+            const epRef = doc(db, "series", seriesId, "episodes", episodeId);
+
+            if (libType === 'character') {
+                // Update DB
+                await updateDoc(epRef, { cast_ids: arrayUnion(...selectedIds) });
+
+                // Optimistic UI Update
+                const newMembers = masterCast.filter(m => selectedIds.includes(m.id));
+                setCastMembers(prev => {
+                    // Avoid duplicates in UI
+                    const existingIds = new Set(prev.map(p => p.id));
+                    const uniqueNew = newMembers.filter(m => !existingIds.has(m.id));
+                    return [...prev, ...uniqueNew];
+                });
+                toastSuccess(`${selectedIds.length} Characters Imported`);
+            } else {
+                // For locations, assuming you might have a 'location_ids' field 
+                // OR you just want them available in the UI list for this session
+                // We'll update 'location_ids' if your schema supports it
+                await updateDoc(epRef, { location_ids: arrayUnion(...selectedIds) }).catch(() => { });
+
+                const newLocs = masterLocations.filter(m => selectedIds.includes(m.id));
+                setLocations(prev => {
+                    const existingIds = new Set(prev.map(p => p.id));
+                    const uniqueNew = newLocs.filter(m => !existingIds.has(m.id));
+                    return [...prev, ...uniqueNew];
+                });
+                toastSuccess(`${selectedIds.length} Locations Imported`);
+            }
+        } catch (error) {
+            console.error("Import failed:", error);
+            toastError("Import Failed");
+        }
+    };
+
+    // --- OTHER HANDLERS ---
     const confirmShotDelete = async () => {
         if (!deleteShotId) return;
         setIsDeletingShot(true);
@@ -267,29 +281,66 @@ export default function EpisodeBoard() {
             )}
 
             {activeTab === 'casting' && (
-                <CastingTab
-                    castMembers={castMembers}
-                    loading={dataLoading}
-                    // CRITICAL FIX: Check if 'name' is actually an ID or Name by looking it up in the list
-                    onEditAsset={(name, type, prompt) => {
-                        const existingChar = castMembers.find(c => c.name === name || c.id === name);
-                        const stableId = existingChar ? existingChar.id : sanitizeId(name);
-                        assetMgr.openAssetModal(name, type, prompt, stableId);
-                    }}
-                    styles={styles}
-                    onZoom={setZoomMedia}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    {/* Header with Import Button */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+                        <button
+                            onClick={() => { setLibType('character'); setLibModalOpen(true); }}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                padding: '10px 20px', backgroundColor: '#1A1A1A', border: '1px solid #333',
+                                color: '#FFF', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer',
+                                letterSpacing: '1px', borderRadius: '4px', transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#222'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#1A1A1A'; }}
+                        >
+                            <Users size={14} /> IMPORT FROM SERIES LIBRARY
+                        </button>
+                    </div>
+
+                    <CastingTab
+                        castMembers={castMembers}
+                        loading={dataLoading}
+                        onEditAsset={(name, type, prompt) => {
+                            const existingChar = castMembers.find(c => c.name === name || c.id === name);
+                            const stableId = existingChar ? existingChar.id : sanitizeId(name);
+                            assetMgr.openAssetModal(name, type, prompt, stableId);
+                        }}
+                        styles={styles}
+                        onZoom={setZoomMedia}
+                    />
+                </div>
             )}
 
             {activeTab === 'locations' && (
-                <LocationsTab
-                    locations={locations}
-                    uniqueLocs={uniqueLocs}
-                    locationImages={locationImages}
-                    onEditAsset={(name, type, prompt, existingId) => assetMgr.openAssetModal(name, type, prompt, existingId)}
-                    styles={styles}
-                    onZoom={setZoomMedia}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    {/* Header with Import Button */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+                        <button
+                            onClick={() => { setLibType('location'); setLibModalOpen(true); }}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                padding: '10px 20px', backgroundColor: '#1A1A1A', border: '1px solid #333',
+                                color: '#FFF', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer',
+                                letterSpacing: '1px', borderRadius: '4px', transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#222'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#1A1A1A'; }}
+                        >
+                            <MapPin size={14} /> IMPORT FROM SERIES LIBRARY
+                        </button>
+                    </div>
+
+                    <LocationsTab
+                        locations={locations}
+                        uniqueLocs={uniqueLocs}
+                        locationImages={locationImages}
+                        onEditAsset={(name, type, prompt, existingId) => assetMgr.openAssetModal(name, type, prompt, existingId)}
+                        styles={styles}
+                        onZoom={setZoomMedia}
+                    />
+                </div>
             )}
 
             {/* --- STORYBOARD OVERLAY --- */}
@@ -300,9 +351,9 @@ export default function EpisodeBoard() {
                 credits={credits}
                 styles={styles}
                 castMembers={castMembers}
-                locations={locations} // <--- PASSING LOCATIONS DOWN
-                seriesName={episodeData?.series_name || 'SERIES'} // <--- NEW PROP
-                episodeTitle={episodeData?.title || 'EPISODE'}   // <--- NEW PROP
+                locations={locations}
+                seriesName={episodeData?.series_name || 'SERIES'}
+                episodeTitle={episodeData?.title || 'EPISODE'}
                 shotMgr={shotMgr}
                 inpaintData={inpaintData}
                 setInpaintData={setInpaintData}
@@ -316,10 +367,20 @@ export default function EpisodeBoard() {
                 onTourComplete={sbTour.completeTour}
             />
 
+            {/* --- LIBRARY MODAL (NEW) --- */}
+            <LibraryModal
+                isOpen={libModalOpen}
+                onClose={() => setLibModalOpen(false)}
+                type={libType}
+                masterList={libType === 'character' ? masterCast : masterLocations}
+                currentList={libType === 'character' ? castMembers : locations}
+                onImport={handleImportAssets}
+                styles={styles}
+            />
+
             {/* --- ASSET MODAL --- */}
             {(() => {
                 const dbDocId = assetMgr.selectedAssetId;
-
                 const selectedAssetData = assetMgr.assetType === 'location'
                     ? locations.find(l => l.id === dbDocId)
                     : castMembers.find(c => c.id === dbDocId);
@@ -330,12 +391,10 @@ export default function EpisodeBoard() {
                         onClose={() => assetMgr.setModalOpen(false)}
                         onUpdateTraits={handleUpdateTraits}
                         onLinkVoice={handleLinkVoice}
-
                         assetId={assetMgr.selectedAssetId}
                         assetName={selectedAssetData?.name || assetMgr.selectedAsset || 'Unknown Asset'}
                         assetType={assetMgr.assetType}
                         currentData={selectedAssetData}
-
                         mode={assetMgr.modalMode}
                         setMode={assetMgr.setModalMode}
                         genPrompt={assetMgr.genPrompt}
@@ -344,32 +403,22 @@ export default function EpisodeBoard() {
                         basePrompt={selectedAssetData?.base_prompt}
                         genre={episodeData?.genre}
                         style={episodeData?.style}
-
                         onUpload={(file) => assetMgr.handleAssetUpload(file, (url) => {
                             if (!dbDocId) return;
                             if (assetMgr.assetType === 'location') {
                                 setLocationImages(prev => ({ ...prev, [dbDocId]: url }));
-                                setLocations(prev => prev.map(l =>
-                                    l.id === dbDocId ? { ...l, image_url: url, source: 'upload' } : l
-                                ));
+                                setLocations(prev => prev.map(l => l.id === dbDocId ? { ...l, image_url: url, source: 'upload' } : l));
                             } else {
-                                setCastMembers((prev: any[]) => prev.map(m =>
-                                    m.id === dbDocId ? { ...m, face_sample_url: url, image_url: url, source: 'upload' } : m
-                                ));
+                                setCastMembers((prev: any[]) => prev.map(m => m.id === dbDocId ? { ...m, face_sample_url: url, image_url: url, source: 'upload' } : m));
                             }
                         })}
-
                         onGenerate={() => assetMgr.handleAssetGenerate((url) => {
                             if (!dbDocId) return;
                             if (assetMgr.assetType === 'location') {
                                 setLocationImages(prev => ({ ...prev, [dbDocId]: url }));
-                                setLocations(prev => prev.map(l =>
-                                    l.id === dbDocId ? { ...l, image_url: url, source: 'ai_gen' } : l
-                                ));
+                                setLocations(prev => prev.map(l => l.id === dbDocId ? { ...l, image_url: url, source: 'ai_gen' } : l));
                             } else {
-                                setCastMembers((prev: any[]) => prev.map(m =>
-                                    m.id === dbDocId ? { ...m, face_sample_url: url, image_url: url, source: 'ai_gen' } : m
-                                ));
+                                setCastMembers((prev: any[]) => prev.map(m => m.id === dbDocId ? { ...m, face_sample_url: url, image_url: url, source: 'ai_gen' } : m));
                             }
                         })}
                         styles={styles}
@@ -378,7 +427,6 @@ export default function EpisodeBoard() {
             })()}
 
             <ZoomOverlay media={zoomMedia} onClose={() => setZoomMedia(null)} styles={styles} />
-
             <TourGuide step={epTour.tourStep} onNext={epTour.nextStep} onComplete={epTour.completeTour} />
 
             {downloadShot && (
