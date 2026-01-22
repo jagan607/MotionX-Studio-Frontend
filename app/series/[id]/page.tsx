@@ -59,13 +59,15 @@ export default function SeriesDetail() {
         // Fetch Episodes
         const epRef = collection(db, "series", seriesId, "episodes");
         const epSnap = await getDocs(epRef);
-        const sortedEps = epSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // FIX: Cast to 'any' so TS knows 'title' exists for sorting
+        const sortedEps = epSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
         setEpisodes(sortedEps.sort((a, b) => (a.title > b.title ? 1 : -1)));
 
         // Fetch Drafts
         const draftRef = collection(db, "series", seriesId, "drafts");
         const draftSnap = await getDocs(draftRef);
-        const sortedDrafts = draftSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // FIX: Cast to 'any' here as well for consistency
+        const sortedDrafts = draftSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
         setDrafts(sortedDrafts);
 
       } catch (e) {
@@ -81,7 +83,7 @@ export default function SeriesDetail() {
     if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
   };
 
-  // 3. EXECUTE PROTOCOL (ROBUST NAVIGATION FIX)
+  // 3. EXECUTE PROTOCOL
   const handleExecuteProtocol = async () => {
     if (!newEpTitle) return toastError("PROTOCOL ERROR: MISSING IDENTIFIER");
 
@@ -133,7 +135,6 @@ export default function SeriesDetail() {
         const jobData = await checkJobStatus(jobId);
 
         if (jobData.progress) {
-          // Only update if not completed to avoid re-render flicker
           if (jobData.status !== "completed") setUploadStatus(jobData.progress.toUpperCase());
         }
 
@@ -141,8 +142,6 @@ export default function SeriesDetail() {
           clearInterval(pollInterval);
 
           if (jobData.redirect_url) {
-            // --- CRITICAL FIX: FORCE HARD REDIRECT ---
-            // Using window.location forces the browser to jump, bypassing React state issues
             window.location.href = jobData.redirect_url;
           } else {
             toastError("SYSTEM ERROR: Missing Redirect Coordinates");
@@ -201,8 +200,8 @@ export default function SeriesDetail() {
 
     // --- UPDATED DRAFT CARD (CYAN THEME) ---
     draftCard: {
-      backgroundColor: 'rgba(6, 182, 212, 0.05)', // Subtle Blue/Cyan bg
-      border: '1px dashed #FFF',
+      backgroundColor: 'rgba(6, 182, 212, 0.05)',
+      border: '1px dashed #06B6D4',
       padding: '20px 40px',
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       cursor: 'pointer', transition: 'all 0.2s',
@@ -230,7 +229,7 @@ export default function SeriesDetail() {
       <style>{`
         .ep-card:hover { border-color: #FF0000 !important; background-color: #0E0E0E !important; transform: translateY(-2px); }
         /* Cyan Hover Effect for Drafts */
-        .draft-card:hover { border-color: #FF0000 !important; background-color: rgba(6, 182, 212, 0.1) !important; transform: translateY(-2px); }
+        .draft-card:hover { border-color: #06B6D4 !important; background-color: rgba(6, 182, 212, 0.1) !important; transform: translateY(-2px); }
         .menu-hover:hover { color: #FFF !important; background-color: #0c0c0c !important; }
         .upload-hover:hover { border-color: #666 !important; background-color: #111 !important; }
         .animate-scanline { background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(255,0,0,0.1) 50%, rgba(255,0,0,0.1)); background-size: 100% 4px; pointer-events: none; position: absolute; inset: 0; z-index: 10; opacity: 0.15; }
@@ -254,22 +253,22 @@ export default function SeriesDetail() {
       {/* --- SECTION 1: WORKSPACE DRAFTS (Blue/Cyan) --- */}
       {drafts.length > 0 && (
         <>
-          <div style={{ ...styles.sectionTitle, color: '#FFFFFF' }}>// WORKSPACE_DRAFTS</div>
+          <div style={{ ...styles.sectionTitle, color: '#06B6D4' }}>// WORKSPACE_DRAFTS</div>
           <div style={styles.episodeGrid}>
             {drafts.map((draft) => (
               <Link key={draft.id} href={`/series/${seriesId}/draft/${draft.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div style={styles.draftCard} className="draft-card">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
-                    <div style={{ fontSize: '14px', fontFamily: 'monospace', color: '#fff', fontWeight: 'bold' }}>WIP</div>
+                    <div style={{ fontSize: '14px', fontFamily: 'monospace', color: '#06B6D4', fontWeight: 'bold' }}>WIP</div>
                     <div>
-                      <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '20px', color: '#fff', textTransform: 'uppercase' }}>{draft.title}</h3>
+                      <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '20px', color: '#06B6D4', textTransform: 'uppercase' }}>{draft.title}</h3>
                       <div style={{ fontSize: '10px', color: '#888', marginTop: '5px', fontFamily: 'monospace' }}>
                         SCENES: {draft.scenes?.length || 0} // STATUS: STAGING
                       </div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <FileCode size={18} color="#FF0000" />
+                    <FileCode size={18} color="#06B6D4" />
                     <button className="delete-icon" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDeleteId(draft.id); setDeleteType('draft'); }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                       <Trash2 size={18} color="#444" />
                     </button>
