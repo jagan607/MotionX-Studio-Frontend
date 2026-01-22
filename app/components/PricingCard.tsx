@@ -10,10 +10,11 @@ interface PricingCardProps {
     isPopular?: boolean;
     isLoading?: boolean;
     onClick: () => void;
+    buttonText?: string;
 }
 
 export default function PricingCard({
-    title, price, description, credits, features, notIncluded = [], isPopular, isLoading, onClick
+    title, price, description, credits, features, notIncluded = [], isPopular, isLoading, onClick, buttonText
 }: PricingCardProps) {
 
     return (
