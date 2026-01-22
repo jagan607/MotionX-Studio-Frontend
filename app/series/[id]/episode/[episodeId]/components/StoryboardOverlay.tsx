@@ -44,6 +44,7 @@ interface StoryboardOverlayProps {
         isGeneratingAll: boolean;
         isStopping: boolean; // <--- NEW PROP
         stopGeneration: () => void;
+        handleFinalizeShot: (shot: any) => void;
     };
 
     inpaintData: { src: string, shotId: string } | null;
@@ -304,6 +305,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     onRender={(referenceFile?: File | null) => shotMgr.handleRenderShot(shot, currentScene, referenceFile)}
                                     onAnimate={() => shotMgr.handleAnimateShot(shot)}
                                     isRendering={shotMgr.loadingShots.has(shot.id)}
+                                    onFinalize={() => shotMgr.handleFinalizeShot(shot)}
                                 >
                                     {/* PREVIEW CONTENT */}
                                     <div style={styles.shotImageContainer}>

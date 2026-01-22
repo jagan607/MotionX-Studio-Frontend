@@ -3,7 +3,7 @@ import { collection, onSnapshot, doc, setDoc, writeBatch, deleteDoc, getDoc } fr
 import { ref, deleteObject, getStorage } from "firebase/storage";
 import { db, auth, storage } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
-import { toastError } from "@/lib/toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 import { arrayMove } from "@dnd-kit/sortable";
 
 export const useShotManager = (seriesId: string, episodeId: string, activeSceneId: string | null) => {
@@ -350,6 +350,47 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
     };
 
+    const handleFinalizeShot = async (shot: any) => {
+        if (!shot.image_url) return toastError("No image to finalize");
+
+        addLoadingShot(shot.id);
+
+        try {
+            const idToken = await auth.currentUser?.getIdToken();
+            const formData = new FormData();
+
+            // Standard IDs
+            formData.append("series_id", seriesId);
+            formData.append("episode_id", episodeId);
+            formData.append("scene_id", activeSceneId!);
+            formData.append("shot_id", shot.id);
+
+            // The Key Input: The current "patchy" image URL
+            formData.append("image_url", shot.image_url);
+
+            const res = await fetch(`${API_BASE_URL}/api/v1/shot/finalize_shot`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${idToken}` },
+                body: formData
+            });
+
+            const data = await res.json();
+
+            if (data.status === "success") {
+                toastSuccess("Shot Finalized & Polished");
+                // The onSnapshot listener will automatically update the UI with the new image_url and status
+            } else {
+                throw new Error(data.detail || "Finalization failed");
+            }
+
+        } catch (e: any) {
+            console.error(e);
+            toastError(e.message || "Failed to finalize shot");
+        } finally {
+            removeLoadingShot(shot.id);
+        }
+    };
+
     const handleAnimateShot = async (shot: any, currentScene?: any) => {
         if (!shot.image_url) return toastError("Generate image first");
         try {
@@ -378,6 +419,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         isAutoDirecting, isGeneratingAll, isStopping,
         handleAddShot, updateShot, handleDeleteShot, handleDragEnd,
         handleAutoDirect, handleRenderShot, handleAnimateShot,
-        handleGenerateAll, stopGeneration, wipeSceneData, wipeShotImagesOnly
+        handleGenerateAll, stopGeneration, wipeSceneData, wipeShotImagesOnly,
+        handleFinalizeShot
     };
 };

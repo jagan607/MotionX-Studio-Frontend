@@ -2,7 +2,7 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Sparkles, Film, RefreshCw, ChevronDown, ImagePlus, X } from "lucide-react";
+import { GripVertical, Trash2, Sparkles, Film, RefreshCw, ChevronDown, ImagePlus, X, Wand2, CheckCircle2 } from "lucide-react";
 import { useState, useRef } from 'react';
 
 // --- 1. TYPE SAFETY: Explicit Interfaces ---
@@ -26,6 +26,7 @@ interface Shot {
     image_url?: string;
     video_url?: string;
     video_status?: string; // Tracks animation state (animating, processing, etc.)
+    status?: string; // Tracks if shot is 'finalized'
 }
 
 interface SortableShotCardProps {
@@ -39,6 +40,7 @@ interface SortableShotCardProps {
     // --- ACTION PROPS ---
     onRender: (referenceFile?: File | null) => void;
     onAnimate: () => void;
+    onFinalize: () => void; // <--- New Prop for Finalization
     isRendering: boolean;
     children: React.ReactNode;
 }
@@ -56,11 +58,18 @@ export const SortableShotCard = ({
     onUpdateShot,
     onRender,
     onAnimate,
+    onFinalize,
     isRendering,
     children
 }: SortableShotCardProps) => {
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
+
+    // Check if shot is finalized to apply special styling
+    const isFinalized = shot.status === 'finalized';
+    const FINALIZED_COLOR = "#E5E5E5";
+    const FINALIZED_BG = "rgba(255, 255, 255, 0.03)";
+    const FINALIZED_BORDER = "rgba(255, 255, 255, 0.2)";
 
     const dragStyle = {
         transform: CSS.Transform.toString(transform),
@@ -69,6 +78,12 @@ export const SortableShotCard = ({
         opacity: isDragging ? 0.6 : 1,
         transformOrigin: "0 0",
         scale: isDragging ? "1.02" : "1",
+        // Visual indicator for finalized shots (Golden Border)
+        border: isFinalized ? `1px solid ${FINALIZED_BORDER}` : `0.2px solid ${FINALIZED_BORDER}`,
+        // 2. Subtle background tint
+        backgroundColor: isFinalized ? FINALIZED_BG : undefined,
+        // 3. Cinematic Glow
+        boxShadow: isFinalized ? '0 0 15px rgba(220, 15, 15, 0.05)' : undefined
     };
 
     const handleCharToggle = (charName: string) => {
@@ -83,6 +98,7 @@ export const SortableShotCard = ({
         onUpdateShot(shot.id, "characters", updated);
     };
 
+    // --- REFERENCE IMAGE STATE ---
     const [refFile, setRefFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -159,8 +175,8 @@ export const SortableShotCard = ({
                     <div {...attributes} {...listeners} style={{ cursor: 'grab', color: '#666', padding: '4px' }} aria-label="Drag handle">
                         <GripVertical size={18} />
                     </div>
-                    <span style={{ color: '#FF0000', fontWeight: 'bold', fontSize: '12px', letterSpacing: '1px' }}>
-                        SHOT {String(index + 1).padStart(2, '0')}
+                    <span style={{ color: isFinalized ? '#FF0000' : '#FF0000', fontWeight: 'bold', fontSize: '12px', letterSpacing: '1px' }}>
+                        SHOT {String(index + 1).padStart(2, '0')} {isFinalized && "⭐"}
                     </span>
                 </div>
 
@@ -255,7 +271,7 @@ export const SortableShotCard = ({
 
             {/* 5. PROMPTS */}
             <div style={{ marginBottom: '12px' }}>
-                {/* --- UPDATE: Header with Upload Button --- */}
+                {/* --- Header with Reference Upload Button --- */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                     <label style={{ ...labelStyle, marginBottom: 0 }}>IMAGE PROMPT</label>
 
@@ -276,7 +292,7 @@ export const SortableShotCard = ({
                             }}
                             title="Upload Reference Image for Composition"
                         >
-                            <ImagePlus size={10} /> {refFile ? "REF LOADED" : "ADD COMPOSITION REF"}
+                            <ImagePlus size={10} /> {refFile ? "REF LOADED" : "ADD REF"}
                         </button>
                     </div>
                 </div>
@@ -325,56 +341,75 @@ export const SortableShotCard = ({
             </div>
 
             {/* 6. ACTION FOOTER */}
-            <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #1a1a1a' }}>
+            <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #1a1a1a' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
 
-                {/* BUTTON 1: REGENERATE IMAGE */}
-                <button
-                    onClick={() => onRender(refFile)}
-                    disabled={isBusy} // Locked if Image Rendering OR Video Animating
-                    style={{
-                        flex: 1,
-                        padding: '12px',
-                        backgroundColor: '#1a1a1a',
-                        border: '1px solid #333',
-                        color: isBusy ? '#666' : '#FFF',
-                        fontSize: '11px',
-                        fontWeight: 'bold',
-                        cursor: isBusy ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        transition: 'all 0.2s',
-                        borderRadius: '4px'
-                    }}
-                >
-                    <Sparkles size={14} />
-                    {hasImage ? "REGENERATE IMG" : "GENERATE IMG"}
-                </button>
+                    {/* BUTTON 1: GENERATE (With Ref File) */}
+                    <button
+                        onClick={() => onRender(refFile)}
+                        disabled={isBusy}
+                        style={{
+                            padding: '10px',
+                            backgroundColor: '#1a1a1a',
+                            border: '1px solid #333',
+                            color: isBusy ? '#666' : '#FFF',
+                            fontSize: '10px',
+                            fontWeight: 'bold',
+                            cursor: isBusy ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            borderRadius: '4px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <Sparkles size={14} /> {hasImage ? "RE-GEN" : "GENERATE"}
+                    </button>
 
-                {/* BUTTON 2: ANIMATE / VIDEO */}
+                    {/* BUTTON 2: FINALIZE (New Polishing Feature) */}
+                    <button
+                        onClick={onFinalize}
+                        disabled={!hasImage || isBusy}
+                        title={isFinalized ? "Already Finalized" : "Polish Texture & Lighting"}
+                        style={{
+                            padding: '10px',
+                            backgroundColor: isFinalized ? 'rgba(245, 11, 11, 0.1)' : '#1a1a1a',
+                            border: isFinalized ? '1px solid #FF0000' : '1px solid #333',
+                            color: isFinalized ? '#FFF' : (hasImage ? '#FFF' : '#444'),
+                            fontSize: '10px', fontWeight: 'bold',
+                            cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        {isFinalized ? <CheckCircle2 size={14} /> : <Wand2 size={14} />}
+                        {isFinalized ? "DONE" : "FINALIZE"}
+                    </button>
+                </div>
+
+                {/* BUTTON 3: ANIMATE (Full Width Below) */}
                 <button
                     onClick={onAnimate}
-                    disabled={!hasImage || isBusy} // Locked if No Image OR Image Rendering OR Video Animating
-                    title={!hasImage ? "Generate an image first to enable animation" : "Generate Video"}
+                    disabled={!hasImage || isBusy}
                     style={{
-                        flex: 1,
-                        padding: '12px',
+                        width: '100%',
+                        marginTop: '8px',
+                        padding: '10px',
                         backgroundColor: (!hasImage) ? '#111' : '#FF0000',
                         border: (!hasImage) ? '1px solid #222' : 'none',
                         color: (!hasImage) ? '#444' : 'white',
-                        fontSize: '11px',
+                        fontSize: '10px',
                         fontWeight: 'bold',
                         cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '6px',
-                        transition: 'all 0.2s',
-                        borderRadius: '4px'
+                        borderRadius: '4px',
+                        transition: 'all 0.2s'
                     }}
                 >
-                    {/* FIXED: No Loader2 here. Only Static Icons. */}
                     {hasVideo ? <RefreshCw size={14} /> : <Film size={14} fill={hasImage ? "white" : "gray"} />}
                     {hasVideo ? "REGENERATE VID" : "ANIMATE"}
                 </button>
