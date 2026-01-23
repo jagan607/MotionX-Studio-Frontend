@@ -79,20 +79,24 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className} style={{ backgroundColor: '#030303', color: 'white' }}>
-        <Script
-          id="json-ld"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-        <AuthProvider>
+        <div className="h-screen w-screen flex flex-col">
+          <Script
+            id="json-ld"
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+          <AuthProvider>
+            <div className="film-grain" />
+            <div className="vignette" />
 
-          {/* 2. PLACE HEADER HERE */}
-          <GlobalHeader />
+            {/* 2. PLACE HEADER HERE */}
+            <GlobalHeader />
 
-          {/* 3. MAIN CONTENT */}
-          {children}
+            {/* 3. MAIN CONTENT */}
+            {children}
 
-        </AuthProvider>
+          </AuthProvider>
+        </div>
       </body>
     </html>
   );
