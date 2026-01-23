@@ -3,7 +3,7 @@
 import { auth } from "@/lib/firebase";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Plus, Zap, User } from "lucide-react";
+import { Plus, User } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 
 export default function GlobalHeader() {
@@ -16,24 +16,47 @@ export default function GlobalHeader() {
     // --- SHARED STYLES ---
     const styles = {
         header: {
-            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-            borderBottom: '1px solid #1F1F1F', padding: '20px 40px',
-            backgroundColor: '#050505', // Slightly darker than #030303 for better contrast
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            borderBottom: '1px solid #1F1F1F', padding: '16px 40px',
+            backgroundColor: '#050505',
             position: 'sticky' as const, top: 0, zIndex: 50
         },
         logo: { fontSize: '24px', fontFamily: 'Anton, sans-serif', textTransform: 'uppercase' as const, lineHeight: '1', letterSpacing: '1px', color: '#FFF' },
-        subLogo: { fontSize: '9px', color: '#FF0000', letterSpacing: '3px', fontWeight: 'bold' as const, marginTop: '5px', textTransform: 'uppercase' as const },
+        subLogo: { fontSize: '9px', color: '#FF0000', letterSpacing: '3px', fontWeight: 'bold' as const, marginTop: '4px', textTransform: 'uppercase' as const },
 
-        // REFINED: Credits Info (Clean, no border box)
-        creditsContainer: { display: 'flex', alignItems: 'center', gap: '12px', marginRight: '30px' },
-        creditsValue: { fontSize: '14px', color: '#FFF', fontWeight: 'bold' as const, fontFamily: 'monospace' },
-        creditsLabel: { fontSize: '9px', color: '#666', fontFamily: 'monospace', textTransform: 'uppercase' as const },
+        // REFINED: Credits Container (Left Aligned, No Border)
+        creditsWrapper: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginRight: '24px'
+        },
+        creditsValue: { fontSize: '13px', color: '#FFF', fontWeight: 'bold' as const, fontFamily: 'monospace', letterSpacing: '0.5px' },
+        creditsLabel: { fontSize: '8px', color: '#FFF', fontFamily: 'monospace', textTransform: 'uppercase' as const, display: 'block', lineHeight: 1, marginBottom: '2px', opacity: 0.6 },
 
-        // REFINED: New Series Button (Dimmed Down)
-        createButton: {
-            backgroundColor: '#111',
-            color: '#888',
-            border: '1px solid #333',
+        // REFINED: Top Up Button (Subtly Highlighted)
+        topUpBtn: {
+            backgroundColor: 'rgba(255, 0, 0, 0.1)', // Subtle red tint
+            border: '1px solid rgba(255, 0, 0, 0.3)',
+            color: '#FFF',
+            padding: '6px 12px',
+            fontSize: '9px',
+            fontWeight: 'bold' as const,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            textTransform: 'uppercase' as const,
+            transition: 'all 0.3s ease',
+            borderRadius: '2px',
+            boxShadow: '0 0 10px rgba(255, 0, 0, 0.1)' // Soft glow
+        },
+
+        // Action Buttons (Outlined)
+        actionButton: {
+            backgroundColor: 'transparent',
+            color: '#FFF',
+            border: '1px solid #1F1F1F',
             padding: '8px 16px',
             fontSize: '10px',
             fontWeight: 'bold' as const,
@@ -43,64 +66,41 @@ export default function GlobalHeader() {
             alignItems: 'center',
             gap: '8px',
             textTransform: 'uppercase' as const,
-            transition: 'all 0.2s ease'
+            transition: 'all 0.3s ease',
+            borderRadius: '4px'
         },
 
-        // REFINED: Upgrade Button (Get)
-        upgradeBtn: {
-            backgroundColor: '#1F1F1F',
-            border: 'none',
-            color: '#DDD',
-            padding: '4px 10px',
-            fontSize: '9px',
-            fontWeight: 'bold' as const,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            marginLeft: '8px',
-            textTransform: 'uppercase' as const,
-            transition: 'all 0.2s ease',
-            borderRadius: '2px'
-        },
-
-        // REFINED: Operator Profile Button
+        // Operator Profile Button
         operatorBtn: {
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
             backgroundColor: 'transparent',
-            border: '1px solid #222', // Very subtle border
-            padding: '8px 16px',
+            border: '1px solid #1F1F1F',
+            padding: '6px 14px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            textDecoration: 'none'
+            textDecoration: 'none',
+            borderRadius: '4px'
         }
     };
 
     return (
         <div style={styles.header}>
             <style jsx>{`
-                /* Hover Effect for New Series */
-                .create-btn:hover {
-                    border-color: #FF0000 !important;
-                    color: #FFF !important;
-                    background-color: #1A0505 !important;
+                .header-btn:hover {
+                    border-color: #333 !important;
+                    background-color: rgba(255,255,255,0.05) !important;
                 }
                 
-                /* Hover Effect for Operator */
-                .operator-btn:hover {
-                    border-color: #444 !important;
-                    background-color: #0A0A0A !important;
-                }
-                .operator-btn:hover p {
-                    color: #FFF !important;
+                .topup-btn:hover {
+                    background-color: rgba(255, 0, 0, 0.2) !important;
+                    border-color: #FF0000 !important;
+                    box-shadow: 0 0 15px rgba(255, 0, 0, 0.3) !important;
                 }
 
-                /* Hover for Upgrade */
-                .upgrade-btn:hover {
-                    background-color: #FF0000 !important;
-                    color: #000 !important;
+                .op-name {
+                    color: #FFF !important;
                 }
             `}</style>
 
@@ -115,54 +115,49 @@ export default function GlobalHeader() {
             {/* RIGHT: CONTROLS */}
             <div style={{ display: 'flex', alignItems: 'center' }}>
 
-                {/* 1. NEW SERIES BUTTON (Dimmed) */}
-                <div style={{ marginRight: '30px', borderRight: '1px solid #222', paddingRight: '30px' }}>
-                    <Link href="/series/new" style={{ textDecoration: 'none' }}>
-                        <button className="create-btn" style={styles.createButton}>
-                            <Plus size={12} /> NEW PROJECT
+                {/* 1. CREDITS SYSTEM (Moved to Left of Actions) */}
+                <div style={styles.creditsWrapper}>
+                    <div style={{ textAlign: 'right' }}>
+                        <span style={styles.creditsLabel}>Credits</span>
+                        <div style={styles.creditsValue}>
+                            {credits !== null ? credits : '---'}
+                        </div>
+                    </div>
+
+                    <Link href="/pricing" style={{ textDecoration: 'none' }}>
+                        <button className="topup-btn" style={styles.topUpBtn}>
+                            <Plus size={10} strokeWidth={4} /> TOP UP
                         </button>
                     </Link>
                 </div>
 
-                {/* 2. EVOLVED CREDITS DISPLAY (Heads-up Display Style) */}
-                <div style={styles.creditsContainer}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
-                        <span style={styles.creditsLabel}>Compute Balance</span>
-                        <span style={styles.creditsValue}>
-                            {credits !== null ? credits : '...'} <span style={{ color: '#444' }}>TOKENS</span>
-                        </span>
-                    </div>
-
-                    {/* Icon + Top Up */}
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <Zap size={18} color="#FF0000" fill="rgba(255,0,0,0.2)" />
-                        <Link href="/pricing" style={{ textDecoration: 'none' }}>
-                            <button className="upgrade-btn" style={styles.upgradeBtn} title="Purchase Credits">
-                                <Plus size={8} /> TOP UP
-                            </button>
-                        </Link>
-                    </div>
+                {/* 2. NEW PROJECT BUTTON */}
+                <div style={{ marginRight: '24px' }}>
+                    <Link href="/series/new" style={{ textDecoration: 'none' }}>
+                        <button className="header-btn" style={styles.actionButton}>
+                            <Plus size={12} strokeWidth={3} /> NEW PROJECT
+                        </button>
+                    </Link>
                 </div>
 
-                {/* 3. OPERATOR PROFILE (Refined Dot) */}
+                {/* 3. OPERATOR PROFILE */}
                 <Link href="/profile" style={{ textDecoration: 'none' }}>
-                    <div style={styles.operatorBtn} className="operator-btn">
-                        {/* Smaller, dimmer dot */}
+                    <div style={styles.operatorBtn} className="header-btn">
                         <div style={{
                             width: '6px',
                             height: '6px',
                             backgroundColor: '#00FF41',
                             borderRadius: '50%',
-                            boxShadow: '0 0 6px rgba(0, 255, 65, 0.4)' // Reduced glow opacity 
+                            boxShadow: '0 0 8px rgba(0, 255, 65, 0.2)'
                         }}></div>
 
                         <div style={{ textAlign: 'left' }}>
-                            <p style={{ fontSize: '9px', color: '#555', fontFamily: 'monospace', lineHeight: 1, marginBottom: '3px' }}>OPERATOR</p>
-                            <p style={{ fontSize: '11px', color: '#CCC', fontWeight: 'bold', lineHeight: 1 }}>
-                                {auth.currentUser?.displayName || 'UNKNOWN'}
+                            <p style={{ fontSize: '8px', color: '#FFF', fontFamily: 'monospace', lineHeight: 1, marginBottom: '2px', textTransform: 'uppercase', opacity: 0.6 }}>Operator</p>
+                            <p className="op-name" style={{ fontSize: '11px', color: '#FFF', fontWeight: 'bold', lineHeight: 1 }}>
+                                {auth.currentUser?.displayName || 'OPERATOR_01'}
                             </p>
                         </div>
-                        <User size={14} color="#333" />
+                        <User size={14} color="#FFF" />
                     </div>
                 </Link>
 
