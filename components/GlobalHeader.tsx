@@ -24,40 +24,40 @@ export default function GlobalHeader() {
         logo: { fontSize: '24px', fontFamily: 'Anton, sans-serif', textTransform: 'uppercase' as const, lineHeight: '1', letterSpacing: '1px', color: '#FFF' },
         subLogo: { fontSize: '9px', color: '#FF0000', letterSpacing: '3px', fontWeight: 'bold' as const, marginTop: '4px', textTransform: 'uppercase' as const },
 
-        // REFINED: Credits Container (Left Aligned, No Border)
+        // Credits Container (Increased Right Margin for refined spacing)
         creditsWrapper: {
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
-            marginRight: '24px'
+            gap: '16px',
+            marginRight: '32px'
         },
         creditsValue: { fontSize: '13px', color: '#FFF', fontWeight: 'bold' as const, fontFamily: 'monospace', letterSpacing: '0.5px' },
-        creditsLabel: { fontSize: '8px', color: '#FFF', fontFamily: 'monospace', textTransform: 'uppercase' as const, display: 'block', lineHeight: 1, marginBottom: '2px', opacity: 0.6 },
+        creditsLabel: { fontSize: '8px', color: '#FFF', fontFamily: 'monospace', textTransform: 'uppercase' as const, display: 'block', lineHeight: 1, marginBottom: '2px' },
 
-        // REFINED: Top Up Button (Subtly Highlighted)
+        // Top Up Button (Subtly Highlighted Glow)
         topUpBtn: {
-            backgroundColor: 'rgba(255, 0, 0, 0.1)', // Subtle red tint
+            backgroundColor: 'rgba(255, 0, 0, 0.1)',
             border: '1px solid rgba(255, 0, 0, 0.3)',
             color: '#FFF',
-            padding: '6px 12px',
+            padding: '6px 14px',
             fontSize: '9px',
             fontWeight: 'bold' as const,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
+            gap: '6px',
             textTransform: 'uppercase' as const,
             transition: 'all 0.3s ease',
             borderRadius: '2px',
-            boxShadow: '0 0 10px rgba(255, 0, 0, 0.1)' // Soft glow
+            boxShadow: '0 0 10px rgba(255, 0, 0, 0.1)'
         },
 
-        // Action Buttons (Outlined)
+        // New Project Button (Outlined)
         actionButton: {
             backgroundColor: 'transparent',
             color: '#FFF',
             border: '1px solid #1F1F1F',
-            padding: '8px 16px',
+            padding: '8px 18px',
             fontSize: '10px',
             fontWeight: 'bold' as const,
             letterSpacing: '1px',
@@ -70,14 +70,14 @@ export default function GlobalHeader() {
             borderRadius: '4px'
         },
 
-        // Operator Profile Button
+        // Operator Profile Button (Fixed Height and Brightness)
         operatorBtn: {
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '14px',
             backgroundColor: 'transparent',
             border: '1px solid #1F1F1F',
-            padding: '6px 14px',
+            padding: '7px 16px',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
             textDecoration: 'none',
@@ -99,8 +99,9 @@ export default function GlobalHeader() {
                     box-shadow: 0 0 15px rgba(255, 0, 0, 0.3) !important;
                 }
 
-                .op-name {
+                .op-text {
                     color: #FFF !important;
+                    opacity: 1 !important;
                 }
             `}</style>
 
@@ -115,7 +116,7 @@ export default function GlobalHeader() {
             {/* RIGHT: CONTROLS */}
             <div style={{ display: 'flex', alignItems: 'center' }}>
 
-                {/* 1. CREDITS SYSTEM (Moved to Left of Actions) */}
+                {/* 1. CREDITS SYSTEM */}
                 <div style={styles.creditsWrapper}>
                     <div style={{ textAlign: 'right' }}>
                         <span style={styles.creditsLabel}>Credits</span>
@@ -132,7 +133,7 @@ export default function GlobalHeader() {
                 </div>
 
                 {/* 2. NEW PROJECT BUTTON */}
-                <div style={{ marginRight: '24px' }}>
+                <div style={{ marginRight: '32px' }}>
                     <Link href="/series/new" style={{ textDecoration: 'none' }}>
                         <button className="header-btn" style={styles.actionButton}>
                             <Plus size={12} strokeWidth={3} /> NEW PROJECT
@@ -143,21 +144,22 @@ export default function GlobalHeader() {
                 {/* 3. OPERATOR PROFILE */}
                 <Link href="/profile" style={{ textDecoration: 'none' }}>
                     <div style={styles.operatorBtn} className="header-btn">
+                        {/* Status Light */}
                         <div style={{
                             width: '6px',
                             height: '6px',
                             backgroundColor: '#00FF41',
                             borderRadius: '50%',
-                            boxShadow: '0 0 8px rgba(0, 255, 65, 0.2)'
+                            boxShadow: '0 0 8px rgba(0, 255, 65, 0.4)'
                         }}></div>
 
                         <div style={{ textAlign: 'left' }}>
-                            <p style={{ fontSize: '8px', color: '#FFF', fontFamily: 'monospace', lineHeight: 1, marginBottom: '2px', textTransform: 'uppercase', opacity: 0.6 }}>Operator</p>
-                            <p className="op-name" style={{ fontSize: '11px', color: '#FFF', fontWeight: 'bold', lineHeight: 1 }}>
+                            <p className="op-text" style={{ fontSize: '8px', fontFamily: 'monospace', lineHeight: 1, marginBottom: '2px', textTransform: 'uppercase' }}>Operator</p>
+                            <p className="op-text" style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: 1 }}>
                                 {auth.currentUser?.displayName || 'OPERATOR_01'}
                             </p>
                         </div>
-                        <User size={14} color="#FFF" />
+                        <User size={14} color="#FFF" style={{ opacity: 1 }} />
                     </div>
                 </Link>
 
