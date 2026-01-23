@@ -305,8 +305,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     onRender={(referenceFile?: File | null) => shotMgr.handleRenderShot(shot, currentScene, referenceFile)}
                                     onAnimate={() => shotMgr.handleAnimateShot(shot)}
                                     isRendering={shotMgr.loadingShots.has(shot.id)}
-                                    onFinalize={() => shotMgr.handleFinalizeShot(shot)}
-                                >
+                                    onFinalize={() => shotMgr.handleFinalizeShot(shot)}                                >
                                     {/* PREVIEW CONTENT */}
                                     <div style={styles.shotImageContainer}>
                                         <ShotImage

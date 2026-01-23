@@ -203,9 +203,10 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         if (!activeSceneId) return;
         setIsAutoDirecting(true);
         setTerminalLog(["> INITIALIZING AI DIRECTOR..."]);
+        console.log("currentScene", currentScene);
 
         const sceneAction = overrideSummary || currentScene.description || currentScene.summary || "";
-        const sceneLocation = currentScene.location_name || currentScene.location_id || "Unknown";
+        const sceneLocation = currentScene.header || currentScene.location_id || "Unknown";
         let sceneChars = Array.isArray(currentScene.characters) ? currentScene.characters.join(", ") : (currentScene.characters || "None");
 
         const formData = new FormData();
@@ -240,13 +241,15 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                         charArray = shot.characters;
                     }
 
+                    console.log("SHOT", shot);
+
                     const payload = {
                         id: newShotId,
-                        shot_type: shot.type,
+                        shot_type: shot.shot_type,
                         visual_action: shot.image_prompt || shot.description || "",
                         video_prompt: shot.video_prompt || "",
                         characters: charArray,
-                        location: shot.location || sceneLocation,
+                        location: sceneLocation,
                         status: "draft",
                         order: index // <--- PERSIST ORDER FROM AI
                     };

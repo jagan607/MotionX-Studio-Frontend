@@ -3,7 +3,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2, Sparkles, Film, RefreshCw, ChevronDown, ImagePlus, X, Wand2, CheckCircle2 } from "lucide-react";
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 // --- 1. TYPE SAFETY: Explicit Interfaces ---
 interface CastMember {
@@ -103,6 +103,12 @@ export const SortableShotCard = ({
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [localVisualAction, setLocalVisualAction] = useState(shot.visual_action || "");
+
+    useEffect(() => {
+        setLocalVisualAction(shot.visual_action || "");
+    }, [shot.visual_action]);
+
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
@@ -165,10 +171,11 @@ export const SortableShotCard = ({
         overflow: 'hidden',
         textOverflow: 'ellipsis'
     };
+    console.log("Shot ", shot)
 
     return (
-        <div ref={setNodeRef} style={{ ...styles.shotCard, ...dragStyle, display: 'flex', flexDirection: 'column' }}>
 
+        <div ref={setNodeRef} style={{ ...styles.shotCard, ...dragStyle, display: 'flex', flexDirection: 'column' }}>
             {/* 1. HEADER ROW */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -201,11 +208,13 @@ export const SortableShotCard = ({
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <label style={labelStyle}>SHOT TYPE</label>
                     <div style={{ position: 'relative' }}>
+                        {/* shot.shot_tupe should be selected even if it doesn't exist in the dropdown */}
                         <select
                             style={selectStyle}
                             value={shot.shot_type || "Wide Shot"}
                             onChange={(e) => onUpdateShot(shot.id, "shot_type", e.target.value)}
                         >
+                            <option>{shot.shot_type}</option>
                             <option>Extreme Wide Shot</option>
                             <option>Wide Shot</option>
                             <option>Full Shot</option>
@@ -216,29 +225,42 @@ export const SortableShotCard = ({
                             <option>Two Shot</option>
                             <option>Low Angle</option>
                             <option>High Angle</option>
+                            <option>POV</option>
+                            <option>Insert Shot</option>
+                            <option>Extreme Close Up</option>
                         </select>
                         <ChevronDown size={12} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color: '#666', pointerEvents: 'none' }} />
                     </div>
                 </div>
 
                 {/* LOCATION DROPDOWN */}
+                {/* LOCATION DROPDOWN */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <label style={labelStyle}>LOCATION</label>
                     <div style={{ position: 'relative' }}>
                         <select
                             style={selectStyle}
+                            /* CRITICAL FIX: The value prop ensures the dropdown reflects the current state */
                             value={shot.location || ""}
+                            defaultValue={shot.location}
                             onChange={(e) => onUpdateShot(shot.id, "location", e.target.value)}
                         >
-                            {/* Hidden disabled option acts as placeholder but won't show in the dropdown list */}
-                            <option value="" disabled hidden>Select Location...</option>
-                            {locations.map((loc) => (
-                                <option key={loc.id} value={loc.id}>
-                                    {loc.name.toUpperCase()}
-                                </option>
-                            ))}
+                            <option value="" disabled>Select Location...</option>
+                            <option value="">{shot.location}</option>
+
+
                         </select>
-                        <ChevronDown size={12} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color: '#666', pointerEvents: 'none' }} />
+                        <ChevronDown
+                            size={12}
+                            style={{
+                                position: 'absolute',
+                                right: '8px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                color: '#666',
+                                pointerEvents: 'none'
+                            }}
+                        />
                     </div>
                 </div>
             </div>
@@ -299,8 +321,12 @@ export const SortableShotCard = ({
 
                 <textarea
                     style={{ ...commonInputStyle, minHeight: '60px', resize: 'vertical' }}
-                    value={shot.visual_action || ""}
-                    onChange={(e) => onUpdateShot(shot.id, "visual_action", e.target.value)}
+                    /* FIX: Use local state to maintain cursor position */
+                    value={localVisualAction}
+                    onChange={(e) => {
+                        setLocalVisualAction(e.target.value);
+                        onUpdateShot(shot.id, "visual_action", e.target.value);
+                    }}
                     placeholder="Visual description..."
                 />
 
