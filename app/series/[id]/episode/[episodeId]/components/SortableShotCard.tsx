@@ -2,8 +2,12 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Sparkles, Film, RefreshCw, ChevronDown, ImagePlus, X, Wand2, CheckCircle2 } from "lucide-react";
+import {
+    GripVertical, Trash2, Sparkles, Film, RefreshCw,
+    ChevronDown, ImagePlus, X, Wand2, CheckCircle2
+} from "lucide-react";
 import { useState, useRef, useEffect } from 'react';
+import { useMediaViewer } from "@/app/context/MediaViewerContext";
 
 // --- 1. TYPE SAFETY: Explicit Interfaces ---
 interface CastMember {
@@ -40,7 +44,7 @@ interface SortableShotCardProps {
     // --- ACTION PROPS ---
     onRender: (referenceFile?: File | null) => void;
     onAnimate: () => void;
-    onFinalize: () => void; // <--- New Prop for Finalization
+    onFinalize: () => void;
     isRendering: boolean;
     children: React.ReactNode;
 }
@@ -64,10 +68,10 @@ export const SortableShotCard = ({
 }: SortableShotCardProps) => {
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
+    const { openViewer } = useMediaViewer(); // Hook into Global Viewer
 
     // Check if shot is finalized to apply special styling
     const isFinalized = shot.status === 'finalized';
-    const FINALIZED_COLOR = "#E5E5E5";
     const FINALIZED_BG = "rgba(255, 255, 255, 0.03)";
     const FINALIZED_BORDER = "rgba(255, 255, 255, 0.2)";
 
@@ -133,6 +137,31 @@ export const SortableShotCard = ({
     // Derived States
     const hasImage = Boolean(shot.image_url);
     const hasVideo = Boolean(shot.video_url);
+
+    // --- MEDIA EXPAND HANDLER (Gracefully integrated) ---
+    const handleExpandMedia = (e: React.MouseEvent | React.PointerEvent) => {
+        // Prevent default actions but allow bubbling if needed, 
+        // though typically we want to capture this click for the viewer.
+        // We stop propagation to prevent weird interaction with parent elements if any.
+        e.stopPropagation();
+
+        if (!hasImage && !hasVideo) return;
+
+        // Determine type for toggle logic
+        const mediaType = (hasImage && hasVideo) ? 'mixed' : (hasVideo ? 'video' : 'image');
+
+        console.log("handleExpandMedia", mediaType);
+
+        // Open the global viewer
+        openViewer([{
+            id: shot.id,
+            type: mediaType,
+            imageUrl: shot.image_url,
+            videoUrl: shot.video_url,
+            title: `SHOT ${String(index + 1).padStart(2, '0')}`,
+            description: shot.video_prompt || shot.visual_action
+        }]);
+    };
 
     // --- ANIMATION LOCK LOGIC ---
     // Check if video is currently generating/processing
@@ -202,8 +231,17 @@ export const SortableShotCard = ({
                 </button>
             </div>
 
-            {/* 2. IMAGE PREVIEW */}
-            <div style={{ position: 'relative', marginBottom: '12px' }}>
+            {/* 2. IMAGE PREVIEW AREA */}
+            {/* UPDATED: The container itself is now clickable to open the Media Viewer */}
+            <div
+                onClick={handleExpandMedia}
+                style={{
+                    position: 'relative',
+                    marginBottom: '12px',
+                    cursor: (hasImage || hasVideo) ? 'pointer' : 'default',
+                    // Optional: transition for hover effect if you were using CSS classes
+                }}
+            >
                 {children}
             </div>
 
@@ -214,7 +252,6 @@ export const SortableShotCard = ({
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <label style={labelStyle}>SHOT TYPE</label>
                     <div style={{ position: 'relative' }}>
-                        {/* shot.shot_tupe should be selected even if it doesn't exist in the dropdown */}
                         <select
                             style={selectStyle}
                             value={shot.shot_type || "Wide Shot"}
@@ -246,11 +283,9 @@ export const SortableShotCard = ({
                         <select
                             style={selectStyle}
                             value={shot.location || ""}
-                            defaultValue={shot.location}
                             onChange={(e) => onUpdateShot(shot.id, "location", e.target.value)}
                         >
                             <option value="" disabled>Select Location...</option>
-                            {/* Populate Locations dynamically if needed, keeping existing selection */}
                             <option value={shot.location}>{shot.location}</option>
                             {locations.filter(l => l.name !== shot.location).map(loc => (
                                 <option key={loc.id} value={loc.name}>{loc.name}</option>
@@ -285,7 +320,7 @@ export const SortableShotCard = ({
                                 onClick={() => handleCharToggle(char.name)}
                                 style={{
                                     ...styles.charToggle(isActive),
-                                    fontSize: '10px', // Match input size
+                                    fontSize: '10px',
                                     padding: '4px 10px',
                                     borderRadius: '4px'
                                 }}
@@ -365,7 +400,6 @@ export const SortableShotCard = ({
                 <label style={labelStyle}>VIDEO PROMPT</label>
                 <textarea
                     style={{ ...commonInputStyle, minHeight: '60px', resize: 'vertical' }}
-                    /* FIX: Using local state here solves the cursor jump issue */
                     value={localVideoPrompt}
                     onChange={(e) => {
                         setLocalVideoPrompt(e.target.value);

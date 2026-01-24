@@ -2,28 +2,19 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
-import GlobalHeader from "@/components/GlobalHeader"; // <--- 1. Import it
+import GlobalHeader from "@/components/GlobalHeader";
 import Script from "next/script";
+import { MediaViewerProvider } from "@/app/context/MediaViewerContext"; // Context Logic
+import GlobalMediaViewer from "@/app/components/media/GlobalMediaViewer"; // UI Overlay
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  // <title>MotionX ...</title>
   title: "MotionX Studio | Direct AI Cinema",
-
-  // <meta name="description" ... />
   description: "The first AI-native operating system for filmmakers. Turn scripts into consistent characters, storyboards, and 4K video assets.",
-
-  // <meta name="keywords" ... />
   keywords: ["AI Film Studio", "MotionX", "Generative AI Cinema", "Motion Transfer", "Pre-visualization", "Video Production", "Sora Alternative"],
-
-  // <meta name="author" ... />
   authors: [{ name: "MotionX Studios" }],
-
-  // Base URL (Crucial for images to work)
   metadataBase: new URL('https://studio.motionx.in'),
-
-  // <meta property="og:..." />
   openGraph: {
     type: "website",
     url: "https://studio.motionx.in",
@@ -32,20 +23,18 @@ export const metadata: Metadata = {
     siteName: "MotionX Studio",
     images: [
       {
-        url: "https://studio.motionx.in/og-share-image.png", // Must be in 'public' folder
+        url: "https://studio.motionx.in/og-share-image.png",
         width: 1200,
         height: 630,
         alt: "MotionX Studio Preview",
       },
     ],
   },
-
-  // <meta name="twitter:..." />
   twitter: {
     card: "summary_large_image",
     title: "MotionX Studio | Direct AI Cinema",
     description: "The first AI-native operating system for filmmakers.",
-    images: ["https://studio.motionx.in/og-share-image.png"], // Must be in 'public' folder
+    images: ["https://studio.motionx.in/og-share-image.png"],
   },
 };
 
@@ -79,24 +68,32 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className} style={{ backgroundColor: '#030303', color: 'white' }}>
-        <div className="h-screen w-screen flex flex-col">
-          <Script
-            id="json-ld"
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-          />
-          <AuthProvider>
-            <div className="film-grain" />
-            <div className="vignette" />
 
-            {/* 2. PLACE HEADER HERE */}
-            <GlobalHeader />
+        {/* 1. PROVIDER WRAPS EVERYTHING */}
+        <MediaViewerProvider>
 
-            {/* 3. MAIN CONTENT */}
-            {children}
+          {/* 2. VIEWER UI SITS HERE (Sibling to content, not parent) */}
+          <GlobalMediaViewer />
 
-          </AuthProvider>
-        </div>
+          <div className="h-screen w-screen flex flex-col">
+            <Script
+              id="json-ld"
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <AuthProvider>
+              <div className="film-grain" />
+              <div className="vignette" />
+
+              {/* 3. GLOBAL HEADER */}
+              <GlobalHeader />
+
+              {/* 4. MAIN CONTENT */}
+              {children}
+
+            </AuthProvider>
+          </div>
+        </MediaViewerProvider>
       </body>
     </html>
   );
