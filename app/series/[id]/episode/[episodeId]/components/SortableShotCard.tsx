@@ -103,11 +103,18 @@ export const SortableShotCard = ({
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // --- LOCAL STATE BUFFERS (Fixes Cursor Jumping Issue) ---
     const [localVisualAction, setLocalVisualAction] = useState(shot.visual_action || "");
+    const [localVideoPrompt, setLocalVideoPrompt] = useState(shot.video_prompt || "");
 
     useEffect(() => {
         setLocalVisualAction(shot.visual_action || "");
     }, [shot.visual_action]);
+
+    useEffect(() => {
+        setLocalVideoPrompt(shot.video_prompt || "");
+    }, [shot.video_prompt]);
+
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -171,7 +178,6 @@ export const SortableShotCard = ({
         overflow: 'hidden',
         textOverflow: 'ellipsis'
     };
-    console.log("Shot ", shot)
 
     return (
 
@@ -234,21 +240,21 @@ export const SortableShotCard = ({
                 </div>
 
                 {/* LOCATION DROPDOWN */}
-                {/* LOCATION DROPDOWN */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <label style={labelStyle}>LOCATION</label>
                     <div style={{ position: 'relative' }}>
                         <select
                             style={selectStyle}
-                            /* CRITICAL FIX: The value prop ensures the dropdown reflects the current state */
                             value={shot.location || ""}
                             defaultValue={shot.location}
                             onChange={(e) => onUpdateShot(shot.id, "location", e.target.value)}
                         >
                             <option value="" disabled>Select Location...</option>
-                            <option value="">{shot.location}</option>
-
-
+                            {/* Populate Locations dynamically if needed, keeping existing selection */}
+                            <option value={shot.location}>{shot.location}</option>
+                            {locations.filter(l => l.name !== shot.location).map(loc => (
+                                <option key={loc.id} value={loc.name}>{loc.name}</option>
+                            ))}
                         </select>
                         <ChevronDown
                             size={12}
@@ -321,7 +327,6 @@ export const SortableShotCard = ({
 
                 <textarea
                     style={{ ...commonInputStyle, minHeight: '60px', resize: 'vertical' }}
-                    /* FIX: Use local state to maintain cursor position */
                     value={localVisualAction}
                     onChange={(e) => {
                         setLocalVisualAction(e.target.value);
@@ -360,8 +365,12 @@ export const SortableShotCard = ({
                 <label style={labelStyle}>VIDEO PROMPT</label>
                 <textarea
                     style={{ ...commonInputStyle, minHeight: '60px', resize: 'vertical' }}
-                    value={shot.video_prompt || ""}
-                    onChange={(e) => onUpdateShot(shot.id, "video_prompt", e.target.value)}
+                    /* FIX: Using local state here solves the cursor jump issue */
+                    value={localVideoPrompt}
+                    onChange={(e) => {
+                        setLocalVideoPrompt(e.target.value);
+                        onUpdateShot(shot.id, "video_prompt", e.target.value);
+                    }}
                     placeholder="Motion description..."
                 />
             </div>
