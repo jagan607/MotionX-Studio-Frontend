@@ -4,7 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film, RefreshCw,
-    ChevronDown, ImagePlus, X, Wand2, CheckCircle2
+    ChevronDown, ImagePlus, X, Wand2, CheckCircle2, Loader2
 } from "lucide-react";
 import { useState, useRef, useEffect } from 'react';
 // import { useMediaViewer } from "@/app/context/MediaViewerContext"; // Removed local usage
@@ -30,7 +30,7 @@ interface Shot {
     image_url?: string;
     video_url?: string;
     video_status?: string; // Tracks animation state (animating, processing, etc.)
-    status?: string; // Tracks if shot is 'finalized'
+    status?: string; // Tracks if shot is 'finalized' or 'generating'
 }
 
 interface SortableShotCardProps {
@@ -70,7 +70,17 @@ export const SortableShotCard = ({
 }: SortableShotCardProps) => {
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
-    // Removed: const { openViewer } = useMediaViewer();
+
+    // --- LOGIC: UNIFIED LOADING STATES ---
+    // 1. Image Generation: Busy if API call is active OR Firestore says it's generating
+    const isGenerating = isRendering || shot.status === 'generating';
+
+    // 2. Video Animation: Busy if video status indicates processing
+    const isAnimating = ['animating', 'processing', 'queued', 'pending'].includes(shot.video_status || '');
+
+    // 3. Master Busy State & Overlay Text
+    const isBusy = isGenerating || isAnimating;
+    const overlayText = isAnimating ? "ANIMATING..." : "GENERATING...";
 
     // Check if shot is finalized to apply special styling
     const isFinalized = shot.status === 'finalized';
@@ -153,12 +163,6 @@ export const SortableShotCard = ({
         onExpand();
     };
 
-    // --- ANIMATION LOCK LOGIC ---
-    // Check if video is currently generating/processing
-    const isAnimating = ['animating', 'processing', 'queued', 'pending'].includes(shot.video_status || '');
-    // Master lock: disable inputs if Image is Rendering OR Video is Animating
-    const isBusy = isRendering || isAnimating;
-
     // --- 3. UNIFIED STYLES ---
 
     // Style for ALL Titles (Shot Type, Location, Casting, Prompts)
@@ -222,16 +226,30 @@ export const SortableShotCard = ({
             </div>
 
             {/* 2. IMAGE PREVIEW AREA */}
-            {/* UPDATED: The container itself is now clickable to open the Media Viewer */}
             <div
                 onClick={handleExpandMedia}
                 style={{
                     position: 'relative',
                     marginBottom: '12px',
                     cursor: (hasImage || hasVideo) ? 'pointer' : 'default',
-                    // Optional: transition for hover effect if you were using CSS classes
                 }}
             >
+                {/* --- UNIFIED LOADER OVERLAY --- */}
+                {/* Shows whenever generating image OR animating video */}
+                {isBusy && (
+                    <div style={{
+                        position: 'absolute', inset: 0, zIndex: 10,
+                        backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(2px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexDirection: 'column', gap: '8px'
+                    }}>
+                        <Loader2 className="animate-spin text-red-600" size={24} />
+                        <span style={{ fontSize: '9px', fontWeight: 'bold', color: '#fff', letterSpacing: '1px' }}>
+                            {overlayText}
+                        </span>
+                    </div>
+                )}
+
                 {children}
             </div>
 
