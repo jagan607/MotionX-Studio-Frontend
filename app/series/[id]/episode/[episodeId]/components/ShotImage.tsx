@@ -177,7 +177,7 @@ export const ShotImage = ({
                         <Maximize2 size={14} />
                     </button>
 
-                    <button onClick={onDownload} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}>
+                    <button onClick={(e) => { e.stopPropagation(); onDownload(); }} style={{ padding: '6px', backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid #333', color: 'white', cursor: 'pointer' }}>
                         <Download size={14} />
                     </button>
                 </div>
