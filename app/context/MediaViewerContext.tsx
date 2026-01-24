@@ -30,7 +30,6 @@ export const MediaViewerProvider = ({ children }: { children: ReactNode }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const openViewer = (newItems: MediaItem[], initialIndex = 0) => {
-        console.log("openViewer", newItems, initialIndex);
         setItems(newItems);
         setCurrentIndex(initialIndex);
         setIsOpen(true);

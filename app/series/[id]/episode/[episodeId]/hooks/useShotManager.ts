@@ -203,7 +203,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         if (!activeSceneId) return;
         setIsAutoDirecting(true);
         setTerminalLog(["> INITIALIZING AI DIRECTOR..."]);
-        console.log("currentScene", currentScene);
 
         const sceneAction = overrideSummary || currentScene.description || currentScene.summary || "";
         const sceneLocation = currentScene.header || currentScene.location_id || "Unknown";
@@ -240,8 +239,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                     } else if (Array.isArray(shot.characters)) {
                         charArray = shot.characters;
                     }
-
-                    console.log("SHOT", shot);
 
                     const payload = {
                         id: newShotId,
@@ -281,7 +278,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
 
         for (const shotId of shotIds) {
             if (cancelGenerationRef.current) {
-                console.log("Stopped.");
                 break;
             }
             // Use ref to get latest shot data (prevents stale state)
@@ -312,10 +308,8 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
 
                 // 3. Access the 'style' field (e.g., "realistic")
                 style = data.style;
-                console.log("Series Style:", style);
 
             } else {
-                console.log("No such series found!");
                 return null;
             }
         } catch (error) {

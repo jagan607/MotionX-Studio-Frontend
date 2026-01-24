@@ -31,7 +31,6 @@ export const usePayment = () => {
     const getUserCurrency = () => {
         try {
             const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            console.log("🕒 System Timezone Detected:", timeZone); // CHECK THIS LOG
             if (timeZone === "Asia/Calcutta" || timeZone === "IST") {
                 return "INR";
             }
@@ -66,7 +65,6 @@ export const usePayment = () => {
 
         // 1. Detect Currency
         const detectedCurrency = getUserCurrency();
-        console.log(`📍 Detected User Currency: ${detectedCurrency}`);
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);

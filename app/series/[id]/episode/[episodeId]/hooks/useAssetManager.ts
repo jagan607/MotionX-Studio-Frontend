@@ -38,8 +38,6 @@ export const useAssetManager = (seriesId: string) => {
         // Prioritize existing DB ID. Fallback to robust sanitizer.
         const stableId = existingId || sanitizeId(name);
 
-        console.log(`Opening Asset: "${name}" -> ID: "${stableId}"`);
-
         setSelectedAsset(name);
         setSelectedAssetId(stableId);
         setAssetType(type);

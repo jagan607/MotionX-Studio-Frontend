@@ -9,8 +9,6 @@ export default function GlobalMediaViewer() {
     const { isOpen, items, currentIndex, closeViewer, nextItem, prevItem } = useMediaViewer();
     const [viewMode, setViewMode] = useState<"img" | "vid">("img");
 
-    console.log("GlobalMediaViewer", isOpen, items, currentIndex);
-
     // Get current item
     const currentItem = items[currentIndex];
 
