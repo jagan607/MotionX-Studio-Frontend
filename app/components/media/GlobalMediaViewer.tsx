@@ -47,6 +47,10 @@ export default function GlobalMediaViewer() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/95 backdrop-blur-sm"
+                onClick={(e) => {
+                    // Close if clicking the backdrop directly (not children)
+                    if (e.target === e.currentTarget) closeViewer();
+                }}
             >
                 {/* --- HEADER CONTROLS --- */}
                 <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-[2001]">
@@ -96,18 +100,18 @@ export default function GlobalMediaViewer() {
                 {currentIndex > 0 && (
                     <button
                         onClick={(e) => { e.stopPropagation(); prevItem(); }}
-                        className="absolute left-4 p-4 text-white/50 hover:text-white transition-colors z-[2001]"
+                        className="absolute left-6 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-[#FF0000] border border-white/10 hover:border-[#FF0000] rounded-full text-white transition-all duration-200 z-[2001] backdrop-blur-md group"
                     >
-                        <ChevronLeft size={48} strokeWidth={1} />
+                        <ChevronLeft size={32} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
                     </button>
                 )}
 
                 {currentIndex < items.length - 1 && (
                     <button
                         onClick={(e) => { e.stopPropagation(); nextItem(); }}
-                        className="absolute right-4 p-4 text-white/50 hover:text-white transition-colors z-[2001]"
+                        className="absolute right-6 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-[#FF0000] border border-white/10 hover:border-[#FF0000] rounded-full text-white transition-all duration-200 z-[2001] backdrop-blur-md group"
                     >
-                        <ChevronRight size={48} strokeWidth={1} />
+                        <ChevronRight size={32} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
                     </button>
                 )}
 

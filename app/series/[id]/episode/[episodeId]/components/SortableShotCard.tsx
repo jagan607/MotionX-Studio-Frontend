@@ -7,7 +7,7 @@ import {
     ChevronDown, ImagePlus, X, Wand2, CheckCircle2
 } from "lucide-react";
 import { useState, useRef, useEffect } from 'react';
-import { useMediaViewer } from "@/app/context/MediaViewerContext";
+// import { useMediaViewer } from "@/app/context/MediaViewerContext"; // Removed local usage
 
 // --- 1. TYPE SAFETY: Explicit Interfaces ---
 interface CastMember {
@@ -46,6 +46,7 @@ interface SortableShotCardProps {
     onAnimate: () => void;
     onFinalize: () => void;
     isRendering: boolean;
+    onExpand: () => void; // <--- NEW PROP
     children: React.ReactNode;
 }
 
@@ -64,11 +65,12 @@ export const SortableShotCard = ({
     onAnimate,
     onFinalize,
     isRendering,
+    onExpand,
     children
 }: SortableShotCardProps) => {
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
-    const { openViewer } = useMediaViewer(); // Hook into Global Viewer
+    // Removed: const { openViewer } = useMediaViewer();
 
     // Check if shot is finalized to apply special styling
     const isFinalized = shot.status === 'finalized';
@@ -147,20 +149,8 @@ export const SortableShotCard = ({
 
         if (!hasImage && !hasVideo) return;
 
-        // Determine type for toggle logic
-        const mediaType = (hasImage && hasVideo) ? 'mixed' : (hasVideo ? 'video' : 'image');
-
-        console.log("handleExpandMedia", mediaType);
-
-        // Open the global viewer
-        openViewer([{
-            id: shot.id,
-            type: mediaType,
-            imageUrl: shot.image_url,
-            videoUrl: shot.video_url,
-            title: `SHOT ${String(index + 1).padStart(2, '0')}`,
-            description: shot.video_prompt || shot.visual_action
-        }]);
+        // Delegate to parent who knows about the full list
+        onExpand();
     };
 
     // --- ANIMATION LOCK LOGIC ---

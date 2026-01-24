@@ -14,6 +14,7 @@ import { SortableShotCard } from "./SortableShotCard";
 import { SceneContextStrip } from "./SceneContextStrip";
 import { StoryboardTour } from "@/components/StoryboardTour";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import { useMediaViewer } from "@/app/context/MediaViewerContext";
 
 interface StoryboardOverlayProps {
     activeSceneId: string | null;
@@ -74,6 +75,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
+
+    const { openViewer } = useMediaViewer();
 
     // --- SAFETY STATE ---
     const [showOverwriteWarning, setShowOverwriteWarning] = useState(false);
@@ -140,6 +143,19 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
             setIsWiping(false);
             setShowGenerateWarning(false);
         }
+    };
+
+    // --- LOGIC 3: MEDIA VIEWER HANDLER (Full Context) ---
+    const handleOpenViewer = (initialIndex: number) => {
+        const mediaItems = shotMgr.shots.map((s: any, i: number) => ({
+            id: s.id,
+            type: ((s.image_url && s.video_url) ? 'mixed' : (s.video_url ? 'video' : 'image')) as 'image' | 'video' | 'mixed',
+            imageUrl: s.image_url,
+            videoUrl: s.video_url,
+            title: `SHOT ${String(i + 1).padStart(2, '0')}`,
+            description: s.video_prompt || s.visual_action
+        }));
+        openViewer(mediaItems, initialIndex);
     };
 
     // --- DATA RESOLVER ---
@@ -305,7 +321,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     onRender={(referenceFile?: File | null) => shotMgr.handleRenderShot(shot, currentScene, referenceFile)}
                                     onAnimate={() => shotMgr.handleAnimateShot(shot)}
                                     isRendering={shotMgr.loadingShots.has(shot.id)}
-                                    onFinalize={() => shotMgr.handleFinalizeShot(shot)}                                >
+                                    onFinalize={() => shotMgr.handleFinalizeShot(shot)}
+                                    onExpand={() => handleOpenViewer(index)}
+                                >
                                     {/* PREVIEW CONTENT */}
                                     <div style={styles.shotImageContainer}>
                                         <ShotImage
@@ -314,10 +332,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                             videoStatus={shot.video_status}
                                             shotId={shot.id}
                                             isSystemLoading={shotMgr.loadingShots.has(shot.id)}
-                                            onClickZoom={() => {
-                                                if (shot.video_url) onZoom({ url: shot.video_url, type: 'video' });
-                                                else if (shot.image_url) onZoom({ url: shot.image_url, type: 'image' });
-                                            }}
+                                            onClickZoom={() => handleOpenViewer(index)}
                                             onDownload={() => onDownload(shot)}
                                             onStartInpaint={() => setInpaintData({ src: shot.image_url, shotId: shot.id })}
                                             onAnimate={() => shotMgr.handleAnimateShot(shot)}
