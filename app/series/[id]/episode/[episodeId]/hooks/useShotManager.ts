@@ -6,7 +6,7 @@ import { API_BASE_URL } from "@/lib/config";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { arrayMove } from "@dnd-kit/sortable";
 
-export const useShotManager = (seriesId: string, episodeId: string, activeSceneId: string | null) => {
+export const useShotManager = (seriesId: string, episodeId: string, activeSceneId: string | null, onLowCredits?: () => void) => {
     const [shots, setShots] = useState<any[]>([]);
     const [loadingShots, setLoadingShots] = useState<Set<string>>(new Set());
 
@@ -294,35 +294,24 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
 
     const handleRenderShot = async (shot: any, currentScene: any, referenceFile?: File | null) => {
         addLoadingShot(shot.id);
-        //appeend series genre and style to the shot prompt
-        let style = ""
+
+        let style = "";
         try {
-            // 1. Reference the document in the 'series' collection
             const seriesRef = doc(db, "series", seriesId);
-
-            // 2. Fetch the document
             const seriesSnap = await getDoc(seriesRef);
-
             if (seriesSnap.exists()) {
-                const data = seriesSnap.data() || {};
-
-                // 3. Access the 'style' field (e.g., "realistic")
-                style = data.style;
-
-            } else {
-                return null;
+                style = seriesSnap.data().style || "";
             }
         } catch (error) {
             console.error("Error fetching style:", error);
         }
-
 
         const formData = new FormData();
         formData.append("series_id", seriesId);
         formData.append("episode_id", episodeId);
         formData.append("scene_id", activeSceneId!);
         formData.append("shot_id", shot.id);
-        formData.append("shot_prompt", shot.visual_action + " " + style || "");
+        formData.append("shot_prompt", (shot.visual_action + " " + style).trim());
         formData.append("shot_type", shot.shot_type || "Wide Shot");
         formData.append("characters", Array.isArray(shot.characters) ? shot.characters.join(",") : "");
         formData.append("location", shot.location || "");
@@ -334,15 +323,33 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
 
         try {
             const idToken = await auth.currentUser?.getIdToken();
-            await fetch(`${API_BASE_URL}/api/v1/shot/generate_shot`, {
+
+            const response = await fetch(`${API_BASE_URL}/api/v1/shot/generate_shot`, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${idToken}` },
                 body: formData
             });
-        } catch (e) {
-            console.error(e);
-            // toastError(e.message || "Failed to render shot");
+
+            // --- NEW: CREDIT CHECK LOGIC ---
+            if (!response.ok) {
+                // Check specifically for 402 Payment Required
+                if (response.status === 402) {
+                    if (onLowCredits) onLowCredits(); // <--- Trigger Modal
+                    return; // Stop execution
+                }
+
+                // Handle other errors
+                const errorData = await response.json();
+                throw new Error(errorData.detail || "Failed to render shot");
+            }
+
+            // If success, the backend (tasks polling) or socket will handle the update
+
+        } catch (e: any) {
+            console.error("Render error:", e);
+            // Optional: toastError(e.message);
         } finally {
+            // Always remove loading state so the spinner stops (even if out of credits)
             removeLoadingShot(shot.id);
         }
     };

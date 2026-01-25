@@ -24,7 +24,8 @@ import { DownloadModal } from "./components/DownloadModal";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { TourGuide } from "./components/TourGuide";
 import { AssetModal } from './components/AssetModal';
-import { LibraryModal } from "./components/LibraryModal"; // <--- NEW COMPONENT
+import { LibraryModal } from "./components/LibraryModal";
+import CreditModal from "@/app/components/modals/CreditModal"; // <--- 1. NEW IMPORT
 
 // --- HOOKS ---
 import { useEpisodeData } from "./hooks/useEpisodeData";
@@ -32,7 +33,7 @@ import { useAssetManager } from "./hooks/useAssetManager";
 import { useShotManager } from "./hooks/useShotManager";
 import { useEpisodeTour } from "./hooks/useEpisodeTour";
 import { useStoryboardTour } from "@/hooks/useStoryboardTour";
-import { useSeriesAssets } from "@/hooks/useSeriesAssets"; // <--- NEW HOOK
+import { useSeriesAssets } from "@/hooks/useSeriesAssets";
 
 // --- TYPES ---
 import { CharacterProfile, LocationProfile } from "@/lib/types";
@@ -48,6 +49,9 @@ const sanitizeId = (name: string) => {
 export default function EpisodeBoard() {
 
     const { id: seriesId, episodeId } = useParams() as { id: string; episodeId: string };
+
+    // --- 2. NEW STATE FOR CREDIT MODAL ---
+    const [showCreditModal, setShowCreditModal] = useState(false);
 
     // 1. DATA & STATE
     const {
@@ -77,7 +81,14 @@ export default function EpisodeBoard() {
     const [inpaintData, setInpaintData] = useState<{ src: string, shotId: string } | null>(null);
 
     // 3. MANAGERS
-    const shotMgr = useShotManager(seriesId, episodeId, activeSceneId);
+    // --- 3. PASS THE MODAL TRIGGER TO SHOT MANAGER ---
+    const shotMgr = useShotManager(
+        seriesId,
+        episodeId,
+        activeSceneId,
+        () => setShowCreditModal(true) // <--- Logic added here
+    );
+
     const currentScene = scenes.find(s => s.id === activeSceneId);
 
     const epTour = useEpisodeTour();
@@ -148,7 +159,7 @@ export default function EpisodeBoard() {
         }
     };
 
-    // --- IMPORT HANDLER (NEW) ---
+    // --- IMPORT HANDLER ---
     const handleImportAssets = async (selectedIds: string[]) => {
         if (selectedIds.length === 0) return;
 
@@ -156,24 +167,16 @@ export default function EpisodeBoard() {
             const epRef = doc(db, "series", seriesId, "episodes", episodeId);
 
             if (libType === 'character') {
-                // Update DB
                 await updateDoc(epRef, { cast_ids: arrayUnion(...selectedIds) });
-
-                // Optimistic UI Update
                 const newMembers = masterCast.filter(m => selectedIds.includes(m.id));
                 setCastMembers(prev => {
-                    // Avoid duplicates in UI
                     const existingIds = new Set(prev.map(p => p.id));
                     const uniqueNew = newMembers.filter(m => !existingIds.has(m.id));
                     return [...prev, ...uniqueNew];
                 });
                 toastSuccess(`${selectedIds.length} Characters Imported`);
             } else {
-                // For locations, assuming you might have a 'location_ids' field 
-                // OR you just want them available in the UI list for this session
-                // We'll update 'location_ids' if your schema supports it
                 await updateDoc(epRef, { location_ids: arrayUnion(...selectedIds) }).catch(() => { });
-
                 const newLocs = masterLocations.filter(m => selectedIds.includes(m.id));
                 setLocations(prev => {
                     const existingIds = new Set(prev.map(p => p.id));
@@ -261,6 +264,12 @@ export default function EpisodeBoard() {
         <main style={styles.container}>
             <Toaster position="bottom-right" reverseOrder={false} />
 
+            {/* --- 4. RENDER CREDIT MODAL --- */}
+            <CreditModal
+                isOpen={showCreditModal}
+                onClose={() => setShowCreditModal(false)}
+            />
+
             <EpisodeHeader
                 seriesId={seriesId}
                 episodeTitle={episodeData?.title}
@@ -282,7 +291,6 @@ export default function EpisodeBoard() {
 
             {activeTab === 'casting' && (
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    {/* Header with Import Button */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
                         <button
                             onClick={() => { setLibType('character'); setLibModalOpen(true); }}
@@ -315,7 +323,6 @@ export default function EpisodeBoard() {
 
             {activeTab === 'locations' && (
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    {/* Header with Import Button */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
                         <button
                             onClick={() => { setLibType('location'); setLibModalOpen(true); }}
@@ -367,7 +374,6 @@ export default function EpisodeBoard() {
                 onTourComplete={sbTour.completeTour}
             />
 
-            {/* --- LIBRARY MODAL (NEW) --- */}
             <LibraryModal
                 isOpen={libModalOpen}
                 onClose={() => setLibModalOpen(false)}
