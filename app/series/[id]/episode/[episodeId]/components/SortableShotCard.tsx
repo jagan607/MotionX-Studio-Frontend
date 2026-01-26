@@ -44,10 +44,10 @@ interface SortableShotCardProps {
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
     // --- ACTION PROPS ---
     onRender: (referenceFile?: File | null) => void;
-    onAnimate: () => void;
+    onAnimate: (provider: 'kling' | 'seedance') => void; // UPDATED: Accepts provider string
     onFinalize: () => void;
     isRendering: boolean;
-    onExpand: () => void; // <--- NEW PROP
+    onExpand: () => void;
     children: React.ReactNode;
 }
 
@@ -71,6 +71,9 @@ export const SortableShotCard = ({
 }: SortableShotCardProps) => {
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
+
+    // --- LOCAL STATE: VIDEO PROVIDER SELECTION ---
+    const [videoProvider, setVideoProvider] = useState<'kling' | 'seedance'>('kling');
 
     // --- LOGIC: UNIFIED LOADING STATES ---
     // 1. Image Generation: Busy if API call is active OR Firestore says it's generating
@@ -159,18 +162,10 @@ export const SortableShotCard = ({
                 };
 
                 const compressedFile = await imageCompression(file, options);
-
-                // // Log New Size
-                // console.log(`Compressed File Size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
-                // console.log(`Compression Ratio: ${((1 - (compressedFile.size / file.size)) * 100).toFixed(0)}% reduced`);
-
-                // Use the compressed file for upload
                 setRefFile(compressedFile);
                 setPreviewUrl(URL.createObjectURL(compressedFile));
 
             } catch (error) {
-                // console.error("Compression failed:", error);
-                // Fallback to original if compression fails
                 setRefFile(file);
                 setPreviewUrl(URL.createObjectURL(file));
             } finally {
@@ -191,14 +186,8 @@ export const SortableShotCard = ({
 
     // --- MEDIA EXPAND HANDLER (Gracefully integrated) ---
     const handleExpandMedia = (e: React.MouseEvent | React.PointerEvent) => {
-        // Prevent default actions but allow bubbling if needed, 
-        // though typically we want to capture this click for the viewer.
-        // We stop propagation to prevent weird interaction with parent elements if any.
         e.stopPropagation();
-
         if (!hasImage && !hasVideo) return;
-
-        // Delegate to parent who knows about the full list
         onExpand();
     };
 
@@ -274,7 +263,6 @@ export const SortableShotCard = ({
                 }}
             >
                 {/* --- UNIFIED LOADER OVERLAY --- */}
-                {/* Shows whenever generating image OR animating video */}
                 {isBusy && (
                     <div style={{
                         position: 'absolute', inset: 0, zIndex: 10,
@@ -288,7 +276,6 @@ export const SortableShotCard = ({
                         </span>
                     </div>
                 )}
-
                 {children}
             </div>
 
@@ -338,17 +325,7 @@ export const SortableShotCard = ({
                                 <option key={loc.id} value={loc.name}>{loc.name}</option>
                             ))}
                         </select>
-                        <ChevronDown
-                            size={12}
-                            style={{
-                                position: 'absolute',
-                                right: '8px',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                color: '#666',
-                                pointerEvents: 'none'
-                            }}
-                        />
+                        <ChevronDown size={12} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color: '#666', pointerEvents: 'none' }} />
                     </div>
                 </div>
             </div>
@@ -504,13 +481,51 @@ export const SortableShotCard = ({
                     </button>
                 </div>
 
+                {/* --- NEW: VIDEO PROVIDER TOGGLE --- */}
+                {hasImage && !isBusy && (
+                    <div style={{ display: 'flex', gap: '5px', marginTop: '10px', marginBottom: '5px' }}>
+                        <button
+                            onClick={() => setVideoProvider('kling')}
+                            style={{
+                                flex: 1,
+                                padding: '6px',
+                                fontSize: '9px',
+                                fontWeight: 'bold',
+                                border: videoProvider === 'kling' ? '1px solid #FF0000' : '1px solid #333',
+                                backgroundColor: videoProvider === 'kling' ? 'rgba(255, 0, 0, 0.1)' : 'transparent',
+                                color: videoProvider === 'kling' ? '#FFF' : '#666',
+                                cursor: 'pointer',
+                                borderRadius: '3px'
+                            }}
+                        >
+                            KLING (HQ)
+                        </button>
+                        <button
+                            onClick={() => setVideoProvider('seedance')}
+                            style={{
+                                flex: 1,
+                                padding: '6px',
+                                fontSize: '9px',
+                                fontWeight: 'bold',
+                                border: videoProvider === 'seedance' ? '1px solid #FF0000' : '1px solid #333',
+                                backgroundColor: videoProvider === 'seedance' ? 'rgba(255, 0, 0, 0.1)' : 'transparent',
+                                color: videoProvider === 'seedance' ? '#FFF' : '#666',
+                                cursor: 'pointer',
+                                borderRadius: '3px'
+                            }}
+                        >
+                            SEEDANCE (FAST)
+                        </button>
+                    </div>
+                )}
+
                 {/* BUTTON 3: ANIMATE (Full Width Below) */}
                 <button
-                    onClick={onAnimate}
+                    onClick={() => onAnimate(videoProvider)}
                     disabled={!hasImage || isBusy}
                     style={{
                         width: '100%',
-                        marginTop: '8px',
+                        marginTop: '4px',
                         padding: '10px',
                         backgroundColor: (!hasImage) ? '#111' : '#FF0000',
                         border: (!hasImage) ? '1px solid #222' : 'none',
