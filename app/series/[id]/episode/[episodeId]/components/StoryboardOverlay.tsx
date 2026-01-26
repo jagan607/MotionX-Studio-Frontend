@@ -15,6 +15,7 @@ import { SceneContextStrip } from "./SceneContextStrip";
 import { StoryboardTour } from "@/components/StoryboardTour";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
+import { Toaster } from "react-hot-toast";
 
 interface StoryboardOverlayProps {
     activeSceneId: string | null;
@@ -175,6 +176,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
     return (
         <div style={styles.sbOverlay}>
+            <Toaster position="bottom-right" reverseOrder={false} />
             {/* --- 1. HEADER --- */}
             <div style={styles.sbHeader}>
                 <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', fontWeight: 'bold' }}>

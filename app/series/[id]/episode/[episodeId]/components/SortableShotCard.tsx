@@ -7,7 +7,8 @@ import {
     ChevronDown, ImagePlus, X, Wand2, CheckCircle2, Loader2
 } from "lucide-react";
 import { useState, useRef, useEffect } from 'react';
-// import { useMediaViewer } from "@/app/context/MediaViewerContext"; // Removed local usage
+import imageCompression from 'browser-image-compression';
+import { toastError } from "@/lib/toast";
 
 // --- 1. TYPE SAFETY: Explicit Interfaces ---
 interface CastMember {
@@ -66,7 +67,7 @@ export const SortableShotCard = ({
     onFinalize,
     isRendering,
     onExpand,
-    children
+    children,
 }: SortableShotCardProps) => {
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
@@ -117,11 +118,13 @@ export const SortableShotCard = ({
     // --- REFERENCE IMAGE STATE ---
     const [refFile, setRefFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [isCompressing, setIsCompressing] = useState(false); // UI state for compression
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // --- LOCAL STATE BUFFERS (Fixes Cursor Jumping Issue) ---
     const [localVisualAction, setLocalVisualAction] = useState(shot.visual_action || "");
     const [localVideoPrompt, setLocalVideoPrompt] = useState(shot.video_prompt || "");
+    const prevStatusRef = useRef(shot.status);
 
     useEffect(() => {
         setLocalVisualAction(shot.visual_action || "");
@@ -131,12 +134,48 @@ export const SortableShotCard = ({
         setLocalVideoPrompt(shot.video_prompt || "");
     }, [shot.video_prompt]);
 
+    useEffect(() => {
+        if (prevStatusRef.current !== 'error' && shot.status === 'error') {
+            toastError(`Generation Failed for Shot ${index + 1}`);
+        }
+        prevStatusRef.current = shot.status;
+    }, [shot.status, index]);
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // --- OPTIMIZED FILE HANDLING ---
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            setRefFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
+            setIsCompressing(true);
+
+            // Log Original Size
+            console.log(`Original File Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+
+            try {
+                // Compression Config
+                const options = {
+                    maxSizeMB: 1,          // Target 1MB max
+                    maxWidthOrHeight: 1500, // Safe for Gemini
+                    useWebWorker: true
+                };
+
+                const compressedFile = await imageCompression(file, options);
+
+                // // Log New Size
+                // console.log(`Compressed File Size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
+                // console.log(`Compression Ratio: ${((1 - (compressedFile.size / file.size)) * 100).toFixed(0)}% reduced`);
+
+                // Use the compressed file for upload
+                setRefFile(compressedFile);
+                setPreviewUrl(URL.createObjectURL(compressedFile));
+
+            } catch (error) {
+                // console.error("Compression failed:", error);
+                // Fallback to original if compression fails
+                setRefFile(file);
+                setPreviewUrl(URL.createObjectURL(file));
+            } finally {
+                setIsCompressing(false);
+            }
         }
     };
 
