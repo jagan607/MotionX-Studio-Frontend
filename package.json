@@ -15,6 +15,7 @@
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "autoprefixer": "^10.4.23",
+    "axios": "^1.13.3",
     "browser-image-compression": "^2.0.2",
     "firebase": "^12.7.0",
     "firebase-admin": "^11.0.0",

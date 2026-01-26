@@ -140,14 +140,12 @@ export default function GlobalHeader() {
                         </button>
                     </div>
 
-                    {/* 2. NEW PROJECT BUTTON */}
-                    <div style={{ marginRight: '32px' }}>
-                        <Link href="/series/new" style={{ textDecoration: 'none' }}>
-                            <button className="header-btn" style={styles.actionButton}>
-                                <Plus size={12} strokeWidth={3} /> NEW PROJECT
-                            </button>
-                        </Link>
-                    </div>
+                    <Link href="/project/new">
+                        <button className="flex items-center gap-2 bg-motion-surface border border-motion-border text-xs font-bold tracking-[2px] text-motion-text px-6 py-3 uppercase hover:bg-motion-bg transition-colors">
+                            <Plus className="w-3 h-3" strokeWidth={3} />
+                            New Project
+                        </button>
+                    </Link>
 
                     {/* 3. OPERATOR PROFILE */}
                     <Link href="/profile" style={{ textDecoration: 'none' }}>
