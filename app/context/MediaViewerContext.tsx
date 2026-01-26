@@ -5,11 +5,12 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 // Define the shape of a media item
 export interface MediaItem {
     id: string;
-    type: 'image' | 'video' | 'mixed'; // mixed means it has both
+    type: 'image' | 'video' | 'mixed';
     imageUrl?: string;
     videoUrl?: string;
-    title?: string; // Optional: Shot ID or Scene Name
-    description?: string; // Optional: Prompt text
+    lipsyncUrl?: string; // <--- NEW FIELD
+    title?: string;
+    description?: string;
 }
 
 interface MediaViewerContextType {
