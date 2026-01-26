@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import { ArrowLeft, Zap, Wand2, Plus, Film, Layers, Square, Loader2 } from 'lucide-react';
 import {
@@ -38,13 +40,13 @@ interface StoryboardOverlayProps {
         loadingShots: Set<string>;
         handleRenderShot: (shot: any, scene: any, referenceFile?: File | null) => void;
         updateShot: (id: string, field: string, value: any) => void;
-        handleAnimateShot: (shot: any) => void;
+        handleAnimateShot: (shot: any, provider?: string) => void; // UPDATED INTERFACE
         terminalLog: string[];
         isAutoDirecting: boolean;
         wipeSceneData: () => Promise<void>;
         wipeShotImagesOnly: () => Promise<void>;
         isGeneratingAll: boolean;
-        isStopping: boolean; // <--- NEW PROP
+        isStopping: boolean;
         stopGeneration: () => void;
         handleFinalizeShot: (shot: any) => void;
     };
@@ -321,7 +323,10 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     locations={locations}
                                     onUpdateShot={shotMgr.updateShot}
                                     onRender={(referenceFile?: File | null) => shotMgr.handleRenderShot(shot, currentScene, referenceFile)}
-                                    onAnimate={() => shotMgr.handleAnimateShot(shot)}
+
+                                    // --- PASS THE PROVIDER ---
+                                    onAnimate={(provider) => shotMgr.handleAnimateShot(shot, provider)}
+
                                     isRendering={shotMgr.loadingShots.has(shot.id)}
                                     onFinalize={() => shotMgr.handleFinalizeShot(shot)}
                                     onExpand={() => handleOpenViewer(index)}
@@ -337,7 +342,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                             onClickZoom={() => handleOpenViewer(index)}
                                             onDownload={() => onDownload(shot)}
                                             onStartInpaint={() => setInpaintData({ src: shot.image_url, shotId: shot.id })}
-                                            onAnimate={() => shotMgr.handleAnimateShot(shot)}
+                                            onAnimate={() => shotMgr.handleAnimateShot(shot, 'kling')}
                                         />
                                     </div>
                                 </SortableShotCard>

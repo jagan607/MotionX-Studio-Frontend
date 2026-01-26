@@ -395,7 +395,8 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
     };
 
-    const handleAnimateShot = async (shot: any, currentScene?: any) => {
+    // UPDATE: Accept 'provider' argument to toggle between Kling and SeeDance
+    const handleAnimateShot = async (shot: any, provider: string = 'kling') => {
         if (!shot.image_url) return toastError("Generate image first");
         try {
             const idToken = await auth.currentUser?.getIdToken();
@@ -406,12 +407,16 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             formData.append("shot_id", shot.id);
             formData.append("image_url", shot.image_url);
             formData.append("prompt", shot.video_prompt || shot.visual_action || "Cinematic movement");
+            formData.append("provider", provider); // <--- PASS PROVIDER
 
             await fetch(`${API_BASE_URL}/api/v1/shot/animate_shot`, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${idToken}` },
                 body: formData
             });
+
+            // Optimistic update handled by backend setting status to 'animating'
+
         } catch (e) {
             console.error(e);
             toastError("Animation failed");
