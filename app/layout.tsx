@@ -1,13 +1,28 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Anton, Roboto_Mono } from "next/font/google"; // 1. Import new fonts
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import GlobalHeader from "@/components/GlobalHeader";
 import Script from "next/script";
-import { MediaViewerProvider } from "@/app/context/MediaViewerContext"; // Context Logic
-import GlobalMediaViewer from "@/app/components/media/GlobalMediaViewer"; // UI Overlay
+import { MediaViewerProvider } from "@/app/context/MediaViewerContext";
+import GlobalMediaViewer from "@/app/components/media/GlobalMediaViewer";
 
-const inter = Inter({ subsets: ["latin"] });
+// 2. Configure fonts with CSS variables for Tailwind
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter"
+});
+
+const anton = Anton({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-anton"
+});
+
+const robotoMono = Roboto_Mono({
+  subsets: ["latin"],
+  variable: "--font-roboto-mono"
+});
 
 export const metadata: Metadata = {
   title: "MotionX Studio | Direct AI Cinema",
@@ -67,7 +82,10 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <body className={inter.className} style={{ backgroundColor: '#030303', color: 'white' }}>
+      {/* 3. Inject variables and use MotionX Theme classes */}
+      <body
+        className={`${inter.variable} ${anton.variable} ${robotoMono.variable} font-sans bg-motion-bg text-motion-text antialiased`}
+      >
 
         {/* 1. PROVIDER WRAPS EVERYTHING */}
         <MediaViewerProvider>
