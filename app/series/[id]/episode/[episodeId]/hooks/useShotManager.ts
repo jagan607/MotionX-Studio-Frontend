@@ -423,12 +423,76 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
     };
 
+    const handleGenerateVoiceover = async (text: string, voiceId: string): Promise<string | null> => {
+        try {
+            const idToken = await auth.currentUser?.getIdToken();
+            const formData = new FormData();
+            formData.append("text", text);
+            formData.append("voice_id", voiceId);
+
+            const res = await fetch(`${API_BASE_URL}/api/v1/shot/generate_voiceover`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${idToken}` },
+                body: formData
+            });
+
+            if (!res.ok) throw new Error("Voice generation failed");
+            const data = await res.json();
+            return data.audio_url; // Return the URL to the UI
+        } catch (e) {
+            console.error(e);
+            toastError("Failed to generate voice");
+            return null;
+        }
+    };
+
+    // --- NEW: LIP SYNC (Sync Labs) ---
+    const handleLipSyncShot = async (shot: any, audioUrl: string | null, audioFile: File | null) => {
+        if (!shot.video_url) return toastError("No video available to sync");
+
+        // Optimistic UI Update
+        const shotRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId!, "shots", shot.id);
+        await setDoc(shotRef, { video_status: "processing" }, { merge: true }); // 'processing' shows busy spinner
+
+        try {
+            const idToken = await auth.currentUser?.getIdToken();
+            const formData = new FormData();
+            formData.append("series_id", seriesId);
+            formData.append("episode_id", episodeId);
+            formData.append("scene_id", activeSceneId!);
+            formData.append("shot_id", shot.id);
+            formData.append("video_url", shot.video_url);
+
+            if (audioUrl) formData.append("audio_url", audioUrl);
+            if (audioFile) formData.append("audio_file", audioFile);
+
+            const res = await fetch(`${API_BASE_URL}/api/v1/shot/lipsync_shot`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${idToken}` },
+                body: formData
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Lip Sync failed");
+            }
+
+            toastSuccess("Lip Sync Queued (Approx 2-5 mins)");
+
+        } catch (e: any) {
+            console.error(e);
+            toastError(e.message);
+            // Revert status on error
+            await setDoc(shotRef, { video_status: "ready" }, { merge: true });
+        }
+    };
+
     return {
         shots, loadingShots, terminalLog, aspectRatio, setAspectRatio,
         isAutoDirecting, isGeneratingAll, isStopping,
         handleAddShot, updateShot, handleDeleteShot, handleDragEnd,
         handleAutoDirect, handleRenderShot, handleAnimateShot,
         handleGenerateAll, stopGeneration, wipeSceneData, wipeShotImagesOnly,
-        handleFinalizeShot
+        handleFinalizeShot, handleGenerateVoiceover, handleLipSyncShot
     };
 };

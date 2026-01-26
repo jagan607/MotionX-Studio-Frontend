@@ -34,6 +34,7 @@ import { useShotManager } from "./hooks/useShotManager";
 import { useEpisodeTour } from "./hooks/useEpisodeTour";
 import { useStoryboardTour } from "@/hooks/useStoryboardTour";
 import { useSeriesAssets } from "@/hooks/useSeriesAssets";
+import { MediaViewer } from "./components/MediaViewer";
 
 // --- TYPES ---
 import { CharacterProfile, LocationProfile } from "@/lib/types";
@@ -432,7 +433,9 @@ export default function EpisodeBoard() {
                 );
             })()}
 
-            <ZoomOverlay media={zoomMedia} onClose={() => setZoomMedia(null)} styles={styles} />
+            <MediaViewer />
+
+            {/* <ZoomOverlay media={zoomMedia} onClose={() => setZoomMedia(null)} styles={styles} /> */}
             <TourGuide step={epTour.tourStep} onNext={epTour.nextStep} onComplete={epTour.completeTour} />
 
             {downloadShot && (

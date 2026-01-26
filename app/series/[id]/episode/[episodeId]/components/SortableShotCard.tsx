@@ -4,7 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film, RefreshCw,
-    ChevronDown, ImagePlus, X, Wand2, CheckCircle2, Loader2
+    ChevronDown, ImagePlus, X, Wand2, CheckCircle2, Loader2, Mic2
 } from "lucide-react";
 import { useState, useRef, useEffect } from 'react';
 import imageCompression from 'browser-image-compression';
@@ -48,6 +48,7 @@ interface SortableShotCardProps {
     onFinalize: () => void;
     isRendering: boolean;
     onExpand: () => void;
+    onLipSync: () => void;
     children: React.ReactNode;
 }
 
@@ -67,6 +68,7 @@ export const SortableShotCard = ({
     onFinalize,
     isRendering,
     onExpand,
+    onLipSync,
     children,
 }: SortableShotCardProps) => {
 
@@ -519,31 +521,50 @@ export const SortableShotCard = ({
                     </div>
                 )}
 
-                {/* BUTTON 3: ANIMATE (Full Width Below) */}
-                <button
-                    onClick={() => onAnimate(videoProvider)}
-                    disabled={!hasImage || isBusy}
-                    style={{
-                        width: '100%',
-                        marginTop: '4px',
-                        padding: '10px',
-                        backgroundColor: (!hasImage) ? '#111' : '#FF0000',
-                        border: (!hasImage) ? '1px solid #222' : 'none',
-                        color: (!hasImage) ? '#444' : 'white',
-                        fontSize: '10px',
-                        fontWeight: 'bold',
-                        cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        borderRadius: '4px',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    {hasVideo ? <RefreshCw size={14} /> : <Film size={14} fill={hasImage ? "white" : "gray"} />}
-                    {hasVideo ? "REGENERATE VID" : "ANIMATE"}
-                </button>
+                {/* --- BOTTOM ROW: ANIMATE & LIP SYNC --- */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+
+                    {/* Animate Button (Takes max space) */}
+                    <button
+                        onClick={() => onAnimate(videoProvider)}
+                        disabled={!hasImage || isBusy}
+                        style={{
+                            flex: 1,
+                            padding: '10px',
+                            backgroundColor: (!hasImage) ? '#111' : '#FF0000',
+                            border: (!hasImage) ? '1px solid #222' : 'none',
+                            color: (!hasImage) ? '#444' : 'white',
+                            fontSize: '10px', fontWeight: 'bold',
+                            cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                            borderRadius: '4px', transition: 'all 0.2s'
+                        }}
+                    >
+                        {hasVideo ? <RefreshCw size={14} /> : <Film size={14} fill={hasImage ? "white" : "gray"} />}
+                        {hasVideo ? "RE-ANIMATE" : "ANIMATE"}
+                    </button>
+
+                    {/* Lip Sync Button (Square, only if Video exists) */}
+                    {hasVideo && (
+                        <button
+                            onClick={onLipSync}
+                            disabled={isBusy}
+                            title="Open Lip Sync Studio"
+                            style={{
+                                width: '42px',
+                                padding: '0',
+                                backgroundColor: '#1a1a1a',
+                                border: '1px solid #333',
+                                color: '#FFF',
+                                cursor: isBusy ? 'not-allowed' : 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                borderRadius: '4px', transition: 'all 0.2s'
+                            }}
+                        >
+                            <Mic2 size={16} />
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );

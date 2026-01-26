@@ -18,6 +18,7 @@ import { StoryboardTour } from "@/components/StoryboardTour";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
 import { Toaster } from "react-hot-toast";
+import { LipSyncModal } from "./LipSyncModal";
 
 interface StoryboardOverlayProps {
     activeSceneId: string | null;
@@ -49,6 +50,8 @@ interface StoryboardOverlayProps {
         isStopping: boolean;
         stopGeneration: () => void;
         handleFinalizeShot: (shot: any) => void;
+        handleGenerateVoiceover: (text: string, voiceId: string) => Promise<string | null>;
+        handleLipSyncShot: (shot: any, audioUrl: string | null, audioFile: File | null) => Promise<void>;
     };
 
     inpaintData: { src: string, shotId: string } | null;
@@ -87,6 +90,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
     const [pendingSummary, setPendingSummary] = useState<string | undefined>(undefined);
     const [isWiping, setIsWiping] = useState(false);
+
+    const [lipSyncShot, setLipSyncShot] = useState<{ id: string, videoUrl: string } | null>(null);
 
     if (!activeSceneId) return null;
 
@@ -155,6 +160,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
             type: ((s.image_url && s.video_url) ? 'mixed' : (s.video_url ? 'video' : 'image')) as 'image' | 'video' | 'mixed',
             imageUrl: s.image_url,
             videoUrl: s.video_url,
+            lipsyncUrl: s.lipsync_url,
             title: `SHOT ${String(i + 1).padStart(2, '0')}`,
             description: s.video_prompt || s.visual_action
         }));
@@ -288,6 +294,20 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 />
             )}
 
+            {lipSyncShot && (
+                <LipSyncModal
+                    videoUrl={lipSyncShot.videoUrl}
+                    credits={credits || 0}
+                    onClose={() => setLipSyncShot(null)}
+                    onGenerateVoice={shotMgr.handleGenerateVoiceover}
+                    onStartSync={(audioUrl, audioFile) => {
+                        const shot = shotMgr.shots.find(s => s.id === lipSyncShot.id);
+                        if (shot) return shotMgr.handleLipSyncShot(shot, audioUrl, audioFile);
+                        return Promise.resolve();
+                    }}
+                />
+            )}
+
             {/* --- 4. MAIN CONTENT AREA --- */}
             {shotMgr.shots.length === 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', border: '1px dashed #222', backgroundColor: 'rgba(10, 10, 10, 0.5)', margin: '20px', position: 'relative', overflow: 'hidden' }}>
@@ -322,6 +342,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     castMembers={castMembers}
                                     locations={locations}
                                     onUpdateShot={shotMgr.updateShot}
+                                    onLipSync={() => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url })}
                                     onRender={(referenceFile?: File | null) => shotMgr.handleRenderShot(shot, currentScene, referenceFile)}
 
                                     // --- PASS THE PROVIDER ---
@@ -335,7 +356,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     <div style={styles.shotImageContainer}>
                                         <ShotImage
                                             src={shot.image_url}
-                                            videoUrl={shot.video_url}
+                                            videoUrl={shot.lipsync_url || shot.video_url}
                                             videoStatus={shot.video_status}
                                             shotId={shot.id}
                                             isSystemLoading={shotMgr.loadingShots.has(shot.id)}
