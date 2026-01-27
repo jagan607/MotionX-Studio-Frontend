@@ -70,20 +70,24 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
             display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
             <div style={{
-                width: '900px', height: '600px',
+                width: 'min(900px, 95vw)', // Responsive width
+                height: 'min(600px, 90vh)', // Responsive height (Prevents overflow on smaller screens)
                 backgroundColor: '#0A0A0A', border: '1px solid #333',
                 display: 'grid', gridTemplateColumns: '1fr 350px',
-                boxShadow: '0 0 50px rgba(0,0,0,0.8)'
+                boxShadow: '0 0 50px rgba(0,0,0,0.8)',
+                overflow: 'hidden' // Ensures rounded corners or contained children don't bleed
             }}>
 
                 {/* --- LEFT: VISUAL MONITOR --- */}
-                <div style={{ borderRight: '1px solid #222', display: 'flex', flexDirection: 'column', backgroundColor: '#000' }}>
+                <div style={{ borderRight: '1px solid #222', display: 'flex', flexDirection: 'column', backgroundColor: '#000', overflow: 'hidden' }}>
                     <div style={{ padding: '15px', borderBottom: '1px solid #222', display: 'flex', justifyContent: 'space-between', color: '#666', fontSize: '10px', letterSpacing: '2px' }}>
                         <span>VISUAL_INPUT_MONITOR</span>
                         <span>SRC: KLING_V1</span>
                     </div>
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                        {/* Object-fit contain ensures 9:16 videos don't stretch or break layout */}
                         <video src={videoUrl} autoPlay loop muted playsInline style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+
                         {/* Audio Waveform Visualization Placeholder */}
                         <div style={{ position: 'absolute', bottom: 20, left: 20, right: 20, height: '40px', display: 'flex', alignItems: 'end', gap: '2px', opacity: 0.5 }}>
                             {Array.from({ length: 40 }).map((_, i) => (
@@ -99,10 +103,10 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
                 </div>
 
                 {/* --- RIGHT: AUDIO CONTROL DECK --- */}
-                <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#080808' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#080808', height: '100%', overflow: 'hidden' }}>
 
                     {/* Header */}
-                    <div style={{ height: '60px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
+                    <div style={{ height: '60px', flexShrink: 0, borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <Volume2 size={16} className="text-red-500" />
                             <span style={{ fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', color: '#FFF' }}>ADR TERMINAL</span>
@@ -111,7 +115,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
                     </div>
 
                     {/* Tabs */}
-                    <div style={{ display: 'flex', borderBottom: '1px solid #222' }}>
+                    <div style={{ display: 'flex', flexShrink: 0, borderBottom: '1px solid #222' }}>
                         <button
                             onClick={() => setMode('tts')}
                             style={{ flex: 1, padding: '15px', backgroundColor: mode === 'tts' ? '#111' : 'transparent', color: mode === 'tts' ? 'white' : '#666', border: 'none', borderBottom: mode === 'tts' ? '2px solid #FF0000' : 'none', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' }}
@@ -126,8 +130,15 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
                         </button>
                     </div>
 
-                    {/* Content Area */}
-                    <div style={{ flex: 1, padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* Content Area - SCROLLABLE NOW */}
+                    <div style={{
+                        flex: 1,
+                        padding: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '20px',
+                        overflowY: 'auto' // <--- FIX: This enables internal scrolling
+                    }}>
 
                         {mode === 'tts' ? (
                             <>
@@ -141,7 +152,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
                                         {VOICES.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                                     </select>
                                 </div>
-                                <div style={{ flex: 1 }}>
+                                <div style={{ flex: 1, minHeight: '150px' }}> {/* Ensure minimum height for inputs */}
                                     <label style={{ fontSize: '9px', color: '#666', fontWeight: 'bold', marginBottom: '8px', display: 'block' }}>DIALOGUE SCRIPT</label>
                                     <textarea
                                         value={text}
@@ -160,7 +171,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
                                 </button>
                             </>
                         ) : (
-                            <div style={{ flex: 1, border: '1px dashed #333', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#444' }}>
+                            <div style={{ flex: 1, minHeight: '200px', border: '1px dashed #333', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#444' }}>
                                 <Upload size={32} style={{ marginBottom: '15px' }} />
                                 <span style={{ fontSize: '10px', fontWeight: 'bold' }}>DRAG AUDIO FILE HERE</span>
                                 <span style={{ fontSize: '9px', marginTop: '5px' }}>MP3, WAV (MAX 10MB)</span>
@@ -182,8 +193,8 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
                         )}
                     </div>
 
-                    {/* Footer Actions */}
-                    <div style={{ padding: '20px', borderTop: '1px solid #222' }}>
+                    {/* Footer Actions - ALWAYS VISIBLE */}
+                    <div style={{ padding: '20px', borderTop: '1px solid #222', flexShrink: 0, backgroundColor: '#080808' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontSize: '10px', color: '#666' }}>
                             <span>ESTIMATED COST</span>
                             <span style={{ color: '#FF0000', fontWeight: 'bold' }}>4 TOKENS</span>
