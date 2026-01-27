@@ -20,24 +20,20 @@ export default function ProjectGatekeeper() {
                 const snap = await getDoc(docRef);
 
                 if (!snap.exists()) {
-                    router.push("/dashboard"); // Project doesn't exist
+                    router.push("/dashboard");
                     return;
                 }
 
                 const data = snap.data();
                 const status = data.script_status || "empty";
 
-                // --- THE ROUTING LOGIC ---
                 if (status === "empty") {
-                    router.push(`/project/${projectId}/pre-production`);
+                    router.push(`/project/${projectId}/script`);
                 } else if (status === "drafting") {
-                    // If you track draft IDs in project metadata, you could redirect there
-                    // Otherwise, pre-production might handle listing drafts
-                    router.push(`/project/${projectId}/pre-production`);
+                    router.push(`/project/${projectId}/script`);
                 } else if (status === "assets_pending") {
                     router.push(`/project/${projectId}/assets`);
                 } else {
-                    // "ready" or anything else
                     router.push(`/project/${projectId}/studio`);
                 }
 
