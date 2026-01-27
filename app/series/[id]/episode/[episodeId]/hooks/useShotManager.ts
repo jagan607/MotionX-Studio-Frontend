@@ -431,12 +431,13 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     };
 
     // --- NEW: VOICE GENERATION (ElevenLabs) ---
-    const handleGenerateVoiceover = async (text: string, voiceId: string): Promise<string | null> => {
+    const handleGenerateVoiceover = async (text: string, voiceId: string, emotion: string): Promise<string | null> => {
         try {
             const idToken = await auth.currentUser?.getIdToken();
             const formData = new FormData();
             formData.append("text", text);
             formData.append("voice_id", voiceId);
+            formData.append("emotion", emotion);
 
             const res = await fetch(`${API_BASE_URL}/api/v1/shot/generate_voiceover`, {
                 method: "POST",

@@ -51,7 +51,7 @@ interface StoryboardOverlayProps {
         isStopping: boolean;
         stopGeneration: () => void;
         handleFinalizeShot: (shot: any) => void;
-        handleGenerateVoiceover: (text: string, voiceId: string) => Promise<string | null>;
+        handleGenerateVoiceover: (text: string, voiceId: string, emotion: string) => Promise<string | null>;
         handleLipSyncShot: (shot: any, audioUrl: string | null, audioFile: File | null) => Promise<void>;
     };
 

@@ -67,7 +67,7 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <body className={inter.className} style={{ backgroundColor: '#030303', color: 'white' }}>
+      <body className={inter.className} style={{ backgroundColor: '#030303', color: 'white' }} suppressHydrationWarning={true}>
 
         {/* 1. PROVIDER WRAPS EVERYTHING */}
         <MediaViewerProvider>
