@@ -122,7 +122,7 @@ export default function NewProjectPage() {
 
             // 2. API Call (Interceptors handle Auth)
             const res = await api.post("api/v1/create", payload);
-            router.push(`/project/${res.data.id}/studio`);
+            router.push(`/project/${res.data.id}/script`);
 
         } catch (e) {
             console.error("Creation failed", e);
