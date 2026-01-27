@@ -30,6 +30,7 @@ interface Shot {
     location?: string;
     image_url?: string;
     video_url?: string;
+    lipsync_url?: string;
     video_status?: string; // Tracks animation state (animating, processing, etc.)
     status?: string; // Tracks if shot is 'finalized' or 'generating'
 }

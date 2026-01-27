@@ -356,8 +356,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     <div style={styles.shotImageContainer}>
                                         <ShotImage
                                             src={shot.image_url}
-                                            videoUrl={shot.lipsync_url || shot.video_url}
+                                            videoUrl={shot.video_url}
                                             videoStatus={shot.video_status}
+                                            lipsyncUrl={shot.lipsync_url}
                                             shotId={shot.id}
                                             isSystemLoading={shotMgr.loadingShots.has(shot.id)}
                                             onClickZoom={() => handleOpenViewer(index)}
