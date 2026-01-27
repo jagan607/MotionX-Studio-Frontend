@@ -13,28 +13,29 @@ export default function ScriptIngestionPage() {
 
     return (
         <StudioLayout>
-            {/* Main Container: Full height, no scroll on body */}
-            <div className="flex flex-col h-full w-full">
+            {/* Main Container: Centered */}
+            <div className="flex flex-col items-center justify-center h-full w-full py-8">
 
-                {/* HEADER: Compact, no back button */}
-                <div className="flex items-center justify-between mb-2 shrink-0 px-1">
-                    <div>
-                        <h1 className="text-2xl font-display uppercase text-white leading-none tracking-wide">
-                            Script Ingestion
-                        </h1>
+                {/* Content wrapper with max width */}
+                <div className="w-full max-w-4xl">
+                    {/* HEADER */}
+                    <div className="flex items-center justify-between mb-6 px-1">
+                        <div>
+                            <h1 className="text-2xl font-display uppercase text-white leading-none tracking-wide">
+                                Script Ingestion
+                            </h1>
+                        </div>
+
+                        <div className="hidden md:flex items-center gap-2 text-[10px] font-mono text-motion-text-muted border border-neutral-800 px-3 py-1 rounded-full bg-neutral-900/50">
+                            <FileText size={12} /> WAITING FOR DATA
+                        </div>
                     </div>
 
-                    <div className="hidden md:flex items-center gap-2 text-[10px] font-mono text-motion-text-muted border border-neutral-800 px-3 py-1 rounded-full bg-neutral-900/50">
-                        <FileText size={12} /> WAITING FOR DATA
-                    </div>
-                </div>
-
-                {/* DECK CONTAINER: Fills exactly the remaining space */}
-                <div className="flex-1 min-h-0 relative overflow-hidden">
+                    {/* DECK CONTAINER */}
                     <InputDeck
                         projectId={projectId}
                         isModal={false}
-                        className="h-full w-full"
+                        className="w-full"
                         onCancel={() => router.push("/dashboard")}
                         onSuccess={(url) => router.push(url)}
                     />
