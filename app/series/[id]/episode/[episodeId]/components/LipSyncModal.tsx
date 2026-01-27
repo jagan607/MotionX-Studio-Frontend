@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { X, Loader2, Mic, Upload, Play, Check, Volume2, Sparkles, Wand2 } from "lucide-react";
-import { toastError, toastSuccess } from "@/lib/toast";
+import { X, Loader2, Mic, Upload, Volume2, Wand2 } from "lucide-react";
+import { toastError } from "@/lib/toast";
 
 interface LipSyncModalProps {
     videoUrl: string;
@@ -33,6 +33,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
     const [isSyncing, setIsSyncing] = useState(false);
 
     const audioRef = useRef<HTMLAudioElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null); // Ref for file input
 
     const handleSynthesize = async () => {
         if (!text) return toastError("Please enter dialogue text");
@@ -70,12 +71,12 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
             display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
             <div style={{
-                width: 'min(900px, 95vw)', // Responsive width
-                height: 'min(600px, 90vh)', // Responsive height (Prevents overflow on smaller screens)
+                width: 'min(900px, 95vw)',
+                height: 'min(600px, 90vh)',
                 backgroundColor: '#0A0A0A', border: '1px solid #333',
                 display: 'grid', gridTemplateColumns: '1fr 350px',
                 boxShadow: '0 0 50px rgba(0,0,0,0.8)',
-                overflow: 'hidden' // Ensures rounded corners or contained children don't bleed
+                overflow: 'hidden'
             }}>
 
                 {/* --- LEFT: VISUAL MONITOR --- */}
@@ -85,7 +86,6 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
                         <span>SRC: KLING_V1</span>
                     </div>
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
-                        {/* Object-fit contain ensures 9:16 videos don't stretch or break layout */}
                         <video src={videoUrl} autoPlay loop muted playsInline style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
 
                         {/* Audio Waveform Visualization Placeholder */}
@@ -130,14 +130,14 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
                         </button>
                     </div>
 
-                    {/* Content Area - SCROLLABLE NOW */}
+                    {/* Content Area */}
                     <div style={{
                         flex: 1,
                         padding: '20px',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '20px',
-                        overflowY: 'auto' // <--- FIX: This enables internal scrolling
+                        overflowY: 'auto'
                     }}>
 
                         {mode === 'tts' ? (
@@ -152,7 +152,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
                                         {VOICES.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                                     </select>
                                 </div>
-                                <div style={{ flex: 1, minHeight: '150px' }}> {/* Ensure minimum height for inputs */}
+                                <div style={{ flex: 1, minHeight: '150px' }}>
                                     <label style={{ fontSize: '9px', color: '#666', fontWeight: 'bold', marginBottom: '8px', display: 'block' }}>DIALOGUE SCRIPT</label>
                                     <textarea
                                         value={text}
@@ -171,11 +171,36 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
                                 </button>
                             </>
                         ) : (
-                            <div style={{ flex: 1, minHeight: '200px', border: '1px dashed #333', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#444' }}>
+                            // --- FIXED UPLOAD SECTION ---
+                            <div
+                                onClick={() => fileInputRef.current?.click()} // Click container triggers hidden input
+                                style={{
+                                    flex: 1,
+                                    minHeight: '200px',
+                                    border: '1px dashed #333',
+                                    borderRadius: '8px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#444',
+                                    cursor: 'pointer', // Show pointer cursor
+                                    position: 'relative' // Contain children
+                                }}
+                            >
                                 <Upload size={32} style={{ marginBottom: '15px' }} />
-                                <span style={{ fontSize: '10px', fontWeight: 'bold' }}>DRAG AUDIO FILE HERE</span>
+                                <span style={{ fontSize: '10px', fontWeight: 'bold' }}>CLICK TO UPLOAD AUDIO</span>
                                 <span style={{ fontSize: '9px', marginTop: '5px' }}>MP3, WAV (MAX 10MB)</span>
-                                <input type="file" accept="audio/*" onChange={handleFileUpload} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
+
+                                {/* Hidden Input - Properly referenced and hidden */}
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    accept="audio/*"
+                                    onChange={handleFileUpload}
+                                    style={{ display: 'none' }}
+                                />
+
                                 {uploadedFile && (
                                     <div style={{ marginTop: '20px', backgroundColor: '#111', padding: '10px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '10px', color: '#FFF' }}>
                                         <Volume2 size={14} className="text-green-500" />
@@ -193,7 +218,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
                         )}
                     </div>
 
-                    {/* Footer Actions - ALWAYS VISIBLE */}
+                    {/* Footer Actions */}
                     <div style={{ padding: '20px', borderTop: '1px solid #222', flexShrink: 0, backgroundColor: '#080808' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontSize: '10px', color: '#666' }}>
                             <span>ESTIMATED COST</span>
