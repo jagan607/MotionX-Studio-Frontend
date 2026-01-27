@@ -110,18 +110,18 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     };
 
     return (
-        <div className={`flex flex-col bg-neutral-900/30 border border-neutral-800 rounded-lg overflow-hidden shadow-2xl h-full ${className}`}>
+        <div className={`flex flex-col bg-neutral-900/30 border border-neutral-800 rounded-xl shadow-2xl h-full ${className}`}>
 
-            {/* SCROLLABLE CONTENT */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-5">
+            {/* CONTENT - NO SCROLL */}
+            <div className="flex-1 flex flex-col p-6 min-h-0">
 
                 {/* SESSION IDENTIFIER */}
-                <div className="mb-5">
+                <div className="mb-6 shrink-0">
                     <label className="text-[9px] font-mono text-motion-text-muted uppercase tracking-widest mb-2 block">
                         Session Identifier
                     </label>
                     <input
-                        className="w-full bg-transparent border-b border-neutral-700 py-2 text-xl font-display text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors uppercase"
+                        className="w-full bg-transparent border-b border-neutral-700 py-2 text-xl font-display text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors uppercase"
                         placeholder="ENTER SCENE / EPISODE TITLE..."
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
@@ -131,35 +131,35 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 </div>
 
                 {/* PRIMARY: AI GENERATION */}
-                <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-2">
+                <div className="mb-5 flex-1 flex flex-col min-h-0">
+                    <div className="flex items-center gap-2 mb-2 shrink-0">
                         <Sparkles size={14} className="text-motion-red" />
                         <span className="text-[10px] font-bold tracking-[1px] uppercase text-white">AI Generation</span>
                         <span className="text-[9px] text-motion-text-muted ml-auto">PRIMARY</span>
                     </div>
-                    <div className="relative">
+                    <div className="relative h-[200px]">
                         <textarea
-                            className="w-full h-32 bg-black/40 border border-neutral-700 p-4 font-sans text-sm text-motion-text placeholder:text-neutral-600 focus:outline-none focus:border-motion-red resize-none leading-relaxed rounded-md"
+                            className="w-full h-full bg-black/40 border border-neutral-700 p-4 font-sans text-sm text-motion-text placeholder:text-neutral-600 focus:outline-none focus:border-motion-red resize-none leading-relaxed rounded-lg"
                             placeholder="Describe your scene... (e.g., A cyberpunk detective chases a rogue android through a neon-lit market...)"
                             value={synopsisText}
                             onChange={(e) => setSynopsisText(e.target.value)}
                             disabled={isUploading}
                         />
-                        <div className="absolute bottom-2 right-2 flex items-center gap-2 text-[9px] font-mono text-motion-red bg-motion-red/10 px-2 py-1 rounded">
+                        <div className="absolute bottom-3 right-3 flex items-center gap-2 text-[9px] font-mono text-motion-red bg-motion-red/10 px-2 py-1 rounded">
                             <Cpu size={10} /> STORY_ENGINE_V2
                         </div>
                     </div>
                 </div>
 
                 {/* OR DIVIDER */}
-                <div className="flex items-center gap-4 my-4">
+                <div className="flex items-center gap-4 my-4 shrink-0">
                     <div className="flex-1 h-px bg-neutral-800"></div>
-                    <span className="text-[10px] font-bold tracking-widest text-neutral-600">OR</span>
+                    <span className="text-[10px] font-bold tracking-widest text-neutral-500">OR</span>
                     <div className="flex-1 h-px bg-neutral-800"></div>
                 </div>
 
                 {/* SECONDARY: UPLOAD & PASTE - Side by Side */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 shrink-0">
 
                     {/* DATA UPLOAD */}
                     <div>
@@ -169,17 +169,16 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                         </div>
                         <div
                             onClick={() => fileInputRef.current?.click()}
-                            className="h-24 border border-dashed border-neutral-700 hover:border-neutral-500 hover:bg-white/5 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group rounded-md"
-                        >
+                            className="h-20 border border-dashed border-neutral-700 hover:border-neutral-500 hover:bg-white/5 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group rounded-lg">
                             <input type="file" ref={fileInputRef} hidden onChange={handleFileSelect} accept=".pdf,.docx,.txt" />
                             {selectedFile ? (
                                 <div className="text-center animate-in fade-in zoom-in">
-                                    <Disc size={20} className="text-motion-red mb-1 animate-spin-slow mx-auto" />
-                                    <div className="font-bold text-xs tracking-widest text-white truncate max-w-[150px]">{selectedFile.name}</div>
+                                    <Disc size={16} className="text-motion-red mb-1 animate-spin-slow mx-auto" />
+                                    <div className="font-bold text-[10px] tracking-widest text-white truncate max-w-[150px]">{selectedFile.name}</div>
                                 </div>
                             ) : (
                                 <>
-                                    <Upload size={18} className="text-neutral-600 group-hover:text-neutral-400 transition-colors" />
+                                    <Upload size={16} className="text-neutral-600 group-hover:text-neutral-400 transition-colors" />
                                     <div className="text-[9px] font-bold tracking-widest text-neutral-600 group-hover:text-neutral-400">
                                         CLICK TO UPLOAD
                                     </div>
@@ -195,7 +194,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                             <span className="text-[10px] font-bold tracking-[1px] uppercase text-neutral-400">Terminal Paste</span>
                         </div>
                         <textarea
-                            className="w-full h-24 bg-black/30 border border-neutral-700 p-3 font-mono text-[11px] text-green-500 placeholder:text-green-900/50 focus:outline-none focus:border-green-600 resize-none leading-relaxed rounded-md"
+                            className="w-full h-20 bg-black/30 border border-neutral-700 p-3 font-mono text-[11px] text-green-500 placeholder:text-green-900/50 focus:outline-none focus:border-green-600 resize-none leading-relaxed rounded-lg"
                             placeholder="// PASTE SCRIPT..."
                             value={pastedScript}
                             onChange={(e) => setPastedScript(e.target.value)}
@@ -218,7 +217,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             </div>
 
             {/* FOOTER: Fixed at bottom */}
-            <div className="shrink-0 p-4 border-t border-neutral-800 bg-black/20">
+            <div className="shrink-0 p-4 border-t border-neutral-800 bg-black/30">
                 {isUploading && (
                     <div className="flex justify-between items-center text-[10px] font-mono text-motion-red mb-2">
                         <span className="animate-pulse">{statusText}</span>
