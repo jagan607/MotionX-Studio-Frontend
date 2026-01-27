@@ -205,7 +205,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
                 <div style={{ marginLeft: '40px', display: 'flex', alignItems: 'center', gap: '10px' }} id="tour-sb-aspect">
                     <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#666' }}>ASPECT:</span>
-                    <select value={shotMgr.aspectRatio} onChange={(e) => shotMgr.setAspectRatio(e.target.value)} style={{ backgroundColor: '#111', color: 'white', border: '1px solid #333', padding: '8px', fontSize: '12px', fontWeight: 'bold' }}>
+                    <select value={shotMgr.aspectRatio} onChange={(e) => shotMgr.setAspectRatio(e.target.value)} style={{ backgroundColor: '#111', color: 'white', border: '1px solid #333', paddingTop: '12px', paddingBottom: '12px', paddingLeft: '16px', paddingRight: '16px', fontSize: '12px', fontWeight: 'bold' }}>
                         <option value="16:9">16:9 (Cinema)</option>
                         <option value="21:9">21:9 (Wide)</option>
                         <option value="9:16">9:16 (Vertical)</option>

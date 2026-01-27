@@ -127,8 +127,8 @@ export const styles = {
     assetPlaceholder: { width: '100%', height: '300px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#333' },
     assetName: { padding: '20px', fontFamily: 'Anton, sans-serif', fontSize: '24px', color: '#FFF', textAlign: 'center' as const, width: '100%', textTransform: 'uppercase' as const },
     genBtn: { width: '100%', padding: '15px', backgroundColor: '#222', color: '#FFF', border: 'none', fontWeight: 'bold' as const, cursor: 'pointer', fontSize: '11px', letterSpacing: '2px', borderTop: '1px solid #333' },
-    sbOverlay: { position: 'fixed' as const, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#050505', zIndex: 100, padding: '40px', overflowY: 'auto' as const },
-    sbHeader: { display: 'flex', alignItems: 'center', gap: '20px', borderBottom: '1px solid #222', paddingBottom: '20px', marginBottom: '40px' },
+    sbOverlay: { position: 'fixed' as const, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#050505', zIndex: 100, paddingLeft: '40px', paddingRight: '40px', overflowY: 'auto' as const },
+    sbHeader: { display: 'flex', alignItems: 'center', gap: '20px', borderBottom: '1px solid #222', backgroundColor: '#050505', paddingBottom: '20px', paddingTop: '20px', marginBottom: '40px', position: 'sticky' as const, top: 0, zIndex: 100 }, //make this navbar stick to the top
     sbGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' },
     shotCard: { backgroundColor: '#0E0E0E', border: '1px solid #222', padding: '20px' },
     shotImageContainer: { position: 'relative' as const, width: '100%', height: '180px', marginBottom: '15px', border: '1px solid #222', backgroundColor: '#000', overflow: 'hidden' },
