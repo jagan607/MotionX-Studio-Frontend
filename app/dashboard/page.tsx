@@ -148,10 +148,10 @@ export default function Dashboard() {
                     {/* MONITOR */}
                     <div className="flex-1 relative bg-black border border-[#333] group overflow-hidden shadow-2xl min-h-0 mb-6 rounded-sm transition-colors hover:border-[#444]">
                         <div className="absolute inset-0 pointer-events-none z-20 p-4">
-                            <div className="absolute top-4 left-4 w-8 h-8 border-l border-t border-white/30" />
+                            <div className="absolute top-4 left-4 w-8 h-8 border-l border-t border-white/60" />
                             <div className="absolute top-4 right-4 w-8 h-8 border-r border-t border-white/30" />
-                            <div className="absolute bottom-4 left-4 w-8 h-8 border-l border-b border-white/30" />
-                            <div className="absolute bottom-4 right-4 w-8 h-8 border-r border-b border-white/30" />
+                            <div className="absolute bottom-4 left-4 w-8 h-8 border-l border-b border-white/90" />
+                            <div className="absolute bottom-4 right-4 w-8 h-8 border-r border-b border-white/90" />
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"><Crosshair size={40} strokeWidth={0.5} /></div>
                         </div>
 
