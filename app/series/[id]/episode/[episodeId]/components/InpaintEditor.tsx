@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Loader2, Sparkles, Check, Terminal, Activity, ImagePlus, Trash2, Zap } from "lucide-react";
+import { X, Loader2, Sparkles, Check, Terminal, Activity, ImagePlus, Undo2, Redo2, Zap } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import { toastError } from "@/lib/toast";
 
 interface InpaintEditorProps {
     src: string;
-    // UPDATED: Accept files
     onSave: (prompt: string, maskBase64: string, refImages: File[]) => Promise<string | null>;
     onClose: () => void;
     styles: any;
@@ -22,25 +21,38 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
     const [isProcessing, setIsProcessing] = useState(false);
     const [outputImage, setOutputImage] = useState<string | null>(null);
 
-    // NEW: State for Reference Images
+    // Reference Images
     const [refImages, setRefImages] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // --- UNDO / REDO STATE ---
+    const [history, setHistory] = useState<ImageData[]>([]);
+    const [historyStep, setHistoryStep] = useState(-1);
+
     const { credits } = useCredits();
 
-    // Setup Canvas (Unchanged)
+    // Setup Canvas & Initial History
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) return;
+
         canvas.width = 1280;
         canvas.height = 720;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+
+        // Clear canvas initially (transparent)
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Save initial blank state
+        const initialData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        setHistory([initialData]);
+        setHistoryStep(0);
     }, []);
 
-    // Drawing Logic (Unchanged)
+    // Drawing Logic
     const draw = (e: React.MouseEvent) => {
         if (!isDrawing) return;
         const canvas = canvasRef.current;
@@ -55,17 +67,63 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
         const y = (e.clientY - rect.top) * scaleY;
 
         ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+        ctx.fillStyle = "rgba(255, 0, 0, 0.5)"; // Semi-transparent red
         ctx.beginPath();
         ctx.arc(x, y, (brushSize * scaleX) / 2, 0, Math.PI * 2);
         ctx.fill();
     };
 
-    // Handle File Selection
+    const startDrawing = () => {
+        setIsDrawing(true);
+    };
+
+    const stopDrawing = () => {
+        if (!isDrawing) return;
+        setIsDrawing(false);
+        saveHistory(); // Save state on mouse up
+    };
+
+    // --- HISTORY MANAGEMENT ---
+    const saveHistory = () => {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext('2d');
+        if (!canvas || !ctx) return;
+
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        // If we undo and then draw, truncate the future history
+        const newHistory = history.slice(0, historyStep + 1);
+        newHistory.push(data);
+
+        setHistory(newHistory);
+        setHistoryStep(newHistory.length - 1);
+    };
+
+    const handleUndo = () => {
+        if (historyStep <= 0) return;
+        const prevStep = historyStep - 1;
+        restoreCanvas(history[prevStep]);
+        setHistoryStep(prevStep);
+    };
+
+    const handleRedo = () => {
+        if (historyStep >= history.length - 1) return;
+        const nextStep = historyStep + 1;
+        restoreCanvas(history[nextStep]);
+        setHistoryStep(nextStep);
+    };
+
+    const restoreCanvas = (data: ImageData) => {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext('2d');
+        if (!canvas || !ctx || !data) return;
+        ctx.putImageData(data, 0, 0);
+    };
+
+    // File Handling
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
-            // Limit to 3 total
             if (refImages.length + files.length > 3) {
                 toastError("Max 3 reference images allowed.");
                 return;
@@ -87,25 +145,28 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
         const mCtx = maskCanvas.getContext('2d');
 
         if (mCtx && canvasRef.current) {
+            // Create binary mask for backend (White where red is, Black elsewhere)
             mCtx.fillStyle = "black";
             mCtx.fillRect(0, 0, 1280, 720);
-            mCtx.globalCompositeOperation = 'screen';
+
+            // Draw the red strokes from main canvas onto this buffer
             mCtx.drawImage(canvasRef.current, 0, 0);
-            mCtx.fillStyle = "white";
+
+            // Convert non-black pixels to white (the mask)
+            // Note: Since we draw with alpha, we simply enforce the shape
             mCtx.globalCompositeOperation = 'source-in';
+            mCtx.fillStyle = "white";
             mCtx.fillRect(0, 0, 1280, 720);
         }
 
         const maskBase64 = maskCanvas.toDataURL('image/png');
-
-        // Pass refImages to onSave
         const newImageUrl = await onSave(prompt, maskBase64, refImages);
 
         if (newImageUrl) setOutputImage(newImageUrl);
         setIsProcessing(false);
     };
 
-    // Styles (Unchanged)
+    // Styles
     const panelStyle: React.CSSProperties = {
         flex: 1, position: 'relative', backgroundColor: '#000', border: '1px solid #222',
         overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center'
@@ -141,11 +202,33 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                     <img src={src} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="source" />
                     <canvas
                         ref={canvasRef}
-                        onMouseDown={() => setIsDrawing(true)}
-                        onMouseUp={() => setIsDrawing(false)}
+                        onMouseDown={startDrawing}
+                        onMouseUp={stopDrawing}
+                        onMouseLeave={stopDrawing} // Safety check
                         onMouseMove={draw}
                         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', cursor: 'crosshair', zIndex: 10 }}
                     />
+
+                    {/* UNDO / REDO OVERLAY CONTROLS */}
+                    <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '10px', zIndex: 30, backgroundColor: 'rgba(0,0,0,0.8)', padding: '5px 10px', borderRadius: '20px', border: '1px solid #333' }}>
+                        <button
+                            onClick={handleUndo}
+                            disabled={historyStep <= 0}
+                            style={{ background: 'none', border: 'none', color: historyStep > 0 ? 'white' : '#444', cursor: historyStep > 0 ? 'pointer' : 'default' }}
+                            title="Undo"
+                        >
+                            <Undo2 size={16} />
+                        </button>
+                        <div style={{ width: '1px', backgroundColor: '#333' }} />
+                        <button
+                            onClick={handleRedo}
+                            disabled={historyStep >= history.length - 1}
+                            style={{ background: 'none', border: 'none', color: historyStep < history.length - 1 ? 'white' : '#444', cursor: historyStep < history.length - 1 ? 'pointer' : 'default' }}
+                            title="Redo"
+                        >
+                            <Redo2 size={16} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* RIGHT: OUTPUT */}
@@ -177,60 +260,21 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                     <input type="range" min="5" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} style={{ width: '100%', accentColor: '#FF0000' }} />
                 </div>
 
-                {/* Reference Images Section */}
+                {/* Reference Images */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '15px', borderRight: '1px solid #333' }}>
-                    <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        ref={fileInputRef}
-                        style={{ display: 'none' }}
-                        onChange={handleFileSelect}
-                    />
-
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={refImages.length >= 3}
-                        style={{
-                            width: '40px', height: '40px',
-                            border: '1px dashed #444',
-                            backgroundColor: '#111',
-                            color: '#666',
-                            cursor: refImages.length >= 3 ? 'not-allowed' : 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            borderRadius: '4px'
-                        }}
-                        title="Add Reference Images (Max 3)"
-                    >
+                    <input type="file" multiple accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelect} />
+                    <button onClick={() => fileInputRef.current?.click()} disabled={refImages.length >= 3} style={{ width: '40px', height: '40px', border: '1px dashed #444', backgroundColor: '#111', color: '#666', cursor: refImages.length >= 3 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }} title="Add Reference Images (Max 3)">
                         <ImagePlus size={16} />
                     </button>
-
-                    {/* Preview Thumbnails */}
                     {refImages.map((file, i) => (
                         <div key={i} style={{ position: 'relative', width: '40px', height: '40px', border: '1px solid #333', borderRadius: '4px', overflow: 'hidden' }}>
-                            <img
-                                src={URL.createObjectURL(file)}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                alt={`Ref ${i}`}
-                            />
-                            <button
-                                onClick={() => removeRefImage(i)}
-                                style={{
-                                    position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
-                                    border: 'none', color: 'white', cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    opacity: 0, transition: 'opacity 0.2s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                                onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
-                            >
+                            <img src={URL.createObjectURL(file)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={`Ref ${i}`} />
+                            <button onClick={() => removeRefImage(i)} style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.opacity = '1'} onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}>
                                 <X size={14} />
                             </button>
                         </div>
                     ))}
-                    <div style={{ fontSize: '9px', color: '#666', width: '30px', textAlign: 'center' }}>
-                        {refImages.length}/3
-                    </div>
+                    <div style={{ fontSize: '9px', color: '#666', width: '30px', textAlign: 'center' }}>{refImages.length}/3</div>
                 </div>
 
                 {/* Prompt Input */}

@@ -4,7 +4,10 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film, RefreshCw,
-    ChevronDown, ImagePlus, X, Wand2, CheckCircle2, Loader2, Mic2
+    ChevronDown, ImagePlus, X, Wand2, CheckCircle2, Loader2, Mic2,
+    ArrowRight,
+    Link2,
+    Link2Off
 } from "lucide-react";
 import { useState, useRef, useEffect } from 'react';
 import imageCompression from 'browser-image-compression';
@@ -45,11 +48,12 @@ interface SortableShotCardProps {
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
     // --- ACTION PROPS ---
     onRender: (referenceFile?: File | null) => void;
-    onAnimate: (provider: 'kling' | 'seedance') => void; // UPDATED: Accepts provider string
+    onAnimate: (provider: 'kling' | 'seedance', endFrameUrl?: string | null) => void;
     onFinalize: () => void;
     isRendering: boolean;
     onExpand: () => void;
     onLipSync: () => void;
+    nextShotImage: string;
     children: React.ReactNode;
 }
 
@@ -71,6 +75,7 @@ export const SortableShotCard = ({
     onExpand,
     onLipSync,
     children,
+    nextShotImage
 }: SortableShotCardProps) => {
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
@@ -131,6 +136,9 @@ export const SortableShotCard = ({
     const [localVisualAction, setLocalVisualAction] = useState(shot.visual_action || "");
     const [localVideoPrompt, setLocalVideoPrompt] = useState(shot.video_prompt || "");
     const prevStatusRef = useRef(shot.status);
+
+    const [useMotionBridge, setUseMotionBridge] = useState(false);
+    // const [nextShotImage, setNextShotImage] = useState<string | null>(null);
 
     useEffect(() => {
         setLocalVisualAction(shot.visual_action || "");
@@ -484,6 +492,42 @@ export const SortableShotCard = ({
                     </button>
                 </div>
 
+                {/* --- MOTION BRIDGE (KLING ONLY) --- */}
+                {videoProvider === 'kling' && hasImage && (
+                    <div style={{ marginBottom: '8px', padding: '8px', border: useMotionBridge ? '1px solid #FF0000' : '1px solid #222', borderRadius: '4px', backgroundColor: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.2s' }}>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {/* Start Frame */}
+                            <div style={{ width: '32px', height: '18px', borderRadius: '2px', overflow: 'hidden', border: '1px solid #333' }}>
+                                <img src={shot.image_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
+                            <ArrowRight size={10} color="#444" />
+                            {/* End Frame Preview */}
+                            <div style={{ width: '32px', height: '18px', borderRadius: '2px', overflow: 'hidden', border: '1px solid #333', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {nextShotImage ? (
+                                    <img src={nextShotImage} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: useMotionBridge ? 1 : 0.3 }} />
+                                ) : (
+                                    <span style={{ fontSize: '8px', color: '#444' }}>N/A</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Toggle Button */}
+                        <button
+                            onClick={() => nextShotImage && setUseMotionBridge(!useMotionBridge)}
+                            disabled={!nextShotImage}
+                            style={{
+                                background: 'none', border: 'none', cursor: nextShotImage ? 'pointer' : 'not-allowed',
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                color: useMotionBridge ? '#FF0000' : (nextShotImage ? '#666' : '#333')
+                            }}
+                        >
+                            <span style={{ fontSize: '9px', fontWeight: 'bold' }}>MORPH TO NEXT</span>
+                            {useMotionBridge ? <Link2 size={12} /> : <Link2Off size={12} />}
+                        </button>
+                    </div>
+                )}
+
                 {/* --- NEW: VIDEO PROVIDER TOGGLE --- */}
                 {hasImage && !isBusy && (
                     <div style={{ display: 'flex', gap: '5px', marginTop: '10px', marginBottom: '5px' }}>
@@ -524,44 +568,17 @@ export const SortableShotCard = ({
 
                 {/* --- BOTTOM ROW: ANIMATE & LIP SYNC --- */}
                 <div style={{ display: 'flex', gap: '8px' }}>
-
-                    {/* Animate Button (Takes max space) */}
                     <button
-                        onClick={() => onAnimate(videoProvider)}
+                        onClick={() => onAnimate(videoProvider, useMotionBridge ? nextShotImage : null)}
                         disabled={!hasImage || isBusy}
-                        style={{
-                            flex: 1,
-                            padding: '10px',
-                            backgroundColor: (!hasImage) ? '#111' : '#FF0000',
-                            border: (!hasImage) ? '1px solid #222' : 'none',
-                            color: (!hasImage) ? '#444' : 'white',
-                            fontSize: '10px', fontWeight: 'bold',
-                            cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                            borderRadius: '4px', transition: 'all 0.2s'
-                        }}
+                        style={{ flex: 1, padding: '10px', backgroundColor: (!hasImage) ? '#111' : '#FF0000', border: (!hasImage) ? '1px solid #222' : 'none', color: (!hasImage) ? '#444' : 'white', fontSize: '10px', fontWeight: 'bold', cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px', transition: 'all 0.2s' }}
                     >
                         {hasVideo ? <RefreshCw size={14} /> : <Film size={14} fill={hasImage ? "white" : "gray"} />}
                         {hasVideo ? "RE-ANIMATE" : "ANIMATE"}
                     </button>
 
-                    {/* Lip Sync Button (Square, only if Video exists) */}
                     {hasVideo && (
-                        <button
-                            onClick={onLipSync}
-                            disabled={isBusy}
-                            title="Open Lip Sync Studio"
-                            style={{
-                                width: '42px',
-                                padding: '0',
-                                backgroundColor: '#1a1a1a',
-                                border: '1px solid #333',
-                                color: '#FFF',
-                                cursor: isBusy ? 'not-allowed' : 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                borderRadius: '4px', transition: 'all 0.2s'
-                            }}
-                        >
+                        <button onClick={onLipSync} disabled={isBusy} style={{ width: '42px', padding: '0', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#FFF', cursor: isBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', transition: 'all 0.2s' }}>
                             <Mic2 size={16} />
                         </button>
                     )}

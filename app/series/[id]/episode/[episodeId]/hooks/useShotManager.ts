@@ -6,6 +6,7 @@ import { API_BASE_URL } from "@/lib/config";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { arrayMove } from "@dnd-kit/sortable";
 
+// 1. REMOVED endFrameUrl from here. It doesn't belong in the hook initialization.
 export const useShotManager = (seriesId: string, episodeId: string, activeSceneId: string | null, onLowCredits?: () => void) => {
     const [shots, setShots] = useState<any[]>([]);
     const [loadingShots, setLoadingShots] = useState<Set<string>>(new Set());
@@ -395,9 +396,10 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
     };
 
-    // UPDATE: Accept 'provider' argument to toggle between Kling and SeeDance
-    const handleAnimateShot = async (shot: any, provider: string = 'kling') => {
+    // UPDATE: Accept 'endFrameUrl' as a function argument, NOT a hook argument
+    const handleAnimateShot = async (shot: any, provider: string = 'kling', endFrameUrl?: string | null) => {
         if (!shot.image_url) return toastError("Generate image first");
+
         try {
             const idToken = await auth.currentUser?.getIdToken();
             const formData = new FormData();
@@ -407,7 +409,12 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             formData.append("shot_id", shot.id);
             formData.append("image_url", shot.image_url);
             formData.append("prompt", shot.video_prompt || shot.visual_action || "Cinematic movement");
-            formData.append("provider", provider); // <--- PASS PROVIDER
+            formData.append("provider", provider);
+
+            // --- NEW: START & END FRAME URL ---
+            if (endFrameUrl) {
+                formData.append("end_frame_url", endFrameUrl);
+            }
 
             await fetch(`${API_BASE_URL}/api/v1/shot/animate_shot`, {
                 method: "POST",
@@ -423,6 +430,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
     };
 
+    // --- NEW: VOICE GENERATION (ElevenLabs) ---
     const handleGenerateVoiceover = async (text: string, voiceId: string): Promise<string | null> => {
         try {
             const idToken = await auth.currentUser?.getIdToken();
@@ -451,7 +459,9 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         if (!shot.video_url) return toastError("No video available to sync");
 
         // Optimistic UI Update
-        const shotRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId!, "shots", shot.id);
+        if (!activeSceneId) return;
+
+        const shotRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", shot.id);
         await setDoc(shotRef, { video_status: "processing" }, { merge: true }); // 'processing' shows busy spinner
 
         try {
@@ -459,7 +469,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             const formData = new FormData();
             formData.append("series_id", seriesId);
             formData.append("episode_id", episodeId);
-            formData.append("scene_id", activeSceneId!);
+            formData.append("scene_id", activeSceneId);
             formData.append("shot_id", shot.id);
             formData.append("video_url", shot.video_url);
 
