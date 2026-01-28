@@ -113,7 +113,7 @@ export default function ScriptLab() {
         const targetScene = scenes[sceneIndex];
 
         try {
-            const res = await api.post("/project/rewrite-scene", {
+            const res = await api.post("api/v1/script/rewrite-scene", {
                 original_text: targetScene.summary,
                 instruction: aiInstruction,
                 context: `Scene Heading: ${targetScene.header}`
