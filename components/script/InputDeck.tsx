@@ -60,7 +60,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         setStatusText("INITIALIZING UPLINK...");
 
         try {
-            const res = await api.post("/project/upload-script", formData, {
+            const res = await api.post("api/v1/script/upload-script", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
 
