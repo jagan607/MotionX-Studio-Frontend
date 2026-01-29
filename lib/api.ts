@@ -107,3 +107,21 @@ export const triggerAssetGeneration = async (
     });
     return res.data;
 };
+
+// --- 7. STUDIO & SCENES (New) ---
+
+// Fetch Scenes for a specific "Container" (Episode ID or Project ID for movies)
+export const fetchScenes = async (projectId: string, containerId?: string) => {
+    // If containerId is missing (Movie), the backend should handle the default logic
+    const query = containerId ? `?container_id=${containerId}` : '';
+    const res = await api.get(`/api/v1/script/${projectId}/scenes${query}`);
+    return res.data;
+    // Expects: { scenes: [...], stats: {...} }
+};
+
+// Fetch Episodes (For Micro-Dramas / Series)
+export const fetchEpisodes = async (projectId: string) => {
+    const res = await api.get(`/api/v1/project/${projectId}/episodes`);
+    return res.data;
+    // Expects: [{ id: "ep1", title: "Pilot", number: 1 }, ...]
+};
