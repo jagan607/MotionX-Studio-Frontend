@@ -11,16 +11,12 @@ export const api = axios.create({
 });
 
 // 2. The "Auth Interceptor" (The Magic Part)
-// Before every request, this code runs automatically.
 api.interceptors.request.use(
     async (config) => {
-        // Check if a user is logged in
         const user = auth.currentUser;
 
         if (user) {
-            // Get the fresh token (forceRefresh=false)
             const token = await user.getIdToken();
-            // Inject it into the headers
             config.headers.Authorization = `Bearer ${token}`;
         }
 
@@ -31,31 +27,61 @@ api.interceptors.request.use(
     }
 );
 
-// 3. Response Interceptor (Optional: Global Error Handling)
+// 3. Response Interceptor (Global Error Handling)
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
             console.error("Unauthorized! Redirecting to login...");
-            // You could trigger a redirect here if needed
         }
         return Promise.reject(error);
     }
 );
 
-// --- 4. Legacy Helpers (Refactored to use the new instance) ---
+// --- 4. SCRIPT & JOB HELPERS ---
 
 export const checkJobStatus = async (jobId: string) => {
     try {
-        // Now uses the authenticated instance automatically
         const response = await api.get(`/api/v1/script/job_status/${jobId}`);
         return response.data;
     } catch (error: any) {
-        // Handle specific 404s gracefully for polling
         if (error.response && error.response.status === 404) {
             return { status: "unknown", error: "Job not found" };
         }
         console.error("Polling Error:", error);
         return { status: "failed", error: "Network connection failed" };
     }
+};
+
+// --- 5. ASSET MANAGEMENT (New) ---
+
+// Fetch all assets (The Grid)
+export const fetchProjectAssets = async (projectId: string) => {
+    // Returns { characters: [...], locations: [...] }
+    const res = await api.get(`/api/v1/assets/${projectId}/all`);
+    return res.data;
+};
+
+// Create a new empty asset
+export const createAsset = async (projectId: string, data: { name: string, type: string }) => {
+    return await api.post(`/api/v1/assets/${projectId}/create`, data);
+};
+
+// Update traits, prompt, or status
+export const updateAsset = async (projectId: string, assetType: string, assetId: string, data: any) => {
+    // assetType should be "character" or "location"
+    return await api.put(`/api/v1/assets/${projectId}/${assetType}/${assetId}`, data);
+};
+
+// Delete an asset
+export const deleteAsset = async (projectId: string, type: string, assetId: string) => {
+    return await api.delete(`/api/v1/assets/${projectId}/${type}/${assetId}`);
+};
+
+// Trigger AI Image Generation (Background Job)
+export const triggerAssetGeneration = async (projectId: string, assetId: string, type: string) => {
+    return await api.post(`/api/v1/assets/${projectId}/generate`, {
+        asset_id: assetId,
+        type: type
+    });
 };

@@ -23,7 +23,7 @@ import { ZoomOverlay } from "./components/ZoomOverlay";
 import { DownloadModal } from "./components/DownloadModal";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { TourGuide } from "./components/TourGuide";
-import { AssetModal } from './components/AssetModal';
+import { AssetModal } from '../../../../../components/AssetModal';
 import { LibraryModal } from "./components/LibraryModal";
 import CreditModal from "@/app/components/modals/CreditModal"; // <--- 1. NEW IMPORT
 

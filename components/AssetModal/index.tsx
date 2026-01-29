@@ -1,32 +1,42 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, User, MapPin, Upload, Sparkles, Play, Pause, RefreshCw, ArrowLeft, Loader2, Terminal } from 'lucide-react';
-import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
-import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils';
-import { toastError } from '@/lib/toast';
+import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs'; // Ensure this path exists
+import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils'; // Ensure this path exists
+import { toast } from 'react-hot-toast'; // Use standard toast
+import { Asset, CharacterProfile, LocationProfile } from '@/lib/types'; // IMPORT YOUR NEW TYPES
 
-// Import Sub-Components
+// Sub-Components (Assume these exist in the same folder)
 import { TraitsTab } from './TraitsTab';
 import { VoiceTab } from './VoiceTab';
 
 interface AssetModalProps {
     isOpen: boolean;
     onClose: () => void;
-    assetId: string | null;
-    assetName?: string;
-    assetType: 'character' | 'location' | null;
-    currentData?: any;
+
+    // Identity
+    projectId: string; // <-- ADDED THIS
+    assetId: string;
+    assetName: string;
+    assetType: 'character' | 'location';
+    currentData: Asset; // <-- STRICT TYPE
+
+    // State & Generation
     mode: 'upload' | 'generate';
     setMode: (m: 'upload' | 'generate') => void;
     genPrompt: string;
     setGenPrompt: (p: string) => void;
     isProcessing: boolean;
-    basePrompt?: string;
+
+    // Context
     genre: string;
     style: string;
+
+    // Actions
     onUpload: (f: File) => void;
     onGenerate: () => void;
     onUpdateTraits: (t: any) => Promise<void>;
     onLinkVoice: (v: { voice_id: string; voice_name: string }) => Promise<void>;
+
     styles: any;
 }
 
@@ -70,35 +80,45 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
             // 1. Unified Traits Initialization
             let initialTraits: any = {};
+            const vt = currentData.visual_traits || {};
 
             if (assetType === 'location') {
+                // Cast to Location Visual Traits safely
+                const locTraits = vt as any;
                 initialTraits = {
-                    visual_traits: currentData.visual_traits || [],
-                    atmosphere: currentData.atmosphere || "",
-                    lighting: currentData.lighting || "",
-                    terrain: currentData.terrain || "",
+                    visual_traits: locTraits.keywords ? locTraits.keywords.split(', ') : [], // Handle string -> array if needed
+                    atmosphere: locTraits.atmosphere || "",
+                    lighting: locTraits.lighting || "",
+                    terrain: locTraits.terrain || "",
                 };
             } else {
-                const vt = currentData.visual_traits || {};
+                // Cast to Character Visual Traits safely
+                const charTraits = vt as any;
                 initialTraits = {
-                    age: vt.age || "",
-                    ethnicity: vt.ethnicity || "",
-                    hair: vt.hair || "",
-                    clothing: vt.clothing || "",
-                    vibe: vt.vibe || "",
-                    visual_traits: vt
+                    age: charTraits.age || "",
+                    ethnicity: charTraits.ethnicity || "",
+                    hair: charTraits.hair || "",
+                    clothing: charTraits.clothing || "",
+                    vibe: charTraits.vibe || "",
+                    // Keep original object for prompt helper compatibility
+                    visual_traits: charTraits
                 };
             }
 
             setEditableTraits(initialTraits);
-            setSelectedVoiceId(currentData?.voice_config?.voice_id || null);
+
+            // Safe Access for Voice Config
+            if (currentData.type === 'character') {
+                setSelectedVoiceId(currentData.voice_config?.voice_id || null);
+            }
 
             // 2. Initial Prompt Construction
+            // Note: You might need to update your promptUtils to handle the new object structure if you haven't yet.
             const constructedPrompt = assetType === 'location'
                 ? constructLocationPrompt(assetName || "Location", initialTraits.visual_traits, initialTraits, genre, style)
                 : constructCharacterPrompt(assetName || "Character", initialTraits, initialTraits, genre, style);
 
-            setGenPrompt(constructedPrompt);
+            setGenPrompt(constructedPrompt || currentData.prompt || "");
         }
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
@@ -130,7 +150,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     };
 
     const handleMainViewPlay = async () => {
-        const vid = currentData?.voice_config?.voice_id;
+        // Safe access check
+        if (currentData.type !== 'character') return;
+
+        const vid = currentData.voice_config?.voice_id;
         if (!vid) return;
 
         if (playingVoiceId === vid) {
@@ -151,13 +174,15 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         if (voice?.preview_url) {
             handlePlayPreview(voice.preview_url, vid);
         } else {
-            toastError("Voice preview not found.");
+            toast.error("Voice preview not found.");
         }
     };
 
     const handleTraitChange = (key: string, value: string) => {
         let finalValue: any = value;
-        if (assetType === 'location' && key === 'visual_traits') {
+
+        // Handle comma-separated keywords for locations if needed by your UI
+        if (assetType === 'location' && key === 'visual_traits' && typeof value === 'string') {
             finalValue = value.split(',').map(t => t.trim()).filter(t => t !== "");
         }
 
@@ -176,7 +201,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         setIsSavingTraits(true);
         await onUpdateTraits(editableTraits);
         setIsSavingTraits(false);
-        // FIX: Close modal after successful save
         onClose();
     };
 
@@ -198,8 +222,11 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     if (!isOpen) return null;
 
-    const displayImage = currentData?.image_url || currentData?.face_sample_url;
-    const currentVoiceId = currentData?.voice_config?.voice_id;
+    // Helper variables for clean rendering
+    const displayImage = currentData?.image_url;
+    // Safe access for voice data
+    const voiceConfig = currentData.type === 'character' ? currentData.voice_config : null;
+    const currentVoiceId = voiceConfig?.voice_id;
     const isPlayingCurrent = playingVoiceId === currentVoiceId;
 
     return (
@@ -248,7 +275,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
                     {isVoiceMode ? (
                         <VoiceTab
-                            voiceSuggestion={currentData?.voice_config?.suggestion}
+                            voiceSuggestion={voiceConfig?.suggestion}
                             voiceSearch={voiceSearch}
                             setVoiceSearch={setVoiceSearch}
                             isLoadingVoices={isLoadingVoices}
@@ -259,8 +286,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                             handlePlayPreview={handlePlayPreview}
                             handleVoiceSelection={handleVoiceLink}
                             linkBtnState={{
-                                text: selectedVoiceId === currentData?.voice_config?.voice_id ? "CURRENTLY LINKED" : "LINK SELECTED VOICE",
-                                disabled: !selectedVoiceId || selectedVoiceId === currentData?.voice_config?.voice_id || isLinkingVoice
+                                text: selectedVoiceId === currentVoiceId ? "CURRENTLY LINKED" : "LINK SELECTED VOICE",
+                                disabled: !selectedVoiceId || selectedVoiceId === currentVoiceId || isLinkingVoice
                             }}
                             isLinkingVoice={isLinkingVoice}
                             styles={props.styles}
@@ -378,10 +405,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                             </div>
                                             <div>
                                                 <div style={{ color: 'white', fontSize: '12px' }}>
-                                                    {currentData?.voice_config?.voice_name || "No Voice Linked"}
+                                                    {voiceConfig?.voice_name || "No Voice Linked"}
                                                 </div>
                                                 <div style={{ color: '#555', fontSize: '10px' }}>
-                                                    {currentData?.voice_config?.suggestion || "Neutral Tone"}
+                                                    {voiceConfig?.suggestion || "Neutral Tone"}
                                                 </div>
                                             </div>
                                         </div>
