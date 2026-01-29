@@ -5,7 +5,6 @@ import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptU
 import { toast } from 'react-hot-toast';
 import { Asset, CharacterProfile, LocationProfile } from '@/lib/types';
 
-// --- SUB-COMPONENTS ---
 import { TraitsTab } from './TraitsTab';
 import { VoiceTab } from './VoiceTab';
 import { VisualsSection } from './VisualsSection';
@@ -20,23 +19,18 @@ interface AssetModalProps {
     assetType: 'character' | 'location';
     currentData: Asset;
 
-    // Generation Props
     mode: 'upload' | 'generate';
     setMode: (m: 'upload' | 'generate') => void;
     genPrompt: string;
     setGenPrompt: (p: string) => void;
-
-    // "Persistent Loading" State from Parent
     isProcessing: boolean;
 
-    // Context
     genre: string;
     style: string;
 
-    // Handlers
     onUpload: (f: File) => void;
     onGenerate: () => void;
-    onUpdateTraits: (t: any) => Promise<void>;
+    onUpdateTraits: (data: any) => Promise<void>; // <--- UPDATED TYPE
     onLinkVoice: (v: { voice_id: string; voice_name: string }) => Promise<void>;
 
     styles?: any;
@@ -50,11 +44,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     } = props;
 
     // --- STATE ---
+    const [editableName, setEditableName] = useState(assetName); // <--- NEW STATE
     const [editableTraits, setEditableTraits] = useState<any>({});
     const [initialTraits, setInitialTraits] = useState<any>({});
+    const [initialName, setInitialName] = useState(assetName); // For dirty check
     const [isSavingTraits, setIsSavingTraits] = useState(false);
 
-    // Voice State
+    // ... (Voice State remains the same)
     const [isVoiceMode, setIsVoiceMode] = useState(false);
     const [allVoices, setAllVoices] = useState<Voice[]>([]);
     const [filteredVoices, setFilteredVoices] = useState<Voice[]>([]);
@@ -63,17 +59,17 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
     const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
     const [isLinkingVoice, setIsLinkingVoice] = useState(false);
-
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     // --- INITIALIZATION ---
     useEffect(() => {
         if (isOpen && currentData) {
             setIsVoiceMode(false);
-            initializeTraits();
+            initializeData();
         }
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
+    // ... (Voice effects remain same)
     useEffect(() => {
         if (isVoiceMode && allVoices.length === 0) loadVoices();
     }, [isVoiceMode, allVoices.length]);
@@ -82,13 +78,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         setFilteredVoices(allVoices.filter(v => v.name.toLowerCase().includes(voiceSearch.toLowerCase())));
     }, [voiceSearch, allVoices]);
 
-    const initializeTraits = () => {
+    const initializeData = () => {
         let initialData: any = {};
         const vt = currentData.visual_traits || {};
 
+        // 1. Setup Traits
         if (assetType === 'location') {
             const locTraits = vt as LocationProfile['visual_traits'];
-            // Map DB 'keywords' to Local 'visual_traits' for the UI input
             initialData = {
                 visual_traits: locTraits.keywords ? (Array.isArray(locTraits.keywords) ? locTraits.keywords : locTraits.keywords.split(', ')) : [],
                 atmosphere: locTraits.atmosphere || "",
@@ -110,14 +106,15 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             }
         }
 
+        // 2. Set State
         setEditableTraits(initialData);
         setInitialTraits(initialData);
+        setEditableName(currentData.name); // Sync name
+        setInitialName(currentData.name);
 
+        // 3. Generate Prompt (Using current Name)
         if (!currentData.prompt) {
-            const constructed = assetType === 'location'
-                ? constructLocationPrompt(assetName || "Location", initialData.visual_traits, initialData, genre, style)
-                : constructCharacterPrompt(assetName || "Character", initialData, initialData, genre, style);
-            setGenPrompt(constructed);
+            updatePrompt(currentData.name, initialData);
         } else {
             setGenPrompt(currentData.prompt);
         }
@@ -125,8 +122,18 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     // --- HANDLERS ---
 
+    // Helper to regenerate prompt dynamically
+    const updatePrompt = (name: string, traits: any) => {
+        const constructed = assetType === 'location'
+            ? constructLocationPrompt(name || "Location", traits.visual_traits, traits, genre, style)
+            : constructCharacterPrompt(name || "Character", traits, traits, genre, style);
+        setGenPrompt(constructed);
+    };
+
     const hasUnsavedChanges = () => {
-        return JSON.stringify(editableTraits) !== JSON.stringify(initialTraits);
+        const traitsChanged = JSON.stringify(editableTraits) !== JSON.stringify(initialTraits);
+        const nameChanged = editableName !== initialName;
+        return traitsChanged || nameChanged;
     };
 
     const handleCloseRequest = () => {
@@ -141,6 +148,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
     };
 
+    // ... (Voice handlers: loadVoices, handlePlayPreview, handleMainViewPlay - remain same)
     const loadVoices = async () => {
         setIsLoadingVoices(true);
         const voices = await fetchElevenLabsVoices();
@@ -179,42 +187,41 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         else toast.error("Voice preview not found.");
     };
 
+    // New Handler for Name Change
+    const handleNameChange = (val: string) => {
+        setEditableName(val);
+        updatePrompt(val, editableTraits); // Regenerate prompt with new name
+    };
+
     const handleTraitChange = (key: string, value: string) => {
         let finalValue: any = value;
-        // Logic to keep visual_traits as array in local state
         if (assetType === 'location' && key === 'visual_traits' && typeof value === 'string') {
             finalValue = value.split(',').map(t => t.trim()).filter(t => t !== "");
         }
 
         const updatedTraits = { ...editableTraits, [key]: finalValue };
         setEditableTraits(updatedTraits);
-
-        const constructedPrompt = assetType === 'location'
-            ? constructLocationPrompt(assetName || "Location", updatedTraits.visual_traits, updatedTraits, genre, style)
-            : constructCharacterPrompt(assetName || "Character", updatedTraits, updatedTraits, genre, style);
-        setGenPrompt(constructedPrompt);
+        updatePrompt(editableName, updatedTraits); // Regenerate prompt with new traits
     };
 
     const handleSave = async () => {
         setIsSavingTraits(true);
 
         // --- MAP DATA BACK TO DB SCHEMA ---
-        let payload: any = {};
+        let traitsPayload: any = {};
 
         if (assetType === 'location') {
-            // Local 'visual_traits' array -> DB 'keywords' string
             let kws = editableTraits.visual_traits;
             if (Array.isArray(kws)) kws = kws.join(', ');
 
-            payload = {
+            traitsPayload = {
                 keywords: kws,
                 atmosphere: editableTraits.atmosphere,
                 lighting: editableTraits.lighting,
                 terrain: editableTraits.terrain
             };
         } else {
-            // Character: Map specific keys to avoid nesting mess
-            payload = {
+            traitsPayload = {
                 age: editableTraits.age,
                 ethnicity: editableTraits.ethnicity,
                 hair: editableTraits.hair,
@@ -223,12 +230,19 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             };
         }
 
-        await onUpdateTraits(payload);
+        // Send NAME + TRAITS together
+        await onUpdateTraits({
+            name: editableName,
+            visual_traits: traitsPayload
+        });
+
         setInitialTraits(editableTraits);
+        setInitialName(editableName);
         setIsSavingTraits(false);
         onClose();
     };
 
+    // ... (handleVoiceLink remains same)
     const handleVoiceLink = async () => {
         const v = allVoices.find(v => v.voice_id === selectedVoiceId);
         if (v) {
@@ -255,13 +269,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         {isVoiceMode && <ArrowLeft size={20} className="cursor-pointer hover:text-motion-red" onClick={() => setIsVoiceMode(false)} />}
                         {assetType === 'location' ? <MapPin size={20} className="text-motion-red" /> : <User size={20} className="text-motion-red" />}
                         <div>
-                            <h2 className="text-lg font-display uppercase text-white leading-none">{assetName}</h2>
+                            {/* Display Name in Header reflects edit */}
+                            <h2 className="text-lg font-display uppercase text-white leading-none">{editableName || "Untitled"}</h2>
                             <div className="text-[10px] text-neutral-500 tracking-widest mt-1">
                                 {isVoiceMode ? "VOICE LIBRARY" : "CONFIGURATION STUDIO"}
                             </div>
                         </div>
                     </div>
-                    {/* Intercept Close Here */}
                     <X size={20} className="cursor-pointer text-neutral-500 hover:text-white" onClick={handleCloseRequest} />
                 </div>
 
@@ -269,6 +283,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 <div className="modal-scroll flex-1 overflow-y-auto p-5 pb-10 flex flex-col gap-8">
                     {isVoiceMode ? (
                         <VoiceTab
+                            // ... pass existing props
                             voiceSuggestion={voiceConfig?.suggestion}
                             voiceSearch={voiceSearch}
                             setVoiceSearch={setVoiceSearch}
@@ -290,9 +305,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         <>
                             <div className="animate-in fade-in duration-300">
                                 <div className="text-[10px] font-bold text-neutral-500 mb-3 tracking-widest uppercase">Asset Definition</div>
-                                {/* Cleaned up props passed to TraitsTab */}
                                 <TraitsTab
                                     assetType={assetType!}
+                                    editableName={editableName}        // <--- PASS NAME
+                                    onNameChange={handleNameChange}    // <--- PASS HANDLER
                                     editableTraits={editableTraits}
                                     handleTraitChange={handleTraitChange}
                                 />

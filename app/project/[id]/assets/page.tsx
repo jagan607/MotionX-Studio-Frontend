@@ -192,13 +192,14 @@ export default function AssetManagerPage() {
         await Promise.all(pending.map(asset => handleGenerate(asset)));
     };
 
-    const handleUpdateTraits = async (asset: Asset, traits: any) => {
+    const handleUpdateTraits = async (asset: Asset, data: any) => {
         try {
-            await updateAsset(projectId, asset.type, asset.id, { visual_traits: traits });
-            toast.success("Traits Saved");
+            // We pass 'data' directly. It might contain { name: "...", visual_traits: {...} }
+            await updateAsset(projectId, asset.type, asset.id, data);
+            toast.success("Saved Configuration");
             loadData();
         } catch (e) {
-            toast.error("Failed to save traits");
+            toast.error("Failed to save changes");
         }
     };
 

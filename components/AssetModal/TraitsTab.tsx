@@ -2,13 +2,14 @@ import React from 'react';
 
 interface TraitsTabProps {
     assetType: 'character' | 'location';
+    editableName: string;                     // <--- NEW
+    onNameChange: (val: string) => void;      // <--- NEW
     editableTraits: any;
     handleTraitChange: (key: string, value: string) => void;
-    // CLEANED: Removed handleSaveTraits, isSavingTraits, styles
 }
 
 export const TraitsTab: React.FC<TraitsTabProps> = ({
-    assetType, editableTraits, handleTraitChange
+    assetType, editableTraits, handleTraitChange, editableName, onNameChange
 }) => {
 
     // Define fields based on asset type
@@ -25,10 +26,8 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
         { k: 'vibe', l: 'VIBE', p: 'e.g. Mysterious' },
     ];
 
-    // Helper to handle displaying array data in a text input
     const getDisplayValue = (key: string) => {
         const val = editableTraits[key];
-        // Ensure visual_traits array is joined by commas for the input field
         if (Array.isArray(val)) return val.join(', ');
         if (typeof val === 'object' && val !== null) return JSON.stringify(val);
         return val || '';
@@ -37,6 +36,21 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
     return (
         <div className="w-full">
             <div className="grid grid-cols-2 gap-3 w-full p-0.5">
+
+                {/* --- 1. ASSET NAME (Full Width) --- */}
+                <div className="col-span-2">
+                    <label className="block text-[9px] text-motion-red font-bold mb-1.5 tracking-wider uppercase">
+                        Asset Name
+                    </label>
+                    <input
+                        className="w-full bg-[#0a0a0a] border border-[#333] rounded px-3 py-2.5 text-white text-[11px] font-bold outline-none focus:border-motion-red transition-colors placeholder-[#444]"
+                        placeholder="e.g. Spike, Old House"
+                        value={editableName}
+                        onChange={(e) => onNameChange(e.target.value)}
+                    />
+                </div>
+
+                {/* --- 2. TRAIT FIELDS --- */}
                 {fields.map((field: any) => (
                     <div
                         key={field.k}
