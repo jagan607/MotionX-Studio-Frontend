@@ -3,18 +3,23 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-    ArrowRight, Users, MapPin, RefreshCw, Wand2, Settings,
-    Plus, Trash2, Loader2, Sparkles, Play
+    ArrowRight, Users, MapPin, Sparkles, Plus, Loader2
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 // --- API & TYPES ---
-import { fetchProjectAssets, deleteAsset, createAsset, triggerAssetGeneration } from "@/lib/api";
-// FIX 1: Import specific profile types to strictly type the state
+import {
+    fetchProjectAssets,
+    deleteAsset,
+    createAsset,
+    triggerAssetGeneration,
+    updateAsset // Ensure this is exported from your api.ts
+} from "@/lib/api";
 import { Asset, CharacterProfile, LocationProfile } from "@/lib/types";
 
 // --- COMPONENTS ---
 import { AssetModal } from "@/components/AssetModal";
+import { AssetCard } from "@/components/AssetCard"; // The new modular card
 import { StudioLayout } from "@/components/ui/StudioLayout";
 import { MotionButton } from "@/components/ui/MotionButton";
 
@@ -25,8 +30,6 @@ export default function AssetManagerPage() {
 
     // --- STATE ---
     const [activeTab, setActiveTab] = useState<'cast' | 'locations'>('cast');
-
-    // FIX 2: Strictly type the state so TS knows 'characters' has voice_config
     const [assets, setAssets] = useState<{
         characters: CharacterProfile[],
         locations: LocationProfile[]
@@ -40,6 +43,9 @@ export default function AssetManagerPage() {
     // Actions State
     const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+    const [genPrompt, setGenPrompt] = useState(""); // State to hold prompt for Modal
+
+    // Creation State
     const [isCreating, setIsCreating] = useState(false);
     const [newAssetName, setNewAssetName] = useState("");
 
@@ -50,7 +56,6 @@ export default function AssetManagerPage() {
 
     const loadData = async () => {
         try {
-            // fetchProjectAssets returns { characters: CharacterProfile[], locations: LocationProfile[] }
             const data = await fetchProjectAssets(projectId);
             setAssets(data);
         } catch (e) {
@@ -73,7 +78,6 @@ export default function AssetManagerPage() {
 
         // Audio counts for 30% (Characters only)
         if (assets.characters.length > 0) {
-            // FIX 3: TS is now happy because we know 'assets.characters' contains CharacterProfiles
             const audioDone = assets.characters.filter(c => c.voice_config?.voice_id).length;
             score += (audioDone / assets.characters.length) * 30;
         } else {
@@ -94,7 +98,7 @@ export default function AssetManagerPage() {
                 type: activeTab === 'cast' ? 'character' : 'location'
             });
             setNewAssetName("");
-            await loadData(); // Reload grid
+            await loadData();
             toast.success("Asset Created");
         } catch (e) {
             toast.error("Failed to create asset");
@@ -107,7 +111,6 @@ export default function AssetManagerPage() {
         if (!confirm("Are you sure? This cannot be undone.")) return;
         try {
             await deleteAsset(projectId, type, id);
-            // Optimistic update
             setAssets(prev => ({
                 ...prev,
                 [type === 'character' ? 'characters' : 'locations']: prev[type === 'character' ? 'characters' : 'locations'].filter(a => a.id !== id)
@@ -118,16 +121,16 @@ export default function AssetManagerPage() {
         }
     };
 
-    const handleGenerate = async (asset: Asset) => {
+    const handleGenerate = async (asset: Asset, customPrompt?: string) => {
         // Optimistic UI update
         setGeneratingIds(prev => new Set(prev).add(asset.id));
         toast("Queued for Generation...", { icon: '⏳' });
 
         try {
-            // Trigger Backend Job
-            await triggerAssetGeneration(projectId, asset.id, asset.type);
+            // Trigger Backend Job (Pass prompt if available)
+            await triggerAssetGeneration(projectId, asset.id, asset.type, customPrompt);
 
-            // Simple polling simulation for MVP
+            // Simple polling simulation for MVP (Ideally use a real polling hook)
             setTimeout(() => {
                 loadData();
                 setGeneratingIds(prev => { const next = new Set(prev); next.delete(asset.id); return next; });
@@ -150,9 +153,18 @@ export default function AssetManagerPage() {
         }
 
         toast.loading(`Starting generation for ${pending.length} assets...`);
-
-        // Fire all requests concurrently
         await Promise.all(pending.map(asset => handleGenerate(asset)));
+    };
+
+    const handleUpdateTraits = async (asset: Asset, traits: any) => {
+        try {
+            // This assumes you have an updateAsset function in your API
+            await updateAsset(projectId, asset.type, asset.id, { visual_traits: traits });
+            toast.success("Traits Saved");
+            loadData(); // Refresh data to confirm save
+        } catch (e) {
+            toast.error("Failed to save traits");
+        }
     };
 
     // --- RENDER HELPERS ---
@@ -218,7 +230,7 @@ export default function AssetManagerPage() {
                 {/* ASSET GRID */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
 
-                    {/* ADD NEW CARD */}
+                    {/* ADD NEW BUTTON CARD */}
                     <div className="aspect-[3/4] border border-dashed border-neutral-800 rounded-xl bg-neutral-900/20 flex flex-col items-center justify-center p-4 hover:border-neutral-600 transition-colors group">
                         {isCreating ? (
                             <div className="w-full animate-in fade-in zoom-in">
@@ -248,73 +260,24 @@ export default function AssetManagerPage() {
                         )}
                     </div>
 
-                    {/* ASSET CARDS */}
+                    {/* ASSET CARDS (Using the new component) */}
                     {loading ? (
                         <div className="col-span-full py-20 flex justify-center text-neutral-500 font-mono text-xs">
                             <Loader2 className="animate-spin mr-2" /> LOADING ASSETS...
                         </div>
                     ) : displayedAssets.map((asset) => (
-                        <div key={asset.id} className="group relative aspect-[3/4] bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden hover:border-neutral-600 transition-all">
-
-                            {/* IMAGE / STATUS */}
-                            <div className="w-full h-full relative">
-                                {asset.image_url ? (
-                                    <img src={asset.image_url} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all duration-500" />
-                                ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center">
-                                        {generatingIds.has(asset.id) ? (
-                                            <>
-                                                <Loader2 className="animate-spin text-motion-red mb-2" size={24} />
-                                                <span className="text-[9px] font-mono text-motion-red animate-pulse">GENERATING...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Wand2 className="text-neutral-700 mb-2" size={24} />
-                                                <span className="text-[9px] font-mono text-neutral-600">NO VISUAL</span>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* DELETE BUTTON (Hover Only) */}
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleDelete(asset.id, asset.type); }}
-                                    className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-red-900/80 text-white/50 hover:text-white rounded-md opacity-0 group-hover:opacity-100 transition-all"
-                                >
-                                    <Trash2 size={12} />
-                                </button>
-
-                                {/* AUDIO BADGE (Characters Only) */}
-                                {/* FIX: TS knows this is safe now because of the union type check, but let's be explicit */}
-                                {asset.type === 'character' && (asset as CharacterProfile).voice_config?.voice_id && (
-                                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 backdrop-blur rounded text-[8px] font-bold text-green-400 flex items-center gap-1">
-                                        <Play size={8} fill="currentColor" /> VOICE LINKED
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* CARD FOOTER (Name & CTAs) */}
-                            <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-black via-black/90 to-transparent">
-                                <h3 className="text-sm font-display uppercase text-white truncate mb-3">{asset.name}</h3>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        onClick={() => handleGenerate(asset)}
-                                        disabled={generatingIds.has(asset.id)}
-                                        className="flex items-center justify-center gap-1.5 py-2 bg-white/10 hover:bg-motion-red text-white rounded text-[9px] font-bold tracking-widest transition-colors disabled:opacity-50"
-                                    >
-                                        <Sparkles size={10} /> {asset.image_url ? "REGEN" : "GENERATE"}
-                                    </button>
-
-                                    <button
-                                        onClick={() => setSelectedAsset(asset)}
-                                        className="flex items-center justify-center gap-1.5 py-2 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white rounded text-[9px] font-bold tracking-widest transition-colors"
-                                    >
-                                        <Settings size={10} /> CONFIG
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <AssetCard
+                            key={asset.id}
+                            asset={asset}
+                            projectId={projectId}
+                            isGenerating={generatingIds.has(asset.id)}
+                            onGenerate={(a) => handleGenerate(a)}
+                            onConfig={(a) => {
+                                setSelectedAsset(a);
+                                setGenPrompt(a.prompt || ""); // Pre-fill prompt from DB
+                            }}
+                            onDelete={handleDelete}
+                        />
                     ))}
                 </div>
 
@@ -322,27 +285,30 @@ export default function AssetManagerPage() {
                 {selectedAsset && (
                     <AssetModal
                         isOpen={!!selectedAsset}
-                        onClose={() => { setSelectedAsset(null); loadData(); }} // Refresh on close
+                        onClose={() => { setSelectedAsset(null); }}
                         assetId={selectedAsset.id}
                         projectId={projectId}
                         assetType={selectedAsset.type}
                         assetName={selectedAsset.name}
                         currentData={selectedAsset}
-                        // These props are needed by your modal implementation
+
+                        // -- GENERATION PROPS --
                         mode="generate"
                         setMode={() => { }}
-                        genPrompt={selectedAsset.prompt || ""}
-                        setGenPrompt={() => { }}
-                        isProcessing={false} // Managed inside modal for generation
-                        genre="cinematic" // You can fetch this from project details if needed
+                        genPrompt={genPrompt}
+                        setGenPrompt={setGenPrompt}
+                        isProcessing={generatingIds.has(selectedAsset.id)}
+                        onGenerate={() => handleGenerate(selectedAsset, genPrompt)} // Pass the modal prompt!
+
+                        // -- DATA PROPS --
+                        genre="cinematic" // Placeholder or fetch from project
                         style="realistic"
-                        onUpload={() => { }} // Implement if needed
-                        onGenerate={() => { }} // Implement inside modal or pass handler
-                        onUpdateTraits={async (traits: any) => {
-                            // Basic implementation to satisfy prop requirement
-                            // Real update logic should be in api call inside modal
-                        }}
-                        onLinkVoice={async () => { }}
+
+                        // -- HANDLERS --
+                        onUpload={() => { }} // Implement file upload logic if needed
+                        onUpdateTraits={(traits) => handleUpdateTraits(selectedAsset, traits)}
+                        onLinkVoice={async () => { }} // Implement voice linking
+
                         styles={{ modal: { background: '#090909', border: '1px solid #222', borderRadius: '12px' } }}
                     />
                 )}
@@ -351,7 +317,7 @@ export default function AssetManagerPage() {
     );
 }
 
-// --- SUB-COMPONENTS ---
+// --- TAB BUTTON COMPONENT ---
 const TabButton = ({ active, onClick, icon, label }: any) => (
     <button
         onClick={onClick}
