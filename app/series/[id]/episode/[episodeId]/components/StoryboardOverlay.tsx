@@ -209,6 +209,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         <option value="16:9">16:9 (Cinema)</option>
                         <option value="21:9">21:9 (Wide)</option>
                         <option value="9:16">9:16 (Vertical)</option>
+                        <option value="1:1">1:1 (Square)</option>
+                        <option value="4:3">4:3 (TV)</option>
+                        <option value="3:4">3:4 (vertical v1)</option>
                     </select>
                 </div>
 
