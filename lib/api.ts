@@ -89,19 +89,21 @@ export const deleteAsset = async (projectId: string, type: string, assetId: stri
     return await api.delete(`/api/v1/assets/${projectId}/${type}/${assetId}`);
 };
 
-// Trigger AI Image Generation (Updated with Style)
+// Trigger AI Image Generation
 export const triggerAssetGeneration = async (
     projectId: string,
     assetId: string,
     type: string,
     prompt?: string,
-    style?: any // <--- NEW: Accepts the moodboard object
+    style?: any,
+    aspect_ratio?: string
 ) => {
     const res = await api.post(`/api/v1/assets/${projectId}/generate`, {
         asset_id: assetId,
         type,
         prompt,
-        style // <--- Sends it to the backend
+        style,
+        aspect_ratio
     });
     return res.data;
 };

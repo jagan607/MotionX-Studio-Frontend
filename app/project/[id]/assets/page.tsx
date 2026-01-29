@@ -130,24 +130,28 @@ export default function AssetManagerPage() {
     };
 
     const handleGenerate = async (asset: Asset, customPrompt?: string) => {
-        // Optimistic UI update
         setGeneratingIds(prev => new Set(prev).add(asset.id));
         toast("Queued for Generation...", { icon: '⏳' });
 
         try {
-            // 1. Get Moodboard from Project State
-            const moodboardStyle = project?.moodboard;
+            // 1. CLEAN THE MOODBOARD (Remove 'code', 'owner_id', etc.)
+            // We strip out 'code' and spread the rest into cleanStyle
+            const { code, owner_id, ...cleanStyle } = project?.moodboard || {};
 
-            // 2. Trigger Backend Job (Passing moodboard as style)
+            // 2. GET ASPECT RATIO (Default to 16:9 if missing)
+            // Note: Typescript might complain if aspect_ratio isn't in your Project interface yet.
+            const aspectRatio = (project as any)?.aspect_ratio || "16:9";
+
+            // 3. Trigger Backend Job
             await triggerAssetGeneration(
                 projectId,
                 asset.id,
                 asset.type,
                 customPrompt,
-                moodboardStyle // <--- PASSING THE STYLE OBJECT
+                cleanStyle,
+                aspectRatio
             );
 
-            // Simple polling simulation for MVP
             setTimeout(() => {
                 loadData();
                 setGeneratingIds(prev => { const next = new Set(prev); next.delete(asset.id); return next; });
