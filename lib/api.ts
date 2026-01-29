@@ -1,6 +1,7 @@
 import axios from "axios";
 import { auth } from "@/lib/firebase"; // Your firebase config
 import { API_BASE_URL } from "./config"; // Your backend URL (e.g., http://localhost:8000)
+import { Project } from "./types"; // Import the type for better safety
 
 // 1. Create the Axios Instance
 export const api = axios.create({
@@ -38,7 +39,17 @@ api.interceptors.response.use(
     }
 );
 
-// --- 4. SCRIPT & JOB HELPERS ---
+// --- 4. PROJECT HELPERS (New) ---
+
+// Fetch the project document (to get the Moodboard)
+export const fetchProject = async (projectId: string): Promise<Project> => {
+    // Assumes you have a router @ /api/v1/project/{id}
+    // If not, you might need to use direct Firebase SDK access in the component
+    const res = await api.get(`/api/v1/project/${projectId}`);
+    return res.data;
+};
+
+// --- 5. SCRIPT & JOB HELPERS ---
 
 export const checkJobStatus = async (jobId: string) => {
     try {
@@ -53,7 +64,7 @@ export const checkJobStatus = async (jobId: string) => {
     }
 };
 
-// --- 5. ASSET MANAGEMENT (New) ---
+// --- 6. ASSET MANAGEMENT ---
 
 // Fetch all assets (The Grid)
 export const fetchProjectAssets = async (projectId: string) => {
@@ -78,17 +89,19 @@ export const deleteAsset = async (projectId: string, type: string, assetId: stri
     return await api.delete(`/api/v1/assets/${projectId}/${type}/${assetId}`);
 };
 
-// Trigger AI Image Generation  
+// Trigger AI Image Generation (Updated with Style)
 export const triggerAssetGeneration = async (
     projectId: string,
     assetId: string,
     type: string,
-    prompt?: string
+    prompt?: string,
+    style?: any // <--- NEW: Accepts the moodboard object
 ) => {
     const res = await api.post(`/api/v1/assets/${projectId}/generate`, {
         asset_id: assetId,
         type,
-        prompt
+        prompt,
+        style // <--- Sends it to the backend
     });
     return res.data;
 };
