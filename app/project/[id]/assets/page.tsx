@@ -77,6 +77,19 @@ export default function AssetManagerPage() {
         }
     };
 
+    useEffect(() => {
+        if (selectedAsset) {
+            // Find the updated version of the currently selected asset
+            const allAssets = [...assets.characters, ...assets.locations];
+            const freshAsset = allAssets.find(a => a.id === selectedAsset.id);
+
+            // If we found a newer version (e.g., it now has an image_url), update the modal
+            if (freshAsset && freshAsset.image_url !== selectedAsset.image_url) {
+                setSelectedAsset(freshAsset);
+            }
+        }
+    }, [assets]);
+
     // --- 2. CALCULATE PROGRESS ---
     const calculateProgress = () => {
         const all = [...assets.characters, ...assets.locations];

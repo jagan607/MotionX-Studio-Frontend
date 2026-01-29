@@ -21,8 +21,20 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     return (
         <div className="group relative aspect-[3/4] bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden hover:border-neutral-600 transition-all">
 
-            {/* --- VISUAL LAYER --- */}
+            {/* --- 1. VISUAL LAYER --- */}
             <div className="w-full h-full relative">
+
+                {/* A. LOADING OVERLAY (Shows on top of everything when generating) */}
+                {isGenerating && (
+                    <div className="absolute inset-0 z-20 bg-black/80 backdrop-blur-[2px] flex flex-col items-center justify-center animate-in fade-in duration-300">
+                        <Loader2 className="w-8 h-8 text-motion-red animate-spin mb-2" />
+                        <span className="text-[9px] font-mono text-motion-red tracking-widest animate-pulse">
+                            GENERATING...
+                        </span>
+                    </div>
+                )}
+
+                {/* B. IMAGE OR PLACEHOLDER */}
                 {asset.image_url ? (
                     <img
                         src={asset.image_url}
@@ -31,12 +43,8 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                     />
                 ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center">
-                        {isGenerating ? (
-                            <>
-                                <Loader2 className="animate-spin text-motion-red mb-2" size={24} />
-                                <span className="text-[9px] font-mono text-motion-red animate-pulse">GENERATING...</span>
-                            </>
-                        ) : (
+                        {/* Only show placeholder icon if NOT generating (since overlay handles loading) */}
+                        {!isGenerating && (
                             <>
                                 <Wand2 className="text-neutral-700 mb-2" size={24} />
                                 <span className="text-[9px] font-mono text-neutral-600">NO VISUAL</span>
@@ -45,16 +53,18 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                     </div>
                 )}
 
-                {/* DELETE BUTTON (Hover Only) */}
-                <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(asset.id, asset.type);
-                    }}
-                    className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-red-900/80 text-white/50 hover:text-white rounded-md opacity-0 group-hover:opacity-100 transition-all z-10"
-                >
-                    <Trash2 size={12} />
-                </button>
+                {/* DELETE BUTTON (Hover Only - Hidden when generating) */}
+                {!isGenerating && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(asset.id, asset.type);
+                        }}
+                        className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-red-900/80 text-white/50 hover:text-white rounded-md opacity-0 group-hover:opacity-100 transition-all z-10"
+                    >
+                        <Trash2 size={12} />
+                    </button>
+                )}
 
                 {/* AUDIO BADGE (Characters Only) */}
                 {asset.type === 'character' && (asset as CharacterProfile).voice_config?.voice_id && (
@@ -64,8 +74,8 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                 )}
             </div>
 
-            {/* --- CONTROLS LAYER (Bottom) --- */}
-            <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-black via-black/90 to-transparent">
+            {/* --- 2. CONTROLS LAYER (Bottom - Transparent Gradient) --- */}
+            <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-black via-black/90 to-transparent z-10">
                 <h3 className="text-sm font-display uppercase text-white truncate mb-3 pl-1">
                     {asset.name}
                 </h3>
@@ -81,7 +91,8 @@ export const AssetCard: React.FC<AssetCardProps> = ({
 
                     <button
                         onClick={() => onConfig(asset)}
-                        className="flex items-center justify-center gap-1.5 py-2 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white rounded text-[9px] font-bold tracking-widest transition-colors"
+                        disabled={isGenerating}
+                        className="flex items-center justify-center gap-1.5 py-2 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white rounded text-[9px] font-bold tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Settings size={10} /> CONFIG
                     </button>
