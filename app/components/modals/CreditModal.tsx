@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { X, AlertCircle } from "lucide-react";
-import PricingCard from "@/app/components/PricingCard"; // Check if path is correct for your project
+import { useEffect, useState } from "react";
+import { X, Zap, ShieldCheck } from "lucide-react";
+import { TopUpCard } from "../TopUpCard";
+import { usePayment, getUserCurrency } from "@/lib/payment"; // Import helper
+import { useCredits } from "@/hooks/useCredits";
+import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
-// --- CONSTANTS ---
-const PRICING_MAP = {
-    free: { USD: "$0", INR: "₹0" },
-    starter: { USD: "$20", INR: "₹1,832" },
-    pro: { USD: "$40", INR: "₹3,663" },
-    agency: { USD: "$80", INR: "₹7,325" }
-};
+// --- CREDIT PACKAGES CONFIG ---
+const PACKAGES = [
+    { id: "topup_micro", title: "Micro Refill", credits: 10, bonus: 0, usd: "$5", inr: "₹450" },
+    { id: "topup_mini", title: "Mini Pack", credits: 22, bonus: 0, usd: "$10", inr: "₹900" },
+    { id: "topup_standard", title: "Standard Pack", credits: 50, bonus: 5, usd: "$20", inr: "₹1,800", label: "POPULAR" },
+    { id: "topup_pro", title: "Pro Bundle", credits: 100, bonus: 20, usd: "$40", inr: "₹3,500", label: "SAVER" },
+    { id: "topup_studio", title: "Studio Vault", credits: 200, bonus: 60, usd: "$80", inr: "₹7,000", label: "BEST VALUE", isBestValue: true },
+];
 
 interface CreditModalProps {
     isOpen: boolean;
@@ -19,18 +23,46 @@ interface CreditModalProps {
 }
 
 export default function CreditModal({ isOpen, onClose }: CreditModalProps) {
-    // --- LOCAL STATE FOR PRICING INTERACTION ---
+    const { buyCredits, loading } = usePayment();
+    const { credits } = useCredits();
+
+    // Initialize with USD to match server render, update in useEffect
     const [currency, setCurrency] = useState<"USD" | "INR">("USD");
-    const [loading, setLoading] = useState<string | null>(null);
+    const [loadingId, setLoadingId] = useState<string | null>(null);
 
-    const handleSubscribe = async (plan: string) => {
-        setLoading(plan);
-        console.log(`Processing subscription for: ${plan}`);
+    // Auto-detect Currency on Client Side
+    useEffect(() => {
+        setCurrency(getUserCurrency());
+    }, []);
 
-        // TODO: Call your payment provider (Stripe/Razorpay) here
-        // await createCheckoutSession(plan);
+    // Lock Scroll
+    useEffect(() => {
+        if (isOpen) document.body.style.overflow = "hidden";
+        else document.body.style.overflow = "unset";
+        return () => { document.body.style.overflow = "unset"; };
+    }, [isOpen]);
 
-        setTimeout(() => setLoading(null), 2000); // Mock delay
+    const handleBuy = (pkg: any) => {
+        if (loading) return;
+        setLoadingId(pkg.id);
+
+        buyCredits({
+            packageId: pkg.id,
+            currency: currency, // Pass the detected currency
+            onSuccess: () => {
+                toast.success(`Successfully added ${pkg.credits + pkg.bonus} credits!`, {
+                    style: { background: '#333', color: '#fff', border: '1px solid #00FF41' }
+                });
+                setLoadingId(null);
+                onClose();
+            },
+            onError: (err: any) => {
+                if (err !== "Cancelled") {
+                    toast.error("Transaction Failed");
+                }
+                setLoadingId(null);
+            }
+        });
     };
 
     if (!isOpen) return null;
@@ -41,133 +73,64 @@ export default function CreditModal({ isOpen, onClose }: CreditModalProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-md p-4"
+                className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
             >
                 <motion.div
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
-                    // Increased max-width to fit the pricing grid
-                    className="relative bg-[#0f0f0f] border border-[#222] rounded-2xl w-full max-w-[90vw] xl:max-w-[1400px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                    className="relative w-full max-w-5xl bg-[#050505] border border-[#222] shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh]"
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-[#222] bg-[#141414] shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-red-500/10 rounded-full">
-                                <AlertCircle className="text-red-500" size={20} />
-                            </div>
-                            <div>
-                                <h2 className="text-lg font-bold text-white tracking-wide">INSUFFICIENT CREDITS</h2>
-                                <p className="text-xs text-gray-500 font-mono">CHOOSE A PLAN TO RECHARGE & CONTINUE</p>
+                    <div className="flex justify-between items-center p-6 border-b border-[#1F1F1F] bg-[#0A0A0A]">
+                        <div>
+                            <h2 className="text-2xl font-anton uppercase text-white tracking-wide flex items-center gap-3">
+                                <Zap className="text-[#FF0000]" fill="currentColor" size={24} /> Top Up Credits
+                            </h2>
+                            <div className="flex items-center gap-4 mt-2">
+                                <p className="text-[#666] text-xs font-mono uppercase tracking-wider">
+                                    Current Balance: <span className="text-white font-bold">{credits ?? '---'}</span>
+                                </p>
+                                <div className="h-3 w-[1px] bg-[#333]" />
+                                <p className="text-[#666] text-xs font-mono uppercase tracking-wider">
+                                    Currency: <span className="text-[#00FF41]">{currency}</span>
+                                </p>
                             </div>
                         </div>
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-[#222] rounded-full transition-colors text-[#666] hover:text-white"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
 
-                        <div className="flex items-center gap-4">
-                            {/* Currency Toggle (Optional) */}
-                            <div className="hidden md:flex bg-black border border-[#333] rounded-lg p-1">
-                                <button
-                                    onClick={() => setCurrency("USD")}
-                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${currency === "USD" ? "bg-[#333] text-white" : "text-gray-500"}`}
-                                >
-                                    USD
-                                </button>
-                                <button
-                                    onClick={() => setCurrency("INR")}
-                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${currency === "INR" ? "bg-[#333] text-white" : "text-gray-500"}`}
-                                >
-                                    INR
-                                </button>
-                            </div>
-
-                            <button
-                                onClick={onClose}
-                                className="p-2 hover:bg-[#222] rounded-full text-gray-400 hover:text-white transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
+                    {/* Grid */}
+                    <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar bg-gradient-to-b from-[#0A0A0A] to-[#050505]">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {PACKAGES.map((pkg) => (
+                                <TopUpCard
+                                    key={pkg.id}
+                                    id={pkg.id}
+                                    title={pkg.title}
+                                    credits={pkg.credits}
+                                    bonus={pkg.bonus}
+                                    price={currency === "USD" ? pkg.usd : pkg.inr}
+                                    label={pkg.label}
+                                    isLoading={loadingId === pkg.id}
+                                    isBestValue={pkg.isBestValue}
+                                    onClick={() => handleBuy(pkg)}
+                                />
+                            ))}
                         </div>
                     </div>
 
-                    {/* Content (Scrollable Grid) */}
-                    <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar bg-gradient-to-b from-[#0f0f0f] to-[#050505]">
-
-                        <div className="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
-                            {/* 1. FREE */}
-                            <PricingCard
-                                title="Free"
-                                price={PRICING_MAP.free[currency]}
-                                description="Evaluation Mode"
-                                credits="30 CREDITS (ONE TIME)"
-                                features={[
-                                    "200 MB Cloud Storage",
-                                    "1 Active Project",
-                                    "Public Gallery Showcase",
-                                    "Standard Queue"
-                                ]}
-                                notIncluded={["Recurring Credits", "Commercial License", "4K Upscaling", "Private Mode"]}
-                                isLoading={false}
-                                onClick={() => handleSubscribe("free")}
-                                buttonText="CURRENT PLAN"
-                            />
-
-                            {/* 2. STARTER */}
-                            <PricingCard
-                                title="Starter"
-                                price={PRICING_MAP.starter[currency]}
-                                description="Entry Level"
-                                credits="50 CREDITS / MO"
-                                features={[
-                                    "50 Images OR 16 Videos",
-                                    "5 GB Cloud Storage",
-                                    "2 Active Projects",
-                                    "Public Gallery Showcase",
-                                    "Standard Queue"
-                                ]}
-                                notIncluded={["Commercial License", "4K Upscaling", "Private Mode"]}
-                                isLoading={loading === "starter"}
-                                onClick={() => handleSubscribe("starter")}
-                            />
-
-                            {/* 3. PRO */}
-                            <PricingCard
-                                title="Pro"
-                                price={PRICING_MAP.pro[currency]}
-                                description="Studio Standard"
-                                credits="100 CREDITS / MO"
-                                isPopular={true}
-                                features={[
-                                    "100 Images OR 34 Videos",
-                                    "20 GB Cloud Storage",
-                                    "5 Active Projects",
-                                    "High Priority Queue",
-                                    "Private Mode Enabled",
-                                    "Commercial License",
-                                    "4K Upscaling Matrix"
-                                ]}
-                                isLoading={loading === "pro"}
-                                onClick={() => handleSubscribe("pro")}
-                            />
-
-                            {/* 4. AGENCY */}
-                            <PricingCard
-                                title="Agency"
-                                price={PRICING_MAP.agency[currency]}
-                                description="Production House"
-                                credits="200 CREDITS / MO"
-                                features={[
-                                    "200 Images OR 67 Videos",
-                                    "40 GB Cloud Storage",
-                                    "9 Active Projects",
-                                    "Turbo Priority Queue",
-                                    "Private Mode Enabled",
-                                    "Commercial License",
-                                    "4K Native Resolution"
-                                ]}
-                                isLoading={loading === "agency"}
-                                onClick={() => handleSubscribe("agency")}
-                            />
-                        </div>
-
+                    {/* Footer */}
+                    <div className="p-4 border-t border-[#1F1F1F] bg-[#080808] flex justify-between items-center text-[10px] uppercase tracking-wider text-[#444]">
+                        <span className="flex items-center gap-2">
+                            <ShieldCheck size={12} /> Secure Payment via Razorpay
+                        </span>
+                        <span>One-Time Purchase • Non-Recurring</span>
                     </div>
                 </motion.div>
             </motion.div>

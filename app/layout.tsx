@@ -69,6 +69,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className} style={{ backgroundColor: '#030303', color: 'white' }} suppressHydrationWarning={true}>
 
+        {/* --- CRITICAL: RAZORPAY SCRIPT --- */}
+        <Script
+          id="razorpay-checkout"
+          src="https://checkout.razorpay.com/v1/checkout.js"
+          strategy="lazyOnload"
+        />
+
         {/* 1. PROVIDER WRAPS EVERYTHING */}
         <MediaViewerProvider>
 

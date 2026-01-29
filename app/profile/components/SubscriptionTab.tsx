@@ -1,11 +1,19 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { CheckCircle2, Zap, AlertTriangle, LayoutGrid, HardDrive, Users, TrendingUp } from "lucide-react";
+import { CheckCircle2, Zap, AlertTriangle, LayoutGrid, HardDrive, Users, TrendingUp, Settings, XCircle, Loader2, CalendarClock } from "lucide-react";
+import { usePayment } from "@/lib/payment";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import CancelConfirmModal from "@/app/components/modals/CancelConfirmModal";
+import CreditModal from "@/app/components/modals/CreditModal"; // <--- 1. IMPORT CREDIT MODAL
 
-// --- PLAN CONFIGURATION (Matched to Backend) ---
+// --- PLAN CONFIGURATION ---
 interface PlanDetails {
-    name: string; // Added specific display name
+    name: string;
     credits: number;
     limits: { projects: number; storage: string; seats: number };
     features: string[];
@@ -44,27 +52,60 @@ interface SubscriptionTabProps {
 }
 
 export default function SubscriptionTab({ plan, credits }: SubscriptionTabProps) {
+    const router = useRouter();
+    const { cancelSubscription, loading } = usePayment();
 
-    // 1. Resolve Plan Data
+    // --- STATE ---
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [subDetails, setSubDetails] = useState<any>(null);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [showTopUpModal, setShowTopUpModal] = useState(false); // <--- 2. TOP UP MODAL STATE
+
+    // 1. Fetch Subscription Details on Mount
+    useEffect(() => {
+        const fetchSubDetails = async () => {
+            if (!auth.currentUser) return;
+            try {
+                const subRef = doc(db, "users", auth.currentUser.uid, "subscription", "current");
+                const snap = await getDoc(subRef);
+                if (snap.exists()) {
+                    setSubDetails(snap.data());
+                }
+            } catch (e) {
+                console.error("Failed to fetch sub details", e);
+            }
+        };
+        fetchSubDetails();
+    }, []);
+
+    // 2. Resolve Plan Data
     const currentPlanKey = (plan || "free").toLowerCase();
     const planData = PLAN_CONFIG[currentPlanKey] || PLAN_CONFIG.free;
     const maxCredits = planData.credits;
+    const isPaidPlan = currentPlanKey !== "free";
 
-    // 2. Token Bar Logic
+    // Check if cancellation is scheduled
+    const isScheduledForCancellation = subDetails?.cancel_at_period_end === true;
+
+    // Format Date Helper
+    const formatDate = (timestamp: any) => {
+        if (!timestamp) return "End of Cycle";
+        const date = new Date(timestamp.seconds ? timestamp.seconds * 1000 : timestamp * 1000);
+        return date.toLocaleDateString("en-US", { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+
+    // 3. Token Bar Logic
     const currentCredits = credits ?? 0;
 
-    // Calculate percentage
-    const usagePercent = maxCredits > 0 ? (currentCredits / maxCredits) * 100 : 0;
+    // Logic: Bar represents AVAILABLE balance, not used.
+    // e.g. 46/50 = 92% Available.
+    const percentageAvailable = maxCredits > 0 ? (currentCredits / maxCredits) * 100 : 0;
+    const visualPercent = Math.min(100, percentageAvailable); // Cap visual bar at 100%
 
-    // Cap visual bar at 100%
-    const visualPercent = Math.min(100, usagePercent);
-
-    // Status Logic
     const isSurplus = currentCredits > maxCredits;
     const isLowBalance = currentCredits <= 10 && !isSurplus;
 
-    // Visual State Defaults
-    let barColor = '#00FF41'; // Bright Green
+    let barColor = '#00FF41';
     let statusText = "SYSTEM OPERATIONAL";
     let statusIcon = <CheckCircle2 size={14} className="text-[#00FF41]" />;
     let statusColor = "#444";
@@ -80,6 +121,29 @@ export default function SubscriptionTab({ plan, credits }: SubscriptionTabProps)
         statusIcon = <AlertTriangle size={14} className="text-[#FF0000]" />;
         statusColor = "#FF8888";
     }
+
+    // --- HANDLERS ---
+
+    const handleCancelClick = () => {
+        setShowCancelModal(true);
+    };
+
+    const executeCancellation = () => {
+        setIsCancelling(true);
+        cancelSubscription({
+            onSuccess: () => {
+                toast.success("AUTO-RENEWAL CANCELLED");
+                setIsCancelling(false);
+                setShowCancelModal(false);
+                window.location.reload();
+            },
+            onError: (err: string) => {
+                toast.error("CANCELLATION FAILED: " + err);
+                setIsCancelling(false);
+                setShowCancelModal(false);
+            }
+        });
+    };
 
     // --- STYLES ---
     const styles = {
@@ -111,31 +175,120 @@ export default function SubscriptionTab({ plan, credits }: SubscriptionTabProps)
             backgroundColor: barColor,
             transition: 'width 1s ease, background-color 0.3s',
             boxShadow: isSurplus ? '0 0 10px rgba(0,255,65,0.3)' : 'none'
+        },
+        manageBtn: {
+            fontSize: '10px',
+            fontWeight: 'bold' as const,
+            fontFamily: 'monospace',
+            padding: '8px 16px',
+            border: '1px solid #333',
+            color: '#CCC',
+            backgroundColor: 'transparent',
+            textTransform: 'uppercase' as const,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+        },
+        cancelBtn: {
+            fontSize: '10px',
+            fontWeight: 'bold' as const,
+            fontFamily: 'monospace',
+            padding: '8px 16px',
+            border: '1px solid #330000',
+            color: '#FF4444',
+            backgroundColor: 'rgba(255,0,0,0.05)',
+            textTransform: 'uppercase' as const,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
         }
     };
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <style jsx>{`
+                .manage-btn:hover { border-color: #666 !important; color: white !important; }
+                .cancel-btn:hover { background-color: rgba(255,0,0,0.15) !important; border-color: #FF0000 !important; }
+            `}</style>
+
+            {/* --- MODALS --- */}
+            <CancelConfirmModal
+                isOpen={showCancelModal}
+                onClose={() => setShowCancelModal(false)}
+                onConfirm={executeCancellation}
+                isProcessing={isCancelling}
+                expiryDate={subDetails?.next_billing_at ? formatDate(subDetails.next_billing_at) : undefined}
+            />
+
+            <CreditModal
+                isOpen={showTopUpModal}
+                onClose={() => setShowTopUpModal(false)}
+            />
 
             {/* --- PLAN STATUS CARD --- */}
             <div style={styles.card}>
-                {/* Compact Header */}
+                {/* ... (Header with Manage Actions - No changes here) ... */}
                 <div className="flex justify-between items-start mb-6">
                     <div>
                         <div className="flex items-center gap-3 mb-1">
-                            {/* Uses specific Name from Config (e.g. "Pro Tier") */}
                             <h2 style={styles.sectionTitle}>{planData.name}</h2>
-                            <span className="bg-[#111] border border-[#333] px-2 py-0.5 text-[9px] text-[#00FF41] font-mono flex items-center gap-1.5 rounded-sm">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#00FF41] animate-pulse" /> ACTIVE
-                            </span>
+                            {isPaidPlan && isScheduledForCancellation ? (
+                                <span className="bg-[#1a1500] border border-[#664d03] px-2 py-0.5 text-[9px] text-[#FFC107] font-mono flex items-center gap-1.5 rounded-sm">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#FFC107]" /> EXPIRING
+                                </span>
+                            ) : (
+                                <span className="bg-[#111] border border-[#333] px-2 py-0.5 text-[9px] text-[#00FF41] font-mono flex items-center gap-1.5 rounded-sm">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#00FF41] animate-pulse" /> ACTIVE
+                                </span>
+                            )}
                         </div>
-                        <p className="text-[10px] text-gray-500 font-mono">
-                            {currentPlanKey === 'free' ? "UPGRADE TO UNLOCK FULL POWER" : "RENEWS AUTOMATICALLY"}
-                        </p>
+                        {isPaidPlan && isScheduledForCancellation ? (
+                            <p className="text-[10px] text-[#FFC107] font-mono flex items-center gap-2">
+                                <CalendarClock size={12} /> Access valid until {formatDate(subDetails?.next_billing_at)}
+                            </p>
+                        ) : (
+                            <p className="text-[10px] text-gray-500 font-mono">
+                                {isPaidPlan ? "RENEWS AUTOMATICALLY • SECURE BILLING" : "UPGRADE TO UNLOCK FULL POWER"}
+                            </p>
+                        )}
+                    </div>
+                    <div className="flex gap-3">
+                        {isPaidPlan ? (
+                            <>
+                                {isScheduledForCancellation ? (
+                                    <Link href="/pricing">
+                                        <button style={styles.manageBtn} className="manage-btn">
+                                            <Settings size={12} /> REACTIVATE / CHANGE
+                                        </button>
+                                    </Link>
+                                ) : (
+                                    <>
+                                        <Link href="/pricing">
+                                            <button style={styles.manageBtn} className="manage-btn">
+                                                <Settings size={12} /> CHANGE PLAN
+                                            </button>
+                                        </Link>
+                                        <button onClick={handleCancelClick} disabled={isCancelling || loading} style={styles.cancelBtn} className="cancel-btn">
+                                            {isCancelling ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />} CANCEL RENEWAL
+                                        </button>
+                                    </>
+                                )}
+                            </>
+                        ) : (
+                            <Link href="/pricing">
+                                <button style={{ ...styles.manageBtn, borderColor: '#00FF41', color: '#00FF41' }} className="manage-btn">
+                                    <Zap size={12} fill="currentColor" /> UPGRADE NOW
+                                </button>
+                            </Link>
+                        )}
                     </div>
                 </div>
 
-                {/* Compact Limits Grid */}
+                {/* Limits Grid (Same as before) */}
                 <div className="grid grid-cols-3 gap-px bg-[#222] border border-[#222] mb-6 rounded-sm overflow-hidden">
                     <div className="bg-[#080808] p-3 text-center">
                         <div className="flex items-center justify-center gap-2 text-[#666] mb-1">
@@ -157,7 +310,6 @@ export default function SubscriptionTab({ plan, credits }: SubscriptionTabProps)
                     </div>
                 </div>
 
-                {/* Compact Features List */}
                 <div className="grid grid-cols-2 gap-y-2 gap-x-4">
                     {planData.features.map((feat, i) => (
                         <div key={i} className="flex items-center gap-2 text-[11px] text-gray-400 font-mono">
@@ -189,7 +341,6 @@ export default function SubscriptionTab({ plan, credits }: SubscriptionTabProps)
                     <div style={styles.progressBarFill} />
                 </div>
 
-                {/* Compact Status Footer */}
                 <div className="mt-3 flex items-center justify-between">
                     <div className="flex items-center gap-2" style={{ color: statusColor }}>
                         {statusIcon}
@@ -197,12 +348,18 @@ export default function SubscriptionTab({ plan, credits }: SubscriptionTabProps)
                     </div>
 
                     <div className="flex items-center gap-4">
+                        {/* 3. CHANGED LABEL: 'USED' -> 'AVAILABLE' */}
                         <span className="text-[10px] font-mono text-[#666]">
-                            {Math.round(usagePercent)}% USED
+                            {Math.round(percentageAvailable)}% AVAILABLE
                         </span>
-                        <Link href="/pricing" className="text-[10px] text-[#FF0000] underline hover:text-white transition-colors font-mono">
+
+                        {/* 4. BUTTON TO OPEN MODAL */}
+                        <button
+                            onClick={() => setShowTopUpModal(true)}
+                            className="text-[10px] text-[#FF0000] underline hover:text-white transition-colors font-mono uppercase bg-transparent border-none cursor-pointer"
+                        >
                             + TOP UP
-                        </Link>
+                        </button>
                     </div>
                 </div>
             </div>

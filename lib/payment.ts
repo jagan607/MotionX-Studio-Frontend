@@ -1,256 +1,209 @@
-import { useState } from "react";
-import { useRazorpay } from "react-razorpay";
-import { API_BASE_URL } from "./config";
-import { auth } from "./firebase";
+import { useState, useCallback } from "react";
+import { auth } from "@/lib/firebase";
+import { API_BASE_URL } from "@/lib/config";
 
-// --- TYPES ---
-interface SubscriptionOptions {
-    planType: "starter" | "pro" | "agency";
-    onSuccess?: () => void;
-    onError?: (error: any) => void;
+// Ensure Razorpay type exists on window
+declare global {
+    interface Window {
+        Razorpay: any;
+    }
 }
 
-interface TopUpOptions {
-    packageId: "pack_50" | "pack_100" | "pack_200";
-    onSuccess?: () => void;
-    onError?: (error: any) => void;
-}
+// --- HELPER: DETECT CURRENCY (EXPORTED) ---
+export const getUserCurrency = (): "USD" | "INR" => {
+    try {
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        // Check for Indian Standard Time zones
+        if (timeZone === "Asia/Calcutta" || timeZone === "Asia/Kolkata" || timeZone === "IST") {
+            return "INR";
+        }
+    } catch (e) {
+        console.warn("Timezone detection failed, defaulting to USD");
+    }
+    return "USD"; // Default for everyone else
+};
 
 export const usePayment = () => {
-    const { Razorpay } = useRazorpay();
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [loading, setLoading] = useState(false);
 
-    // --- HELPER: GET AUTH HEADERS ---
-    const getAuthHeaders = async () => {
-        const user = auth.currentUser;
-        if (!user) throw new Error("User not authenticated");
-        const token = await user.getIdToken();
-        return { Authorization: `Bearer ${token}` };
-    };
-
-    const getUserCurrency = () => {
-        try {
-            const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            if (timeZone === "Asia/Calcutta" || timeZone === "IST") {
-                return "INR";
-            }
-        } catch (e) {
-            console.warn("Timezone detection failed");
+    // --- SUBSCRIPTION LOGIC ---
+    const subscribe = useCallback(async ({ planType, currency, onSuccess, onError }: any) => {
+        setLoading(true);
+        // Safety check for Razorpay script
+        if (typeof window === "undefined" || !window.Razorpay) {
+            setLoading(false);
+            if (onError) onError("Payment Gateway failed to load. Please refresh.");
+            return;
         }
-        return "USD"; // Default fallback
-    };
 
-    // --- HELPER: VERIFY PAYMENT ON SERVER ---
-    const verifyPayment = async (payload: any, endpoint: string) => {
-        try {
-            const headers = await getAuthHeaders();
-            const res = await fetch(`${API_BASE_URL}/api/v1/payment/${endpoint}`, {
-                method: "POST",
-                headers: { ...headers, "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            if (!res.ok) throw new Error("Payment verification failed on server");
-            return true;
-        } catch (error) {
-            console.error("Verification Error:", error);
-            return false;
-        }
-    };
-
-    // --- 1. HANDLE SUBSCRIPTION (Monthly) ---
-    const subscribe = async ({ planType, onSuccess, onError }: SubscriptionOptions) => {
-        if (isProcessing) return;
-        setIsProcessing(true);
-
-        // 1. Detect Currency
-        const detectedCurrency = getUserCurrency();
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const activeCurrency = currency || getUserCurrency();
 
         try {
-            const headers = await getAuthHeaders();
-            const user = auth.currentUser;
+            const token = await auth.currentUser?.getIdToken();
+
             const formData = new FormData();
             formData.append("plan_type", planType);
-            formData.append("currency", detectedCurrency); // <--- Send to Backend
+            formData.append("currency", activeCurrency);
 
-            // A. Create Subscription
-            const response = await fetch(`${API_BASE_URL}/api/v1/payment/create-subscription`, {
+            const res = await fetch(`${API_BASE_URL}/api/v1/payment/create-subscription`, {
                 method: "POST",
-                headers: headers,
+                headers: { Authorization: `Bearer ${token}` },
                 body: formData,
-                signal: controller.signal,
             });
 
-            clearTimeout(timeoutId);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Subscription Init Failed");
 
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || "Failed to create subscription");
-            }
-
-            const { subscription_id, key_id } = await response.json();
-
-            // B. Open Razorpay Modal
-            const options: any = {
-                key: key_id,
-                subscription_id: subscription_id,
-                name: "MotionX Studio",
-                description: `${planType.toUpperCase()} Tier Subscription`,
-
-                // 1. ROBUST PREFILL (Required for Sandbox Stability)
-                prefill: {
-                    name: user?.displayName || "MotionX Operator",
-                    email: user?.email || "operator@motionx.in",
-                    contact: "9999999999" // Fallback number for sandbox
-                },
-
-                // 2. CRITICAL FIX: MAGIC ADDRESS FOR AVS CHECK
-                // This satisfies the "Temporary Bank Issue" error in Sandbox
-                notes: {
-                    address: "21 Applegate Apartment",
-                    city: "New York",
-                    state: "NY",
-                    zipcode: "11561",
-                    country: "US"
-                },
-
-                // C. Handle Success with Verification
+            const options = {
+                key: data.key_id,
+                subscription_id: data.subscription_id,
+                name: "Motion X Studio",
+                description: `${planType.toUpperCase()} Subscription`,
                 handler: async (response: any) => {
-                    const isValid = await verifyPayment({
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_subscription_id: response.razorpay_subscription_id,
-                        razorpay_signature: response.razorpay_signature,
-                        plan_type: planType
-                    }, "verify-subscription");
+                    const verifyRes = await fetch(`${API_BASE_URL}/api/v1/payment/verify-subscription`, {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_subscription_id: response.razorpay_subscription_id,
+                            razorpay_signature: response.razorpay_signature,
+                            plan_type: planType
+                        }),
+                    });
 
-                    setIsProcessing(false); // Reset UI state
-                    if (isValid) onSuccess?.();
-                    else onError?.(new Error("Payment verification failed. If you were charged, please contact support."));
-                },
-                // --- FIX: Handle User Cancellation ---
-                modal: {
-                    ondismiss: () => {
-                        setIsProcessing(false);
-                        if (onError) onError("Payment Cancelled");
+                    if (verifyRes.ok) {
+                        if (onSuccess) onSuccess();
+                    } else {
+                        if (onError) onError("Verification Failed");
                     }
                 },
-                theme: { color: "#FF0000" } // Red to match Brand
+                theme: { color: "#FF0000" },
+                modal: {
+                    ondismiss: () => {
+                        setLoading(false);
+                        if (onError) onError("Cancelled");
+                    }
+                }
             };
 
-            const rzp = new Razorpay(options);
-
+            const rzp = new window.Razorpay(options);
             rzp.on("payment.failed", (resp: any) => {
-                setIsProcessing(false);
-                onError?.(resp.error);
+                setLoading(false);
+                if (onError) onError(resp.error.description || "Payment Failed");
             });
-
             rzp.open();
 
         } catch (error: any) {
-            clearTimeout(timeoutId);
-            setIsProcessing(false);
-            console.error("❌ Subscription Flow Error:", error);
-            if (onError) onError(error);
+            setLoading(false);
+            if (onError) onError(error.message);
         }
-    };
+    }, []);
 
-    // --- 2. HANDLE ONE-TIME CREDITS (Top-up) ---
-    const buyCredits = async ({ packageId, onSuccess, onError }: TopUpOptions) => {
-        if (isProcessing) return;
-        setIsProcessing(true);
+    // --- ONE-TIME TOP UP LOGIC ---
+    const buyCredits = useCallback(async ({ packageId, currency, onSuccess, onError }: any) => {
+        setLoading(true);
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        // Safety Check
+        if (typeof window === "undefined" || !window.Razorpay) {
+            setLoading(false);
+            if (onError) onError("Payment Gateway failed to load. Please refresh.");
+            return;
+        }
+
+        const activeCurrency = currency || getUserCurrency();
 
         try {
-            const headers = await getAuthHeaders();
-            const user = auth.currentUser;
+            const token = await auth.currentUser?.getIdToken();
+
             const formData = new FormData();
             formData.append("package_id", packageId);
+            formData.append("currency", activeCurrency);
 
-            // A. Create Order
-            const response = await fetch(`${API_BASE_URL}/api/v1/payment/buy-credits`, {
+            const res = await fetch(`${API_BASE_URL}/api/v1/payment/buy-credits`, {
                 method: "POST",
-                headers: headers,
+                headers: { Authorization: `Bearer ${token}` },
                 body: formData,
-                signal: controller.signal,
             });
 
-            clearTimeout(timeoutId);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Order Creation Failed");
 
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || "Failed to create order");
-            }
-
-            const { order_id, amount, currency, key_id } = await response.json();
-
-            // B. Open Razorpay Modal
-            const options: any = {
-                key: key_id,
-                amount: amount,
-                currency: currency,
-                name: "MotionX Studio",
-                description: "Credit Top-up",
-                order_id: order_id,
-
-                // 1. ROBUST PREFILL
-                prefill: {
-                    name: user?.displayName || "MotionX Operator",
-                    email: user?.email || "operator@motionx.in",
-                    contact: "9999999999"
-                },
-
-                // 2. CRITICAL FIX: MAGIC ADDRESS FOR AVS CHECK
-                notes: {
-                    address: "21 Applegate Apartment",
-                    city: "New York",
-                    state: "NY",
-                    zipcode: "11561",
-                    country: "US"
-                },
-
-                // C. Handle Success with Verification
+            const options = {
+                key: data.key_id,
+                amount: data.amount,
+                currency: data.currency,
+                name: "Motion X Studio",
+                description: data.description,
+                order_id: data.order_id,
                 handler: async (response: any) => {
-                    const isValid = await verifyPayment({
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_order_id: response.razorpay_order_id,
-                        razorpay_signature: response.razorpay_signature,
-                    }, "verify-payment");
+                    const verifyRes = await fetch(`${API_BASE_URL}/api/v1/payment/verify-payment`, {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature
+                        }),
+                    });
 
-                    setIsProcessing(false);
-                    if (isValid) onSuccess?.();
-                    else onError?.(new Error("Payment verification failed. If you were charged, please contact support."));
-                },
-                // --- FIX: Handle User Cancellation ---
-                modal: {
-                    ondismiss: () => {
-                        setIsProcessing(false);
-                        if (onError) onError("Payment Cancelled");
+                    if (verifyRes.ok) {
+                        setLoading(false);
+                        if (onSuccess) onSuccess();
+                    } else {
+                        setLoading(false);
+                        if (onError) onError("Verification Failed");
                     }
                 },
-                theme: { color: "#FF0000" } // Red to match Brand
+                theme: { color: "#FF0000" },
+                modal: {
+                    ondismiss: () => {
+                        setLoading(false);
+                        if (onError) onError("Cancelled");
+                    }
+                }
             };
 
-            const rzp = new Razorpay(options);
-
+            const rzp = new window.Razorpay(options);
             rzp.on("payment.failed", (resp: any) => {
-                setIsProcessing(false);
-                onError?.(resp.error);
+                setLoading(false);
+                if (onError) onError(resp.error.description || "Payment Failed");
             });
-
             rzp.open();
 
         } catch (error: any) {
-            clearTimeout(timeoutId);
-            setIsProcessing(false);
-            console.error("❌ Top-up Flow Error:", error);
-            if (onError) onError(error);
+            setLoading(false);
+            if (onError) onError(error.message);
         }
-    };
+    }, []);
 
-    return { subscribe, buyCredits, isProcessing };
+    // --- 3. CANCEL SUBSCRIPTION (NEW) ---
+    const cancelSubscription = useCallback(async ({ onSuccess, onError }: any) => {
+        setLoading(true);
+        try {
+            const token = await auth.currentUser?.getIdToken();
+            const res = await fetch(`${API_BASE_URL}/api/v1/payment/cancel-subscription`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Cancellation Failed");
+
+            if (onSuccess) onSuccess();
+
+        } catch (error: any) {
+            if (onError) onError(error.message);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    return { subscribe, buyCredits, cancelSubscription, loading };
+
 };

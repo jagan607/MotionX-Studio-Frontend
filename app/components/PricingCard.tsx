@@ -1,3 +1,5 @@
+"use client";
+
 import { Check, X, Loader2 } from "lucide-react";
 
 interface PricingCardProps {
@@ -11,94 +13,100 @@ interface PricingCardProps {
     isLoading?: boolean;
     onClick: () => void;
     buttonText?: string;
+    isActive?: boolean; // <--- NEW PROP
 }
 
 export default function PricingCard({
-    title, price, description, credits, features, notIncluded = [], isPopular, isLoading, onClick, buttonText
+    title,
+    price,
+    description,
+    credits,
+    features,
+    notIncluded = [],
+    isPopular = false,
+    isLoading = false,
+    onClick,
+    buttonText = "SUBSCRIBE",
+    isActive = false // <--- NEW DEFAULT
 }: PricingCardProps) {
-
     return (
-        <div className={`
-      relative flex flex-col p-6 md:p-8
-      bg-[#0A0A0A] border transition-all duration-300 group
-      ${isPopular
-                ? "border-[#FF0000] shadow-[0_0_20px_rgba(255,0,0,0.15)] z-10 md:scale-[1.05] transform-gpu"
-                : "border-[#1F1F1F] hover:border-[#333] hover:bg-[#0F0F0F]"
-            }
-    `}>
-
-            {/* POPULAR BADGE */}
-            {isPopular && (
-                <div className="absolute -top-3 left-0 w-full flex justify-center z-20">
-                    <span className="bg-[#FF0000] text-black text-[10px] font-bold px-4 py-1 uppercase tracking-widest shadow-md">
-                        Recommended
-                    </span>
+        <div
+            className={`
+                relative flex flex-col p-6 h-full transition-all duration-300
+                border bg-[#0A0A0A] group
+                ${isActive
+                    ? 'border-[#00FF41] shadow-[0_0_20px_rgba(0,255,65,0.1)]' // Active Style (Green)
+                    : isPopular
+                        ? 'border-[#FF0000] shadow-[0_0_30px_rgba(255,0,0,0.15)] hover:scale-105'
+                        : 'border-[#222] hover:border-[#444] hover:bg-[#0F0F0F]'
+                }
+            `}
+        >
+            {/* ACTIVE BADGE */}
+            {isActive && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#00FF41] text-black px-4 py-1 text-[10px] font-bold tracking-[2px] uppercase">
+                    SYSTEM ACTIVE
                 </div>
             )}
 
-            {/* HEADER */}
-            <div className="mb-8 text-center border-b border-[#1F1F1F] pb-8 pt-2">
-                {/* Title uses h3 to inherit global Anton font */}
-                <h3 className="text-3xl text-white uppercase tracking-wide mb-2">
-                    {title}
-                </h3>
-                <p className="text-[#666] text-[10px] uppercase tracking-[2px] mb-5 font-sans">
-                    {description}
-                </p>
-
-                <div className="flex items-baseline justify-center gap-1 font-sans">
-                    <span className="text-5xl font-bold text-white tracking-tighter">{price}</span>
-                    <span className="text-[#444] text-[10px] font-bold uppercase tracking-wider">/ MO</span>
+            {/* POPULAR BADGE (Only show if not active) */}
+            {isPopular && !isActive && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FF0000] text-white px-3 py-1 text-[9px] font-bold tracking-[2px] uppercase">
+                    RECOMMENDED
                 </div>
+            )}
 
-                {/* Credits Pill */}
-                <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 bg-[#111] border border-[#222] rounded-sm">
-                    <div className={`w-1.5 h-1.5 rounded-full ${isPopular ? "bg-[#FF0000] animate-pulse" : "bg-[#666]"}`} />
-                    <span className="text-[#CCC] text-[10px] font-bold uppercase tracking-widest font-sans">
-                        {credits}
-                    </span>
+            <div className="mb-6">
+                <h3 className="font-anton text-2xl uppercase tracking-wide text-white mb-1">{title}</h3>
+                <p className="text-[#666] text-xs font-mono uppercase tracking-wider mb-4">{description}</p>
+                <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-white tracking-tight">{price}</span>
+                    <span className="text-[#444] text-[10px] font-bold uppercase">/ month</span>
                 </div>
             </div>
 
-            {/* FEATURES LIST */}
-            <div className="flex-1 space-y-4 mb-8 font-sans">
-                {features.map((feat, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                        <Check className="w-4 h-4 text-[#FF0000] mt-0.5 shrink-0" />
-                        <span className="text-[#DDD] text-xs font-medium uppercase tracking-wide leading-relaxed">{feat}</span>
+            <div className="mb-6 p-3 bg-[#111] border border-[#222] text-center">
+                <span className="text-[#EDEDED] text-xs font-bold tracking-[1px] uppercase">{credits}</span>
+            </div>
+
+            <div className="flex-1 space-y-3 mb-8">
+                {features.map((feature, i) => (
+                    <div key={i} className="flex items-start gap-3 text-xs text-[#CCC] font-medium leading-relaxed">
+                        <Check size={14} className={`mt-0.5 shrink-0 ${isActive ? 'text-[#00FF41]' : 'text-[#FF0000]'}`} />
+                        <span>{feature}</span>
                     </div>
                 ))}
-                {notIncluded.map((feat, i) => (
-                    <div key={i} className="flex items-start gap-3 opacity-30">
-                        <X className="w-4 h-4 text-[#666] mt-0.5 shrink-0" />
-                        <span className="text-[#666] text-xs font-medium uppercase tracking-wide leading-relaxed decoration-slice line-through decoration-[#444]">{feat}</span>
+                {notIncluded.map((feature, i) => (
+                    <div key={i} className="flex items-start gap-3 text-xs text-[#444] font-medium leading-relaxed line-through decoration-[#333]">
+                        <X size={14} className="mt-0.5 shrink-0 text-[#333]" />
+                        <span>{feature}</span>
                     </div>
                 ))}
             </div>
 
-            {/* ACTION BUTTON */}
             <button
                 onClick={onClick}
-                disabled={isLoading}
+                disabled={isLoading || isActive} // Disable if loading OR active
                 className={`
-          w-full py-4 text-[11px] font-bold uppercase tracking-[2px] transition-all flex justify-center items-center gap-2 font-sans
-          border
-          ${isPopular
-                        ? "bg-[#FF0000] text-black border-[#FF0000] hover:bg-white hover:border-white"
-                        : "bg-transparent text-white border-[#333] hover:border-white hover:bg-[#111]"}
-          ${isLoading ? "opacity-70 cursor-not-allowed" : ""}
-        `}
+                    w-full py-3 text-[10px] font-bold tracking-[3px] uppercase transition-all
+                    flex items-center justify-center gap-2
+                    ${isActive
+                        ? 'bg-[#111] text-[#00FF41] border border-[#00FF41] cursor-default opacity-100' // Active Button Style
+                        : isPopular
+                            ? 'bg-[#FF0000] text-white border border-[#FF0000] hover:bg-[#CC0000]'
+                            : 'bg-transparent text-[#EDEDED] border border-[#333] hover:border-[#EDEDED] hover:bg-[#EDEDED] hover:text-black'
+                    }
+                    ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
             >
                 {isLoading ? (
-                    <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        PROCESSING...
-                    </>
+                    <Loader2 size={14} className="animate-spin" />
+                ) : isActive ? (
+                    "CURRENT PLAN"
                 ) : (
-                    "INITIALIZE PLAN"
+                    buttonText
                 )}
             </button>
-
         </div>
     );
 }
