@@ -78,10 +78,17 @@ export const deleteAsset = async (projectId: string, type: string, assetId: stri
     return await api.delete(`/api/v1/assets/${projectId}/${type}/${assetId}`);
 };
 
-// Trigger AI Image Generation (Background Job)
-export const triggerAssetGeneration = async (projectId: string, assetId: string, type: string) => {
-    return await api.post(`/api/v1/assets/${projectId}/generate`, {
+// Trigger AI Image Generation  
+export const triggerAssetGeneration = async (
+    projectId: string,
+    assetId: string,
+    type: string,
+    prompt?: string
+) => {
+    const res = await api.post(`/api/v1/assets/${projectId}/generate`, {
         asset_id: assetId,
-        type: type
+        type,
+        prompt
     });
+    return res.data;
 };
