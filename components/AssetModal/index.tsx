@@ -1,26 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, User, MapPin, Upload, Sparkles, Play, Pause, RefreshCw, ArrowLeft, Loader2, Terminal } from 'lucide-react';
-import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs'; // Ensure this path exists
-import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils'; // Ensure this path exists
-import { toast } from 'react-hot-toast'; // Use standard toast
-import { Asset, CharacterProfile, LocationProfile } from '@/lib/types'; // IMPORT YOUR NEW TYPES
+import { X, User, MapPin, ArrowLeft } from 'lucide-react';
+import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
+import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils';
+import { toast } from 'react-hot-toast';
+import { Asset, CharacterProfile, LocationProfile } from '@/lib/types';
 
-// Sub-Components (Assume these exist in the same folder)
+// --- SUB-COMPONENTS ---
 import { TraitsTab } from './TraitsTab';
 import { VoiceTab } from './VoiceTab';
+import { VisualsSection } from './VisualsSection';     // <--- NEW
+import { VoicePreviewBar } from './VoicePreviewBar';   // <--- NEW
 
 interface AssetModalProps {
     isOpen: boolean;
     onClose: () => void;
-
-    // Identity
-    projectId: string; // <-- ADDED THIS
+    projectId: string;
     assetId: string;
     assetName: string;
     assetType: 'character' | 'location';
-    currentData: Asset; // <-- STRICT TYPE
+    currentData: Asset;
 
-    // State & Generation
+    // Generation Props
     mode: 'upload' | 'generate';
     setMode: (m: 'upload' | 'generate') => void;
     genPrompt: string;
@@ -31,33 +31,23 @@ interface AssetModalProps {
     genre: string;
     style: string;
 
-    // Actions
+    // Handlers
     onUpload: (f: File) => void;
     onGenerate: () => void;
     onUpdateTraits: (t: any) => Promise<void>;
     onLinkVoice: (v: { voice_id: string; voice_name: string }) => Promise<void>;
 
-    styles: any;
+    styles?: any;
 }
 
 export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const {
-        isOpen,
-        assetType,
-        currentData,
-        assetName,
-        onUpdateTraits,
-        setGenPrompt,
-        genPrompt,
-        onClose,
-        isProcessing,
-        onGenerate,
-        onUpload,
-        genre,
-        style
+        isOpen, assetType, currentData, assetName, onUpdateTraits,
+        setGenPrompt, genPrompt, onClose, isProcessing, onGenerate,
+        onUpload, genre, style
     } = props;
 
-    // --- LOCAL UI STATE ---
+    // --- STATE ---
     const [editableTraits, setEditableTraits] = useState<any>({});
     const [isSavingTraits, setIsSavingTraits] = useState(false);
 
@@ -73,65 +63,59 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    // --- EFFECTS ---
+    // --- INITIALIZATION ---
     useEffect(() => {
         if (isOpen && currentData) {
-            setIsVoiceMode(false); // Reset view on open
-
-            // 1. Unified Traits Initialization
-            let initialTraits: any = {};
-            const vt = currentData.visual_traits || {};
-
-            if (assetType === 'location') {
-                // Cast to Location Visual Traits safely
-                const locTraits = vt as any;
-                initialTraits = {
-                    visual_traits: locTraits.keywords ? locTraits.keywords.split(', ') : [], // Handle string -> array if needed
-                    atmosphere: locTraits.atmosphere || "",
-                    lighting: locTraits.lighting || "",
-                    terrain: locTraits.terrain || "",
-                };
-            } else {
-                // Cast to Character Visual Traits safely
-                const charTraits = vt as any;
-                initialTraits = {
-                    age: charTraits.age || "",
-                    ethnicity: charTraits.ethnicity || "",
-                    hair: charTraits.hair || "",
-                    clothing: charTraits.clothing || "",
-                    vibe: charTraits.vibe || "",
-                    // Keep original object for prompt helper compatibility
-                    visual_traits: charTraits
-                };
-            }
-
-            setEditableTraits(initialTraits);
-
-            // Safe Access for Voice Config
-            if (currentData.type === 'character') {
-                setSelectedVoiceId(currentData.voice_config?.voice_id || null);
-            }
-
-            // 2. Initial Prompt Construction
-            // Note: You might need to update your promptUtils to handle the new object structure if you haven't yet.
-            const constructedPrompt = assetType === 'location'
-                ? constructLocationPrompt(assetName || "Location", initialTraits.visual_traits, initialTraits, genre, style)
-                : constructCharacterPrompt(assetName || "Character", initialTraits, initialTraits, genre, style);
-
-            setGenPrompt(constructedPrompt || currentData.prompt || "");
+            setIsVoiceMode(false);
+            initializeTraits();
         }
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
-    // Lazy load voices
     useEffect(() => {
         if (isVoiceMode && allVoices.length === 0) loadVoices();
     }, [isVoiceMode, allVoices.length]);
 
-    // Filter voices
     useEffect(() => {
-        const query = voiceSearch.toLowerCase();
-        setFilteredVoices(allVoices.filter(v => v.name.toLowerCase().includes(query)));
+        setFilteredVoices(allVoices.filter(v => v.name.toLowerCase().includes(voiceSearch.toLowerCase())));
     }, [voiceSearch, allVoices]);
+
+    const initializeTraits = () => {
+        let initialTraits: any = {};
+        const vt = currentData.visual_traits || {};
+
+        if (assetType === 'location') {
+            const locTraits = vt as LocationProfile['visual_traits'];
+            initialTraits = {
+                visual_traits: locTraits.keywords ? (Array.isArray(locTraits.keywords) ? locTraits.keywords : locTraits.keywords.split(', ')) : [],
+                atmosphere: locTraits.atmosphere || "",
+                lighting: locTraits.lighting || "",
+                terrain: locTraits.terrain || "",
+            };
+        } else {
+            const charTraits = vt as CharacterProfile['visual_traits'];
+            initialTraits = {
+                age: charTraits.age || "",
+                ethnicity: charTraits.ethnicity || "",
+                hair: charTraits.hair || "",
+                clothing: charTraits.clothing || "",
+                vibe: charTraits.vibe || "",
+                visual_traits: charTraits
+            };
+            if (currentData.type === 'character') {
+                setSelectedVoiceId(currentData.voice_config?.voice_id || null);
+            }
+        }
+        setEditableTraits(initialTraits);
+
+        if (!currentData.prompt) {
+            const constructed = assetType === 'location'
+                ? constructLocationPrompt(assetName || "Location", initialTraits.visual_traits, initialTraits, genre, style)
+                : constructCharacterPrompt(assetName || "Character", initialTraits, initialTraits, genre, style);
+            setGenPrompt(constructed);
+        } else {
+            setGenPrompt(currentData.prompt);
+        }
+    };
 
     // --- HANDLERS ---
     const loadVoices = async () => {
@@ -139,7 +123,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         const voices = await fetchElevenLabsVoices();
         setAllVoices(voices); setFilteredVoices(voices);
         setIsLoadingVoices(false);
-        return voices;
     };
 
     const handlePlayPreview = (url: string, id: string) => {
@@ -150,9 +133,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     };
 
     const handleMainViewPlay = async () => {
-        // Safe access check
         if (currentData.type !== 'character') return;
-
         const vid = currentData.voice_config?.voice_id;
         if (!vid) return;
 
@@ -163,25 +144,20 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
 
         let voice = allVoices.find(v => v.voice_id === vid);
-
         if (!voice) {
             setIsLoadingVoices(true);
-            const fetched = await loadVoices();
-            setIsLoadingVoices(false);
+            const fetched = await fetchElevenLabsVoices(); // Direct fetch to ensure freshness
+            setAllVoices(fetched); setFilteredVoices(fetched);
             voice = fetched.find(v => v.voice_id === vid);
+            setIsLoadingVoices(false);
         }
 
-        if (voice?.preview_url) {
-            handlePlayPreview(voice.preview_url, vid);
-        } else {
-            toast.error("Voice preview not found.");
-        }
+        if (voice?.preview_url) handlePlayPreview(voice.preview_url, vid);
+        else toast.error("Voice preview not found.");
     };
 
     const handleTraitChange = (key: string, value: string) => {
         let finalValue: any = value;
-
-        // Handle comma-separated keywords for locations if needed by your UI
         if (assetType === 'location' && key === 'visual_traits' && typeof value === 'string') {
             finalValue = value.split(',').map(t => t.trim()).filter(t => t !== "");
         }
@@ -189,15 +165,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         const updatedTraits = { ...editableTraits, [key]: finalValue };
         setEditableTraits(updatedTraits);
 
-        // LIVE UPDATE
         const constructedPrompt = assetType === 'location'
             ? constructLocationPrompt(assetName || "Location", updatedTraits.visual_traits, updatedTraits, genre, style)
             : constructCharacterPrompt(assetName || "Character", updatedTraits, updatedTraits, genre, style);
-
         setGenPrompt(constructedPrompt);
     };
 
-    const handleSaveTraits = async () => {
+    const handleSave = async () => {
         setIsSavingTraits(true);
         await onUpdateTraits(editableTraits);
         setIsSavingTraits(false);
@@ -214,65 +188,34 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            onUpload(e.target.files[0]);
-        }
-    };
-
     if (!isOpen) return null;
 
-    // Helper variables for clean rendering
-    const displayImage = currentData?.image_url;
-    // Safe access for voice data
+    // --- RENDER HELPERS ---
     const voiceConfig = currentData.type === 'character' ? currentData.voice_config : null;
-    const currentVoiceId = voiceConfig?.voice_id;
-    const isPlayingCurrent = playingVoiceId === currentVoiceId;
 
     return (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center backdrop-blur-sm">
+            <style>{`.modal-scroll::-webkit-scrollbar { width: 6px; } .modal-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }`}</style>
 
-            {/* INJECT CUSTOM SCROLLBAR STYLES */}
-            <style>{`
-                .modal-scroll::-webkit-scrollbar { width: 6px; }
-                .modal-scroll::-webkit-scrollbar-track { background: #0a0a0a; }
-                .modal-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-                .modal-scroll::-webkit-scrollbar-thumb:hover { background: #555; }
-            `}</style>
+            <div className="bg-[#090909] border border-[#222] rounded-xl w-[600px] max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
 
-            <div style={{ ...props.styles.modal, width: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-                {/* 1. HEADER */}
-                <div style={{ padding: '20px', borderBottom: '1px solid #222', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0a0a0a', flexShrink: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {isVoiceMode && (
-                            <ArrowLeft size={20} style={{ cursor: 'pointer', color: '#FFF', marginRight: '5px' }} onClick={() => setIsVoiceMode(false)} />
-                        )}
-                        {assetType === 'location' ? <MapPin size={20} color="#FF4444" /> : <User size={20} color="#FF4444" />}
+                {/* HEADER */}
+                <div className="p-5 border-b border-[#222] flex justify-between items-center bg-[#0a0a0a] shrink-0">
+                    <div className="flex items-center gap-3">
+                        {isVoiceMode && <ArrowLeft size={20} className="cursor-pointer hover:text-motion-red" onClick={() => setIsVoiceMode(false)} />}
+                        {assetType === 'location' ? <MapPin size={20} className="text-motion-red" /> : <User size={20} className="text-motion-red" />}
                         <div>
-                            <h2 style={{ ...props.styles.modalTitle, fontSize: '18px', marginBottom: '2px' }}>{assetName}</h2>
-                            <div style={{ fontSize: '10px', color: '#666', letterSpacing: '1px' }}>
+                            <h2 className="text-lg font-display uppercase text-white leading-none">{assetName}</h2>
+                            <div className="text-[10px] text-neutral-500 tracking-widest mt-1">
                                 {isVoiceMode ? "VOICE LIBRARY" : "CONFIGURATION STUDIO"}
                             </div>
                         </div>
                     </div>
-                    <X size={20} style={{ cursor: 'pointer', color: '#666' }} onClick={onClose} />
+                    <X size={20} className="cursor-pointer text-neutral-500 hover:text-white" onClick={onClose} />
                 </div>
 
-                {/* 2. CONTENT AREA (Scrollable) */}
-                <div
-                    className="modal-scroll"
-                    style={{
-                        flex: 1,
-                        overflowY: isVoiceMode ? 'hidden' : 'auto',
-                        padding: '20px',
-                        paddingBottom: '40px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '30px'
-                    }}
-                >
-
+                {/* CONTENT */}
+                <div className="modal-scroll flex-1 overflow-y-auto p-5 pb-10 flex flex-col gap-8">
                     {isVoiceMode ? (
                         <VoiceTab
                             voiceSuggestion={voiceConfig?.suggestion}
@@ -286,156 +229,53 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                             handlePlayPreview={handlePlayPreview}
                             handleVoiceSelection={handleVoiceLink}
                             linkBtnState={{
-                                text: selectedVoiceId === currentVoiceId ? "CURRENTLY LINKED" : "LINK SELECTED VOICE",
-                                disabled: !selectedVoiceId || selectedVoiceId === currentVoiceId || isLinkingVoice
+                                text: selectedVoiceId === (voiceConfig?.voice_id) ? "CURRENTLY LINKED" : "LINK SELECTED VOICE",
+                                disabled: !selectedVoiceId || selectedVoiceId === (voiceConfig?.voice_id) || isLinkingVoice
                             }}
                             isLinkingVoice={isLinkingVoice}
                             styles={props.styles}
                         />
                     ) : (
                         <>
-                            {/* SECTION: TRAITS */}
-                            <div style={{ animation: 'fadeIn 0.3s ease' }}>
-                                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#444', marginBottom: '10px', letterSpacing: '1px' }}>
-                                    ASSET DEFINITION
-                                </div>
+                            <div className="animate-in fade-in duration-300">
+                                <div className="text-[10px] font-bold text-neutral-500 mb-3 tracking-widest uppercase">Asset Definition</div>
                                 <TraitsTab
                                     assetType={assetType!}
                                     editableTraits={editableTraits}
                                     handleTraitChange={handleTraitChange}
-                                    handleSaveTraits={() => { }}
-                                    isSavingTraits={false}
-                                    styles={props.styles}
                                 />
                             </div>
 
-                            {/* SECTION: VISUALS */}
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                    <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#444', letterSpacing: '1px' }}>
-                                        VISUAL REPRESENTATION
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                        <label style={{
-                                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                                            fontSize: '10px', color: '#888', padding: '4px 8px',
-                                            border: '1px solid #333', borderRadius: '4px'
-                                        }}>
-                                            <Upload size={12} /> UPLOAD REF
-                                            <input type="file" hidden onChange={handleFileUpload} accept="image/*" />
-                                        </label>
-                                        <button
-                                            onClick={onGenerate}
-                                            disabled={isProcessing}
-                                            style={{
-                                                cursor: isProcessing ? 'not-allowed' : 'pointer',
-                                                display: 'flex', alignItems: 'center', gap: '6px',
-                                                fontSize: '10px', color: isProcessing ? '#555' : '#FFF',
-                                                backgroundColor: isProcessing ? '#222' : '#FF4444',
-                                                padding: '4px 12px', border: 'none', borderRadius: '4px'
-                                            }}
-                                        >
-                                            {isProcessing ? <RefreshCw className="force-spin" size={12} /> : <Sparkles size={12} />}
-                                            {isProcessing ? "GENERATING..." : "GENERATE AI"}
-                                        </button>
-                                    </div>
-                                </div>
+                            <VisualsSection
+                                displayImage={currentData?.image_url}
+                                isProcessing={isProcessing}
+                                genPrompt={genPrompt}
+                                setGenPrompt={setGenPrompt}
+                                onGenerate={onGenerate}
+                                onUpload={(e) => { if (e.target.files?.[0]) onUpload(e.target.files[0]) }}
+                            />
 
-                                {/* PROMPT TERMINAL */}
-                                <div style={props.styles.promptBox}>
-                                    <div style={props.styles.promptHeader}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <Terminal size={10} color="#00FF00" />
-                                            <span>AI GENERATION PROMPT</span>
-                                        </div>
-                                    </div>
-                                    <textarea
-                                        value={genPrompt}
-                                        onChange={(e) => setGenPrompt(e.target.value)}
-                                        style={props.styles.promptInput}
-                                    />
-                                </div>
-
-                                {/* Image Preview */}
-                                <div style={{
-                                    width: '100%', height: '220px', backgroundColor: '#050505',
-                                    border: '1px dashed #333', borderRadius: '6px', overflow: 'hidden',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    position: 'relative'
-                                }}>
-                                    {displayImage ? (
-                                        <img src={displayImage} alt="Asset" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                                    ) : (
-                                        <div style={{ textAlign: 'center', color: '#333' }}>
-                                            <Sparkles size={32} style={{ margin: '0 auto 10px', opacity: 0.2 }} />
-                                            <div style={{ fontSize: '10px' }}>NO VISUAL GENERATED</div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* SECTION: VOICE */}
                             {assetType === 'character' && (
-                                <div>
-                                    <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#444', marginBottom: '10px', letterSpacing: '1px' }}>
-                                        VOICE CONFIGURATION
-                                    </div>
-                                    <div style={{
-                                        padding: '15px', backgroundColor: '#0a0a0a', border: '1px solid #222',
-                                        borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <div
-                                                onClick={handleMainViewPlay}
-                                                style={{
-                                                    width: '30px', height: '30px', borderRadius: '50%',
-                                                    backgroundColor: isPlayingCurrent ? '#FF4444' : '#222',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    cursor: currentVoiceId ? 'pointer' : 'default',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                            >
-                                                {isLoadingVoices && !allVoices.length ? (
-                                                    <Loader2 className="force-spin" size={12} color="white" />
-                                                ) : isPlayingCurrent ? (
-                                                    <Pause size={12} color="white" />
-                                                ) : (
-                                                    <Play size={12} color={currentVoiceId ? "white" : "#555"} />
-                                                )}
-                                            </div>
-                                            <div>
-                                                <div style={{ color: 'white', fontSize: '12px' }}>
-                                                    {voiceConfig?.voice_name || "No Voice Linked"}
-                                                </div>
-                                                <div style={{ color: '#555', fontSize: '10px' }}>
-                                                    {voiceConfig?.suggestion || "Neutral Tone"}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => setIsVoiceMode(true)}
-                                            style={{ fontSize: '10px', color: '#888', background: 'none', border: '1px solid #333', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
-                                        >
-                                            CHANGE
-                                        </button>
-                                    </div>
-                                </div>
+                                <VoicePreviewBar
+                                    voiceName={voiceConfig?.voice_name}
+                                    suggestion={voiceConfig?.suggestion}
+                                    isPlaying={playingVoiceId === voiceConfig?.voice_id}
+                                    isLoading={isLoadingVoices && !allVoices.length}
+                                    onPlay={handleMainViewPlay}
+                                    onChange={() => setIsVoiceMode(true)}
+                                />
                             )}
                         </>
                     )}
                 </div>
 
-                {/* 3. FOOTER */}
+                {/* FOOTER */}
                 {!isVoiceMode && (
-                    <div style={{ padding: '20px', borderTop: '1px solid #222', backgroundColor: '#0a0a0a', flexShrink: 0 }}>
+                    <div className="p-5 border-t border-[#222] bg-[#0a0a0a] shrink-0">
                         <button
-                            onClick={handleSaveTraits}
+                            onClick={handleSave}
                             disabled={isSavingTraits}
-                            style={{
-                                width: '100%', padding: '12px', backgroundColor: '#FFF', color: '#000',
-                                border: 'none', borderRadius: '4px', fontWeight: 'bold', fontSize: '11px', letterSpacing: '1px',
-                                cursor: isSavingTraits ? 'wait' : 'pointer', opacity: isSavingTraits ? 0.7 : 1
-                            }}
+                            className="w-full py-3 bg-white hover:bg-neutral-200 text-black font-bold text-xs tracking-widest rounded transition-colors disabled:opacity-50"
                         >
                             {isSavingTraits ? "SAVING..." : "SAVE CONFIGURATION"}
                         </button>
