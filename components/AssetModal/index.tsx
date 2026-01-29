@@ -8,8 +8,8 @@ import { Asset, CharacterProfile, LocationProfile } from '@/lib/types';
 // --- SUB-COMPONENTS ---
 import { TraitsTab } from './TraitsTab';
 import { VoiceTab } from './VoiceTab';
-import { VisualsSection } from './VisualsSection';     // <--- NEW
-import { VoicePreviewBar } from './VoicePreviewBar';   // <--- NEW
+import { VisualsSection } from './VisualsSection';
+import { VoicePreviewBar } from './VoicePreviewBar';
 
 interface AssetModalProps {
     isOpen: boolean;
@@ -25,6 +25,8 @@ interface AssetModalProps {
     setMode: (m: 'upload' | 'generate') => void;
     genPrompt: string;
     setGenPrompt: (p: string) => void;
+
+    // "Persistent Loading" State from Parent
     isProcessing: boolean;
 
     // Context
@@ -49,6 +51,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     // --- STATE ---
     const [editableTraits, setEditableTraits] = useState<any>({});
+    const [initialTraits, setInitialTraits] = useState<any>({});
     const [isSavingTraits, setIsSavingTraits] = useState(false);
 
     // Voice State
@@ -80,12 +83,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     }, [voiceSearch, allVoices]);
 
     const initializeTraits = () => {
-        let initialTraits: any = {};
+        let initialData: any = {};
         const vt = currentData.visual_traits || {};
 
         if (assetType === 'location') {
             const locTraits = vt as LocationProfile['visual_traits'];
-            initialTraits = {
+            // Map DB 'keywords' to Local 'visual_traits' for the UI input
+            initialData = {
                 visual_traits: locTraits.keywords ? (Array.isArray(locTraits.keywords) ? locTraits.keywords : locTraits.keywords.split(', ')) : [],
                 atmosphere: locTraits.atmosphere || "",
                 lighting: locTraits.lighting || "",
@@ -93,7 +97,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             };
         } else {
             const charTraits = vt as CharacterProfile['visual_traits'];
-            initialTraits = {
+            initialData = {
                 age: charTraits.age || "",
                 ethnicity: charTraits.ethnicity || "",
                 hair: charTraits.hair || "",
@@ -105,12 +109,14 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 setSelectedVoiceId(currentData.voice_config?.voice_id || null);
             }
         }
-        setEditableTraits(initialTraits);
+
+        setEditableTraits(initialData);
+        setInitialTraits(initialData);
 
         if (!currentData.prompt) {
             const constructed = assetType === 'location'
-                ? constructLocationPrompt(assetName || "Location", initialTraits.visual_traits, initialTraits, genre, style)
-                : constructCharacterPrompt(assetName || "Character", initialTraits, initialTraits, genre, style);
+                ? constructLocationPrompt(assetName || "Location", initialData.visual_traits, initialData, genre, style)
+                : constructCharacterPrompt(assetName || "Character", initialData, initialData, genre, style);
             setGenPrompt(constructed);
         } else {
             setGenPrompt(currentData.prompt);
@@ -118,6 +124,23 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     };
 
     // --- HANDLERS ---
+
+    const hasUnsavedChanges = () => {
+        return JSON.stringify(editableTraits) !== JSON.stringify(initialTraits);
+    };
+
+    const handleCloseRequest = () => {
+        if (hasUnsavedChanges()) {
+            if (window.confirm("You have unsaved changes. Do you want to save before closing?")) {
+                handleSave();
+            } else {
+                onClose();
+            }
+        } else {
+            onClose();
+        }
+    };
+
     const loadVoices = async () => {
         setIsLoadingVoices(true);
         const voices = await fetchElevenLabsVoices();
@@ -146,7 +169,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         let voice = allVoices.find(v => v.voice_id === vid);
         if (!voice) {
             setIsLoadingVoices(true);
-            const fetched = await fetchElevenLabsVoices(); // Direct fetch to ensure freshness
+            const fetched = await fetchElevenLabsVoices();
             setAllVoices(fetched); setFilteredVoices(fetched);
             voice = fetched.find(v => v.voice_id === vid);
             setIsLoadingVoices(false);
@@ -158,6 +181,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     const handleTraitChange = (key: string, value: string) => {
         let finalValue: any = value;
+        // Logic to keep visual_traits as array in local state
         if (assetType === 'location' && key === 'visual_traits' && typeof value === 'string') {
             finalValue = value.split(',').map(t => t.trim()).filter(t => t !== "");
         }
@@ -173,7 +197,34 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     const handleSave = async () => {
         setIsSavingTraits(true);
-        await onUpdateTraits(editableTraits);
+
+        // --- MAP DATA BACK TO DB SCHEMA ---
+        let payload: any = {};
+
+        if (assetType === 'location') {
+            // Local 'visual_traits' array -> DB 'keywords' string
+            let kws = editableTraits.visual_traits;
+            if (Array.isArray(kws)) kws = kws.join(', ');
+
+            payload = {
+                keywords: kws,
+                atmosphere: editableTraits.atmosphere,
+                lighting: editableTraits.lighting,
+                terrain: editableTraits.terrain
+            };
+        } else {
+            // Character: Map specific keys to avoid nesting mess
+            payload = {
+                age: editableTraits.age,
+                ethnicity: editableTraits.ethnicity,
+                hair: editableTraits.hair,
+                clothing: editableTraits.clothing,
+                vibe: editableTraits.vibe
+            };
+        }
+
+        await onUpdateTraits(payload);
+        setInitialTraits(editableTraits);
         setIsSavingTraits(false);
         onClose();
     };
@@ -190,7 +241,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     if (!isOpen) return null;
 
-    // --- RENDER HELPERS ---
     const voiceConfig = currentData.type === 'character' ? currentData.voice_config : null;
 
     return (
@@ -211,7 +261,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                             </div>
                         </div>
                     </div>
-                    <X size={20} className="cursor-pointer text-neutral-500 hover:text-white" onClick={onClose} />
+                    {/* Intercept Close Here */}
+                    <X size={20} className="cursor-pointer text-neutral-500 hover:text-white" onClick={handleCloseRequest} />
                 </div>
 
                 {/* CONTENT */}
@@ -239,6 +290,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         <>
                             <div className="animate-in fade-in duration-300">
                                 <div className="text-[10px] font-bold text-neutral-500 mb-3 tracking-widest uppercase">Asset Definition</div>
+                                {/* Cleaned up props passed to TraitsTab */}
                                 <TraitsTab
                                     assetType={assetType!}
                                     editableTraits={editableTraits}

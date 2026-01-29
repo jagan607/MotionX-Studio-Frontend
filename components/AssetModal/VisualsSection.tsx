@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Sparkles, RefreshCw, Terminal } from 'lucide-react';
+import { Upload, Sparkles, RefreshCw, Terminal, Loader2 } from 'lucide-react';
 
 interface VisualsSectionProps {
     displayImage?: string;
@@ -60,6 +60,18 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
 
             {/* IMAGE PREVIEW */}
             <div className="w-full h-[220px] bg-[#050505] border border-dashed border-neutral-800 rounded-lg overflow-hidden flex items-center justify-center relative group">
+
+                {/* LOADING OVERLAY (Shows when generating) */}
+                {isProcessing && (
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in duration-300">
+                        <Loader2 className="animate-spin text-motion-red mb-3" size={32} />
+                        <span className="text-[10px] font-mono text-motion-red animate-pulse tracking-widest">
+                            GENERATING VISUAL...
+                        </span>
+                    </div>
+                )}
+
+                {/* ACTUAL IMAGE */}
                 {displayImage ? (
                     <img src={displayImage} alt="Asset" className="w-full h-full object-contain" />
                 ) : (
