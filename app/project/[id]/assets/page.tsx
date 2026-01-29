@@ -46,7 +46,7 @@ export default function AssetManagerPage() {
 
     // Actions State
     const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
-    const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null); // Holds Draft or Real Asset
+    const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
     const [genPrompt, setGenPrompt] = useState("");
 
     // --- 1. LOAD DATA ---
@@ -128,7 +128,6 @@ export default function AssetManagerPage() {
         try {
             if (asset.id === "new") {
                 // --- CREATE MODE (Atomic) ---
-                // Data contains { name, visual_traits, ... }
                 await createAsset(projectId, {
                     ...data,
                     type: asset.type
@@ -163,7 +162,7 @@ export default function AssetManagerPage() {
     };
 
     const handleGenerate = async (asset: Asset, customPrompt?: string) => {
-        if (asset.id === "new") return; // Safety check
+        if (asset.id === "new") return; // Safety check (should be handled by CreateAndGenerate)
 
         setGeneratingIds(prev => new Set(prev).add(asset.id));
         toast("Queued for Generation...", { icon: '⏳' });
@@ -190,6 +189,41 @@ export default function AssetManagerPage() {
             console.error(e);
             toast.error("Generation failed to start");
             setGeneratingIds(prev => { const next = new Set(prev); next.delete(asset.id); return next; });
+        }
+    };
+
+    // --- NEW: Handle "Create & Generate" for Drafts ---
+    const handleCreateAndGenerate = async (draftData: any) => {
+        if (!selectedAsset) return;
+
+        const type = activeTab === 'cast' ? 'character' : 'location';
+
+        try {
+            toast.loading("Creating asset first...");
+
+            // 1. Create the Asset via API
+            const response = await createAsset(projectId, {
+                ...draftData,
+                type: type
+            });
+
+            // 2. Get the new REAL asset object
+            const newAsset = response.data.asset;
+
+            // 3. Switch Modal from "Draft" to "Real"
+            // This prevents the modal from closing and allows generation to show
+            setSelectedAsset(newAsset);
+
+            // 4. Refresh Grid in background
+            loadData();
+
+            // 5. Trigger Generation on the NEW ID
+            // Pass the prompt from draftData because the newAsset from DB might not have it yet if async
+            await handleGenerate(newAsset, draftData.prompt);
+
+        } catch (e) {
+            console.error("Create & Generate Failed", e);
+            toast.error("Failed to create asset for generation");
         }
     };
 
@@ -236,7 +270,6 @@ export default function AssetManagerPage() {
                     </div>
 
                     <div className="flex items-center gap-3 w-full xl:w-auto">
-                        {/* TABS */}
                         <div className="flex bg-neutral-900 border border-neutral-800 rounded p-1 mr-auto xl:mr-0">
                             <TabButton
                                 active={activeTab === 'cast'}
@@ -252,7 +285,6 @@ export default function AssetManagerPage() {
                             />
                         </div>
 
-                        {/* GLOBAL ACTIONS */}
                         <button
                             onClick={handleGenerateAll}
                             className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] font-bold tracking-widest transition-all"
@@ -269,18 +301,12 @@ export default function AssetManagerPage() {
                 {/* ASSET GRID */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
 
-                    {/* 1. ADD NEW CARD (The Trigger) */}
-                    <div
-                        onClick={handleOpenDraft}
-                        className="aspect-[3/4] border border-dashed border-neutral-800 rounded-xl bg-neutral-900/20 flex flex-col items-center justify-center p-4 hover:border-neutral-600 hover:bg-neutral-900/40 transition-all cursor-pointer group"
-                    >
-                        <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-white group-hover:text-black transition-all">
-                            <Plus size={24} />
-                        </div>
-                        <span className="text-[10px] font-bold tracking-widest text-neutral-500 group-hover:text-white transition-colors uppercase">
-                            New {activeTab === 'cast' ? 'Character' : 'Location'}
-                        </span>
-                    </div>
+                    {/* 1. ADD NEW CARD */}
+                    <AssetCard
+                        variant="create"
+                        onCreate={handleOpenDraft}
+                        label={`New ${activeTab === 'cast' ? 'Character' : 'Location'}`}
+                    />
 
                     {/* 2. EXISTING ASSET CARDS */}
                     {loading ? (
@@ -290,6 +316,7 @@ export default function AssetManagerPage() {
                     ) : displayedAssets.map((asset) => (
                         <AssetCard
                             key={asset.id}
+                            variant="default"
                             asset={asset}
                             projectId={projectId}
                             isGenerating={generatingIds.has(asset.id)}
@@ -320,17 +347,20 @@ export default function AssetManagerPage() {
                         genPrompt={genPrompt}
                         setGenPrompt={setGenPrompt}
 
-                        // Disable generation if in "Draft Mode" (ID is "new")
+                        // Pass persistent loading state
+                        // If it's a draft ("new"), it's not generating yet until we switch ID
                         isProcessing={selectedAsset.id !== "new" && generatingIds.has(selectedAsset.id)}
+
+                        // Standard Generation
                         onGenerate={() => handleGenerate(selectedAsset, genPrompt)}
 
-                        // -- DYNAMIC CONTEXT --
+                        // NEW: Create & Generate for Drafts
+                        onCreateAndGenerate={handleCreateAndGenerate}
+
+                        // -- DATA & HANDLERS --
                         genre={(project as any)?.genre || "cinematic"}
                         style={project?.moodboard?.lighting || "realistic"}
-
-                        // -- HANDLERS --
                         onUpload={() => { }}
-                        // Handles both CREATE and UPDATE
                         onUpdateTraits={(data) => handleSaveAsset(selectedAsset, data)}
                         onLinkVoice={async () => { }}
 
@@ -342,7 +372,6 @@ export default function AssetManagerPage() {
     );
 }
 
-// --- TAB BUTTON COMPONENT ---
 const TabButton = ({ active, onClick, icon, label }: any) => (
     <button
         onClick={onClick}

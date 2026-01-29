@@ -31,6 +31,8 @@ interface AssetModalProps {
 
     onUpload: (f: File) => void;
     onGenerate: () => void;
+    // New prop to handle the "Create First -> Then Generate" flow
+    onCreateAndGenerate?: (data: any) => Promise<void>;
     onUpdateTraits: (data: any) => Promise<void>;
     onLinkVoice: (v: { voice_id: string; voice_name: string }) => Promise<void>;
 
@@ -41,6 +43,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const {
         isOpen, assetType, currentData, assetName, onUpdateTraits,
         setGenPrompt, genPrompt, onClose, isProcessing, onGenerate,
+        onCreateAndGenerate, // <--- Destructure new prop
         onUpload, genre, style
     } = props;
 
@@ -48,7 +51,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [editableName, setEditableName] = useState(assetName);
     const [editableTraits, setEditableTraits] = useState<any>({});
     const [initialTraits, setInitialTraits] = useState<any>({});
-    const [initialName, setInitialName] = useState(assetName); // For dirty check
+    const [initialName, setInitialName] = useState(assetName);
     const [isSavingTraits, setIsSavingTraits] = useState(false);
 
     // Voice State
@@ -75,6 +78,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
+    // ... (Voice effects same)
     useEffect(() => {
         if (isVoiceMode && allVoices.length === 0) loadVoices();
     }, [isVoiceMode, allVoices.length]);
@@ -87,7 +91,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         let initialData: any = {};
         const vt = currentData.visual_traits || {};
 
-        // 1. Setup Traits
         if (assetType === 'location') {
             const locTraits = vt as LocationProfile['visual_traits'];
             initialData = {
@@ -111,13 +114,11 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             }
         }
 
-        // 2. Set State
         setEditableTraits(initialData);
         setInitialTraits(initialData);
         setEditableName(currentData.name || "");
         setInitialName(currentData.name || "");
 
-        // 3. Generate Prompt (Using current Name)
         if (!currentData.prompt) {
             updatePrompt(currentData.name || (assetType === 'location' ? "Location" : "Character"), initialData);
         } else {
@@ -127,10 +128,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     // --- HANDLERS ---
 
-    // Helper to regenerate prompt dynamically
     const updatePrompt = (name: string, traits: any) => {
-        // Only auto-update prompt if user hasn't heavily modified it manually? 
-        // For now, we follow the established pattern of regenerating on trait change.
         const constructed = assetType === 'location'
             ? constructLocationPrompt(name || "Location", traits.visual_traits, traits, genre, style)
             : constructCharacterPrompt(name || "Character", traits, traits, genre, style);
@@ -140,7 +138,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const hasUnsavedChanges = () => {
         const traitsChanged = JSON.stringify(editableTraits) !== JSON.stringify(initialTraits);
         const nameChanged = editableName !== initialName;
-        // Ideally we should also check if Prompt changed, but usually prompt is derived.
         return traitsChanged || nameChanged;
     };
 
@@ -218,21 +215,12 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         updatePrompt(editableName, updatedTraits);
     };
 
-    const handleSave = async () => {
-        if (isCreationMode && !isNameValid) {
-            toast.error("Please enter a name for the asset");
-            return;
-        }
-
-        setIsSavingTraits(true);
-
-        // --- MAP DATA BACK TO DB SCHEMA ---
+    // Helper to construct the full payload for saving/generating
+    const constructPayload = () => {
         let traitsPayload: any = {};
-
         if (assetType === 'location') {
             let kws = editableTraits.visual_traits;
             if (Array.isArray(kws)) kws = kws.join(', ');
-
             traitsPayload = {
                 keywords: kws,
                 atmosphere: editableTraits.atmosphere,
@@ -248,18 +236,43 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 vibe: editableTraits.vibe
             };
         }
-
-        // Send NAME + TRAITS + PROMPT together (Atomic Payload)
-        await onUpdateTraits({
+        return {
             name: editableName,
             visual_traits: traitsPayload,
-            prompt: genPrompt // <--- FIX: Ensure prompt is saved!
-        });
+            prompt: genPrompt
+        };
+    };
 
+    const handleSave = async () => {
+        if (isCreationMode && !isNameValid) {
+            toast.error("Please enter a name for the asset");
+            return;
+        }
+
+        setIsSavingTraits(true);
+        await onUpdateTraits(constructPayload());
         setInitialTraits(editableTraits);
         setInitialName(editableName);
         setIsSavingTraits(false);
         onClose();
+    };
+
+    // --- NEW: Smart Generate Handler ---
+    const handleSmartGenerate = async () => {
+        // If it's a new asset, we MUST create it first
+        if (isCreationMode) {
+            if (!isNameValid) {
+                toast.error("Please name your asset before generating.");
+                return;
+            }
+            if (onCreateAndGenerate) {
+                // Pass full payload so parent can create it
+                await onCreateAndGenerate(constructPayload());
+            }
+        } else {
+            // Existing asset: Just generate normally
+            onGenerate();
+        }
     };
 
     const handleVoiceLink = async () => {
@@ -275,8 +288,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     if (!isOpen) return null;
 
     const voiceConfig = currentData.type === 'character' ? currentData.voice_config : null;
-
-    // Button Logic
     const isSaveDisabled = isSavingTraits || (isCreationMode && !isNameValid);
     const saveButtonText = isSavingTraits
         ? (isCreationMode ? "CREATING..." : "SAVING...")
@@ -294,7 +305,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         {isVoiceMode && <ArrowLeft size={20} className="cursor-pointer hover:text-motion-red" onClick={() => setIsVoiceMode(false)} />}
                         {assetType === 'location' ? <MapPin size={20} className="text-motion-red" /> : <User size={20} className="text-motion-red" />}
                         <div>
-                            {/* Display Name reflects edit or placeholder */}
                             <h2 className="text-lg font-display uppercase text-white leading-none">
                                 {editableName || (isCreationMode ? "New Asset" : "Untitled")}
                             </h2>
@@ -345,7 +355,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                 isProcessing={isProcessing}
                                 genPrompt={genPrompt}
                                 setGenPrompt={setGenPrompt}
-                                onGenerate={onGenerate}
+                                onGenerate={handleSmartGenerate} // <--- Use new smart handler
                                 onUpload={(e) => { if (e.target.files?.[0]) onUpload(e.target.files[0]) }}
                             />
 
