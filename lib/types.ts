@@ -14,16 +14,9 @@ export interface LocationVisualTraits {
     keywords: string;     // Comma-separated string (e.g. "messy, neon, cramped")
 }
 
-// --- 2. MOODBOARD & PROJECT ---
+// --- 2. MOODBOARD ---
 export interface Moodboard {
     [key: string]: any; // Allows dynamic keys (color, lighting, texture, etc.)
-}
-
-export interface Project {
-    id: string;
-    name: string;
-    moodboard?: Moodboard; // <--- The Source of Truth
-    // Add other project fields as needed (owner_id, created_at, etc.)
 }
 
 // --- 3. ASSET PROFILES ---
@@ -33,11 +26,9 @@ export interface CharacterProfile {
     type: "character";
     project_id: string;
 
-    // Visuals
     image_url?: string;
     visual_traits: CharacterVisualTraits;
-
-    // Voice
+    voice_sample?: string;
     voice_suggestion?: string;
     voice_config?: {
         voice_id?: string;
@@ -48,9 +39,10 @@ export interface CharacterProfile {
         suggestion?: string;
     };
 
-    status: "pending" | "generating" | "active";
+    status?: "pending" | "processing" | "generating" | "active" | "failed";
     prompt?: string;
-    base_prompt?: string; // Legacy/Fallback
+    base_prompt?: string;
+    created_at?: any;
 }
 
 export interface LocationProfile {
@@ -58,27 +50,38 @@ export interface LocationProfile {
     name: string;
     type: "location";
     project_id: string;
-
-    // Visuals
     image_url?: string;
     visual_traits: LocationVisualTraits;
-
-    status: "pending" | "generating" | "active";
+    status?: "pending" | "processing" | "generating" | "active" | "failed";
     prompt?: string;
-    base_prompt?: string; // Legacy/Fallback
+    base_prompt?: string;
+    created_at?: any;
 }
 
 // --- 4. THE UNIFIED ASSET TYPE ---
 export type Asset = CharacterProfile | LocationProfile;
 
+// --- 5. PROJECT INTERFACE ---
+export interface Project {
+    id: string;
+    title: string;
+    type: 'movie' | 'micro_drama';
+    default_episode_id?: string;
+    aspect_ratio?: string;
+    genre?: string;
+    moodboard?: Moodboard;
+    created_at?: any;
+    updated_at?: any;
+    user_id?: string;
+}
 
-// --- 5. SCENE / SHOT INTERFACES ---
+// --- 6. SCENE & SHOT INTERFACES ---
 export interface Scene {
     id: string;
     scene_number: number;
     header: string;
     summary: string;
-    location_id: string; // Links to LocationProfile
+    location_id: string; // Links to LocationProfile ID
     characters: string[]; // List of Character Names or IDs
     time: string;
     visual_prompt: string;
