@@ -10,13 +10,13 @@ import { toast } from "react-hot-toast";
 // --- API & TYPES ---
 import {
     fetchProjectAssets,
-    fetchProject, // <--- NEW IMPORT
+    fetchProject,
     deleteAsset,
     createAsset,
     triggerAssetGeneration,
     updateAsset
 } from "@/lib/api";
-import { Asset, CharacterProfile, LocationProfile, Project } from "@/lib/types"; // <--- NEW IMPORT
+import { Asset, CharacterProfile, LocationProfile, Project } from "@/lib/types";
 
 // --- COMPONENTS ---
 import { AssetModal } from "@/components/AssetModal";
@@ -33,7 +33,7 @@ export default function AssetManagerPage() {
     const [activeTab, setActiveTab] = useState<'cast' | 'locations'>('cast');
 
     // Data State
-    const [project, setProject] = useState<Project | null>(null); // <--- Store Project/Moodboard
+    const [project, setProject] = useState<Project | null>(null);
     const [assets, setAssets] = useState<{
         characters: CharacterProfile[],
         locations: LocationProfile[]
@@ -45,6 +45,7 @@ export default function AssetManagerPage() {
     const [loading, setLoading] = useState(true);
 
     // Actions State
+    // Source of Truth for "Persistent Loading"
     const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
     const [genPrompt, setGenPrompt] = useState("");
@@ -60,7 +61,7 @@ export default function AssetManagerPage() {
 
     const loadData = async () => {
         try {
-            // Fetch Assets AND Project Details (for moodboard) in parallel
+            // Fetch Assets AND Project Details (for moodboard & aspect ratio)
             const [assetsData, projectData] = await Promise.all([
                 fetchProjectAssets(projectId),
                 fetchProject(projectId)
@@ -130,16 +131,15 @@ export default function AssetManagerPage() {
     };
 
     const handleGenerate = async (asset: Asset, customPrompt?: string) => {
+        // Optimistic UI update - Adds ID to global set
         setGeneratingIds(prev => new Set(prev).add(asset.id));
         toast("Queued for Generation...", { icon: '⏳' });
 
         try {
-            // 1. CLEAN THE MOODBOARD (Remove 'code', 'owner_id', etc.)
-            // We strip out 'code' and spread the rest into cleanStyle
+            // 1. Clean Moodboard Style
             const { code, owner_id, ...cleanStyle } = project?.moodboard || {};
 
-            // 2. GET ASPECT RATIO (Default to 16:9 if missing)
-            // Note: Typescript might complain if aspect_ratio isn't in your Project interface yet.
+            // 2. Get Aspect Ratio
             const aspectRatio = (project as any)?.aspect_ratio || "16:9";
 
             // 3. Trigger Backend Job
@@ -152,6 +152,8 @@ export default function AssetManagerPage() {
                 aspectRatio
             );
 
+            // Simulation of Polling/Processing time
+            // In a real app, you might poll a job status endpoint here
             setTimeout(() => {
                 loadData();
                 setGeneratingIds(prev => { const next = new Set(prev); next.delete(asset.id); return next; });
@@ -290,7 +292,7 @@ export default function AssetManagerPage() {
                             key={asset.id}
                             asset={asset}
                             projectId={projectId}
-                            isGenerating={generatingIds.has(asset.id)}
+                            isGenerating={generatingIds.has(asset.id)} // <--- Passes "Persistent Loading" to Card
                             onGenerate={(a) => handleGenerate(a)}
                             onConfig={(a) => {
                                 setSelectedAsset(a);
@@ -317,11 +319,13 @@ export default function AssetManagerPage() {
                         setMode={() => { }}
                         genPrompt={genPrompt}
                         setGenPrompt={setGenPrompt}
-                        isProcessing={generatingIds.has(selectedAsset.id)}
-                        onGenerate={() => handleGenerate(selectedAsset, genPrompt)} // Pass the modal prompt!
 
-                        // -- DATA PROPS (Now Dynamic) --
-                        // Tries to use project moodboard data, falls back to defaults
+                        // <--- Passes "Persistent Loading" to Modal
+                        // Even if user closes and re-opens, this stays true if generatingIds has the ID
+                        isProcessing={generatingIds.has(selectedAsset.id)}
+                        onGenerate={() => handleGenerate(selectedAsset, genPrompt)}
+
+                        // -- DYNAMIC CONTEXT --
                         genre={(project as any)?.genre || "cinematic"}
                         style={project?.moodboard?.lighting || "realistic"}
 
