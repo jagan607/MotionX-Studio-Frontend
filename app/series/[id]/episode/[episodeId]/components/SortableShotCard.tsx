@@ -7,7 +7,8 @@ import {
     ChevronDown, ImagePlus, Mic2, Link2, Plus, ArrowRight, Lock,
     CheckCircle2,
     Wand2,
-    Loader2
+    Loader2,
+    Palette
 } from "lucide-react";
 import { useState, useRef, useEffect } from 'react';
 import imageCompression from 'browser-image-compression';
@@ -27,7 +28,7 @@ interface Shot {
     lipsync_url?: string;
     video_status?: string;
     status?: string;
-    morph_to_next?: boolean; // <--- NEW DB FIELD
+    morph_to_next?: boolean;
 }
 
 interface SortableShotCardProps {
@@ -38,14 +39,15 @@ interface SortableShotCardProps {
     castMembers: CastMember[];
     locations: Location[];
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
-    onRender: (referenceFile?: File | null) => void;
+    // UPDATED: Now accepts provider string
+    onRender: (referenceFile?: File | null, provider?: 'gemini' | 'seedream') => void;
     onAnimate: (provider: 'kling' | 'seedance', endFrameUrl?: string | null) => void;
     onFinalize: () => void;
     isRendering: boolean;
     onExpand: () => void;
     onLipSync: () => void;
     nextShotImage?: string;
-    isMorphedByPrev?: boolean; // <--- NEW PROP
+    isMorphedByPrev?: boolean;
     children: React.ReactNode;
 }
 
@@ -71,7 +73,10 @@ export const SortableShotCard = ({
 }: SortableShotCardProps) => {
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
+
+    // --- PROVIDER STATES ---
     const [videoProvider, setVideoProvider] = useState<'kling' | 'seedance'>('kling');
+    const [imageProvider, setImageProvider] = useState<'gemini' | 'seedream'>('gemini'); // Default to Gemini
 
     // Use DB state, fallback to false
     const isLinked = shot.morph_to_next === true;
@@ -86,11 +91,10 @@ export const SortableShotCard = ({
     // Validation
     const hasImage = Boolean(shot.image_url);
     const hasVideo = Boolean(shot.video_url);
-    // Can only link if: current has image + next has image + using Kling + NOT currently locked by previous
     const canLink = hasImage && Boolean(nextShotImage) && videoProvider === 'kling' && !isMorphedByPrev;
 
     const handleCharToggle = (charName: string) => {
-        if (isMorphedByPrev) return; // Lock Logic
+        if (isMorphedByPrev) return;
         const current = Array.isArray(shot.characters) ? shot.characters : [];
         const normChar = normalize(charName);
         const updated = current.some((c) => normalize(c) === normChar)
@@ -120,15 +124,13 @@ export const SortableShotCard = ({
     const [localVisualAction, setLocalVisualAction] = useState(shot.visual_action || "");
     const [localVideoPrompt, setLocalVideoPrompt] = useState(shot.video_prompt || "");
 
-    // Sync local state when props change
     useEffect(() => { setLocalVisualAction(shot.visual_action || ""); }, [shot.visual_action]);
     useEffect(() => { setLocalVideoPrompt(shot.video_prompt || ""); }, [shot.video_prompt]);
 
     // --- STYLES ---
-    // Calculate border color based on state
     let borderColor = '1px solid #222';
     if (isFinalized) borderColor = `1px solid rgba(255, 255, 255, 0.5)`;
-    if (isMorphedByPrev) borderColor = `1px solid #FF0000`; // Red border if locked by prev
+    if (isMorphedByPrev) borderColor = `1px solid #FF0000`;
 
     const dragStyle = {
         transform: CSS.Transform.toString(transform),
@@ -139,7 +141,6 @@ export const SortableShotCard = ({
         scale: isDragging ? "1.02" : "1",
         border: borderColor,
         backgroundColor: isFinalized ? "rgba(255, 255, 255, 0.05)" : "#0A0A0A",
-        // Red shadow if this card is the source of a link OR the target
         boxShadow: (isLinked || isMorphedByPrev) ? '0 0 0 1px #FF0000' : 'none'
     };
 
@@ -147,11 +148,23 @@ export const SortableShotCard = ({
     const inputStyle: React.CSSProperties = {
         width: '100%',
         backgroundColor: isMorphedByPrev ? '#111' : '#111',
-        border: isMorphedByPrev ? '1px solid #330000' : '1px solid #222', // Subtle red tint border
-        color: isMorphedByPrev ? '#444' : '#e0e0e0', // Dim text if locked
+        border: isMorphedByPrev ? '1px solid #330000' : '1px solid #222',
+        color: isMorphedByPrev ? '#444' : '#e0e0e0',
         fontSize: '11px', padding: '8px 10px', borderRadius: '4px', outline: 'none',
         cursor: isMorphedByPrev ? 'not-allowed' : 'text'
     };
+
+    // Helper for toggle buttons
+    const toggleStyle = (active: boolean) => ({
+        flex: 1, padding: '6px', fontSize: '9px', fontWeight: 'bold',
+        border: active ? '1px solid #FF0000' : '1px solid #333',
+        backgroundColor: active ? 'rgba(255, 0, 0, 0.1)' : 'transparent',
+        color: active ? '#FFF' : '#666',
+        cursor: isBusy || isMorphedByPrev ? 'not-allowed' : 'pointer',
+        borderRadius: '3px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+        transition: 'all 0.2s'
+    });
 
     return (
         <div ref={setNodeRef} style={{ ...styles.shotCard, ...dragStyle, position: 'relative', display: 'flex', flexDirection: 'column' }}>
@@ -181,7 +194,7 @@ export const SortableShotCard = ({
 
                     {/* The Button */}
                     <div
-                        onClick={() => onUpdateShot(shot.id, "morph_to_next", !isLinked)} // Toggle DB State
+                        onClick={() => onUpdateShot(shot.id, "morph_to_next", !isLinked)}
                         title={isLinked ? "Unlink from Next Shot" : "Morph into Next Shot"}
                         style={{
                             position: 'absolute', top: '50%', right: '-14px', transform: 'translateY(-50%)', zIndex: 50,
@@ -225,8 +238,13 @@ export const SortableShotCard = ({
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
                 <div style={{ flex: 1 }}>
                     <label style={labelStyle}>SHOT TYPE</label>
-                    <select disabled={isMorphedByPrev} style={inputStyle} value={shot.shot_type || "Wide Shot"} onChange={(e) => onUpdateShot(shot.id, "shot_type", e.target.value)}>
-                        <option>Wide Shot</option><option>Medium Shot</option><option>Close Up</option><option>Extreme Close Up</option>
+                    <select disabled={isMorphedByPrev} style={inputStyle} defaultValue={shot.shot_type || "Wide Shot"} onChange={(e) => onUpdateShot(shot.id, "shot_type", e.target.value)}>
+                        <option value="">{shot.shot_type}</option>
+                        <option value="Wide Shot">Wide Shot</option>
+                        <option value="Medium Shot">Medium Shot</option>
+                        <option value="Close Up">Close Up</option>
+                        <option value="Extreme Close Up">Extreme Close Up</option>
+                        <option value="Medium Close Up">Medium Close Up</option>
                     </select>
                 </div>
                 <div style={{ flex: 1 }}>
@@ -276,9 +294,29 @@ export const SortableShotCard = ({
             {/* ACTION FOOTER */}
             <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #1a1a1a', opacity: isMorphedByPrev ? 0.3 : 1, pointerEvents: isMorphedByPrev ? 'none' : 'auto' }}>
 
-                {/* 1. RE-GEN / FINALIZE */}
+                {/* 1. IMAGE PROVIDER SELECTION (NEW) */}
+                <div style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
+                    <button
+                        onClick={() => setImageProvider('seedream')}
+                        style={toggleStyle(imageProvider === 'seedream')}
+                    >
+                        <Palette size={10} /> SEEDREAM (HQ)
+                    </button>
+                    <button
+                        onClick={() => setImageProvider('gemini')}
+                        style={toggleStyle(imageProvider === 'gemini')}
+                    >
+                        <Sparkles size={10} /> GEMINI
+                    </button>
+                </div>
+
+                {/* 2. RE-GEN / FINALIZE */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                    <button onClick={() => onRender(refFile)} disabled={isBusy} style={{ padding: '10px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: isBusy ? '#666' : '#FFF', fontSize: '10px', fontWeight: 'bold', cursor: isBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px' }}>
+                    <button
+                        onClick={() => onRender(refFile, imageProvider)} // Pass provider here
+                        disabled={isBusy}
+                        style={{ padding: '10px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: isBusy ? '#666' : '#FFF', fontSize: '10px', fontWeight: 'bold', cursor: isBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px' }}
+                    >
                         <Sparkles size={14} /> {hasImage ? "RE-GEN" : "GENERATE"}
                     </button>
                     <button onClick={onFinalize} disabled={!hasImage || isBusy} style={{ padding: '10px', backgroundColor: isFinalized ? 'rgba(245, 11, 11, 0.1)' : '#1a1a1a', border: isFinalized ? '1px solid #FF0000' : '1px solid #333', color: isFinalized ? '#FFF' : (hasImage ? '#FFF' : '#444'), fontSize: '10px', fontWeight: 'bold', cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px' }}>
@@ -287,15 +325,15 @@ export const SortableShotCard = ({
                     </button>
                 </div>
 
-                {/* 2. PROVIDER TOGGLE (Force Kling if Linked) */}
+                {/* 3. VIDEO PROVIDER TOGGLE */}
                 {hasImage && !isBusy && (
                     <div style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
-                        <button onClick={() => setVideoProvider('kling')} style={{ flex: 1, padding: '6px', fontSize: '9px', fontWeight: 'bold', border: videoProvider === 'kling' ? '1px solid #FF0000' : '1px solid #333', backgroundColor: videoProvider === 'kling' ? 'rgba(255, 0, 0, 0.1)' : 'transparent', color: videoProvider === 'kling' ? '#FFF' : '#666', cursor: 'pointer', borderRadius: '3px' }}>KLING (HQ)</button>
-                        <button onClick={() => { if (!isLinked) setVideoProvider('seedance'); }} disabled={isLinked} style={{ flex: 1, padding: '6px', fontSize: '9px', fontWeight: 'bold', border: videoProvider === 'seedance' ? '1px solid #FF0000' : '1px solid #333', backgroundColor: videoProvider === 'seedance' ? 'rgba(255, 0, 0, 0.1)' : 'transparent', color: isLinked ? '#333' : (videoProvider === 'seedance' ? '#FFF' : '#666'), cursor: isLinked ? 'not-allowed' : 'pointer', borderRadius: '3px', opacity: isLinked ? 0.3 : 1 }}>SEEDANCE</button>
+                        <button onClick={() => setVideoProvider('kling')} style={toggleStyle(videoProvider === 'kling')}>KLING (HQ)</button>
+                        <button onClick={() => { if (!isLinked) setVideoProvider('seedance'); }} disabled={isLinked} style={{ ...toggleStyle(videoProvider === 'seedance'), opacity: isLinked ? 0.3 : 1 }}>SEEDANCE</button>
                     </div>
                 )}
 
-                {/* 3. ANIMATE BUTTON */}
+                {/* 4. ANIMATE BUTTON */}
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                         onClick={() => onAnimate(videoProvider, isLinked ? nextShotImage : null)}

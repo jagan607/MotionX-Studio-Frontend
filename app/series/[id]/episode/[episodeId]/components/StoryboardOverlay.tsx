@@ -39,9 +39,9 @@ interface StoryboardOverlayProps {
         handleAddShot: (scene: any) => void;
         handleDragEnd: (event: any) => void;
         loadingShots: Set<string>;
-        handleRenderShot: (shot: any, scene: any, referenceFile?: File | null) => void;
+        // UPDATED SIGNATURE: Accepts provider
+        handleRenderShot: (shot: any, scene: any, referenceFile?: File | null, provider?: string) => void;
         updateShot: (id: string, field: string, value: any) => void;
-        // UPDATED SIGNATURE: Accepts endFrameUrl for Morphing
         handleAnimateShot: (shot: any, provider?: string, endFrameUrl?: string | null) => void;
         terminalLog: string[];
         isAutoDirecting: boolean;
@@ -355,7 +355,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                         locations={locations}
                                         onUpdateShot={shotMgr.updateShot}
                                         onLipSync={() => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url })}
-                                        onRender={(referenceFile?: File | null) => shotMgr.handleRenderShot(shot, currentScene, referenceFile)}
+
+                                        // UPDATED: Now passes both ref file and provider
+                                        onRender={(referenceFile, provider) => shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider)}
 
                                         // --- MOTION PROPS ---
                                         nextShotImage={nextShotImage}

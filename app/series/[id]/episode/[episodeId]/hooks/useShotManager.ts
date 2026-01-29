@@ -6,7 +6,6 @@ import { API_BASE_URL } from "@/lib/config";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { arrayMove } from "@dnd-kit/sortable";
 
-// 1. REMOVED endFrameUrl from here. It doesn't belong in the hook initialization.
 export const useShotManager = (seriesId: string, episodeId: string, activeSceneId: string | null, onLowCredits?: () => void) => {
     const [shots, setShots] = useState<any[]>([]);
     const [loadingShots, setLoadingShots] = useState<Set<string>>(new Set());
@@ -35,14 +34,10 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const shotData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            // Sort by 'order' field ascending. 
-            // Fallback to 'created_at' if order is missing.
             shotData.sort((a: any, b: any) => {
                 const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
                 const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
-
                 if (orderA !== orderB) return orderA - orderB;
-
                 const timeA = new Date(a.created_at || 0).getTime();
                 const timeB = new Date(b.created_at || 0).getTime();
                 return timeA - timeB;
@@ -56,11 +51,10 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     const addLoadingShot = (id: string) => setLoadingShots(prev => new Set(prev).add(id));
     const removeLoadingShot = (id: string) => setLoadingShots(prev => { const next = new Set(prev); next.delete(id); return next; });
 
-    // --- CRUD: ADD SHOT (PERSIST ORDER) ---
+    // --- CRUD: ADD SHOT ---
     const handleAddShot = async (currentScene: any) => {
         if (!activeSceneId) return;
 
-        // 1. Calculate ID to prevent collision
         let maxId = 0;
         shots.forEach(s => {
             try {
@@ -73,11 +67,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         });
         const newShotId = `shot_${String(maxId + 1).padStart(2, '0')}`;
 
-        // 2. Calculate Order (Append to end)
-        const currentMaxOrder = shots.length > 0
-            ? Math.max(...shots.map(s => s.order || 0))
-            : -1;
-
+        const currentMaxOrder = shots.length > 0 ? Math.max(...shots.map(s => s.order || 0)) : -1;
         const fallbackAction = currentScene?.description || currentScene?.visual_action || "";
         const fallbackLoc = currentScene?.location_name || currentScene?.location || "";
 
@@ -88,7 +78,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             characters: [],
             location: fallbackLoc,
             status: "draft",
-            order: currentMaxOrder + 1, // <--- PERSIST ORDER
+            order: currentMaxOrder + 1,
             created_at: new Date().toISOString()
         });
     };
@@ -105,33 +95,25 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         await deleteDoc(ref);
     };
 
-    // --- DRAG AND DROP (PERSIST REORDERING) ---
     const handleDragEnd = async (event: any) => {
-        // FIX: Early return to satisfy TypeScript that activeSceneId is not null
         if (!activeSceneId) return;
-
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
         const oldIndex = shots.findIndex((s) => s.id === active.id);
         const newIndex = shots.findIndex((s) => s.id === over.id);
 
-        // 1. Optimistic UI Update
         const newShots = arrayMove(shots, oldIndex, newIndex);
         setShots(newShots);
 
-        // 2. Persist to Firestore
         try {
             const batch = writeBatch(db);
-
             newShots.forEach((shot, index) => {
                 if (shot.order !== index) {
-                    // activeSceneId is safe to use here due to early return
                     const ref = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", shot.id);
                     batch.update(ref, { order: index });
                 }
             });
-
             await batch.commit();
         } catch (error) {
             console.error("Failed to reorder shots:", error);
@@ -199,7 +181,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
     };
 
-    // --- AI: AUTO DIRECT (WITH ORDERING) ---
+    // --- AI: AUTO DIRECT ---
     const handleAutoDirect = async (currentScene: any, overrideSummary?: string) => {
         if (!activeSceneId) return;
         setIsAutoDirecting(true);
@@ -249,7 +231,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                         characters: charArray,
                         location: sceneLocation,
                         status: "draft",
-                        order: index // <--- PERSIST ORDER FROM AI
+                        order: index
                     };
                     batch.set(docRef, payload);
                 });
@@ -281,10 +263,10 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             if (cancelGenerationRef.current) {
                 break;
             }
-            // Use ref to get latest shot data (prevents stale state)
             const currentShot = shotsRef.current.find(s => s.id === shotId);
             if (currentShot) {
-                await handleRenderShot(currentShot, currentScene);
+                // Default to seedream for batch generation or whatever default you prefer
+                await handleRenderShot(currentShot, currentScene, null, 'gemini');
                 await new Promise(r => setTimeout(r, 1000));
             }
         }
@@ -293,7 +275,13 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         cancelGenerationRef.current = false;
     };
 
-    const handleRenderShot = async (shot: any, currentScene: any, referenceFile?: File | null) => {
+    // --- UPDATED: HANDLE RENDER SHOT WITH PROVIDER ---
+    const handleRenderShot = async (
+        shot: any,
+        currentScene: any,
+        referenceFile?: File | null,
+        imageProvider: string = 'gemini' // <--- Added Parameter
+    ) => {
         addLoadingShot(shot.id);
 
         let style = "";
@@ -317,6 +305,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         formData.append("characters", Array.isArray(shot.characters) ? shot.characters.join(",") : "");
         formData.append("location", shot.location || "");
         formData.append("aspect_ratio", aspectRatio);
+        formData.append("image_provider", imageProvider); // <--- Pass Provider to Backend
 
         if (referenceFile) {
             formData.append("reference_image", referenceFile);
@@ -331,26 +320,19 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                 body: formData
             });
 
-            // --- NEW: CREDIT CHECK LOGIC ---
             if (!response.ok) {
-                // Check specifically for 402 Payment Required
                 if (response.status === 402) {
-                    if (onLowCredits) onLowCredits(); // <--- Trigger Modal
-                    return; // Stop execution
+                    if (onLowCredits) onLowCredits();
+                    return;
                 }
-
-                // Handle other errors
                 const errorData = await response.json();
                 throw new Error(errorData.detail || "Failed to render shot");
             }
 
-            // If success, the backend (tasks polling) or socket will handle the update
-
         } catch (e: any) {
             console.error("Render error:", e);
-            // Optional: toastError(e.message);
+            toastError(e.message);
         } finally {
-            // Always remove loading state so the spinner stops (even if out of credits)
             removeLoadingShot(shot.id);
         }
     };
@@ -364,13 +346,10 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             const idToken = await auth.currentUser?.getIdToken();
             const formData = new FormData();
 
-            // Standard IDs
             formData.append("series_id", seriesId);
             formData.append("episode_id", episodeId);
             formData.append("scene_id", activeSceneId!);
             formData.append("shot_id", shot.id);
-
-            // The Key Input: The current "patchy" image URL
             formData.append("image_url", shot.image_url);
 
             const res = await fetch(`${API_BASE_URL}/api/v1/shot/finalize_shot`, {
@@ -383,7 +362,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
 
             if (data.status === "success") {
                 toastSuccess("Shot Finalized & Polished");
-                // The onSnapshot listener will automatically update the UI with the new image_url and status
             } else {
                 throw new Error(data.detail || "Finalization failed");
             }
@@ -396,7 +374,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
     };
 
-    // UPDATE: Accept 'endFrameUrl' as a function argument, NOT a hook argument
+    // UPDATE: Accept 'endFrameUrl' as a function argument
     const handleAnimateShot = async (shot: any, provider: string = 'kling', endFrameUrl?: string | null) => {
         if (!shot.image_url) return toastError("Generate image first");
 
@@ -411,7 +389,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             formData.append("prompt", shot.video_prompt || shot.visual_action || "Cinematic movement");
             formData.append("provider", provider);
 
-            // --- NEW: START & END FRAME URL ---
             if (endFrameUrl) {
                 formData.append("end_frame_url", endFrameUrl);
             }
@@ -422,8 +399,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                 body: formData
             });
 
-            // Optimistic update handled by backend setting status to 'animating'
-
         } catch (e) {
             console.error(e);
             toastError("Animation failed");
@@ -431,13 +406,14 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     };
 
     // --- NEW: VOICE GENERATION (ElevenLabs) ---
+    // Added emotion parameter to match frontend update
     const handleGenerateVoiceover = async (text: string, voiceId: string, emotion: string): Promise<string | null> => {
         try {
             const idToken = await auth.currentUser?.getIdToken();
             const formData = new FormData();
             formData.append("text", text);
             formData.append("voice_id", voiceId);
-            formData.append("emotion", emotion);
+            formData.append("emotion", emotion); // <--- Pass emotion
 
             const res = await fetch(`${API_BASE_URL}/api/v1/shot/generate_voiceover`, {
                 method: "POST",
@@ -447,7 +423,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
 
             if (!res.ok) throw new Error("Voice generation failed");
             const data = await res.json();
-            return data.audio_url; // Return the URL to the UI
+            return data.audio_url;
         } catch (e) {
             console.error(e);
             toastError("Failed to generate voice");
@@ -459,11 +435,10 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     const handleLipSyncShot = async (shot: any, audioUrl: string | null, audioFile: File | null) => {
         if (!shot.video_url) return toastError("No video available to sync");
 
-        // Optimistic UI Update
         if (!activeSceneId) return;
 
         const shotRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", shot.id);
-        await setDoc(shotRef, { video_status: "processing" }, { merge: true }); // 'processing' shows busy spinner
+        await setDoc(shotRef, { video_status: "processing" }, { merge: true });
 
         try {
             const idToken = await auth.currentUser?.getIdToken();
@@ -493,7 +468,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         } catch (e: any) {
             console.error(e);
             toastError(e.message);
-            // Revert status on error
             await setDoc(shotRef, { video_status: "ready" }, { merge: true });
         }
     };
