@@ -14,7 +14,19 @@ export interface LocationVisualTraits {
     keywords: string;     // Comma-separated string (e.g. "messy, neon, cramped")
 }
 
-// --- 2. ASSET PROFILES ---
+// --- 2. MOODBOARD & PROJECT ---
+export interface Moodboard {
+    [key: string]: any; // Allows dynamic keys (color, lighting, texture, etc.)
+}
+
+export interface Project {
+    id: string;
+    name: string;
+    moodboard?: Moodboard; // <--- The Source of Truth
+    // Add other project fields as needed (owner_id, created_at, etc.)
+}
+
+// --- 3. ASSET PROFILES ---
 export interface CharacterProfile {
     id: string;
     name: string;
@@ -33,7 +45,7 @@ export interface CharacterProfile {
         provider?: string;
         stability?: number;
         similarity_boost?: number;
-        suggestion?: string; // Added for compatibility with your modal
+        suggestion?: string;
     };
 
     status: "pending" | "generating" | "active";
@@ -56,11 +68,11 @@ export interface LocationProfile {
     base_prompt?: string; // Legacy/Fallback
 }
 
-// --- 3. THE UNIFIED ASSET TYPE (Add this!) ---
+// --- 4. THE UNIFIED ASSET TYPE ---
 export type Asset = CharacterProfile | LocationProfile;
 
 
-// --- 4. SCENE / SHOT INTERFACES ---
+// --- 5. SCENE / SHOT INTERFACES ---
 export interface Scene {
     id: string;
     scene_number: number;

@@ -1,6 +1,3 @@
-// lib/promptUtils.ts
-
-
 // --- LOCATION PROMPT BUILDER ---
 export const constructLocationPrompt = (
     locationName: string,
@@ -31,12 +28,9 @@ export const constructLocationPrompt = (
     // 4. Terrain/Setting
     if (allTraits.terrain) prompt += ` Setting: ${allTraits.terrain}.`;
 
-    // 5. Genre & Style
+    // 5. Genre & Style (Passed dynamically from Project Config)
     if (genre) prompt += ` Genre: ${genre}.`;
     if (style) prompt += ` Style: ${style}.`;
-
-    // 6. Hardcoded Stylistic Suffix (Ensures high quality)
-    prompt += "Detailed facial features, dramatic lighting, 8k";
 
     return prompt;
 };
@@ -75,13 +69,9 @@ export const constructCharacterPrompt = (
         prompt += ` Description: ${allTraits.physical_description}.`;
     }
 
-    // retrieve genre and style from the series DB using getStorage in firebase.ts and append to the prompt
-    // storage is a function in firebase.ts that returns the series data
+    // 5. Genre & Style (Passed dynamically from Project Config)
     if (genre) prompt += ` Genre: ${genre}.`;
     if (style) prompt += ` Style: ${style}.`;
-
-    // 5. Hardcoded Stylistic Suffix
-    prompt += " Detailed facial features, dramatic lighting, 8k";
 
     return prompt;
 };

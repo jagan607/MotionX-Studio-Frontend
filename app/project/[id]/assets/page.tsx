@@ -10,16 +10,17 @@ import { toast } from "react-hot-toast";
 // --- API & TYPES ---
 import {
     fetchProjectAssets,
+    fetchProject, // <--- NEW IMPORT
     deleteAsset,
     createAsset,
     triggerAssetGeneration,
-    updateAsset // Ensure this is exported from your api.ts
+    updateAsset
 } from "@/lib/api";
-import { Asset, CharacterProfile, LocationProfile } from "@/lib/types";
+import { Asset, CharacterProfile, LocationProfile, Project } from "@/lib/types"; // <--- NEW IMPORT
 
 // --- COMPONENTS ---
 import { AssetModal } from "@/components/AssetModal";
-import { AssetCard } from "@/components/AssetCard"; // The new modular card
+import { AssetCard } from "@/components/AssetCard";
 import { StudioLayout } from "@/components/ui/StudioLayout";
 import { MotionButton } from "@/components/ui/MotionButton";
 
@@ -30,6 +31,9 @@ export default function AssetManagerPage() {
 
     // --- STATE ---
     const [activeTab, setActiveTab] = useState<'cast' | 'locations'>('cast');
+
+    // Data State
+    const [project, setProject] = useState<Project | null>(null); // <--- Store Project/Moodboard
     const [assets, setAssets] = useState<{
         characters: CharacterProfile[],
         locations: LocationProfile[]
@@ -43,7 +47,7 @@ export default function AssetManagerPage() {
     // Actions State
     const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
-    const [genPrompt, setGenPrompt] = useState(""); // State to hold prompt for Modal
+    const [genPrompt, setGenPrompt] = useState("");
 
     // Creation State
     const [isCreating, setIsCreating] = useState(false);
@@ -56,11 +60,17 @@ export default function AssetManagerPage() {
 
     const loadData = async () => {
         try {
-            const data = await fetchProjectAssets(projectId);
-            setAssets(data);
+            // Fetch Assets AND Project Details (for moodboard) in parallel
+            const [assetsData, projectData] = await Promise.all([
+                fetchProjectAssets(projectId),
+                fetchProject(projectId)
+            ]);
+
+            setAssets(assetsData);
+            setProject(projectData);
         } catch (e) {
             console.error(e);
-            toast.error("Failed to load assets");
+            toast.error("Failed to load project data");
         } finally {
             setLoading(false);
         }
@@ -72,16 +82,14 @@ export default function AssetManagerPage() {
         if (all.length === 0) return 0;
 
         let score = 0;
-        // Visuals count for 70% of the score
         const visualsDone = all.filter(a => a.image_url).length;
         score += (visualsDone / all.length) * 70;
 
-        // Audio counts for 30% (Characters only)
         if (assets.characters.length > 0) {
             const audioDone = assets.characters.filter(c => c.voice_config?.voice_id).length;
             score += (audioDone / assets.characters.length) * 30;
         } else {
-            score += 30; // If no characters, audio is "done"
+            score += 30;
         }
 
         return Math.round(score);
@@ -127,10 +135,19 @@ export default function AssetManagerPage() {
         toast("Queued for Generation...", { icon: '⏳' });
 
         try {
-            // Trigger Backend Job (Pass prompt if available)
-            await triggerAssetGeneration(projectId, asset.id, asset.type, customPrompt);
+            // 1. Get Moodboard from Project State
+            const moodboardStyle = project?.moodboard;
 
-            // Simple polling simulation for MVP (Ideally use a real polling hook)
+            // 2. Trigger Backend Job (Passing moodboard as style)
+            await triggerAssetGeneration(
+                projectId,
+                asset.id,
+                asset.type,
+                customPrompt,
+                moodboardStyle // <--- PASSING THE STYLE OBJECT
+            );
+
+            // Simple polling simulation for MVP
             setTimeout(() => {
                 loadData();
                 setGeneratingIds(prev => { const next = new Set(prev); next.delete(asset.id); return next; });
@@ -158,10 +175,9 @@ export default function AssetManagerPage() {
 
     const handleUpdateTraits = async (asset: Asset, traits: any) => {
         try {
-            // This assumes you have an updateAsset function in your API
             await updateAsset(projectId, asset.type, asset.id, { visual_traits: traits });
             toast.success("Traits Saved");
-            loadData(); // Refresh data to confirm save
+            loadData();
         } catch (e) {
             toast.error("Failed to save traits");
         }
@@ -260,7 +276,7 @@ export default function AssetManagerPage() {
                         )}
                     </div>
 
-                    {/* ASSET CARDS (Using the new component) */}
+                    {/* ASSET CARDS */}
                     {loading ? (
                         <div className="col-span-full py-20 flex justify-center text-neutral-500 font-mono text-xs">
                             <Loader2 className="animate-spin mr-2" /> LOADING ASSETS...
@@ -274,7 +290,7 @@ export default function AssetManagerPage() {
                             onGenerate={(a) => handleGenerate(a)}
                             onConfig={(a) => {
                                 setSelectedAsset(a);
-                                setGenPrompt(a.prompt || ""); // Pre-fill prompt from DB
+                                setGenPrompt(a.prompt || "");
                             }}
                             onDelete={handleDelete}
                         />
@@ -300,14 +316,15 @@ export default function AssetManagerPage() {
                         isProcessing={generatingIds.has(selectedAsset.id)}
                         onGenerate={() => handleGenerate(selectedAsset, genPrompt)} // Pass the modal prompt!
 
-                        // -- DATA PROPS --
-                        genre="cinematic" // Placeholder or fetch from project
-                        style="realistic"
+                        // -- DATA PROPS (Now Dynamic) --
+                        // Tries to use project moodboard data, falls back to defaults
+                        genre={(project as any)?.genre || "cinematic"}
+                        style={project?.moodboard?.lighting || "realistic"}
 
                         // -- HANDLERS --
-                        onUpload={() => { }} // Implement file upload logic if needed
+                        onUpload={() => { }}
                         onUpdateTraits={(traits) => handleUpdateTraits(selectedAsset, traits)}
-                        onLinkVoice={async () => { }} // Implement voice linking
+                        onLinkVoice={async () => { }}
 
                         styles={{ modal: { background: '#090909', border: '1px solid #222', borderRadius: '12px' } }}
                     />
