@@ -39,12 +39,11 @@ api.interceptors.response.use(
     }
 );
 
-// --- 4. PROJECT HELPERS (New) ---
+// --- 4. PROJECT HELPERS ---
 
 // Fetch the project document (to get the Moodboard)
 export const fetchProject = async (projectId: string): Promise<Project> => {
     // Assumes you have a router @ /api/v1/project/{id}
-    // If not, you might need to use direct Firebase SDK access in the component
     const res = await api.get(`/api/v1/project/${projectId}`);
     return res.data;
 };
@@ -73,8 +72,9 @@ export const fetchProjectAssets = async (projectId: string) => {
     return res.data;
 };
 
-// Create a new empty asset
-export const createAsset = async (projectId: string, data: { name: string, type: string }) => {
+// Create a new asset (Supports Atomic Payload: Name + Traits + Voice)
+export const createAsset = async (projectId: string, data: any) => {
+    // 'data' can now include { name, type, visual_traits, voice_config, prompt }
     return await api.post(`/api/v1/assets/${projectId}/create`, data);
 };
 

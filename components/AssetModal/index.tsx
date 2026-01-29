@@ -5,6 +5,7 @@ import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptU
 import { toast } from 'react-hot-toast';
 import { Asset, CharacterProfile, LocationProfile } from '@/lib/types';
 
+// --- SUB-COMPONENTS ---
 import { TraitsTab } from './TraitsTab';
 import { VoiceTab } from './VoiceTab';
 import { VisualsSection } from './VisualsSection';
@@ -30,7 +31,7 @@ interface AssetModalProps {
 
     onUpload: (f: File) => void;
     onGenerate: () => void;
-    onUpdateTraits: (data: any) => Promise<void>; // <--- UPDATED TYPE
+    onUpdateTraits: (data: any) => Promise<void>;
     onLinkVoice: (v: { voice_id: string; voice_name: string }) => Promise<void>;
 
     styles?: any;
@@ -44,13 +45,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     } = props;
 
     // --- STATE ---
-    const [editableName, setEditableName] = useState(assetName); // <--- NEW STATE
+    const [editableName, setEditableName] = useState(assetName);
     const [editableTraits, setEditableTraits] = useState<any>({});
     const [initialTraits, setInitialTraits] = useState<any>({});
     const [initialName, setInitialName] = useState(assetName); // For dirty check
     const [isSavingTraits, setIsSavingTraits] = useState(false);
 
-    // ... (Voice State remains the same)
+    // Voice State
     const [isVoiceMode, setIsVoiceMode] = useState(false);
     const [allVoices, setAllVoices] = useState<Voice[]>([]);
     const [filteredVoices, setFilteredVoices] = useState<Voice[]>([]);
@@ -59,7 +60,12 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
     const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
     const [isLinkingVoice, setIsLinkingVoice] = useState(false);
+
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // --- DERIVED STATE ---
+    const isCreationMode = currentData.id === 'new';
+    const isNameValid = editableName && editableName.trim().length > 0;
 
     // --- INITIALIZATION ---
     useEffect(() => {
@@ -69,7 +75,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
-    // ... (Voice effects remain same)
     useEffect(() => {
         if (isVoiceMode && allVoices.length === 0) loadVoices();
     }, [isVoiceMode, allVoices.length]);
@@ -109,12 +114,12 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         // 2. Set State
         setEditableTraits(initialData);
         setInitialTraits(initialData);
-        setEditableName(currentData.name); // Sync name
-        setInitialName(currentData.name);
+        setEditableName(currentData.name || "");
+        setInitialName(currentData.name || "");
 
         // 3. Generate Prompt (Using current Name)
         if (!currentData.prompt) {
-            updatePrompt(currentData.name, initialData);
+            updatePrompt(currentData.name || (assetType === 'location' ? "Location" : "Character"), initialData);
         } else {
             setGenPrompt(currentData.prompt);
         }
@@ -124,6 +129,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     // Helper to regenerate prompt dynamically
     const updatePrompt = (name: string, traits: any) => {
+        // Only auto-update prompt if user hasn't heavily modified it manually? 
+        // For now, we follow the established pattern of regenerating on trait change.
         const constructed = assetType === 'location'
             ? constructLocationPrompt(name || "Location", traits.visual_traits, traits, genre, style)
             : constructCharacterPrompt(name || "Character", traits, traits, genre, style);
@@ -133,12 +140,21 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const hasUnsavedChanges = () => {
         const traitsChanged = JSON.stringify(editableTraits) !== JSON.stringify(initialTraits);
         const nameChanged = editableName !== initialName;
+        // Ideally we should also check if Prompt changed, but usually prompt is derived.
         return traitsChanged || nameChanged;
     };
 
     const handleCloseRequest = () => {
         if (hasUnsavedChanges()) {
+            if (isCreationMode && !isNameValid) {
+                onClose();
+                return;
+            }
             if (window.confirm("You have unsaved changes. Do you want to save before closing?")) {
+                if (isCreationMode && !isNameValid) {
+                    toast.error("Please enter a name to save.");
+                    return;
+                }
                 handleSave();
             } else {
                 onClose();
@@ -148,7 +164,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
     };
 
-    // ... (Voice handlers: loadVoices, handlePlayPreview, handleMainViewPlay - remain same)
     const loadVoices = async () => {
         setIsLoadingVoices(true);
         const voices = await fetchElevenLabsVoices();
@@ -187,10 +202,9 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         else toast.error("Voice preview not found.");
     };
 
-    // New Handler for Name Change
     const handleNameChange = (val: string) => {
         setEditableName(val);
-        updatePrompt(val, editableTraits); // Regenerate prompt with new name
+        updatePrompt(val, editableTraits);
     };
 
     const handleTraitChange = (key: string, value: string) => {
@@ -201,10 +215,15 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
         const updatedTraits = { ...editableTraits, [key]: finalValue };
         setEditableTraits(updatedTraits);
-        updatePrompt(editableName, updatedTraits); // Regenerate prompt with new traits
+        updatePrompt(editableName, updatedTraits);
     };
 
     const handleSave = async () => {
+        if (isCreationMode && !isNameValid) {
+            toast.error("Please enter a name for the asset");
+            return;
+        }
+
         setIsSavingTraits(true);
 
         // --- MAP DATA BACK TO DB SCHEMA ---
@@ -230,10 +249,11 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             };
         }
 
-        // Send NAME + TRAITS together
+        // Send NAME + TRAITS + PROMPT together (Atomic Payload)
         await onUpdateTraits({
             name: editableName,
-            visual_traits: traitsPayload
+            visual_traits: traitsPayload,
+            prompt: genPrompt // <--- FIX: Ensure prompt is saved!
         });
 
         setInitialTraits(editableTraits);
@@ -242,7 +262,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         onClose();
     };
 
-    // ... (handleVoiceLink remains same)
     const handleVoiceLink = async () => {
         const v = allVoices.find(v => v.voice_id === selectedVoiceId);
         if (v) {
@@ -257,6 +276,12 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     const voiceConfig = currentData.type === 'character' ? currentData.voice_config : null;
 
+    // Button Logic
+    const isSaveDisabled = isSavingTraits || (isCreationMode && !isNameValid);
+    const saveButtonText = isSavingTraits
+        ? (isCreationMode ? "CREATING..." : "SAVING...")
+        : (isCreationMode ? "CREATE ASSET" : "SAVE CONFIGURATION");
+
     return (
         <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center backdrop-blur-sm">
             <style>{`.modal-scroll::-webkit-scrollbar { width: 6px; } .modal-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }`}</style>
@@ -269,8 +294,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         {isVoiceMode && <ArrowLeft size={20} className="cursor-pointer hover:text-motion-red" onClick={() => setIsVoiceMode(false)} />}
                         {assetType === 'location' ? <MapPin size={20} className="text-motion-red" /> : <User size={20} className="text-motion-red" />}
                         <div>
-                            {/* Display Name in Header reflects edit */}
-                            <h2 className="text-lg font-display uppercase text-white leading-none">{editableName || "Untitled"}</h2>
+                            {/* Display Name reflects edit or placeholder */}
+                            <h2 className="text-lg font-display uppercase text-white leading-none">
+                                {editableName || (isCreationMode ? "New Asset" : "Untitled")}
+                            </h2>
                             <div className="text-[10px] text-neutral-500 tracking-widest mt-1">
                                 {isVoiceMode ? "VOICE LIBRARY" : "CONFIGURATION STUDIO"}
                             </div>
@@ -283,7 +310,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 <div className="modal-scroll flex-1 overflow-y-auto p-5 pb-10 flex flex-col gap-8">
                     {isVoiceMode ? (
                         <VoiceTab
-                            // ... pass existing props
                             voiceSuggestion={voiceConfig?.suggestion}
                             voiceSearch={voiceSearch}
                             setVoiceSearch={setVoiceSearch}
@@ -307,8 +333,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                 <div className="text-[10px] font-bold text-neutral-500 mb-3 tracking-widest uppercase">Asset Definition</div>
                                 <TraitsTab
                                     assetType={assetType!}
-                                    editableName={editableName}        // <--- PASS NAME
-                                    onNameChange={handleNameChange}    // <--- PASS HANDLER
+                                    editableName={editableName}
+                                    onNameChange={handleNameChange}
                                     editableTraits={editableTraits}
                                     handleTraitChange={handleTraitChange}
                                 />
@@ -342,10 +368,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                     <div className="p-5 border-t border-[#222] bg-[#0a0a0a] shrink-0">
                         <button
                             onClick={handleSave}
-                            disabled={isSavingTraits}
-                            className="w-full py-3 bg-white hover:bg-neutral-200 text-black font-bold text-xs tracking-widest rounded transition-colors disabled:opacity-50"
+                            disabled={isSaveDisabled}
+                            className="w-full py-3 bg-white hover:bg-neutral-200 text-black font-bold text-xs tracking-widest rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isSavingTraits ? "SAVING..." : "SAVE CONFIGURATION"}
+                            {saveButtonText}
                         </button>
                     </div>
                 )}
