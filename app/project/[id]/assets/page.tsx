@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-    ArrowRight, Users, MapPin, Sparkles, Plus, Loader2
+    ArrowRight, Users, MapPin, Sparkles, Loader2
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -17,6 +17,7 @@ import {
     updateAsset
 } from "@/lib/api";
 import { Asset, CharacterProfile, LocationProfile, Project } from "@/lib/types";
+import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils';
 
 // --- COMPONENTS ---
 import { AssetModal } from "@/components/AssetModal";
@@ -106,13 +107,14 @@ export default function AssetManagerPage() {
 
     // A. Open Draft Mode
     const handleOpenDraft = () => {
+        // We use singular 'character'/'location' for creation logic to match Typescript types
         const type = activeTab === 'cast' ? 'character' : 'location';
 
         // Create a temporary "Draft Asset"
         const draftAsset: any = {
-            id: "new", // Special Flag ID
+            id: "new",
             type: type,
-            name: "", // Start Empty
+            name: "",
             project_id: projectId,
             status: "pending",
             visual_traits: {},
@@ -127,10 +129,10 @@ export default function AssetManagerPage() {
     const handleSaveAsset = async (asset: Asset, data: any) => {
         try {
             if (asset.id === "new") {
-                // --- CREATE MODE (Atomic) ---
+                // --- CREATE MODE ---
                 await createAsset(projectId, {
                     ...data,
-                    type: asset.type
+                    type: asset.type // Uses singular from draft
                 });
                 toast.success("Asset Created");
             } else {
@@ -139,8 +141,8 @@ export default function AssetManagerPage() {
                 toast.success("Configuration Saved");
             }
 
-            setSelectedAsset(null); // Close Modal
-            loadData(); // Refresh Grid
+            setSelectedAsset(null);
+            loadData();
         } catch (e) {
             console.error(e);
             toast.error("Failed to save asset");
@@ -161,8 +163,9 @@ export default function AssetManagerPage() {
         }
     };
 
+    // --- CORE GENERATION LOGIC UPDATE ---
     const handleGenerate = async (asset: Asset, customPrompt?: string) => {
-        if (asset.id === "new") return; // Safety check (should be handled by CreateAndGenerate)
+        if (asset.id === "new") return;
 
         setGeneratingIds(prev => new Set(prev).add(asset.id));
         toast("Queued for Generation...", { icon: '⏳' });
@@ -170,16 +173,48 @@ export default function AssetManagerPage() {
         try {
             const { code, owner_id, ...cleanStyle } = project?.moodboard || {};
             const aspectRatio = (project as any)?.aspect_ratio || "16:9";
+            const genre = (project as any)?.genre || "cinematic";
+            const style = project?.moodboard?.lighting || "realistic";
+
+            // --- FIX: FORCE TYPE BASED ON TAB ---
+            // If active tab is 'cast', we force type to 'characters' (Plural)
+            // If active tab is 'locations', we force type to 'locations' (Plural)
+            // This overrides any DB type like "primary", "secondary", etc.
+            const requestType = activeTab === 'cast' ? 'characters' : 'locations';
+
+            // --- FIX: ENSURE PROMPT EXISTS ---
+            let finalPrompt = customPrompt;
+            if (!finalPrompt) {
+                // Construct it dynamically if missing
+                if (asset.type === 'location') {
+                    finalPrompt = constructLocationPrompt(
+                        asset.name,
+                        asset.visual_traits,
+                        asset.visual_traits, // Pass as full object too
+                        genre,
+                        style
+                    );
+                } else {
+                    finalPrompt = constructCharacterPrompt(
+                        asset.name,
+                        asset.visual_traits,
+                        asset.visual_traits,
+                        genre,
+                        style
+                    );
+                }
+            }
 
             await triggerAssetGeneration(
                 projectId,
                 asset.id,
-                asset.type,
-                customPrompt,
+                requestType, // <-- Sending Clean Plural Type
+                finalPrompt,
                 cleanStyle,
                 aspectRatio
             );
 
+            // Poll/Refresh logic
             setTimeout(() => {
                 loadData();
                 setGeneratingIds(prev => { const next = new Set(prev); next.delete(asset.id); return next; });
@@ -192,33 +227,28 @@ export default function AssetManagerPage() {
         }
     };
 
-    // --- NEW: Handle "Create & Generate" for Drafts ---
     const handleCreateAndGenerate = async (draftData: any) => {
         if (!selectedAsset) return;
 
+        // Use singular for creation (matches TS types)
         const type = activeTab === 'cast' ? 'character' : 'location';
 
         try {
             toast.loading("Creating asset first...");
 
-            // 1. Create the Asset via API
+            // 1. Create
             const response = await createAsset(projectId, {
                 ...draftData,
                 type: type
             });
 
-            // 2. Get the new REAL asset object
             const newAsset = response.data.asset;
 
-            // 3. Switch Modal from "Draft" to "Real"
-            // This prevents the modal from closing and allows generation to show
+            // 2. Switch context to real asset
             setSelectedAsset(newAsset);
-
-            // 4. Refresh Grid in background
             loadData();
 
-            // 5. Trigger Generation on the NEW ID
-            // Pass the prompt from draftData because the newAsset from DB might not have it yet if async
+            // 3. Trigger Generate (will use handleGenerate which fixes the type)
             await handleGenerate(newAsset, draftData.prompt);
 
         } catch (e) {
@@ -240,14 +270,14 @@ export default function AssetManagerPage() {
         await Promise.all(pending.map(asset => handleGenerate(asset)));
     };
 
-    // --- RENDER HELPERS ---
+    // --- RENDER ---
     const displayedAssets = activeTab === 'cast' ? assets.characters : assets.locations;
 
     return (
         <StudioLayout>
             <div className="min-h-screen bg-black text-white p-8 pb-32 font-sans">
 
-                {/* HEADER & CONTROLS */}
+                {/* HEADER */}
                 <header className="flex flex-col xl:flex-row justify-between items-end mb-8 gap-6 border-b border-neutral-800 pb-6">
                     <div className="w-full xl:w-auto">
                         <div className="flex items-center justify-between mb-2">
@@ -298,17 +328,14 @@ export default function AssetManagerPage() {
                     </div>
                 </header>
 
-                {/* ASSET GRID */}
+                {/* GRID */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-
-                    {/* 1. ADD NEW CARD */}
                     <AssetCard
                         variant="create"
                         onCreate={handleOpenDraft}
                         label={`New ${activeTab === 'cast' ? 'Character' : 'Location'}`}
                     />
 
-                    {/* 2. EXISTING ASSET CARDS */}
                     {loading ? (
                         <div className="col-span-full py-20 flex justify-center text-neutral-500 font-mono text-xs">
                             <Loader2 className="animate-spin mr-2" /> LOADING ASSETS...
@@ -320,7 +347,7 @@ export default function AssetManagerPage() {
                             asset={asset}
                             projectId={projectId}
                             isGenerating={generatingIds.has(asset.id)}
-                            onGenerate={(a) => handleGenerate(a)}
+                            onGenerate={(a) => handleGenerate(a, a.prompt || a.base_prompt)}
                             onConfig={(a) => {
                                 setSelectedAsset(a);
                                 setGenPrompt(a.prompt || "");
@@ -330,7 +357,7 @@ export default function AssetManagerPage() {
                     ))}
                 </div>
 
-                {/* MODAL INTEGRATION */}
+                {/* MODAL */}
                 {selectedAsset && (
                     <AssetModal
                         isOpen={!!selectedAsset}
@@ -340,30 +367,18 @@ export default function AssetManagerPage() {
                         assetType={selectedAsset.type}
                         assetName={selectedAsset.name}
                         currentData={selectedAsset}
-
-                        // -- GENERATION PROPS --
                         mode="generate"
                         setMode={() => { }}
                         genPrompt={genPrompt}
                         setGenPrompt={setGenPrompt}
-
-                        // Pass persistent loading state
-                        // If it's a draft ("new"), it's not generating yet until we switch ID
                         isProcessing={selectedAsset.id !== "new" && generatingIds.has(selectedAsset.id)}
-
-                        // Standard Generation
                         onGenerate={() => handleGenerate(selectedAsset, genPrompt)}
-
-                        // NEW: Create & Generate for Drafts
                         onCreateAndGenerate={handleCreateAndGenerate}
-
-                        // -- DATA & HANDLERS --
                         genre={(project as any)?.genre || "cinematic"}
                         style={project?.moodboard?.lighting || "realistic"}
                         onUpload={() => { }}
                         onUpdateTraits={(data) => handleSaveAsset(selectedAsset, data)}
                         onLinkVoice={async () => { }}
-
                         styles={{ modal: { background: '#090909', border: '1px solid #222', borderRadius: '12px' } }}
                     />
                 )}
