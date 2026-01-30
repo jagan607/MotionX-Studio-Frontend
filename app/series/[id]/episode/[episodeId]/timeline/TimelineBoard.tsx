@@ -301,7 +301,7 @@ export const TimelineBoard = ({ seriesId, episodeId, shots }: any) => {
             const token = await auth.currentUser?.getIdToken();
             const formData = new FormData();
             formData.append("prompt", sfxPrompt);
-            const res = await fetch(`${API_BASE_URL}/api/v1/generate_sfx`, {
+            const res = await fetch(`${API_BASE_URL}/api/v1/shot/generate_sfx`, {
                 method: "POST", headers: { "Authorization": `Bearer ${token}` }, body: formData
             });
             const data = await res.json();
