@@ -89,7 +89,7 @@ export const deleteAsset = async (projectId: string, type: string, assetId: stri
     return await api.delete(`/api/v1/assets/${projectId}/${type}/${assetId}`);
 };
 
-// Trigger AI Image Generation
+// Trigger Asset AI Image Generation
 export const triggerAssetGeneration = async (
     projectId: string,
     assetId: string,

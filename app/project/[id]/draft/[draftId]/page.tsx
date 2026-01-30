@@ -66,7 +66,7 @@ export default function ScriptLab() {
                 }
             } else {
                 toast.error("Draft not found");
-                router.push(`/project/${projectId}/pre-production`);
+                router.push(`/project/${projectId}/script`);
             }
         });
         return () => unsub();
@@ -165,8 +165,8 @@ export default function ScriptLab() {
         <StudioLayout>
             {/* NAV */}
             <div className="flex items-center justify-between mb-8">
-                <Link href={`/project/${projectId}/pre-production`} className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] text-motion-text-muted hover:text-motion-text transition-colors">
-                    <ArrowLeft size={14} /> BACK TO TERMINAL
+                <Link href={`/project/${projectId}/script`} className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] text-motion-text-muted hover:text-motion-text transition-colors">
+                    <ArrowLeft size={14} /> BACK TO SCRIPT
                 </Link>
 
                 <div className="flex items-center gap-2 text-[10px] font-mono text-motion-red bg-motion-red/10 px-3 py-1 border border-motion-red/20">

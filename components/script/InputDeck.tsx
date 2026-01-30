@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
-    Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2
+    Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2, Lock
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { api, checkJobStatus } from "@/lib/api";
@@ -10,6 +10,9 @@ import { MotionButton } from "@/components/ui/MotionButton";
 
 interface InputDeckProps {
     projectId: string;
+    projectTitle: string;
+    // Align with Project['type'] from types.ts
+    projectType: "movie" | "micro_drama";
     onSuccess: (redirectUrl: string) => void;
     onCancel: () => void;
     isModal?: boolean;
@@ -17,7 +20,13 @@ interface InputDeckProps {
 }
 
 export const InputDeck: React.FC<InputDeckProps> = ({
-    projectId, onSuccess, onCancel, isModal = false, className = ""
+    projectId,
+    projectTitle,
+    projectType,
+    onSuccess,
+    onCancel,
+    isModal = false,
+    className = ""
 }) => {
     const [title, setTitle] = useState("");
 
@@ -29,11 +38,20 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     const [statusText, setStatusText] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Derived state for clearer logic
+    const isMovie = projectType === "movie";
+
+    // Auto-set title for Movies (locked field)
+    useEffect(() => {
+        if (isMovie && projectTitle) {
+            setTitle(projectTitle);
+        }
+    }, [isMovie, projectTitle]);
+
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
     };
 
-    // Smart submission: prioritize synopsis > paste > upload
     const executeProtocol = async () => {
         if (!title) { toast.error("ENTER IDENTIFIER (TITLE)"); return; }
 
@@ -60,7 +78,8 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         setStatusText("INITIALIZING UPLINK...");
 
         try {
-            const res = await api.post("api/v1/script/upload-script", formData, {
+            // Note: Added leading slash for safety
+            const res = await api.post("/api/v1/script/upload-script", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
 
@@ -79,6 +98,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     if (job.redirect_url) {
                         onSuccess(job.redirect_url);
                     } else {
+                        // Fallback if URL is missing (or use a default)
                         toast.error("Redirect coordinates missing.");
                         setIsUploading(false);
                     }
@@ -97,13 +117,11 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         }
     };
 
-    // Determine button text based on which input has content
     const getButtonText = () => {
         if (synopsisText.trim()) return "GENERATE & INGEST";
         return "INITIALIZE INGESTION";
     };
 
-    // Determine if button should be enabled
     const isButtonEnabled = () => {
         if (!title) return false;
         return synopsisText.trim() || pastedScript.trim() || selectedFile;
@@ -112,22 +130,37 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     return (
         <div className={`flex flex-col bg-neutral-900/30 border border-neutral-800 rounded-xl shadow-2xl h-full ${className}`}>
 
-            {/* CONTENT - NO SCROLL */}
+            {/* CONTENT */}
             <div className="flex-1 flex flex-col p-6 min-h-0">
 
-                {/* SESSION IDENTIFIER */}
+                {/* DYNAMIC SESSION IDENTIFIER */}
                 <div className="mb-6 shrink-0">
                     <label className="text-[9px] font-mono text-motion-text-muted uppercase tracking-widest mb-2 block">
-                        Session Identifier
+                        {isMovie ? "Project Script Title" : "Episode Identifier"}
                     </label>
-                    <input
-                        className="w-full bg-transparent border-b border-neutral-700 py-2 text-xl font-display text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors uppercase"
-                        placeholder="ENTER SCENE / EPISODE TITLE..."
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        disabled={isUploading}
-                        autoFocus
-                    />
+
+                    {isMovie ? (
+                        // MOVIE: Locked View
+                        <div className="flex items-center justify-between w-full border-b border-neutral-700 py-2">
+                            <span className="text-xl font-display text-white/50 uppercase select-none">
+                                {projectTitle || "UNTITLED PROJECT"}
+                            </span>
+                            <div className="flex items-center gap-2 text-neutral-600">
+                                <span className="text-[9px] font-mono">LOCKED</span>
+                                <Lock size={14} />
+                            </div>
+                        </div>
+                    ) : (
+                        // MICRO DRAMA / SERIES: Input View
+                        <input
+                            className="w-full bg-transparent border-b border-neutral-700 py-2 text-xl font-display text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors uppercase"
+                            placeholder={`ENTER EPISODE TITLE FOR "${projectTitle?.toUpperCase() || 'PROJECT'}"...`}
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            disabled={isUploading}
+                            autoFocus
+                        />
+                    )}
                 </div>
 
                 {/* PRIMARY: AI GENERATION */}
@@ -158,10 +191,9 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     <div className="flex-1 h-px bg-neutral-800"></div>
                 </div>
 
-                {/* SECONDARY: UPLOAD & PASTE - Side by Side */}
+                {/* SECONDARY INPUTS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 shrink-0">
-
-                    {/* DATA UPLOAD */}
+                    {/* Upload */}
                     <div>
                         <div className="flex items-center gap-2 mb-2">
                             <Upload size={12} className="text-neutral-500" />
@@ -187,7 +219,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                         </div>
                     </div>
 
-                    {/* TERMINAL PASTE */}
+                    {/* Paste */}
                     <div>
                         <div className="flex items-center gap-2 mb-2">
                             <Terminal size={12} className="text-neutral-500" />
@@ -203,7 +235,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     </div>
                 </div>
 
-                {/* ABORT BUTTON (Modal only) */}
                 {isModal && (
                     <div className="mt-4 pt-4 border-t border-neutral-800">
                         <button
@@ -216,7 +247,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 )}
             </div>
 
-            {/* FOOTER: Fixed at bottom */}
+            {/* FOOTER */}
             <div className="shrink-0 p-4 border-t border-neutral-800 bg-black/30">
                 {isUploading && (
                     <div className="flex justify-between items-center text-[10px] font-mono text-motion-red mb-2">

@@ -400,16 +400,16 @@ export default function EpisodeBoard() {
                         onClose={() => assetMgr.setModalOpen(false)}
                         onUpdateTraits={handleUpdateTraits}
                         onLinkVoice={handleLinkVoice}
-                        assetId={assetMgr.selectedAssetId}
+                        assetId={assetMgr.selectedAssetId || ""}
                         assetName={selectedAssetData?.name || assetMgr.selectedAsset || 'Unknown Asset'}
                         assetType={assetMgr.assetType}
-                        currentData={selectedAssetData}
+                        currentData={selectedAssetData as any}
+                        projectId={seriesId}
                         mode={assetMgr.modalMode}
                         setMode={assetMgr.setModalMode}
                         genPrompt={assetMgr.genPrompt}
                         setGenPrompt={assetMgr.setGenPrompt}
                         isProcessing={assetMgr.isProcessing}
-                        basePrompt={selectedAssetData?.base_prompt}
                         genre={episodeData?.genre}
                         style={episodeData?.style}
                         onUpload={(file) => assetMgr.handleAssetUpload(file, (url) => {
