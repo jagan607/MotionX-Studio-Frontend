@@ -6,31 +6,49 @@ export const constructLocationPrompt = (
     genre: string,
     style: string
 ): string => {
-    // 1. Base Identity
-    let prompt = `Cinematic wide shot of ${locationName.toUpperCase()}.`;
+    // 1. Analyze Name (Parse INT./EXT.)
+    let subject = locationName;
+    let context = "wide shot"; // default
 
-    // 2. Atmosphere & Lighting (The "Vibe")
+    const upperName = locationName.toUpperCase();
+    if (upperName.includes("INT.") || upperName.includes("INTERIOR")) {
+        subject = locationName.replace(/INT\.|INTERIOR/gi, "").trim();
+        context = "cinematic interior shot";
+    } else if (upperName.includes("EXT.") || upperName.includes("EXTERIOR")) {
+        subject = locationName.replace(/EXT\.|EXTERIOR/gi, "").trim();
+        context = "cinematic exterior wide shot";
+    }
+
+    // 2. Base Identity (Force "Empty")
+    let prompt = `${context} of an empty ${subject}`;
+
+    // 3. Terrain/Setting (Grounding)
+    if (allTraits.terrain) prompt += `, situated in ${allTraits.terrain}`;
+
+    prompt += "."; // End subject clause
+
+    // 4. Specific Visual Details (The "Ingredients")
+    // Handle if visualTraits is an array (new schema) or object (legacy fallback)
+    let details: string[] = [];
+    if (Array.isArray(visualTraits)) {
+        details = visualTraits;
+    } else if (visualTraits && typeof visualTraits === 'object') {
+        if (visualTraits.environment) details.push(visualTraits.environment);
+        if (visualTraits.architectural_style) details.push(visualTraits.architectural_style);
+    }
+
+    if (details.length > 0) prompt += ` Visual Details: ${details.join(', ')}.`;
+
+    // 5. Atmosphere & Lighting (The "Vibe")
     if (allTraits.atmosphere) prompt += ` Atmosphere: ${allTraits.atmosphere}.`;
     if (allTraits.lighting) prompt += ` Lighting: ${allTraits.lighting}.`;
 
-    // 3. Specific Visual Details (The "Ingredients")
-    // Handle if visualTraits is an array (new schema) or object (legacy fallback)
-    if (Array.isArray(visualTraits) && visualTraits.length > 0) {
-        prompt += ` Visual details: ${visualTraits.join(', ')}.`;
-    } else if (visualTraits && typeof visualTraits === 'object' && !Array.isArray(visualTraits)) {
-        // Fallback for any legacy object structure
-        const details = [];
-        if (visualTraits.environment) details.push(visualTraits.environment);
-        if (visualTraits.architectural_style) details.push(visualTraits.architectural_style);
-        if (details.length > 0) prompt += ` Visual details: ${details.join(', ')}.`;
-    }
-
-    // 4. Terrain/Setting
-    if (allTraits.terrain) prompt += ` Setting: ${allTraits.terrain}.`;
-
-    // 5. Genre & Style (Passed dynamically from Project Config)
+    // 6. Style & Genre (Aesthetic wrapper)
     if (genre) prompt += ` Genre: ${genre}.`;
     if (style) prompt += ` Style: ${style}.`;
+
+    // 7. FINAL SAFETY LOCK (Negative constraints as positive text for DALL-E)
+    prompt += " Scene must be completely empty, devoid of people, no characters, architectural photography.";
 
     return prompt;
 };
