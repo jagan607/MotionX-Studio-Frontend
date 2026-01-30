@@ -89,8 +89,8 @@ export default function RootLayout({
               dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
             <AuthProvider>
-              <div className="film-grain" />
-              <div className="vignette" />
+              {/* <div className="film-grain" /> */}
+              {/* <div className="vignette" /> */}
 
               {/* 3. GLOBAL HEADER */}
               <GlobalHeader />
