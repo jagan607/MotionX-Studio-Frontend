@@ -1,5 +1,7 @@
+"use client";
+
 import React from "react";
-import { Film, Clock } from "lucide-react"; // Removed FileText
+import { Film, Clock } from "lucide-react";
 import { EntityStatusChip } from "./EntityStatusChip";
 import { Asset } from "@/lib/types";
 
@@ -20,8 +22,8 @@ interface SceneCardProps {
         characters: Asset[];
         locations: Asset[];
     };
-    onOpenStoryboard: (sceneId: string) => void;
-    // Removed onEditScript prop
+    // UPDATED: Now accepts the full object
+    onOpenStoryboard: (scene: SceneData) => void;
 }
 
 export const SceneCard: React.FC<SceneCardProps> = ({
@@ -30,18 +32,12 @@ export const SceneCard: React.FC<SceneCardProps> = ({
     onOpenStoryboard
 }) => {
 
-    // --- HELPER: CHECK ASSET STATUS (Defensive Version) ---
     const getAssetStatus = (name: string, type: 'character' | 'location') => {
         if (!name) return { status: 'missing' as const, imageUrl: undefined };
-
         const list = type === 'character' ? projectAssets.characters : projectAssets.locations;
         if (!list) return { status: 'missing' as const, imageUrl: undefined };
 
-        // Safe check preventing the .toLowerCase() crash
-        const match = list.find(a =>
-            a.name && a.name.toLowerCase() === name.toLowerCase()
-        );
-
+        const match = list.find(a => a.name && a.name.toLowerCase() === name.toLowerCase());
         return {
             status: match ? ('linked' as const) : ('missing' as const),
             imageUrl: match?.image_url
@@ -52,8 +48,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
 
     return (
         <div className="group relative bg-[#090909] border border-[#222] rounded-xl p-4 flex flex-col justify-between hover:border-neutral-600 transition-all duration-300">
-
-            {/* 1. HEADER */}
+            {/* HEADER */}
             <div className="mb-4">
                 <div className="flex justify-between items-start mb-1">
                     <span className="text-[10px] font-mono text-motion-red font-bold tracking-widest">
@@ -69,14 +64,14 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                 </h3>
             </div>
 
-            {/* 2. BODY */}
+            {/* BODY */}
             <div className="flex-1 mb-6">
                 <p className="text-[11px] text-neutral-400 line-clamp-3 leading-relaxed">
                     {scene.synopsis || "No synopsis available."}
                 </p>
             </div>
 
-            {/* 3. ASSETS */}
+            {/* ASSETS */}
             <div className="space-y-2 mb-6">
                 {scene.location && (
                     <div className="flex items-center gap-2">
@@ -112,10 +107,11 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                 )}
             </div>
 
-            {/* 4. FOOTER */}
+            {/* FOOTER */}
             <div className="flex items-center gap-2 pt-4 border-t border-[#222] group-hover:border-[#333] transition-colors">
                 <button
-                    onClick={() => onOpenStoryboard(scene.id)}
+                    // UPDATED: Pass the full scene object
+                    onClick={() => onOpenStoryboard(scene)}
                     className="w-full flex items-center justify-center gap-2 bg-white text-black py-2 rounded text-[10px] font-bold tracking-widest hover:bg-motion-red hover:text-white transition-colors"
                 >
                     <Film size={12} /> OPEN STORYBOARD

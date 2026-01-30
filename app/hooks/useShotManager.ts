@@ -101,7 +101,11 @@ export const useShotManager = (
         handleFinalizeShot: imageGen.handleFinalizeShot,
 
         // Video
-        handleAnimateShot: videoGen.handleAnimateShot,
+        handleAnimateShot: (
+            shot: any,
+            provider: 'kling' | 'seedance' = 'kling',
+            endFrameUrl?: string | null
+        ) => videoGen.handleAnimateShot(shot, provider, endFrameUrl),
 
         // Audio
         handleGenerateVoiceover: audioGen.handleGenerateVoiceover,

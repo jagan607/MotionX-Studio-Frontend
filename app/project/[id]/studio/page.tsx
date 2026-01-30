@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import { StudioLayout } from "@/components/ui/StudioLayout";
 import { StudioControlBar } from "@/components/studio/StudioControlBar";
 import { SceneCard, SceneData } from "@/components/studio/SceneCard";
+import { SceneStoryboardContainer } from "@/app/components/studio/SceneStoryboardContainer";
 
 // --- API & TYPES ---
 import {
@@ -35,7 +36,10 @@ export default function StudioPage() {
     // Content State
     const [scenes, setScenes] = useState<SceneData[]>([]);
 
-    // Asset DB (For Intelligence)
+    // UI State: Controls the Storyboard Modal
+    const [selectedScene, setSelectedScene] = useState<SceneData | null>(null);
+
+    // Asset DB
     const [assets, setAssets] = useState<{
         characters: Asset[],
         locations: Asset[]
@@ -66,11 +70,10 @@ export default function StudioPage() {
                 if (eps.length > 0) {
                     setActiveEpisodeId(eps[0].id);
                 } else {
-                    // No episodes yet? Handle empty state if needed
                     setActiveEpisodeId("empty");
                 }
             } else {
-                // Movie: Use the default ID (or a fixed identifier like 'main')
+                // Movie: Use "main" as the default identifier
                 setActiveEpisodeId(projData.default_episode_id || "main");
             }
 
@@ -82,7 +85,7 @@ export default function StudioPage() {
         }
     };
 
-    // --- 2. FETCH SCENES WHEN EPISODE CHANGE ---
+    // --- 2. FETCH SCENES WHEN EPISODE CHANGES ---
     useEffect(() => {
         if (!activeEpisodeId || activeEpisodeId === "empty") return;
         loadScenes(activeEpisodeId);
@@ -91,13 +94,8 @@ export default function StudioPage() {
     const loadScenes = async (epId: string) => {
         try {
             // API Call: Fetch scenes for this specific episode/container
-            // Note: Ensure your backend supports filtering by ?container_id=...
             const data = await fetchScenes(projectId, epId);
-
-            // Transform API data to SceneData interface if needed
-            // For now assuming direct mapping matches
             setScenes(data.scenes || []);
-
         } catch (e) {
             console.error("Failed to load scenes", e);
             toast.error("Could not fetch scenes");
@@ -107,9 +105,6 @@ export default function StudioPage() {
     // --- 3. CALCULATE STATS ---
     const calculateStats = () => {
         const totalAssets = assets.characters.length + assets.locations.length;
-
-        // Calculate rudimentary visual progress
-        // (In the future, check scene.status === 'approved' or has images)
         const visualProgress = scenes.length > 0
             ? Math.round((scenes.filter(s => s.status === 'approved').length / scenes.length) * 100)
             : 0;
@@ -121,17 +116,9 @@ export default function StudioPage() {
         };
     };
 
-    // --- 4. NAVIGATION HANDLERS ---
-    const handleOpenStoryboard = (sceneId: string) => {
-        // Navigate to the specific scene's visual editor
-        // We might create a route like /project/[id]/scene/[sceneId] later
-        toast("Opening Storyboard... (Next Feature)");
-        // router.push(`/project/${projectId}/scene/${sceneId}`);
-    };
-
-    const handleEditScript = (sceneId: string) => {
-        // Navigate to script editor, focusing on this scene
-        router.push(`/project/${projectId}/script?scene=${sceneId}`);
+    // --- 4. HANDLERS ---
+    const handleOpenStoryboard = (scene: SceneData) => {
+        setSelectedScene(scene); // Triggers the modal
     };
 
     // --- RENDER ---
@@ -164,7 +151,7 @@ export default function StudioPage() {
                                 No Scenes Detected
                             </p>
                             <p className="text-xs font-mono mb-6 max-w-md text-center leading-relaxed">
-                                The Production Terminal is empty. Go to the Script Editor to write your screenplay or create your first episode.
+                                The Production Terminal is empty. Go to the Script Editor to write your screenplay.
                             </p>
                             <button
                                 onClick={() => router.push(`/project/${projectId}/script`)}
@@ -187,6 +174,22 @@ export default function StudioPage() {
                         </div>
                     )}
                 </div>
+
+                {/* C. STORYBOARD OVERLAY (MOUNTED HERE) */}
+                {selectedScene && (
+                    <SceneStoryboardContainer
+                        isOpen={!!selectedScene}
+                        onClose={() => setSelectedScene(null)}
+
+                        projectId={projectId}
+                        episodeId={activeEpisodeId || "main"}
+                        scene={selectedScene}
+
+                        projectAssets={assets}
+                        seriesTitle={project.title}
+                        credits={99} // Connect to real credits context later
+                    />
+                )}
 
             </div>
         </StudioLayout>

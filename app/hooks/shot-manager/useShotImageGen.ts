@@ -12,7 +12,12 @@ export const useShotImageGen = (
     onLowCredits?: () => void
 ) => {
 
-    const handleRenderShot = async (shot: any, aspectRatio: string, referenceFile?: File | null) => {
+    const handleRenderShot = async (
+        shot: any,
+        aspectRatio: string,
+        referenceFile?: File | null, // <--- Explicitly allow null/undefined
+        provider: 'gemini' | 'seedream' = 'gemini' // <--- Added Provider
+    ) => {
         addLoadingShot(shot.id);
 
         let style = "";
@@ -35,8 +40,11 @@ export const useShotImageGen = (
         formData.append("characters", Array.isArray(shot.characters) ? shot.characters.join(",") : "");
         formData.append("location", shot.location || "");
         formData.append("aspect_ratio", aspectRatio);
+        formData.append("provider", provider); // <--- Send Provider
 
-        if (referenceFile) formData.append("reference_image", referenceFile);
+        if (referenceFile) {
+            formData.append("reference_image", referenceFile);
+        }
 
         try {
             await api.post("/api/v1/shot/generate_shot", formData);

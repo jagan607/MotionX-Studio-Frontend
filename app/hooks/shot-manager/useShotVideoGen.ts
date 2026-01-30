@@ -7,7 +7,12 @@ export const useShotVideoGen = (
     sceneId: string | null
 ) => {
 
-    const handleAnimateShot = async (shot: any, provider: string = 'kling') => {
+    // UPDATED: Added provider type and endFrameUrl (nullable)
+    const handleAnimateShot = async (
+        shot: any,
+        provider: 'kling' | 'seedance' = 'kling',
+        endFrameUrl?: string | null
+    ) => {
         if (!shot.image_url) return toast.error("No image to animate");
 
         try {
@@ -20,7 +25,13 @@ export const useShotVideoGen = (
             formData.append("prompt", shot.video_prompt || "Cinematic motion");
             formData.append("provider", provider);
 
+            // NEW: Handle Morphing
+            if (endFrameUrl) {
+                formData.append("end_frame_url", endFrameUrl);
+            }
+
             await api.post("/api/v1/shot/animate_shot", formData);
+            toast.success("Animation Queued");
         } catch (e: any) {
             toast.error(e.response?.data?.detail || "Animation request failed");
         }

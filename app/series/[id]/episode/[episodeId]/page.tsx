@@ -10,7 +10,6 @@ import { API_BASE_URL } from "@/lib/config";
 import { useCredits } from "@/hooks/useCredits";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { Toaster } from "react-hot-toast";
-import { styles } from "./components/BoardStyles";
 import { Users, MapPin } from "lucide-react";
 
 // --- MODULAR COMPONENTS ---
@@ -18,9 +17,7 @@ import { EpisodeHeader } from "./components/EpisodeHeader";
 import { ScenesTab } from "./components/ScenesTab";
 import { CastingTab } from "./components/CastingTab";
 import { LocationsTab } from "./components/LocationsTab";
-import { StoryboardOverlay } from "./components/StoryboardOverlay";
-import { ZoomOverlay } from "./components/ZoomOverlay";
-import { DownloadModal } from "./components/DownloadModal";
+import { StoryboardOverlay } from "../../../../components/storyboard/StoryboardOverlay";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { TourGuide } from "./components/TourGuide";
 import { AssetModal } from '../../../../../components/AssetModal';
@@ -34,7 +31,6 @@ import { useShotManager } from "./hooks/useShotManager";
 import { useEpisodeTour } from "./hooks/useEpisodeTour";
 import { useStoryboardTour } from "@/hooks/useStoryboardTour";
 import { useSeriesAssets } from "@/hooks/useSeriesAssets";
-import { MediaViewer } from "./components/MediaViewer";
 
 // --- TYPES ---
 import { CharacterProfile, LocationProfile } from "@/lib/types";
@@ -262,209 +258,8 @@ export default function EpisodeBoard() {
     };
 
     return (
-        <main style={styles.container}>
-            <Toaster position="bottom-right" reverseOrder={false} />
+        <main >
 
-            {/* --- 4. RENDER CREDIT MODAL --- */}
-            <CreditModal
-                isOpen={showCreditModal}
-                onClose={() => setShowCreditModal(false)}
-            />
-
-            <EpisodeHeader
-                seriesId={seriesId}
-                episodeTitle={episodeData?.title}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                castCount={castMembers.length}
-                locCount={locations.length}
-                styles={styles}
-            />
-
-            {/* --- MAIN TABS --- */}
-            {activeTab === 'scenes' && (
-                <ScenesTab
-                    scenes={scenes}
-                    onOpenStoryboard={setActiveSceneId}
-                    styles={styles}
-                />
-            )}
-
-            {activeTab === 'casting' && (
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
-                        <button
-                            onClick={() => { setLibType('character'); setLibModalOpen(true); }}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '8px',
-                                padding: '10px 20px', backgroundColor: '#1A1A1A', border: '1px solid #333',
-                                color: '#FFF', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer',
-                                letterSpacing: '1px', borderRadius: '4px', transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#222'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#1A1A1A'; }}
-                        >
-                            <Users size={14} /> IMPORT FROM SERIES LIBRARY
-                        </button>
-                    </div>
-
-                    <CastingTab
-                        castMembers={castMembers}
-                        loading={dataLoading}
-                        onEditAsset={(name, type, prompt) => {
-                            const existingChar = castMembers.find(c => c.name === name || c.id === name);
-                            const stableId = existingChar ? existingChar.id : sanitizeId(name);
-                            assetMgr.openAssetModal(name, type, prompt, stableId);
-                        }}
-                        styles={styles}
-                        onZoom={setZoomMedia}
-                    />
-                </div>
-            )}
-
-            {activeTab === 'locations' && (
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
-                        <button
-                            onClick={() => { setLibType('location'); setLibModalOpen(true); }}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '8px',
-                                padding: '10px 20px', backgroundColor: '#1A1A1A', border: '1px solid #333',
-                                color: '#FFF', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer',
-                                letterSpacing: '1px', borderRadius: '4px', transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#222'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#1A1A1A'; }}
-                        >
-                            <MapPin size={14} /> IMPORT FROM SERIES LIBRARY
-                        </button>
-                    </div>
-
-                    <LocationsTab
-                        locations={locations}
-                        uniqueLocs={uniqueLocs}
-                        locationImages={locationImages}
-                        onEditAsset={(name, type, prompt, existingId) => assetMgr.openAssetModal(name, type, prompt, existingId)}
-                        styles={styles}
-                        onZoom={setZoomMedia}
-                    />
-                </div>
-            )}
-
-            {/* --- STORYBOARD OVERLAY --- */}
-            <StoryboardOverlay
-                activeSceneId={activeSceneId}
-                currentScene={currentScene}
-                onClose={() => setActiveSceneId(null)}
-                credits={credits}
-                styles={styles}
-                castMembers={castMembers}
-                locations={locations}
-                seriesName={episodeData?.series_name || 'SERIES'}
-                episodeTitle={episodeData?.title || 'EPISODE'}
-                shotMgr={shotMgr}
-                inpaintData={inpaintData}
-                setInpaintData={setInpaintData}
-                onSaveInpaint={handleInpaintSave}
-                onApplyInpaint={handleApplyInpaint}
-                onZoom={setZoomMedia}
-                onDownload={(shot: any) => shot.video_url ? setDownloadShot(shot) : executeDownload(shot.image_url, `${shot.id}.jpg`)}
-                onDeleteShot={setDeleteShotId}
-                tourStep={sbTour.tourStep}
-                onTourNext={sbTour.nextStep}
-                onTourComplete={sbTour.completeTour}
-                seriesId={seriesId}   // <--- ADD THIS
-                episodeId={episodeId} // <--- ADD THIS
-            />
-
-            <LibraryModal
-                isOpen={libModalOpen}
-                onClose={() => setLibModalOpen(false)}
-                type={libType}
-                masterList={libType === 'character' ? masterCast : masterLocations}
-                currentList={libType === 'character' ? castMembers : locations}
-                onImport={handleImportAssets}
-                styles={styles}
-            />
-
-            {/* --- ASSET MODAL --- */}
-            {(() => {
-                const dbDocId = assetMgr.selectedAssetId;
-                const selectedAssetData = assetMgr.assetType === 'location'
-                    ? locations.find(l => l.id === dbDocId)
-                    : castMembers.find(c => c.id === dbDocId);
-
-                return (
-                    <AssetModal
-                        isOpen={assetMgr.modalOpen}
-                        onClose={() => assetMgr.setModalOpen(false)}
-                        onUpdateTraits={handleUpdateTraits}
-                        onLinkVoice={handleLinkVoice}
-                        assetId={assetMgr.selectedAssetId || ""}
-                        assetName={selectedAssetData?.name || assetMgr.selectedAsset || 'Unknown Asset'}
-                        assetType={assetMgr.assetType}
-                        currentData={selectedAssetData as any}
-                        projectId={seriesId}
-                        mode={assetMgr.modalMode}
-                        setMode={assetMgr.setModalMode}
-                        genPrompt={assetMgr.genPrompt}
-                        setGenPrompt={assetMgr.setGenPrompt}
-                        isProcessing={assetMgr.isProcessing}
-                        genre={episodeData?.genre}
-                        style={episodeData?.style}
-                        onUpload={(file) => assetMgr.handleAssetUpload(file, (url) => {
-                            if (!dbDocId) return;
-                            if (assetMgr.assetType === 'location') {
-                                setLocationImages(prev => ({ ...prev, [dbDocId]: url }));
-                                setLocations(prev => prev.map(l => l.id === dbDocId ? { ...l, image_url: url, source: 'upload' } : l));
-                            } else {
-                                setCastMembers((prev: any[]) => prev.map(m => m.id === dbDocId ? { ...m, face_sample_url: url, image_url: url, source: 'upload' } : m));
-                            }
-                        })}
-                        onGenerate={() => assetMgr.handleAssetGenerate((url) => {
-                            if (!dbDocId) return;
-                            if (assetMgr.assetType === 'location') {
-                                setLocationImages(prev => ({ ...prev, [dbDocId]: url }));
-                                setLocations(prev => prev.map(l => l.id === dbDocId ? { ...l, image_url: url, source: 'ai_gen' } : l));
-                            } else {
-                                setCastMembers((prev: any[]) => prev.map(m => m.id === dbDocId ? { ...m, face_sample_url: url, image_url: url, source: 'ai_gen' } : m));
-                            }
-                        })}
-                        styles={styles}
-                    />
-                );
-            })()}
-
-            <MediaViewer />
-
-            {/* <ZoomOverlay media={zoomMedia} onClose={() => setZoomMedia(null)} styles={styles} /> */}
-            <TourGuide step={epTour.tourStep} onNext={epTour.nextStep} onComplete={epTour.completeTour} />
-
-            {downloadShot && (
-                <DownloadModal
-                    shot={downloadShot}
-                    onClose={() => setDownloadShot(null)}
-                    onDownload={async (type) => {
-                        if (!downloadShot) return;
-                        if (type === 'image' || type === 'both') executeDownload(downloadShot.image_url, `${downloadShot.id}_image.jpg`);
-                        if (type === 'video' || type === 'both') {
-                            if (type === 'both') await new Promise(r => setTimeout(r, 500));
-                            executeDownload(downloadShot.video_url, `${downloadShot.id}_video.mp4`);
-                        }
-                        setDownloadShot(null);
-                    }}
-                />
-            )}
-
-            {deleteShotId && (
-                <DeleteConfirmModal
-                    title="DELETE SHOT?"
-                    message="Irreversible action."
-                    isDeleting={isDeletingShot}
-                    onConfirm={confirmShotDelete}
-                    onCancel={() => setDeleteShotId(null)}
-                />
-            )}
         </main>
     );
 }

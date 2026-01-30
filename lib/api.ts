@@ -1,7 +1,8 @@
 import axios from "axios";
-import { auth } from "@/lib/firebase"; // Your firebase config
+import { auth, db } from "@/lib/firebase"; // Your firebase config
 import { API_BASE_URL } from "./config"; // Your backend URL (e.g., http://localhost:8000)
 import { Project } from "./types"; // Import the type for better safety
+import { collection, collectionGroup, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 
 // 1. Create the Axios Instance
 export const api = axios.create({
@@ -124,4 +125,81 @@ export const fetchEpisodes = async (projectId: string) => {
     const res = await api.get(`/api/v1/project/${projectId}/episodes`);
     return res.data;
     // Expects: [{ id: "ep1", title: "Pilot", number: 1 }, ...]
+};
+
+export interface DashboardProject extends Project {
+    previewVideo?: string | null;
+    previewImage?: string | null;
+}
+
+// 1. Fetch User Projects with Smart Previews
+export const fetchUserDashboardProjects = async (uid: string): Promise<DashboardProject[]> => {
+    try {
+        // A. Fetch from "projects" collection (Unified)
+        const q = query(
+            collection(db, "projects"),
+            where("owner_id", "==", uid),
+            orderBy("created_at", "desc")
+        );
+
+        // Fallback query in case index is missing
+        const snap = await getDocs(q).catch(() =>
+            getDocs(query(collection(db, "projects"), where("owner_id", "==", uid)))
+        );
+
+        const projectData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DashboardProject));
+
+        // B. Deep Search for Preview Media
+        const enriched = await Promise.all(projectData.map(async (p) => {
+            let vid = null, img = p.moodboard?.cover_image || null;
+
+            try {
+                let scenesRef;
+
+                if (p.type === 'movie') {
+                    // Movie: Scenes are direct children
+                    scenesRef = collection(db, "projects", p.id, "scenes");
+                } else {
+                    // Series: Check first episode
+                    const eps = await getDocs(query(collection(db, "projects", p.id, "episodes"), limit(1)));
+                    if (!eps.empty) {
+                        scenesRef = collection(db, "projects", p.id, "episodes", eps.docs[0].id, "scenes");
+                    }
+                }
+
+                if (scenesRef) {
+                    const scs = await getDocs(query(scenesRef, limit(1)));
+                    if (!scs.empty) {
+                        // Check shots in the first scene
+                        const shotsRef = collection(scs.docs[0].ref, "shots");
+                        const shs = await getDocs(query(shotsRef, where("status", "==", "rendered"), limit(3)));
+
+                        vid = shs.docs.find(d => d.data().video_url)?.data().video_url || null;
+                        if (!img) img = shs.docs.find(d => d.data().image_url)?.data().image_url || null;
+                    }
+                }
+            } catch (e) {
+                console.warn(`Preview fetch failed for ${p.id}`, e);
+            }
+            return { ...p, previewVideo: vid, previewImage: img };
+        }));
+
+        return enriched;
+    } catch (e) {
+        console.error("Dashboard Load Error", e);
+        return [];
+    }
+};
+
+// 2. Fetch Global Feed
+export const fetchGlobalFeed = async () => {
+    try {
+        const snap = await getDocs(query(collectionGroup(db, 'shots'), limit(40)));
+        let valid = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter((s: any) => s.image_url || s.video_url);
+        // Simple shuffle
+        return valid.sort(() => 0.5 - Math.random());
+    } catch (e) {
+        console.error("Feed Load Error", e);
+        return [];
+    }
 };
