@@ -368,11 +368,13 @@ export default function EpisodeBoard() {
                 onSaveInpaint={handleInpaintSave}
                 onApplyInpaint={handleApplyInpaint}
                 onZoom={setZoomMedia}
-                onDownload={(shot) => shot.video_url ? setDownloadShot(shot) : executeDownload(shot.image_url, `${shot.id}.jpg`)}
+                onDownload={(shot: any) => shot.video_url ? setDownloadShot(shot) : executeDownload(shot.image_url, `${shot.id}.jpg`)}
                 onDeleteShot={setDeleteShotId}
                 tourStep={sbTour.tourStep}
                 onTourNext={sbTour.nextStep}
                 onTourComplete={sbTour.completeTour}
+                seriesId={seriesId}   // <--- ADD THIS
+                episodeId={episodeId} // <--- ADD THIS
             />
 
             <LibraryModal
