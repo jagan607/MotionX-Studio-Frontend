@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import React, { useState } from 'react';
 import { ArrowLeft, Zap, Wand2, Plus, Film, Layers, Square, Loader2, Clapperboard } from 'lucide-react';
 import {
