@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react"; // Added useRef
 import { useParams, useRouter } from "next/navigation";
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent
@@ -45,7 +45,11 @@ export default function ScriptLab() {
     const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
     const [aiInstruction, setAiInstruction] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
+
+    // --- FIX START: Use Ref to track intent ---
     const [isCommitting, setIsCommitting] = useState(false);
+    const isCommittingRef = useRef(false);
+    // --- FIX END ---
 
     // 1. REAL-TIME SYNC (Targeting Projects Collection)
     useEffect(() => {
@@ -65,8 +69,14 @@ export default function ScriptLab() {
                     setScenes(stableScenes);
                 }
             } else {
-                toast.error("Draft not found");
-                router.push(`/project/${projectId}/script`);
+                // --- FIX START: Check if we are intentionally committing ---
+                // Only redirect to script if we are NOT currently committing.
+                if (!isCommittingRef.current) {
+                    toast.error("Draft not found");
+                    router.push(`/project/${projectId}/script`);
+                }
+                // If isCommittingRef.current is true, we do nothing and let handleCommit finish the redirect
+                // --- FIX END ---
             }
         });
         return () => unsub();
@@ -144,6 +154,8 @@ export default function ScriptLab() {
     // 4. COMMIT DRAFT
     const handleCommit = async () => {
         setIsCommitting(true);
+        isCommittingRef.current = true; // <--- Set intent immediately
+
         try {
             await api.post("api/v1/script/commit-draft", {
                 project_id: projectId,
@@ -157,7 +169,9 @@ export default function ScriptLab() {
         } catch (e: any) {
             console.error(e);
             toast.error("Failed to finalize: " + (e.response?.data?.detail || e.message));
+
             setIsCommitting(false);
+            isCommittingRef.current = false; // <--- Reset on failure
         }
     };
 
