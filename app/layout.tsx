@@ -90,7 +90,7 @@ export default function RootLayout({
             />
             <AuthProvider>
               {/* <div className="film-grain" /> */}
-              {/* <div className="vignette" /> */}
+              <div className="vignette" />
 
               {/* 3. GLOBAL HEADER */}
               <GlobalHeader />
