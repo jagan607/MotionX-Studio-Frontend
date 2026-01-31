@@ -27,7 +27,7 @@ import CreditModal from "@/app/components/modals/CreditModal"; // <--- 1. NEW IM
 // --- HOOKS ---
 import { useEpisodeData } from "./hooks/useEpisodeData";
 import { useAssetManager } from "./hooks/useAssetManager";
-import { useShotManager } from "./hooks/useShotManager";
+// import { useShotManager } from "./hooks/useShotManager";
 import { useEpisodeTour } from "./hooks/useEpisodeTour";
 import { useStoryboardTour } from "@/hooks/useStoryboardTour";
 import { useSeriesAssets } from "@/hooks/useSeriesAssets";
@@ -79,12 +79,12 @@ export default function EpisodeBoard() {
 
     // 3. MANAGERS
     // --- 3. PASS THE MODAL TRIGGER TO SHOT MANAGER ---
-    const shotMgr = useShotManager(
-        seriesId,
-        episodeId,
-        activeSceneId,
-        () => setShowCreditModal(true) // <--- Logic added here
-    );
+    // const shotMgr = useShotManager(
+    //     seriesId,
+    //     episodeId,
+    //     activeSceneId,
+    //     () => setShowCreditModal(true) // <--- Logic added here
+    // );
 
     const currentScene = scenes.find(s => s.id === activeSceneId);
 
@@ -188,19 +188,19 @@ export default function EpisodeBoard() {
         }
     };
 
-    // --- OTHER HANDLERS ---
-    const confirmShotDelete = async () => {
-        if (!deleteShotId) return;
-        setIsDeletingShot(true);
-        try {
-            await shotMgr.handleDeleteShot(deleteShotId);
-            setDeleteShotId(null);
-        } catch (error) {
-            toastError("Error deleting shot");
-        } finally {
-            setIsDeletingShot(false);
-        }
-    };
+    // // --- OTHER HANDLERS ---
+    // const confirmShotDelete = async () => {
+    //     if (!deleteShotId) return;
+    //     setIsDeletingShot(true);
+    //     try {
+    //         await shotMgr.handleDeleteShot(deleteShotId);
+    //         setDeleteShotId(null);
+    //     } catch (error) {
+    //         toastError("Error deleting shot");
+    //     } finally {
+    //         setIsDeletingShot(false);
+    //     }
+    // };
 
     const handleInpaintSave = async (prompt: string, maskBase64: string) => {
         if (!inpaintData) return null;
@@ -226,13 +226,13 @@ export default function EpisodeBoard() {
         }
     };
 
-    const handleApplyInpaint = (url: string) => {
-        if (inpaintData) {
-            shotMgr.updateShot(inpaintData.shotId, "image_url", url);
-            shotMgr.updateShot(inpaintData.shotId, "status", "rendered");
-            setInpaintData(null);
-        }
-    };
+    // const handleApplyInpaint = (url: string) => {
+    //     if (inpaintData) {
+    //         shotMgr.updateShot(inpaintData.shotId, "image_url", url);
+    //         shotMgr.updateShot(inpaintData.shotId, "status", "rendered");
+    //         setInpaintData(null);
+    //     }
+    // };
 
     const executeDownload = async (url: string, filename: string) => {
         try {

@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useRef, useEffect } from 'react';
 import { X, User, MapPin, ArrowLeft } from 'lucide-react';
 import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
@@ -31,7 +33,6 @@ interface AssetModalProps {
 
     onUpload: (f: File) => void;
     onGenerate: () => void;
-    // New prop to handle the "Create First -> Then Generate" flow
     onCreateAndGenerate?: (data: any) => Promise<void>;
     onUpdateTraits: (data: any) => Promise<void>;
     onLinkVoice: (v: { voice_id: string; voice_name: string }) => Promise<void>;
@@ -43,7 +44,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const {
         isOpen, assetType, currentData, assetName, onUpdateTraits,
         setGenPrompt, genPrompt, onClose, isProcessing, onGenerate,
-        onCreateAndGenerate, // <--- Destructure new prop
+        onCreateAndGenerate,
         onUpload, genre, style
     } = props;
 
@@ -78,7 +79,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
-    // ... (Voice effects same)
     useEffect(() => {
         if (isVoiceMode && allVoices.length === 0) loadVoices();
     }, [isVoiceMode, allVoices.length]);
@@ -89,17 +89,33 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     const initializeData = () => {
         let initialData: any = {};
+        // Access raw visual traits from DB
         const vt = currentData.visual_traits || {};
 
         if (assetType === 'location') {
-            const locTraits = vt as LocationProfile['visual_traits'];
+            // --- FIX 1: Handle DB Array -> UI String ---
+            // If vt is an array (["foggy", "dark"]), join it. 
+            // If it's an object with keywords (legacy), handle that.
+            let keywordsString = "";
+
+            if (Array.isArray(vt)) {
+                keywordsString = vt.join(', ');
+            } else if (typeof vt === 'object' && vt !== null) {
+                // Handle potential object structure
+                const kw = (vt as any).keywords;
+                if (Array.isArray(kw)) keywordsString = kw.join(', ');
+                else if (typeof kw === 'string') keywordsString = kw;
+            }
+
+            // We store it as 'visual_traits' string in local state for the Input Field
             initialData = {
-                visual_traits: locTraits.keywords ? (Array.isArray(locTraits.keywords) ? locTraits.keywords : locTraits.keywords.split(', ')) : [],
-                atmosphere: locTraits.atmosphere || "",
-                lighting: locTraits.lighting || "",
-                terrain: locTraits.terrain || "",
+                visual_traits: keywordsString,
+                atmosphere: (vt as any).atmosphere || "",
+                lighting: (vt as any).lighting || "",
+                terrain: (vt as any).terrain || "",
             };
         } else {
+            // Character Logic (Object based)
             const charTraits = vt as CharacterProfile['visual_traits'];
             initialData = {
                 age: charTraits.age || "",
@@ -119,6 +135,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         setEditableName(currentData.name || "");
         setInitialName(currentData.name || "");
 
+        // Update prompt immediately with initialized data
         if (!currentData.prompt) {
             updatePrompt(currentData.name || (assetType === 'location' ? "Location" : "Character"), initialData);
         } else {
@@ -205,12 +222,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     };
 
     const handleTraitChange = (key: string, value: string) => {
-        let finalValue: any = value;
-        if (assetType === 'location' && key === 'visual_traits' && typeof value === 'string') {
-            finalValue = value.split(',').map(t => t.trim()).filter(t => t !== "");
-        }
-
-        const updatedTraits = { ...editableTraits, [key]: finalValue };
+        // --- FIX 2: Simplify Input Handling ---
+        // Just update the string in state. Don't split into array yet.
+        // This allows user to type "mist, fog" without it jumping around.
+        const updatedTraits = { ...editableTraits, [key]: value };
         setEditableTraits(updatedTraits);
         updatePrompt(editableName, updatedTraits);
     };
@@ -218,11 +233,17 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     // Helper to construct the full payload for saving/generating
     const constructPayload = () => {
         let traitsPayload: any = {};
+
         if (assetType === 'location') {
-            let kws = editableTraits.visual_traits;
-            if (Array.isArray(kws)) kws = kws.join(', ');
+            // --- FIX 3: Convert UI String -> DB Array ---
+            const kws = editableTraits.visual_traits || "";
+            const keywordsArray = typeof kws === 'string'
+                ? kws.split(',').map((s: string) => s.trim()).filter((s: string) => s)
+                : kws;
+
+            // We save the array directly to visual_traits to match DB schema
             traitsPayload = {
-                keywords: kws,
+                visual_traits: keywordsArray,
                 atmosphere: editableTraits.atmosphere,
                 lighting: editableTraits.lighting,
                 terrain: editableTraits.terrain
@@ -236,9 +257,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 vibe: editableTraits.vibe
             };
         }
+
         return {
             name: editableName,
-            visual_traits: traitsPayload,
+            visual_traits: traitsPayload, // This is now correct for both types
             prompt: genPrompt
         };
     };
@@ -257,20 +279,16 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         onClose();
     };
 
-    // --- NEW: Smart Generate Handler ---
     const handleSmartGenerate = async () => {
-        // If it's a new asset, we MUST create it first
         if (isCreationMode) {
             if (!isNameValid) {
                 toast.error("Please name your asset before generating.");
                 return;
             }
             if (onCreateAndGenerate) {
-                // Pass full payload so parent can create it
                 await onCreateAndGenerate(constructPayload());
             }
         } else {
-            // Existing asset: Just generate normally
             onGenerate();
         }
     };
@@ -355,7 +373,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                 isProcessing={isProcessing}
                                 genPrompt={genPrompt}
                                 setGenPrompt={setGenPrompt}
-                                onGenerate={handleSmartGenerate} // <--- Use new smart handler
+                                onGenerate={handleSmartGenerate}
                                 onUpload={(e) => { if (e.target.files?.[0]) onUpload(e.target.files[0]) }}
                             />
 

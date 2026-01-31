@@ -21,7 +21,7 @@ import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptU
 
 // --- COMPONENTS ---
 import { AssetModal } from "@/components/AssetModal";
-import { AssetCard } from "@/components/AssetCard";
+import { AssetCard } from "@/components/AssetCard"; // Check import path based on your structure
 import { StudioLayout } from "@/components/ui/StudioLayout";
 import { MotionButton } from "@/components/ui/MotionButton";
 
@@ -62,7 +62,24 @@ export default function AssetManagerPage() {
                 fetchProject(projectId)
             ]);
 
-            setAssets(assetsData);
+            // --- CRITICAL FIX: INJECT ASSET TYPES ---
+            // The API returns segregated arrays but objects might lack the 'type' property.
+            // We manually inject it so Modal and PromptUtils know what to do.
+            const typedCharacters = (assetsData.characters || []).map((c: any) => ({
+                ...c,
+                type: 'character'
+            }));
+
+            const typedLocations = (assetsData.locations || []).map((l: any) => ({
+                ...l,
+                type: 'location'
+            }));
+
+            setAssets({
+                characters: typedCharacters,
+                locations: typedLocations
+            });
+
             setProject(projectData);
         } catch (e) {
             console.error(e);
@@ -107,13 +124,12 @@ export default function AssetManagerPage() {
 
     // A. Open Draft Mode
     const handleOpenDraft = () => {
-        // We use singular 'character'/'location' for creation logic to match Typescript types
         const type = activeTab === 'cast' ? 'character' : 'location';
 
         // Create a temporary "Draft Asset"
         const draftAsset: any = {
             id: "new",
-            type: type,
+            type: type, // This ensures 'create new' modal shows correct UI
             name: "",
             project_id: projectId,
             status: "pending",
@@ -129,14 +145,12 @@ export default function AssetManagerPage() {
     const handleSaveAsset = async (asset: Asset, data: any) => {
         try {
             if (asset.id === "new") {
-                // --- CREATE MODE ---
                 await createAsset(projectId, {
                     ...data,
-                    type: asset.type // Uses singular from draft
+                    type: asset.type
                 });
                 toast.success("Asset Created");
             } else {
-                // --- UPDATE MODE ---
                 await updateAsset(projectId, asset.type, asset.id, data);
                 toast.success("Configuration Saved");
             }
@@ -163,7 +177,7 @@ export default function AssetManagerPage() {
         }
     };
 
-    // --- CORE GENERATION LOGIC UPDATE ---
+    // --- CORE GENERATION LOGIC ---
     const handleGenerate = async (asset: Asset, customPrompt?: string) => {
         if (asset.id === "new") return;
 
@@ -176,29 +190,24 @@ export default function AssetManagerPage() {
             const genre = (project as any)?.genre || "cinematic";
             const style = project?.moodboard?.lighting || "realistic";
 
-            // --- FIX: FORCE TYPE BASED ON TAB ---
-            // If active tab is 'cast', we force type to 'characters' (Plural)
-            // If active tab is 'locations', we force type to 'locations' (Plural)
-            // This overrides any DB type like "primary", "secondary", etc.
             const requestType = activeTab === 'cast' ? 'characters' : 'locations';
 
-            // --- FIX: ENSURE PROMPT EXISTS ---
             let finalPrompt = customPrompt;
             if (!finalPrompt) {
-                // Construct it dynamically if missing
+                // FIX: Now asset.type is guaranteed to be set correctly by loadData
                 if (asset.type === 'location') {
                     finalPrompt = constructLocationPrompt(
                         asset.name,
-                        asset.visual_traits,
-                        asset.visual_traits, // Pass as full object too
+                        (asset as any).visual_traits,
+                        (asset as any).visual_traits,
                         genre,
                         style
                     );
                 } else {
                     finalPrompt = constructCharacterPrompt(
                         asset.name,
-                        asset.visual_traits,
-                        asset.visual_traits,
+                        (asset as any).visual_traits,
+                        (asset as any).visual_traits,
                         genre,
                         style
                     );
@@ -208,13 +217,12 @@ export default function AssetManagerPage() {
             await triggerAssetGeneration(
                 projectId,
                 asset.id,
-                requestType, // <-- Sending Clean Plural Type
+                requestType,
                 finalPrompt,
                 cleanStyle,
                 aspectRatio
             );
 
-            // Poll/Refresh logic
             setTimeout(() => {
                 loadData();
                 setGeneratingIds(prev => { const next = new Set(prev); next.delete(asset.id); return next; });
@@ -229,26 +237,22 @@ export default function AssetManagerPage() {
 
     const handleCreateAndGenerate = async (draftData: any) => {
         if (!selectedAsset) return;
-
-        // Use singular for creation (matches TS types)
         const type = activeTab === 'cast' ? 'character' : 'location';
 
         try {
             toast.loading("Creating asset first...");
 
-            // 1. Create
             const response = await createAsset(projectId, {
                 ...draftData,
                 type: type
             });
 
-            const newAsset = response.data.asset;
+            // Ensure the newly created asset also has the type injected immediately for local state
+            const newAsset = { ...response.data.asset, type: type };
 
-            // 2. Switch context to real asset
             setSelectedAsset(newAsset);
             loadData();
 
-            // 3. Trigger Generate (will use handleGenerate which fixes the type)
             await handleGenerate(newAsset, draftData.prompt);
 
         } catch (e) {
@@ -347,8 +351,9 @@ export default function AssetManagerPage() {
                             asset={asset}
                             projectId={projectId}
                             isGenerating={generatingIds.has(asset.id)}
-                            onGenerate={(a) => handleGenerate(a, a.prompt || a.base_prompt)}
-                            onConfig={(a) => {
+                            // FIX: Explicitly type 'a' as Asset
+                            onGenerate={(a: Asset) => handleGenerate(a, a.prompt || (a as any).base_prompt)}
+                            onConfig={(a: Asset) => {
                                 setSelectedAsset(a);
                                 setGenPrompt(a.prompt || "");
                             }}
@@ -364,6 +369,7 @@ export default function AssetManagerPage() {
                         onClose={() => { setSelectedAsset(null); }}
                         assetId={selectedAsset.id}
                         projectId={projectId}
+                        // FIX: Now this is guaranteed to be 'character' or 'location'
                         assetType={selectedAsset.type}
                         assetName={selectedAsset.name}
                         currentData={selectedAsset}
