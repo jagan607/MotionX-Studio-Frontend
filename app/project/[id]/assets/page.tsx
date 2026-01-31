@@ -24,7 +24,6 @@ import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptU
 // --- COMPONENTS ---
 import { AssetModal } from "@/components/AssetModal";
 import { AssetCard } from "@/components/AssetCard";
-import { MotionButton } from "@/components/ui/MotionButton";
 
 export default function AssetManagerPage() {
     const params = useParams();
@@ -147,8 +146,10 @@ export default function AssetManagerPage() {
         }
     };
 
-    const handleGenerate = async (asset: Asset, customPrompt?: string) => {
+    // --- GENERATION HANDLER (UPDATED) ---
+    const handleGenerate = async (asset: Asset, customPrompt?: string, useRef: boolean = true) => {
         if (asset.id === "new") return;
+
         setGeneratingIds(prev => new Set(prev).add(asset.id));
         toast("INITIALIZING RENDER...", { icon: '⚡' });
 
@@ -165,12 +166,25 @@ export default function AssetManagerPage() {
                 }
             }
 
-            await triggerAssetGeneration(projectId, asset.id, requestType, finalPrompt, cleanStyle, (project as any)?.aspect_ratio || "16:9");
+            // --- CALL API WITH NEW FLAG ---
+            const res = await triggerAssetGeneration(
+                projectId,
+                asset.id,
+                requestType,
+                finalPrompt,
+                cleanStyle,
+                (project as any)?.aspect_ratio || "16:9",
+                useRef // <--- PASSING THE FLAG
+            );
 
+            // Optimistic / Delayed Reload
             setTimeout(() => {
                 loadData();
                 setGeneratingIds(prev => { const next = new Set(prev); next.delete(asset.id); return next; });
-            }, 8000);
+            }, 500); // reduced timeout since we await the response now
+
+            // Return the image URL so modal can update immediately
+            return res.image_url;
 
         } catch (e) {
             toast.error("RENDER FAILED");
@@ -186,7 +200,8 @@ export default function AssetManagerPage() {
             const newAsset = { ...response.data.asset, type: type };
             setSelectedAsset(newAsset);
             loadData();
-            await handleGenerate(newAsset, draftData.prompt);
+            // Pass default true for useRef on creation
+            await handleGenerate(newAsset, draftData.prompt, true);
         } catch (e) {
             toast.error("CREATION FAILED");
         }
@@ -211,7 +226,6 @@ export default function AssetManagerPage() {
             {/* --- CSS OVERRIDES FOR ASSET CARDS --- */}
             <style jsx global>{`
                 /* 1. FORCE ASSET CARDS TO MATCH THEME */
-                /* Targets the inner div of your AssetCard component */
                 div[class*="rounded-xl"], div[class*="bg-white"], div[class*="bg-zinc-900"] {
                     border-radius: 0px !important;
                     background-color: #0A0A0A !important;
@@ -223,7 +237,6 @@ export default function AssetManagerPage() {
                     border-color: #555 !important;
                     background-color: #0F0F0F !important;
                 }
-                /* Force text colors inside cards */
                 h3, p, span { color: #EEE !important; }
                 .text-muted-foreground { color: #666 !important; }
 
@@ -421,7 +434,10 @@ export default function AssetManagerPage() {
                     genPrompt={genPrompt}
                     setGenPrompt={setGenPrompt}
                     isProcessing={selectedAsset.id !== "new" && generatingIds.has(selectedAsset.id)}
-                    onGenerate={() => handleGenerate(selectedAsset, genPrompt)}
+
+                    // PASS THE UPDATED HANDLER HERE
+                    onGenerate={(prompt, useRef) => handleGenerate(selectedAsset, prompt, useRef)}
+
                     onCreateAndGenerate={handleCreateAndGenerate}
                     genre={(project as any)?.genre || "cinematic"}
                     style={project?.moodboard?.lighting || "realistic"}

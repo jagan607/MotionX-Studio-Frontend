@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, User, MapPin, ArrowLeft } from 'lucide-react';
+import { X, User, MapPin, ArrowLeft, Sparkles } from 'lucide-react';
 import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
-import { uploadAssetReference, uploadAssetMain } from '@/lib/api'; // <--- IMPORT BOTH
+import { uploadAssetReference, uploadAssetMain } from '@/lib/api';
 import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils';
 import { toast } from 'react-hot-toast';
-import { Asset, CharacterProfile, LocationProfile } from '@/lib/types';
+import { Asset } from '@/lib/types';
 
 // --- SUB-COMPONENTS ---
 import { TraitsTab } from './TraitsTab';
@@ -32,8 +32,11 @@ interface AssetModalProps {
     genre: string;
     style: string;
 
-    onUpload: (f: File) => void; // Kept for prop compatibility, but handled internally
-    onGenerate: () => void;
+    onUpload: (f: File) => void;
+
+    // UPDATED: Now accepts arguments and returns the URL for immediate preview update
+    onGenerate: (prompt: string, useRef: boolean) => Promise<string | void | undefined>;
+
     onCreateAndGenerate?: (data: any) => Promise<void>;
     onUpdateTraits: (data: any) => Promise<void>;
     onLinkVoice: (v: { voice_id: string; voice_name: string }) => Promise<void>;
@@ -44,8 +47,7 @@ interface AssetModalProps {
 export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const {
         isOpen, assetType, currentData, assetName, onUpdateTraits,
-        setGenPrompt, genPrompt, onClose, isProcessing, onGenerate,
-        onCreateAndGenerate,
+        setGenPrompt, genPrompt, onClose, isProcessing: parentIsProcessing,
         genre, style
     } = props;
 
@@ -56,10 +58,16 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [initialName, setInitialName] = useState(assetName);
     const [isSavingTraits, setIsSavingTraits] = useState(false);
 
+    // Local processing state
+    const [isGenerating, setIsGenerating] = useState(false);
+    const isProcessing = parentIsProcessing || isGenerating;
+
     // Visuals State
     const [refImage, setRefImage] = useState<string | null>(null);
-    // We use a local state for the display image to update UI immediately after upload/gen
     const [localDisplayImage, setLocalDisplayImage] = useState<string | undefined>(currentData.image_url);
+
+    // Reference Usage Toggle
+    const [useRefForGen, setUseRefForGen] = useState(true);
 
     // Voice State
     const [isVoiceMode, setIsVoiceMode] = useState(false);
@@ -85,7 +93,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
-    // Keep local display image in sync if parent updates (e.g. after generation finished externally)
+    // Sync local image with prop updates (e.g. if parent reloaded data)
     useEffect(() => {
         setLocalDisplayImage(currentData.image_url);
     }, [currentData.image_url]);
@@ -100,12 +108,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     const initializeData = () => {
         let initialData: any = {};
-
         const rawData = currentData as any;
         const vt = rawData.visual_traits;
 
         if (assetType === 'location') {
-            // 1. Handle Visual Keywords
             let keywordsString = "";
             if (Array.isArray(vt)) {
                 keywordsString = vt.join(', ');
@@ -116,8 +122,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             } else if (typeof vt === 'string') {
                 keywordsString = vt;
             }
-
-            // 2. Map Flat DB Fields
             initialData = {
                 visual_traits: keywordsString,
                 atmosphere: rawData.atmosphere || vt?.atmosphere || "",
@@ -125,9 +129,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 terrain: rawData.terrain || vt?.terrain || "",
             };
         } else {
-            // Character Logic
             const charTraits = (vt && !Array.isArray(vt)) ? vt : {};
-
             initialData = {
                 age: charTraits.age || "",
                 ethnicity: charTraits.ethnicity || "",
@@ -136,7 +138,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 vibe: charTraits.vibe || "",
                 visual_traits: charTraits
             };
-
             if (rawData.type === 'character') {
                 setSelectedVoiceId(rawData.voice_config?.voice_id || null);
             }
@@ -146,9 +147,12 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         setInitialTraits(initialData);
         setEditableName(rawData.name || "");
         setInitialName(rawData.name || "");
-        setRefImage(rawData.ref_image_url || null);
 
-        // Update prompt immediately
+        // Initialize Ref State
+        const hasRef = !!rawData.ref_image_url;
+        setRefImage(rawData.ref_image_url || null);
+        setUseRefForGen(hasRef);
+
         const existingPrompt = rawData.prompt || rawData.base_prompt;
         if (!existingPrompt) {
             updatePrompt(rawData.name || (assetType === 'location' ? "Location" : "Character"), initialData);
@@ -183,7 +187,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                     toast.error("Please enter a name to save.");
                     return;
                 }
-                handleSave();
+                handleSaveOnly();
             } else {
                 onClose();
             }
@@ -241,18 +245,17 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         updatePrompt(editableName, updatedTraits);
     };
 
-    // --- UPLOAD HANDLER 1: REFERENCE IMAGE ---
     const handleRefUpload = async (file: File) => {
         if (isCreationMode) {
             toast.error("Please save the asset first.");
             return;
         }
-
         const toastId = toast.loading("Uploading reference...");
         try {
             const res = await uploadAssetReference(props.projectId, assetType, currentData.id, file);
             if (res.data.ref_image_url) {
                 setRefImage(res.data.ref_image_url);
+                setUseRefForGen(true);
                 toast.success("Reference Linked", { id: toastId });
             }
         } catch (e) {
@@ -261,18 +264,16 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
     };
 
-    // --- UPLOAD HANDLER 2: MAIN VISUAL (Direct Upload) ---
     const handleMainUpload = async (file: File) => {
         if (isCreationMode) {
             toast.error("Please save the asset first.");
             return;
         }
-
         const toastId = toast.loading("Uploading visual...");
         try {
             const res = await uploadAssetMain(props.projectId, assetType, currentData.id, file);
             if (res.data.image_url) {
-                setLocalDisplayImage(res.data.image_url); // Update UI immediately
+                setLocalDisplayImage(res.data.image_url);
                 toast.success("Visual Updated", { id: toastId });
             }
         } catch (e) {
@@ -281,16 +282,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
     };
 
-    // Helper to construct the full payload for saving/generating
     const constructPayload = () => {
         let payload: any = {};
-
         if (assetType === 'location') {
             const kws = editableTraits.visual_traits || "";
             const keywordsArray = typeof kws === 'string'
                 ? kws.split(',').map((s: string) => s.trim()).filter((s: string) => s)
                 : kws;
-
             payload = {
                 name: editableName,
                 visual_traits: keywordsArray,
@@ -315,31 +313,69 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         return payload;
     };
 
-    const handleSave = async () => {
+    // --- SAVE LOGIC ---
+    const handleSaveOnly = async () => {
         if (isCreationMode && !isNameValid) {
-            toast.error("Please enter a name for the asset");
+            toast.error("Please enter a name");
+            return;
+        }
+        setIsSavingTraits(true);
+        try {
+            if (isCreationMode && props.onCreateAndGenerate) {
+                toast.error("For new assets, please use Generate to create & visualize.");
+                setIsSavingTraits(false);
+                return;
+            }
+
+            await onUpdateTraits(constructPayload());
+            setInitialTraits(editableTraits);
+            setInitialName(editableName);
+            toast.success("Configuration Saved");
+            onClose();
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to save");
+        } finally {
+            setIsSavingTraits(false);
+        }
+    };
+
+    // --- GENERATE LOGIC ---
+    const handleGenerateClick = async () => {
+        if (!isNameValid) {
+            toast.error("Please enter a name");
             return;
         }
 
-        setIsSavingTraits(true);
-        await onUpdateTraits(constructPayload());
-        setInitialTraits(editableTraits);
-        setInitialName(editableName);
-        setIsSavingTraits(false);
-        onClose();
-    };
+        setIsGenerating(true);
+        try {
+            // 1. Handle New Creation Special Case
+            if (isCreationMode && props.onCreateAndGenerate) {
+                // For new assets, we rely on the parent's create-and-generate flow.
+                // We cannot easily pass 'useRef' here unless we update that prop too.
+                // Assuming default behavior for now.
+                await props.onCreateAndGenerate(constructPayload());
+            } else {
+                // 2. Normal Update & Generate
+                // Save metadata first
+                await onUpdateTraits(constructPayload());
+                setInitialTraits(editableTraits);
+                setInitialName(editableName);
 
-    const handleSmartGenerate = async () => {
-        if (isCreationMode) {
-            if (!isNameValid) {
-                toast.error("Please name your asset before generating.");
-                return;
+                // 3. Trigger Generation via Parent Prop
+                // We pass the current prompt AND the useRef boolean
+                const resultUrl = await props.onGenerate(genPrompt, useRefForGen);
+
+                if (resultUrl && typeof resultUrl === 'string') {
+                    setLocalDisplayImage(resultUrl);
+                    toast.success("Visual Generated");
+                }
             }
-            if (onCreateAndGenerate) {
-                await onCreateAndGenerate(constructPayload());
-            }
-        } else {
-            onGenerate();
+        } catch (e) {
+            console.error(e);
+            toast.error("Generation failed");
+        } finally {
+            setIsGenerating(false);
         }
     };
 
@@ -356,10 +392,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     if (!isOpen) return null;
 
     const voiceConfig = currentData.type === 'character' ? currentData.voice_config : null;
-    const isSaveDisabled = isSavingTraits || (isCreationMode && !isNameValid);
-    const saveButtonText = isSavingTraits
-        ? (isCreationMode ? "CREATING..." : "SAVING...")
-        : (isCreationMode ? "CREATE ASSET" : "SAVE CONFIGURATION");
+    const isSaveDisabled = isSavingTraits || isGenerating || (isCreationMode && !isNameValid);
 
     return (
         <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center backdrop-blur-sm">
@@ -419,18 +452,17 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                             </div>
 
                             <VisualsSection
-                                displayImage={localDisplayImage} // Use local state for immediate updates
+                                displayImage={localDisplayImage}
                                 refImage={refImage}
                                 isProcessing={isProcessing}
                                 genPrompt={genPrompt}
                                 setGenPrompt={setGenPrompt}
-                                onGenerate={handleSmartGenerate}
 
-                                // Pass the two distinct handlers
                                 onUploadRef={handleRefUpload}
                                 onUploadMain={handleMainUpload}
-                                // Fallback prop if needed by interface, but logic is handled above
-                                onUpload={() => { }}
+
+                                useRef={useRefForGen}
+                                onToggleUseRef={() => setUseRefForGen(!useRefForGen)}
                             />
 
                             {assetType === 'character' && (
@@ -447,15 +479,29 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                     )}
                 </div>
 
-                {/* FOOTER */}
+                {/* FOOTER - SPLIT ACTIONS */}
                 {!isVoiceMode && (
-                    <div className="p-5 border-t border-[#222] bg-[#0a0a0a] shrink-0">
+                    <div className="p-5 border-t border-[#222] bg-[#0a0a0a] shrink-0 grid grid-cols-2 gap-3">
+                        {/* 1. SAVE CONFIGURATION (Left) */}
                         <button
-                            onClick={handleSave}
+                            onClick={handleSaveOnly}
                             disabled={isSaveDisabled}
-                            className="w-full py-3 bg-white hover:bg-neutral-200 text-black font-bold text-xs tracking-widest rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full py-3 bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 hover:border-neutral-700 text-neutral-300 font-bold text-xs tracking-widest rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {saveButtonText}
+                            {isSavingTraits ? "SAVING..." : "SAVE CONFIGURATION"}
+                        </button>
+
+                        {/* 2. GENERATE AI (Right - Primary) */}
+                        <button
+                            onClick={handleGenerateClick}
+                            disabled={isSaveDisabled}
+                            className="w-full py-3 bg-white hover:bg-neutral-200 text-black font-bold text-xs tracking-widest rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {isGenerating ? (
+                                <>GENERATING...</>
+                            ) : (
+                                <><Sparkles size={14} className="text-motion-red" /> GENERATE AI</>
+                            )}
                         </button>
                     </div>
                 )}

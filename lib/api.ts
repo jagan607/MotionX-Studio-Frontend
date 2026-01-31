@@ -115,14 +115,16 @@ export const triggerAssetGeneration = async (
     type: string,
     prompt?: string,
     style?: any,
-    aspect_ratio?: string
+    aspect_ratio?: string,
+    useRef?: boolean // <--- NEW PARAMETER
 ) => {
     const res = await api.post(`/api/v1/assets/${projectId}/generate`, {
         asset_id: assetId,
         type,
         prompt,
         style,
-        aspect_ratio
+        aspect_ratio,
+        use_ref: useRef // <--- PASS TO BACKEND (snake_case)
     });
     return res.data;
 };
