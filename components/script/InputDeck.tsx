@@ -11,10 +11,12 @@ import { MotionButton } from "@/components/ui/MotionButton";
 interface InputDeckProps {
     projectId: string;
     projectTitle: string;
-    projectType: "movie" | "micro_drama" | "series"; // Updated to include 'series' just in case
-
-    // NEW PROP: Required for targeting specific episodes in series
+    projectType: "movie" | "micro_drama" | "series";
     episodeId?: string | null;
+
+    // NEW PROPS: Data to pre-fill
+    initialTitle?: string;
+    initialScript?: string;
 
     onSuccess: (redirectUrl: string) => void;
     onCancel: () => void;
@@ -26,17 +28,23 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     projectId,
     projectTitle,
     projectType,
-    episodeId, // Destructure the new prop
+    episodeId,
+
+    // Default values
+    initialTitle = "",
+    initialScript = "",
+
     onSuccess,
     onCancel,
     isModal = false,
     className = ""
 }) => {
     const [title, setTitle] = useState("");
+    const [synopsisText, setSynopsisText] = useState("");
 
+    // File/Paste State
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pastedScript, setPastedScript] = useState("");
-    const [synopsisText, setSynopsisText] = useState("");
 
     const [isUploading, setIsUploading] = useState(false);
     const [statusText, setStatusText] = useState("");
@@ -44,12 +52,20 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
     const isMovie = projectType === "movie";
 
-    // Auto-set title for Movies (locked field)
+    // --- 1. SYNC TITLE ---
     useEffect(() => {
-        if (isMovie && projectTitle) {
-            setTitle(projectTitle);
+        if (isMovie) {
+            setTitle(projectTitle); // Movie title is locked to project name
+        } else {
+            setTitle(initialTitle); // Series title updates on dropdown change
         }
-    }, [isMovie, projectTitle]);
+    }, [isMovie, projectTitle, initialTitle]);
+
+    // --- 2. SYNC SCRIPT PREVIEW ---
+    useEffect(() => {
+        // If the selected episode has a script/synopsis in DB, fill it in
+        setSynopsisText(initialScript || "");
+    }, [initialScript]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
@@ -60,15 +76,12 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
         const formData = new FormData();
         formData.append("project_id", projectId);
-        // If not movie, use the typed title. If movie, stick to project title.
         formData.append("script_title", title || projectTitle);
 
-        // PASS THE EPISODE ID IF AVAILABLE
         if (episodeId) {
             formData.append("episode_id", episodeId);
         }
 
-        // Priority: Synopsis > Paste > Upload
         if (synopsisText.trim()) {
             const content = `[TYPE: SYNOPSIS/TREATMENT]\n\n${synopsisText}`;
             const blob = new Blob([content], { type: "text/plain" });
@@ -130,11 +143,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     };
 
     const isButtonEnabled = () => {
-        // For Movies, title is pre-filled. For Series, user must type it OR we use episodeId logic?
-        // Actually, if we have an episodeId selected, maybe the title isn't strict?
-        // Let's keep title strict for Series for now unless you want to auto-fill it from the selected episode name.
         if (!title && !isMovie) return false;
-
         return !!(synopsisText.trim() || pastedScript.trim() || selectedFile);
     };
 
@@ -165,11 +174,11 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                         // MICRO DRAMA / SERIES: Input View
                         <input
                             className="w-full bg-transparent border-b border-neutral-700 py-2 text-xl font-display text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors uppercase"
-                            placeholder={`ENTER EPISODE TITLE FOR "${projectTitle?.toUpperCase() || 'PROJECT'}"...`}
+                            placeholder={`ENTER EPISODE TITLE...`}
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             disabled={isUploading}
-                            autoFocus
+                        // Removed autoFocus so it doesn't jump when switching dropdowns
                         />
                     )}
                 </div>

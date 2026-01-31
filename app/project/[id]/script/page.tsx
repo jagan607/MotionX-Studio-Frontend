@@ -46,24 +46,30 @@ export default function ScriptIngestionPage() {
                 const proj = await fetchProject(projectId);
                 setProject(proj);
 
-                if (proj.type === 'movie') {
-                    // Movie: Auto-select default episode
-                    setSelectedEpisodeId(proj.default_episode_id || "main");
-                } else {
-                    // Series: Fetch episodes
-                    const epsData = await fetchEpisodes(projectId);
-                    let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
+                // ALWAYS fetch episodes (containers) to get script data
+                // Even movies have a "main" episode container that holds the script_preview
+                const epsData = await fetchEpisodes(projectId);
+                let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
-                    // Sort
+                if (proj.type === 'movie') {
+                    // Movie Logic: Load the episodes so we can access the data
+                    setEpisodes(eps);
+
+                    // Auto-select the default episode (usually "main" or the only one present)
+                    const targetId = proj.default_episode_id || "main";
+                    const found = eps.find((e: any) => e.id === targetId);
+                    setSelectedEpisodeId(found ? found.id : (eps[0]?.id || targetId));
+                } else {
+                    // Series Logic: Sort and Filter
                     eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
 
-                    // --- FILTER LOGIC: HIDE GHOST EPISODE ---
+                    // Hide ghost episode if real content exists
                     const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
                     const finalEpisodes = realEpisodes.length > 0 ? realEpisodes : eps;
 
                     setEpisodes(finalEpisodes);
 
-                    // Default to first episode if none selected
+                    // Default to first available episode
                     if (finalEpisodes.length > 0) {
                         setSelectedEpisodeId(finalEpisodes[0].id);
                     }
@@ -82,6 +88,15 @@ export default function ScriptIngestionPage() {
         setSelectedEpisodeId(e.target.value);
         toast.success(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
     };
+
+    // --- HELPER: GET CURRENT EPISODE DATA ---
+    const activeEpisode = episodes.find(e => e.id === selectedEpisodeId);
+
+    // Title: Movies use Project Title, Series use Episode Title
+    const currentTitle = project?.type === 'movie' ? (project.title) : (activeEpisode?.title || "");
+
+    // Script: Always pull from the active container (Works for both Movie "main" and Series episodes)
+    const currentScript = activeEpisode?.script_preview || "";
 
     return (
         <div className="fixed inset-0 z-50 bg-[#020202] text-white font-sans overflow-hidden flex flex-col">
@@ -195,6 +210,7 @@ export default function ScriptIngestionPage() {
                         </div>
 
                         {/* EPISODE SELECTOR (Dropdown) */}
+                        {/* Only show for non-movies OR if we want debugging access to movie containers */}
                         {project?.type !== 'movie' && (
                             <div className="animate-in fade-in slide-in-from-left-4 duration-500">
                                 <div className="text-[10px] font-bold text-neutral-500 uppercase mb-2 flex items-center gap-2 tracking-widest">
@@ -295,6 +311,11 @@ export default function ScriptIngestionPage() {
                                         projectTitle={project?.title || ""}
                                         projectType={project?.type || "micro_drama"}
                                         episodeId={selectedEpisodeId}
+
+                                        // PASS INITIAL DATA HERE
+                                        initialTitle={currentTitle}
+                                        initialScript={currentScript}
+
                                         isModal={false}
                                         className="w-full"
                                         onCancel={() => router.push("/dashboard")}
