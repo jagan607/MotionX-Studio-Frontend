@@ -89,34 +89,41 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     const initializeData = () => {
         let initialData: any = {};
-        // Access raw visual traits from DB
-        const vt = currentData.visual_traits || {};
+
+        // FIX: Cast to 'any' to strictly bypass TS checks against the Interface
+        // This allows us to handle the DB Array format even if Interface says Object
+        const rawData = currentData as any;
+        const vt = rawData.visual_traits;
 
         if (assetType === 'location') {
-            // --- FIX 1: Handle DB Array -> UI String ---
-            // If vt is an array (["foggy", "dark"]), join it. 
-            // If it's an object with keywords (legacy), handle that.
+            // 1. Handle Visual Keywords (DB Array vs Interface String)
             let keywordsString = "";
 
             if (Array.isArray(vt)) {
+                // DB Format: ["tag1", "tag2"]
                 keywordsString = vt.join(', ');
             } else if (typeof vt === 'object' && vt !== null) {
-                // Handle potential object structure
-                const kw = (vt as any).keywords;
+                // Interface Format: { keywords: "tag1, tag2" }
+                const kw = vt.keywords;
                 if (Array.isArray(kw)) keywordsString = kw.join(', ');
                 else if (typeof kw === 'string') keywordsString = kw;
+            } else if (typeof vt === 'string') {
+                keywordsString = vt;
             }
 
-            // We store it as 'visual_traits' string in local state for the Input Field
+            // 2. Map Flat DB Fields to UI State
+            // Locations in DB have flat atmosphere/lighting/terrain fields
             initialData = {
-                visual_traits: keywordsString,
-                atmosphere: (vt as any).atmosphere || "",
-                lighting: (vt as any).lighting || "",
-                terrain: (vt as any).terrain || "",
+                visual_traits: keywordsString, // Mapped to 'keywords' input
+                atmosphere: rawData.atmosphere || vt?.atmosphere || "",
+                lighting: rawData.lighting || vt?.lighting || "",
+                terrain: rawData.terrain || vt?.terrain || "",
             };
         } else {
-            // Character Logic (Object based)
-            const charTraits = vt as CharacterProfile['visual_traits'];
+            // Character Logic (Matches Interface)
+            // Ensure we handle case where vt is undefined or array safely
+            const charTraits = (vt && !Array.isArray(vt)) ? vt : {};
+
             initialData = {
                 age: charTraits.age || "",
                 ethnicity: charTraits.ethnicity || "",
@@ -125,27 +132,31 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 vibe: charTraits.vibe || "",
                 visual_traits: charTraits
             };
-            if (currentData.type === 'character') {
-                setSelectedVoiceId(currentData.voice_config?.voice_id || null);
+
+            if (rawData.type === 'character') {
+                setSelectedVoiceId(rawData.voice_config?.voice_id || null);
             }
         }
 
         setEditableTraits(initialData);
         setInitialTraits(initialData);
-        setEditableName(currentData.name || "");
-        setInitialName(currentData.name || "");
+        setEditableName(rawData.name || "");
+        setInitialName(rawData.name || "");
 
-        // Update prompt immediately with initialized data
-        if (!currentData.prompt) {
-            updatePrompt(currentData.name || (assetType === 'location' ? "Location" : "Character"), initialData);
+        // Update prompt immediately
+        const existingPrompt = rawData.prompt || rawData.base_prompt; // Handle DB field differences
+        if (!existingPrompt) {
+            updatePrompt(rawData.name || (assetType === 'location' ? "Location" : "Character"), initialData);
         } else {
-            setGenPrompt(currentData.prompt);
+            setGenPrompt(existingPrompt);
         }
     };
 
     // --- HANDLERS ---
 
     const updatePrompt = (name: string, traits: any) => {
+        // Pass the raw string from UI inputs to the utility
+        // The utility is now robust enough (via our previous fix) to handle strings
         const constructed = assetType === 'location'
             ? constructLocationPrompt(name || "Location", traits.visual_traits, traits, genre, style)
             : constructCharacterPrompt(name || "Character", traits, traits, genre, style);
@@ -222,9 +233,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     };
 
     const handleTraitChange = (key: string, value: string) => {
-        // --- FIX 2: Simplify Input Handling ---
-        // Just update the string in state. Don't split into array yet.
-        // This allows user to type "mist, fog" without it jumping around.
+        // Keep value as string in state for smooth typing
         const updatedTraits = { ...editableTraits, [key]: value };
         setEditableTraits(updatedTraits);
         updatePrompt(editableName, updatedTraits);
@@ -232,37 +241,40 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     // Helper to construct the full payload for saving/generating
     const constructPayload = () => {
-        let traitsPayload: any = {};
+        let payload: any = {};
 
         if (assetType === 'location') {
-            // --- FIX 3: Convert UI String -> DB Array ---
+            // 1. Convert UI String (keywords) -> DB Array
             const kws = editableTraits.visual_traits || "";
             const keywordsArray = typeof kws === 'string'
                 ? kws.split(',').map((s: string) => s.trim()).filter((s: string) => s)
                 : kws;
 
-            // We save the array directly to visual_traits to match DB schema
-            traitsPayload = {
+            // 2. Construct Flat DB Payload
+            // We save visual_traits as Array, and others as siblings
+            payload = {
+                name: editableName,
                 visual_traits: keywordsArray,
                 atmosphere: editableTraits.atmosphere,
                 lighting: editableTraits.lighting,
-                terrain: editableTraits.terrain
+                terrain: editableTraits.terrain,
+                prompt: genPrompt
             };
         } else {
-            traitsPayload = {
-                age: editableTraits.age,
-                ethnicity: editableTraits.ethnicity,
-                hair: editableTraits.hair,
-                clothing: editableTraits.clothing,
-                vibe: editableTraits.vibe
+            // Character Payload
+            payload = {
+                name: editableName,
+                visual_traits: {
+                    age: editableTraits.age,
+                    ethnicity: editableTraits.ethnicity,
+                    hair: editableTraits.hair,
+                    clothing: editableTraits.clothing,
+                    vibe: editableTraits.vibe
+                },
+                prompt: genPrompt
             };
         }
-
-        return {
-            name: editableName,
-            visual_traits: traitsPayload, // This is now correct for both types
-            prompt: genPrompt
-        };
+        return payload;
     };
 
     const handleSave = async () => {

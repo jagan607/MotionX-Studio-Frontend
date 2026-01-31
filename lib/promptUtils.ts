@@ -1,7 +1,7 @@
 // --- LOCATION PROMPT BUILDER ---
 export const constructLocationPrompt = (
     locationName: string,
-    visualTraits: string[] | any, // Can be array or object depending on legacy data
+    visualTraits: string | string[] | any, // Expanded to handle String (UI), Array (DB), or Object (Legacy/Type)
     allTraits: any, // The full flat object containing atmosphere, lighting, terrain
     genre: string,
     style: string
@@ -28,13 +28,28 @@ export const constructLocationPrompt = (
     prompt += "."; // End subject clause
 
     // 4. Specific Visual Details (The "Ingredients")
-    // Handle if visualTraits is an array (new schema) or object (legacy fallback)
     let details: string[] = [];
-    if (Array.isArray(visualTraits)) {
+
+    if (typeof visualTraits === 'string') {
+        // Handle live string input from UI (e.g. "mist, dark")
+        details = visualTraits.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    }
+    else if (Array.isArray(visualTraits)) {
+        // Handle DB Array (e.g. ["mist", "dark"])
         details = visualTraits;
-    } else if (visualTraits && typeof visualTraits === 'object') {
+    }
+    else if (visualTraits && typeof visualTraits === 'object') {
+        // Handle Legacy or Typed Objects
         if (visualTraits.environment) details.push(visualTraits.environment);
         if (visualTraits.architectural_style) details.push(visualTraits.architectural_style);
+
+        // Handle 'LocationVisualTraits' interface (keywords property)
+        if (visualTraits.keywords) {
+            const kw = Array.isArray(visualTraits.keywords)
+                ? visualTraits.keywords
+                : visualTraits.keywords.split(',');
+            details = [...details, ...kw];
+        }
     }
 
     if (details.length > 0) prompt += ` Visual Details: ${details.join(', ')}.`;
