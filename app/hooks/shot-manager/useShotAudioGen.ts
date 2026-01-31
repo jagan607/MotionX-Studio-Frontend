@@ -15,25 +15,24 @@ export const useShotAudioGen = (
         const text = shot.voiceover_text || shot.dialogue || "";
         const voiceId = shot.voice_id || "default_voice"; // Fallback or handle error
 
+        console.log("shot", shot);
         if (!text) {
             throw new Error("No dialogue or voiceover text found in shot.");
         }
 
         try {
-            const formData = new FormData();
-            formData.append("text", text);
-            formData.append("voice_id", voiceId);
+            const payload = {
+                text: text,
+                voice_id: voiceId,
+                emotion: shot.emotion || "Neutral", // Optional
+                project_id: projectId,
+                episode_id: episodeId,
+                scene_id: sceneId,
+                shot_id: shot.id
+            };
 
-            // Optional: Pass context if backend needs it to update DB directly
-            formData.append("project_id", projectId);
-            formData.append("episode_id", episodeId);
-            formData.append("scene_id", sceneId!);
-            formData.append("shot_id", shot.id);
-
-            const res = await api.post("/api/v1/shot/generate_voiceover", formData);
-
+            const res = await api.post("/api/v1/shot/generate_voiceover", payload);
             const audioUrl = res.data.audio_url;
-
             // Update Firestore immediately if successful
             if (audioUrl && sceneId) {
                 const shotRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId, "shots", shot.id);
@@ -52,24 +51,43 @@ export const useShotAudioGen = (
 
     const handleLipSyncShot = async (shot: any, audioUrl: string | null, audioFile: File | null) => {
         if (!shot.video_url) return toast.error("No video to sync");
+        if (!audioUrl && !audioFile) return toast.error("No audio provided");
         if (!sceneId) return;
 
         const shotRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId, "shots", shot.id);
         await setDoc(shotRef, { video_status: "processing" }, { merge: true });
 
         try {
-            const formData = new FormData();
-            formData.append("project_id", projectId);
-            formData.append("episode_id", episodeId);
-            formData.append("scene_id", sceneId);
-            formData.append("shot_id", shot.id);
-            formData.append("video_url", shot.video_url);
-            if (audioUrl) formData.append("audio_url", audioUrl);
-            if (audioFile) formData.append("audio_file", audioFile);
+            let finalAudioUrl = audioUrl;
 
-            await api.post("/api/v1/shot/lipsync_shot", formData);
+            // 1. If user uploaded a file, upload it first to get a URL
+            if (audioFile) {
+                const uploadFormData = new FormData();
+                uploadFormData.append("file", audioFile);
+
+                const uploadRes = await api.post("/api/v1/shot/upload_temp_audio", uploadFormData, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                });
+                finalAudioUrl = uploadRes.data.url;
+            }
+
+            if (!finalAudioUrl) throw new Error("Audio upload failed");
+
+            // 2. Send Pure JSON Request using the Class structure
+            const payload = {
+                project_id: projectId,
+                episode_id: episodeId,
+                scene_id: sceneId,
+                shot_id: shot.id,
+                video_url: shot.video_url,
+                audio_url: finalAudioUrl // Now we always have a URL string
+            };
+
+            await api.post("/api/v1/shot/lipsync_shot", payload);
+
             toast.success("Lip Sync Queued");
         } catch (e: any) {
+            console.error(e);
             toast.error(e.response?.data?.detail || "Lip Sync failed");
             await setDoc(shotRef, { video_status: "ready" }, { merge: true });
         }

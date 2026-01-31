@@ -2,24 +2,46 @@
 
 import { useEffect, useState } from "react";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
-import { X, ChevronLeft, ChevronRight, Image as ImageIcon, Film } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Image as ImageIcon, Film, Mic2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function GlobalMediaViewer() {
     const { isOpen, items, currentIndex, closeViewer, nextItem, prevItem } = useMediaViewer();
-    const [viewMode, setViewMode] = useState<"img" | "vid">("img");
+
+    // UPDATED: Added 'sync' to the state type
+    const [viewMode, setViewMode] = useState<"img" | "vid" | "sync">("img");
 
     // Get current item
     const currentItem = items[currentIndex];
 
-    // Reset view mode when changing items (optional logic: reset to img if vid doesn't exist)
+    // UPDATED: Check for all media types
+    // Note: We use optional chaining ?. in case items array is empty momentarily
+    const hasVideo = Boolean(currentItem?.videoUrl);
+    const hasImage = Boolean(currentItem?.imageUrl);
+    const hasLipsync = Boolean(currentItem?.lipsyncUrl);
+
+    // UPDATED: Smart Mode Switching
     useEffect(() => {
         if (!currentItem) return;
-        // If we are in VID mode but new item has no video, switch to IMG
-        if (viewMode === "vid" && !currentItem.videoUrl) {
-            setViewMode("img");
+
+        // If current mode is invalid for the new item, switch to an available mode
+        if (viewMode === "vid" && !hasVideo) {
+            setViewMode(hasLipsync ? "sync" : "img");
         }
-    }, [currentIndex, currentItem, viewMode]);
+        else if (viewMode === "sync" && !hasLipsync) {
+            setViewMode(hasVideo ? "vid" : "img");
+        }
+        else if (viewMode === "img" && !hasImage) {
+            setViewMode(hasLipsync ? "sync" : "vid");
+        }
+
+        // Optional: If we just opened an item that has a lip-sync but no standard video, 
+        // and no image, prioritize showing the media that actually exists.
+        if (!hasImage && !hasVideo && hasLipsync && viewMode !== "sync") {
+            setViewMode("sync");
+        }
+
+    }, [currentIndex, currentItem, viewMode, hasVideo, hasImage, hasLipsync]);
 
     // Keyboard Navigation
     useEffect(() => {
@@ -35,9 +57,6 @@ export default function GlobalMediaViewer() {
 
     if (!isOpen || !currentItem) return null;
 
-    const hasVideo = Boolean(currentItem.videoUrl);
-    const hasImage = Boolean(currentItem.imageUrl);
-
     return (
         <AnimatePresence>
             <motion.div
@@ -46,7 +65,6 @@ export default function GlobalMediaViewer() {
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/95 backdrop-blur-sm"
                 onClick={(e) => {
-                    // Close if clicking the backdrop directly (not children)
                     if (e.target === e.currentTarget) closeViewer();
                 }}
             >
@@ -61,27 +79,43 @@ export default function GlobalMediaViewer() {
                         </p>
                     </div>
 
-                    {/* IMG / VID TOGGLE (Only if both exist or we want to force check) */}
+                    {/* UPDATED: IMG / VID / SYNC TOGGLE */}
                     <div className="flex bg-[#111] border border-[#333] rounded-full p-1 gap-1">
+
+                        {/* IMAGE BUTTON */}
                         <button
                             onClick={() => setViewMode("img")}
                             disabled={!hasImage}
                             className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold font-mono transition-all
                                 ${viewMode === "img" ? "bg-[#333] text-white" : "text-gray-500 hover:text-white"}
-                                ${!hasImage ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}
+                                ${!hasImage ? "opacity-30 cursor-not-allowed hidden" : "cursor-pointer"} 
                             `}
                         >
                             <ImageIcon size={12} /> IMG
                         </button>
+
+                        {/* VIDEO BUTTON */}
                         <button
                             onClick={() => setViewMode("vid")}
                             disabled={!hasVideo}
                             className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold font-mono transition-all
                                 ${viewMode === "vid" ? "bg-[#FF0000] text-white" : "text-gray-500 hover:text-white"}
-                                ${!hasVideo ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}
+                                ${!hasVideo ? "opacity-30 cursor-not-allowed hidden" : "cursor-pointer"}
                             `}
                         >
                             <Film size={12} /> VID
+                        </button>
+
+                        {/* SYNC BUTTON (NEW) */}
+                        <button
+                            onClick={() => setViewMode("sync")}
+                            disabled={!hasLipsync}
+                            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold font-mono transition-all
+                                ${viewMode === "sync" ? "bg-[#00FF41] text-black" : "text-gray-500 hover:text-white"}
+                                ${!hasLipsync ? "opacity-30 cursor-not-allowed hidden" : "cursor-pointer"}
+                            `}
+                        >
+                            <Mic2 size={12} /> SYNC
                         </button>
                     </div>
 
@@ -115,6 +149,7 @@ export default function GlobalMediaViewer() {
 
                 {/* --- MEDIA CONTENT --- */}
                 <div className="relative w-full h-full p-12 flex items-center justify-center">
+
                     {viewMode === "img" && currentItem.imageUrl ? (
                         <img
                             src={currentItem.imageUrl}
@@ -126,7 +161,17 @@ export default function GlobalMediaViewer() {
                             src={currentItem.videoUrl}
                             controls
                             autoPlay
+                            loop
                             className="max-w-full max-h-full object-contain shadow-2xl"
+                        />
+                    ) : viewMode === "sync" && currentItem.lipsyncUrl ? (
+                        // NEW: Lip Sync Player
+                        <video
+                            src={currentItem.lipsyncUrl}
+                            controls
+                            autoPlay
+                            loop
+                            className="max-w-full max-h-full object-contain shadow-2xl border border-green-500/30"
                         />
                     ) : (
                         <div className="text-gray-500 font-mono text-sm">MEDIA NOT AVAILABLE</div>

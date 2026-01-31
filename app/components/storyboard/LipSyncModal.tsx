@@ -187,6 +187,8 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
         if (!text) return toastError("Please enter text");
         if (!selectedVoice) return toastError("Select a voice");
 
+        console.log("text", text, "selectedVoice", selectedVoice, "selectedEmotion", selectedEmotion);
+
         setIsSynthesizing(true);
         const url = await onGenerateVoice(text, selectedVoice, selectedEmotion);
         if (url) {

@@ -141,6 +141,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     };
 
     const handleOpenViewer = (initialIndex: number) => {
+        console.log("Shot data:", shotMgr.shots);
         const mediaItems = shotMgr.shots.map((s: any, i: number) => ({
             id: s.id,
             type: ((s.image_url && s.video_url) ? 'mixed' : (s.video_url ? 'video' : 'image')) as 'image' | 'video' | 'mixed',
@@ -271,7 +272,25 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     videoUrl={lipSyncShot.videoUrl}
                     credits={credits || 0}
                     onClose={() => setLipSyncShot(null)}
-                    onGenerateVoice={shotMgr.handleGenerateVoiceover}
+                    onGenerateVoice={(text, voiceId, emotion) => {
+                        // 1. Find the original shot object using the ID stored in state
+                        const originalShot = shotMgr.shots.find((s: any) => s.id === lipSyncShot.id);
+
+                        if (!originalShot) {
+                            return Promise.reject("Shot not found");
+                        }
+
+                        // 2. Construct a payload object that matches what useShotAudioGen expects
+                        const shotPayload = {
+                            ...originalShot,      // Keep existing IDs/data
+                            voiceover_text: text, // Override with text from Modal
+                            voice_id: voiceId,    // Override with voice from Modal
+                            // emotion: emotion   // (Pass this if you update your hook to use it)
+                        };
+
+                        // 3. Call the manager with the single object
+                        return shotMgr.handleGenerateVoiceover(shotPayload);
+                    }}
                     onStartSync={(audioUrl, audioFile) => {
                         const shot = shotMgr.shots.find((s: any) => s.id === lipSyncShot.id);
                         if (shot) return shotMgr.handleLipSyncShot(shot, audioUrl, audioFile);

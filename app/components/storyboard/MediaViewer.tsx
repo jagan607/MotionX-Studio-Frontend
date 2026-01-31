@@ -36,7 +36,7 @@ export const MediaViewer = () => {
     }, [isOpen, nextItem, prevItem, closeViewer]);
 
     if (!isOpen || !currentItem) return null;
-
+    console.log("currentItem", currentItem);
     // Determine what to display based on active mode
     let displayUrl = currentItem.imageUrl;
     let isVideo = false;
