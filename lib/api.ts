@@ -90,6 +90,24 @@ export const deleteAsset = async (projectId: string, type: string, assetId: stri
     return await api.delete(`/api/v1/assets/${projectId}/${type}/${assetId}`);
 };
 
+// Upload Reference Image
+export const uploadAssetReference = async (projectId: string, assetType: string, assetId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return await api.post(`/api/v1/assets/${projectId}/${assetType}/${assetId}/upload-reference`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+};
+
+// NEW: Upload Main Image (Direct override)
+export const uploadAssetMain = async (projectId: string, assetType: string, assetId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return await api.post(`/api/v1/assets/${projectId}/${assetType}/${assetId}/upload-main`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+};
+
 // Trigger Asset AI Image Generation
 export const triggerAssetGeneration = async (
     projectId: string,

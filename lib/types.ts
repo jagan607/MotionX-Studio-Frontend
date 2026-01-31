@@ -27,6 +27,8 @@ export interface CharacterProfile {
     project_id: string;
 
     image_url?: string;
+    ref_image_url?: string; // <--- NEW: Reference Image URL
+
     visual_traits: CharacterVisualTraits;
     voice_sample?: string;
     voice_suggestion?: string;
@@ -50,7 +52,10 @@ export interface LocationProfile {
     name: string;
     type: "location";
     project_id: string;
+
     image_url?: string;
+    ref_image_url?: string; // <--- NEW: Reference Image URL
+
     visual_traits: LocationVisualTraits;
     status?: "pending" | "processing" | "generating" | "active" | "failed";
     prompt?: string;

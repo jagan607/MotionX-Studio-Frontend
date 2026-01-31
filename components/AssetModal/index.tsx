@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, User, MapPin, ArrowLeft } from 'lucide-react';
 import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
+import { uploadAssetReference, uploadAssetMain } from '@/lib/api'; // <--- IMPORT BOTH
 import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils';
 import { toast } from 'react-hot-toast';
 import { Asset, CharacterProfile, LocationProfile } from '@/lib/types';
@@ -31,7 +32,7 @@ interface AssetModalProps {
     genre: string;
     style: string;
 
-    onUpload: (f: File) => void;
+    onUpload: (f: File) => void; // Kept for prop compatibility, but handled internally
     onGenerate: () => void;
     onCreateAndGenerate?: (data: any) => Promise<void>;
     onUpdateTraits: (data: any) => Promise<void>;
@@ -45,7 +46,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         isOpen, assetType, currentData, assetName, onUpdateTraits,
         setGenPrompt, genPrompt, onClose, isProcessing, onGenerate,
         onCreateAndGenerate,
-        onUpload, genre, style
+        genre, style
     } = props;
 
     // --- STATE ---
@@ -54,6 +55,11 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [initialTraits, setInitialTraits] = useState<any>({});
     const [initialName, setInitialName] = useState(assetName);
     const [isSavingTraits, setIsSavingTraits] = useState(false);
+
+    // Visuals State
+    const [refImage, setRefImage] = useState<string | null>(null);
+    // We use a local state for the display image to update UI immediately after upload/gen
+    const [localDisplayImage, setLocalDisplayImage] = useState<string | undefined>(currentData.image_url);
 
     // Voice State
     const [isVoiceMode, setIsVoiceMode] = useState(false);
@@ -79,6 +85,11 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
+    // Keep local display image in sync if parent updates (e.g. after generation finished externally)
+    useEffect(() => {
+        setLocalDisplayImage(currentData.image_url);
+    }, [currentData.image_url]);
+
     useEffect(() => {
         if (isVoiceMode && allVoices.length === 0) loadVoices();
     }, [isVoiceMode, allVoices.length]);
@@ -90,20 +101,15 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const initializeData = () => {
         let initialData: any = {};
 
-        // FIX: Cast to 'any' to strictly bypass TS checks against the Interface
-        // This allows us to handle the DB Array format even if Interface says Object
         const rawData = currentData as any;
         const vt = rawData.visual_traits;
 
         if (assetType === 'location') {
-            // 1. Handle Visual Keywords (DB Array vs Interface String)
+            // 1. Handle Visual Keywords
             let keywordsString = "";
-
             if (Array.isArray(vt)) {
-                // DB Format: ["tag1", "tag2"]
                 keywordsString = vt.join(', ');
             } else if (typeof vt === 'object' && vt !== null) {
-                // Interface Format: { keywords: "tag1, tag2" }
                 const kw = vt.keywords;
                 if (Array.isArray(kw)) keywordsString = kw.join(', ');
                 else if (typeof kw === 'string') keywordsString = kw;
@@ -111,17 +117,15 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 keywordsString = vt;
             }
 
-            // 2. Map Flat DB Fields to UI State
-            // Locations in DB have flat atmosphere/lighting/terrain fields
+            // 2. Map Flat DB Fields
             initialData = {
-                visual_traits: keywordsString, // Mapped to 'keywords' input
+                visual_traits: keywordsString,
                 atmosphere: rawData.atmosphere || vt?.atmosphere || "",
                 lighting: rawData.lighting || vt?.lighting || "",
                 terrain: rawData.terrain || vt?.terrain || "",
             };
         } else {
-            // Character Logic (Matches Interface)
-            // Ensure we handle case where vt is undefined or array safely
+            // Character Logic
             const charTraits = (vt && !Array.isArray(vt)) ? vt : {};
 
             initialData = {
@@ -142,9 +146,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         setInitialTraits(initialData);
         setEditableName(rawData.name || "");
         setInitialName(rawData.name || "");
+        setRefImage(rawData.ref_image_url || null);
 
         // Update prompt immediately
-        const existingPrompt = rawData.prompt || rawData.base_prompt; // Handle DB field differences
+        const existingPrompt = rawData.prompt || rawData.base_prompt;
         if (!existingPrompt) {
             updatePrompt(rawData.name || (assetType === 'location' ? "Location" : "Character"), initialData);
         } else {
@@ -155,8 +160,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     // --- HANDLERS ---
 
     const updatePrompt = (name: string, traits: any) => {
-        // Pass the raw string from UI inputs to the utility
-        // The utility is now robust enough (via our previous fix) to handle strings
         const constructed = assetType === 'location'
             ? constructLocationPrompt(name || "Location", traits.visual_traits, traits, genre, style)
             : constructCharacterPrompt(name || "Character", traits, traits, genre, style);
@@ -233,10 +236,49 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     };
 
     const handleTraitChange = (key: string, value: string) => {
-        // Keep value as string in state for smooth typing
         const updatedTraits = { ...editableTraits, [key]: value };
         setEditableTraits(updatedTraits);
         updatePrompt(editableName, updatedTraits);
+    };
+
+    // --- UPLOAD HANDLER 1: REFERENCE IMAGE ---
+    const handleRefUpload = async (file: File) => {
+        if (isCreationMode) {
+            toast.error("Please save the asset first.");
+            return;
+        }
+
+        const toastId = toast.loading("Uploading reference...");
+        try {
+            const res = await uploadAssetReference(props.projectId, assetType, currentData.id, file);
+            if (res.data.ref_image_url) {
+                setRefImage(res.data.ref_image_url);
+                toast.success("Reference Linked", { id: toastId });
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Upload failed", { id: toastId });
+        }
+    };
+
+    // --- UPLOAD HANDLER 2: MAIN VISUAL (Direct Upload) ---
+    const handleMainUpload = async (file: File) => {
+        if (isCreationMode) {
+            toast.error("Please save the asset first.");
+            return;
+        }
+
+        const toastId = toast.loading("Uploading visual...");
+        try {
+            const res = await uploadAssetMain(props.projectId, assetType, currentData.id, file);
+            if (res.data.image_url) {
+                setLocalDisplayImage(res.data.image_url); // Update UI immediately
+                toast.success("Visual Updated", { id: toastId });
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Upload failed", { id: toastId });
+        }
     };
 
     // Helper to construct the full payload for saving/generating
@@ -244,14 +286,11 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         let payload: any = {};
 
         if (assetType === 'location') {
-            // 1. Convert UI String (keywords) -> DB Array
             const kws = editableTraits.visual_traits || "";
             const keywordsArray = typeof kws === 'string'
                 ? kws.split(',').map((s: string) => s.trim()).filter((s: string) => s)
                 : kws;
 
-            // 2. Construct Flat DB Payload
-            // We save visual_traits as Array, and others as siblings
             payload = {
                 name: editableName,
                 visual_traits: keywordsArray,
@@ -261,7 +300,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 prompt: genPrompt
             };
         } else {
-            // Character Payload
             payload = {
                 name: editableName,
                 visual_traits: {
@@ -381,12 +419,18 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                             </div>
 
                             <VisualsSection
-                                displayImage={currentData?.image_url}
+                                displayImage={localDisplayImage} // Use local state for immediate updates
+                                refImage={refImage}
                                 isProcessing={isProcessing}
                                 genPrompt={genPrompt}
                                 setGenPrompt={setGenPrompt}
                                 onGenerate={handleSmartGenerate}
-                                onUpload={(e) => { if (e.target.files?.[0]) onUpload(e.target.files[0]) }}
+
+                                // Pass the two distinct handlers
+                                onUploadRef={handleRefUpload}
+                                onUploadMain={handleMainUpload}
+                                // Fallback prop if needed by interface, but logic is handled above
+                                onUpload={() => { }}
                             />
 
                             {assetType === 'character' && (
