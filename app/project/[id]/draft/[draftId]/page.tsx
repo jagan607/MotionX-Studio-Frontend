@@ -11,17 +11,15 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { arrayMove } from "@dnd-kit/sortable";
 import {
-    ArrowLeft, GripVertical, CheckCircle, Sparkles, X, FileText, Cpu, AlignLeft, Hash, Clock
+    ArrowLeft, GripVertical, CheckCircle2, Sparkles,
+    FileText, Cpu, AlignLeft, Hash, Clock, Film, Scissors,
+    AlertCircle, Terminal
 } from "lucide-react";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
 import { api } from "@/lib/api";
 import Link from "next/link";
-
-// --- DESIGN SYSTEM IMPORTS ---
-import { StudioLayout } from "@/components/ui/StudioLayout";
-import { MotionButton } from "@/components/ui/MotionButton";
 
 // --- TYPES ---
 interface DraftScene {
@@ -162,133 +160,202 @@ export default function ScriptLab() {
     };
 
     return (
-        <StudioLayout>
-            <div className="min-h-screen bg-[#050505] text-[#EEE] font-sans selection:bg-red-900/30 p-8 pb-32">
+        <div className="fixed inset-0 z-50 bg-[#050505] text-[#EEE] font-sans overflow-hidden flex flex-col">
 
-                {/* --- HEADER --- */}
-                <header className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-10 gap-6 border-b border-[#222] pb-6">
-                    <div className="w-full xl:w-auto">
-                        <Link href={`/project/${projectId}/script`} className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] text-[#555] hover:text-white mb-4 transition-colors group">
-                            <ArrowLeft size={12} className="group-hover:-translate-x-1 transition-transform" /> SCRIPT SOURCE
-                        </Link>
+            {/* --- GLOBAL STYLES --- */}
+            <style jsx global>{`
+                /* 1. SCROLLBARS */
+                ::-webkit-scrollbar { width: 6px; }
+                ::-webkit-scrollbar-track { background: #050505; }
+                ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+                ::-webkit-scrollbar-thumb:hover { background: #555; }
 
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="h-2 w-2 bg-red-600 animate-pulse rounded-full" />
-                            <h1 className="text-4xl font-display font-bold uppercase tracking-tighter text-white leading-none">
-                                SEQUENCE <span className="text-[#333]">EDITOR</span>
-                            </h1>
-                        </div>
+                /* 2. SOLID RED BUTTONS */
+                .action-btn {
+                    background-color: #DC2626;
+                    color: white;
+                    text-transform: uppercase;
+                    font-weight: 800;
+                    letter-spacing: 1px;
+                    transition: all 0.2s ease;
+                    border: 1px solid #EF4444;
+                }
+                .action-btn:hover {
+                    background-color: #B91C1C;
+                    box-shadow: 0 0 20px rgba(220, 38, 38, 0.4);
+                }
+                
+                /* 3. INPUT FIELD */
+                .ai-input {
+                    background: rgba(10,10,10,0.5);
+                    border: 1px solid #333;
+                    color: #EEE;
+                    font-family: 'Courier New', monospace;
+                }
+                .ai-input:focus {
+                    outline: none;
+                    border-color: #DC2626;
+                    background: rgba(20,20,20,0.8);
+                }
+            `}</style>
 
-                        <div className="flex gap-6 mt-2 text-xs font-mono text-[#666]">
-                            <span className="flex items-center gap-2"><AlignLeft size={12} /> {draft?.title || "UNTITLED"}</span>
-                            <span className="flex items-center gap-2"><Hash size={12} /> {scenes.length} SCENES</span>
-                            <span className="flex items-center gap-2"><Clock size={12} /> EST. {scenes.length * 2} MINS</span>
-                        </div>
+            {/* --- HEADER --- */}
+            <header className="h-16 border-b border-[#222] bg-[#080808] flex items-center justify-between px-6 shrink-0 z-50">
+                <div className="flex items-center gap-8">
+                    <Link href={`/project/${projectId}/script`} className="flex items-center gap-2 text-[#666] hover:text-white transition-colors group">
+                        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                        <span className="text-[10px] font-bold tracking-[0.2em] uppercase">Back to Script</span>
+                    </Link>
+
+                    <div className="h-6 w-[1px] bg-[#222]" />
+
+                    <div className="flex items-center gap-3">
+                        <Film size={16} className="text-red-600" />
+                        <span className="text-lg font-display font-bold uppercase text-white tracking-tight">SEQUENCE EDITOR</span>
                     </div>
-
-                    <div className="w-full xl:w-auto">
-                        <MotionButton onClick={handleCommit} loading={isCommitting} className="w-full xl:w-auto px-8 py-3 text-xs tracking-[0.2em] font-bold">
-                            <CheckCircle size={14} className="mr-2" /> APPROVE SEQUENCE
-                        </MotionButton>
-                    </div>
-                </header>
-
-                {/* --- MAIN WORKSPACE --- */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-250px)]">
-
-                    {/* LEFT: SCENE TIMELINE (Scrollable) */}
-                    <div className="lg:col-span-8 flex flex-col h-full overflow-hidden">
-                        <div className="bg-[#0A0A0A] border border-[#222] p-2 flex items-center justify-between mb-4">
-                            <span className="text-[10px] font-bold uppercase text-[#666] tracking-widest pl-2">Timeline Strip</span>
-                            <span className="text-[10px] font-mono text-[#444]">AUTO-SAVE ENABLED</span>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 pb-20">
-                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                <SortableContext items={scenes} strategy={verticalListSortingStrategy}>
-                                    {scenes.map((scene, i) => (
-                                        <SortableSceneCard
-                                            key={scene.id}
-                                            scene={scene}
-                                            index={i}
-                                            isActive={activeSceneId === scene.id}
-                                            onEdit={() => setActiveSceneId(scene.id)}
-                                        />
-                                    ))}
-                                </SortableContext>
-                            </DndContext>
-                        </div>
-                    </div>
-
-                    {/* RIGHT: AI CONSOLE (Sticky) */}
-                    <div className="lg:col-span-4 h-full flex flex-col">
-                        <div className="bg-[#0E0E0E] border border-[#222] h-full flex flex-col">
-
-                            {/* Console Header */}
-                            <div className="h-10 border-b border-[#222] bg-[#111] flex items-center px-4 justify-between shrink-0">
-                                <div className="flex items-center gap-2">
-                                    <Cpu size={14} className="text-red-600" />
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#AAA]">Director AI</span>
-                                </div>
-                                <div className="h-1.5 w-1.5 bg-green-500 rounded-full shadow-[0_0_5px_#22c55e]" />
-                            </div>
-
-                            {/* Console Content */}
-                            <div className="flex-1 p-6 flex flex-col">
-                                {activeSceneId ? (
-                                    <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                        <div className="mb-6">
-                                            <div className="text-[9px] font-mono text-[#555] uppercase mb-1">TARGET LOCK</div>
-                                            <div className="text-sm font-bold text-white border-l-2 border-red-600 pl-3 py-1">
-                                                SCENE {String(scenes.find(s => s.id === activeSceneId)?.scene_number).padStart(2, '0')}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex-1 flex flex-col gap-4">
-                                            <div className="relative group flex-1">
-                                                <div className="absolute top-0 left-0 text-[9px] font-mono bg-[#0E0E0E] px-2 text-[#666] -mt-2 ml-2">INSTRUCTION INPUT</div>
-                                                <textarea
-                                                    value={aiInstruction}
-                                                    onChange={(e) => setAiInstruction(e.target.value)}
-                                                    placeholder="// Enter directorial commands...&#10;> Make it darker&#10;> Add rain&#10;> Remove dialogue"
-                                                    className="w-full h-full bg-[#050505] border border-[#333] p-4 text-xs font-mono text-[#DDD] placeholder-[#333] focus:border-red-600 focus:outline-none transition-colors resize-none leading-relaxed"
-                                                />
-                                            </div>
-
-                                            <MotionButton onClick={handleAiRewrite} loading={isProcessing} className="w-full py-4 text-xs font-bold tracking-[0.1em]">
-                                                <Sparkles size={14} className="mr-2" /> EXECUTE REWRITE
-                                            </MotionButton>
-
-                                            <button
-                                                onClick={() => setActiveSceneId(null)}
-                                                className="text-[10px] font-bold text-[#444] hover:text-[#888] tracking-widest uppercase py-2 transition-colors border border-transparent hover:border-[#222]"
-                                            >
-                                                CANCEL OPERATION
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="h-full flex flex-col items-center justify-center text-center opacity-50 space-y-4">
-                                        <div className="h-16 w-16 border border-[#333] rounded-full flex items-center justify-center bg-[#050505]">
-                                            <Sparkles size={24} className="text-[#333]" />
-                                        </div>
-                                        <div>
-                                            <div className="text-xs font-bold text-[#666] uppercase tracking-widest mb-1">System Idle</div>
-                                            <div className="text-[10px] font-mono text-[#444]">SELECT A SCENE STRIP TO BEGIN</div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
+
+                <div className="flex items-center gap-6">
+                    <div className="hidden md:flex gap-6 text-[10px] font-mono text-[#444]">
+                        <span className="flex items-center gap-2"><AlignLeft size={12} /> {scenes.length} SCENES</span>
+                        <span className="flex items-center gap-2"><Clock size={12} /> EST. DURATION: {scenes.length * 2}M</span>
+                    </div>
+
+                    <button
+                        onClick={handleCommit}
+                        disabled={isCommitting}
+                        className="action-btn px-6 py-2 text-[10px] flex items-center gap-2"
+                    >
+                        {isCommitting ? <Sparkles size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                        APPROVE SEQUENCE
+                    </button>
+                </div>
+            </header>
+
+            {/* --- MAIN WORKSPACE --- */}
+            <div className="flex-1 flex overflow-hidden relative z-40">
+
+                {/* LEFT: TIMELINE (Scrollable) */}
+                <div className="flex-1 flex flex-col bg-[#050505] relative border-r border-[#222]">
+
+                    {/* Toolbar */}
+                    <div className="h-10 border-b border-[#222] bg-[#0A0A0A] flex items-center justify-between px-4 shrink-0">
+                        <div className="text-[10px] font-bold text-[#555] uppercase tracking-widest flex items-center gap-2">
+                            <Scissors size={12} /> Timeline
+                        </div>
+                        <div className="text-[9px] font-mono text-[#333]">AUTO-SAVE: ACTIVE</div>
+                    </div>
+
+                    {/* Draggable List */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                            <SortableContext items={scenes} strategy={verticalListSortingStrategy}>
+                                {scenes.map((scene, i) => (
+                                    <SortableSceneCard
+                                        key={scene.id}
+                                        scene={scene}
+                                        index={i}
+                                        isActive={activeSceneId === scene.id}
+                                        onEdit={() => setActiveSceneId(scene.id)}
+                                    />
+                                ))}
+                            </SortableContext>
+                        </DndContext>
+
+                        {/* End of Timeline Indicator */}
+                        <div className="h-20 flex items-center justify-center border-t border-dashed border-[#222] mt-4">
+                            <span className="text-[9px] font-mono text-[#333]">END OF SEQUENCE</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* RIGHT: AI INSPECTOR (Sticky Sidebar) */}
+                <div className="w-[400px] bg-[#080808] flex flex-col shrink-0">
+
+                    {/* Inspector Header */}
+                    <div className="h-10 border-b border-[#222] bg-[#0A0A0A] flex items-center justify-between px-4 shrink-0">
+                        <div className="text-[10px] font-bold text-[#555] uppercase tracking-widest flex items-center gap-2">
+                            <Cpu size={12} /> Director Console
+                        </div>
+                        <div className="w-2 h-2 bg-green-900 rounded-full" />
+                    </div>
+
+                    {/* Inspector Content */}
+                    <div className="flex-1 p-6 flex flex-col">
+                        {activeSceneId ? (
+                            <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
+
+                                {/* Selected Scene Info */}
+                                <div className="mb-6 p-4 border border-[#222] bg-[#0C0C0C] rounded-sm relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-1 h-full bg-red-600" />
+                                    <div className="text-[9px] font-mono text-red-500 mb-1 uppercase">Target Locked</div>
+                                    <div className="text-xl font-bold text-white mb-2">
+                                        SCENE {String(scenes.find(s => s.id === activeSceneId)?.scene_number).padStart(2, '0')}
+                                    </div>
+                                    <div className="text-[10px] text-[#666] uppercase tracking-widest">
+                                        {scenes.find(s => s.id === activeSceneId)?.header || "UNKNOWN HEADER"}
+                                    </div>
+                                </div>
+
+                                {/* AI Input Area */}
+                                <div className="flex-1 flex flex-col gap-4">
+                                    <div className="flex items-center gap-2 text-[10px] font-bold text-[#888] uppercase">
+                                        <Terminal size={12} /> Modification Prompt
+                                    </div>
+
+                                    <textarea
+                                        value={aiInstruction}
+                                        onChange={(e) => setAiInstruction(e.target.value)}
+                                        placeholder="// Enter directorial commands...&#10;> Make the dialogue more intense&#10;> Change setting to night&#10;> Add rain effect"
+                                        className="ai-input w-full flex-1 p-4 text-xs resize-none rounded-sm"
+                                    />
+
+                                    <div className="flex gap-2 pt-4">
+                                        <button
+                                            onClick={handleAiRewrite}
+                                            disabled={isProcessing}
+                                            className="action-btn flex-1 py-3 text-[10px] flex items-center justify-center gap-2"
+                                        >
+                                            {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                                            EXECUTE AI
+                                        </button>
+
+                                        <button
+                                            onClick={() => setActiveSceneId(null)}
+                                            className="px-4 py-3 border border-[#333] text-[10px] font-bold text-[#666] hover:text-white hover:bg-[#111] transition-colors uppercase tracking-widest rounded-sm"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-center opacity-40 gap-4">
+                                <div className="w-16 h-16 rounded-full border border-[#333] flex items-center justify-center">
+                                    <Sparkles size={24} className="text-[#666]" />
+                                </div>
+                                <div>
+                                    <div className="text-xs font-bold text-[#666] uppercase tracking-widest mb-1">System Idle</div>
+                                    <div className="text-[10px] font-mono text-[#444]">SELECT A SCENE TO MODIFY</div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Bottom Status */}
+                    <div className="p-4 border-t border-[#222] bg-[#050505]">
+                        <div className="flex items-center gap-2 text-[9px] font-mono text-[#444]">
+                            <Activity size={10} /> AI_ENGINE_V2: READY
+                        </div>
+                    </div>
+                </div>
+
             </div>
-        </StudioLayout>
+        </div>
     );
 }
 
-// --- SUB-COMPONENT: SCENE STRIP ---
+// --- COMPONENT: TIMELINE STRIP ---
 function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: scene.id });
 
@@ -303,46 +370,49 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
             style={style}
             onClick={onEdit}
             className={`
-                group relative flex items-stretch border-l-2 transition-all duration-200 cursor-pointer
+                group relative flex w-full border border-transparent transition-all duration-200 cursor-pointer
                 ${isActive
-                    ? 'bg-[#111] border-l-red-600 border-y border-r border-y-[#222] border-r-[#222] shadow-[0_0_20px_rgba(0,0,0,0.5)] z-10 scale-[1.01]'
-                    : 'bg-[#080808] border-l-[#333] border-y border-r border-transparent hover:bg-[#0C0C0C] hover:border-y-[#222] hover:border-r-[#222]'}
+                    ? 'bg-[#111] border-[#333] border-l-2 border-l-red-600 shadow-lg z-10'
+                    : 'bg-[#0A0A0A] border-[#222] hover:border-[#444] hover:bg-[#0E0E0E]'}
             `}
         >
-            {/* Drag Handle */}
+            {/* Grip Handle */}
             <div
                 {...attributes} {...listeners}
-                className="w-10 bg-[#050505] border-r border-[#222] flex items-center justify-center cursor-grab active:cursor-grabbing text-[#333] hover:text-[#666] transition-colors"
+                className="w-8 flex items-center justify-center border-r border-[#222] cursor-grab active:cursor-grabbing hover:bg-[#151515] transition-colors"
                 onClick={(e) => e.stopPropagation()}
             >
-                <GripVertical size={16} />
+                <GripVertical size={14} className="text-[#333] group-hover:text-[#666]" />
             </div>
 
-            {/* Scene Info */}
+            {/* Content */}
             <div className="flex-1 p-4">
-                <div className="flex items-baseline gap-3 mb-2 border-b border-[#222] pb-2">
-                    <span className={`text-lg font-display font-bold ${isActive ? 'text-red-600' : 'text-[#444] group-hover:text-[#666]'}`}>
+                <div className="flex items-center gap-3 mb-2">
+                    <span className={`text-lg font-mono font-bold ${isActive ? 'text-red-500' : 'text-[#444]'}`}>
                         {String(index + 1).padStart(2, '0')}
                     </span>
-                    <span className={`text-xs font-bold uppercase tracking-wider ${isActive ? 'text-white' : 'text-[#888]'}`}>
+                    <span className="text-xs font-bold text-white uppercase tracking-wider">
                         {scene.header}
                     </span>
-                    <span className="ml-auto text-[9px] font-mono text-[#444] uppercase">{scene.time || "N/A"}</span>
+                    {scene.time && (
+                        <span className="ml-auto text-[9px] font-mono text-[#444] bg-[#151515] px-2 py-0.5 rounded-full">
+                            {scene.time}
+                        </span>
+                    )}
                 </div>
 
-                <p className={`text-sm leading-relaxed font-serif ${isActive ? 'text-[#CCC]' : 'text-[#666]'}`}>
+                <p className="text-xs text-[#888] leading-relaxed font-mono line-clamp-2 pl-9 border-l border-[#222]">
                     {scene.summary}
                 </p>
             </div>
 
-            {/* Status Indicator / Edit Icon */}
-            <div className={`w-12 flex items-center justify-center border-l border-[#222] transition-colors ${isActive ? 'bg-red-900/10' : 'bg-transparent'}`}>
-                {isActive ? (
-                    <div className="h-2 w-2 bg-red-600 rounded-full shadow-[0_0_8px_#DC2626]" />
-                ) : (
-                    <Sparkles size={14} className="text-[#333] group-hover:text-[#666]" />
-                )}
+            {/* Edit Trigger (Visual only, clicking row triggers it) */}
+            <div className={`w-10 flex items-center justify-center border-l border-[#222] transition-colors ${isActive ? 'bg-red-900/10' : 'bg-transparent'}`}>
+                <Sparkles size={14} className={isActive ? 'text-red-500' : 'text-[#333] group-hover:text-[#666]'} />
             </div>
         </div>
     );
 }
+
+// Icon Import Helper (Just for the bottom status, ensuring Activity is defined)
+import { Activity, Loader2 } from "lucide-react";

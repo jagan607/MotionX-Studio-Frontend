@@ -77,7 +77,7 @@ export default function RootLayout({
               dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
             <AuthProvider>
-              <div className="vignette pointer-events-none fixed inset-0 z-50" />
+              {/* <div className="vignette pointer-events-none fixed inset-0 z-50" /> */}
 
               {/* GlobalHeader handles its own visibility */}
               <GlobalHeader />
