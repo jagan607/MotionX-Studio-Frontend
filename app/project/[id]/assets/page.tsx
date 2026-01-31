@@ -90,7 +90,6 @@ export default function AssetManagerPage() {
         }
     }, [assets]);
 
-    // Progress Logic
     const calculateProgress = () => {
         const all = [...assets.characters, ...assets.locations];
         if (all.length === 0) return 0;
@@ -115,20 +114,33 @@ export default function AssetManagerPage() {
         setSelectedAsset(draftAsset);
     };
 
+    // --- UPDATED SAVE HANDLER ---
+    // Returns the Asset object (Promise<Asset | void>)
     const handleSaveAsset = async (asset: Asset, data: any) => {
         try {
             if (asset.id === "new") {
-                await createAsset(projectId, { ...data, type: asset.type });
+                // Create Mode: Return the new asset so Modal can use the ID
+                const res = await createAsset(projectId, { ...data, type: asset.type });
+                const newAsset = { ...res.data.asset, type: asset.type };
+
                 toast.success("ENTRY CREATED");
+
+                // Update local state to switch from "new" to real ID
+                setSelectedAsset(newAsset);
+                loadData();
+                return newAsset; // <--- RETURN THE ASSET
+
             } else {
+                // Update Mode
                 await updateAsset(projectId, asset.type, asset.id, data);
                 toast.success("DATABASE UPDATED");
+                loadData();
+                return asset; // <--- RETURN THE ASSET
             }
-            setSelectedAsset(null);
-            loadData();
         } catch (e) {
             console.error(e);
             toast.error("SAVE FAILED");
+            throw e; // Throw so modal knows it failed
         }
     };
 
@@ -146,7 +158,6 @@ export default function AssetManagerPage() {
         }
     };
 
-    // --- GENERATION HANDLER (UPDATED) ---
     const handleGenerate = async (asset: Asset, customPrompt?: string, useRef: boolean = true) => {
         if (asset.id === "new") return;
 
@@ -166,7 +177,6 @@ export default function AssetManagerPage() {
                 }
             }
 
-            // --- CALL API WITH NEW FLAG ---
             const res = await triggerAssetGeneration(
                 projectId,
                 asset.id,
@@ -174,16 +184,14 @@ export default function AssetManagerPage() {
                 finalPrompt,
                 cleanStyle,
                 (project as any)?.aspect_ratio || "16:9",
-                useRef // <--- PASSING THE FLAG
+                useRef
             );
 
-            // Optimistic / Delayed Reload
             setTimeout(() => {
                 loadData();
                 setGeneratingIds(prev => { const next = new Set(prev); next.delete(asset.id); return next; });
-            }, 500); // reduced timeout since we await the response now
+            }, 500);
 
-            // Return the image URL so modal can update immediately
             return res.image_url;
 
         } catch (e) {
@@ -200,7 +208,6 @@ export default function AssetManagerPage() {
             const newAsset = { ...response.data.asset, type: type };
             setSelectedAsset(newAsset);
             loadData();
-            // Pass default true for useRef on creation
             await handleGenerate(newAsset, draftData.prompt, true);
         } catch (e) {
             toast.error("CREATION FAILED");
@@ -225,7 +232,6 @@ export default function AssetManagerPage() {
 
             {/* --- CSS OVERRIDES FOR ASSET CARDS --- */}
             <style jsx global>{`
-                /* 1. FORCE ASSET CARDS TO MATCH THEME */
                 div[class*="rounded-xl"], div[class*="bg-white"], div[class*="bg-zinc-900"] {
                     border-radius: 0px !important;
                     background-color: #0A0A0A !important;
@@ -239,8 +245,6 @@ export default function AssetManagerPage() {
                 }
                 h3, p, span { color: #EEE !important; }
                 .text-muted-foreground { color: #666 !important; }
-
-                /* 2. SOLID RED BUTTONS */
                 .action-btn {
                     background-color: #DC2626 !important;
                     border: 1px solid #DC2626 !important;
@@ -250,8 +254,6 @@ export default function AssetManagerPage() {
                     letter-spacing: 1px;
                 }
                 .action-btn:hover { background-color: #B91C1C !important; }
-
-                /* 3. SCROLLBAR */
                 ::-webkit-scrollbar { width: 6px; }
                 ::-webkit-scrollbar-track { background: #050505; }
                 ::-webkit-scrollbar-thumb { background: #333; }
@@ -281,7 +283,6 @@ export default function AssetManagerPage() {
                 </div>
 
                 <div className="flex items-center gap-6">
-                    {/* Progress Monitor */}
                     <div className="flex flex-col items-end">
                         <div className="text-[10px] font-mono text-[#666] mb-1 uppercase tracking-widest">
                             VISUALIZATION: <span className="text-white">{calculateProgress()}%</span>
@@ -293,7 +294,6 @@ export default function AssetManagerPage() {
 
                     <div className="h-8 w-[1px] bg-[#222]" />
 
-                    {/* Next Step */}
                     <button
                         onClick={() => router.push(`/project/${projectId}/studio`)}
                         className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold tracking-widest uppercase transition-colors text-white"
@@ -306,7 +306,6 @@ export default function AssetManagerPage() {
             {/* --- MAIN CONTENT --- */}
             <div className="flex-1 flex overflow-hidden relative z-40">
 
-                {/* LEFT: SIDEBAR (Filters/Tabs) */}
                 <div className="w-[280px] bg-[#050505] border-r border-[#222] flex flex-col shrink-0">
                     <div className="p-6 border-b border-[#222]">
                         <div className="text-[10px] font-bold text-[#444] uppercase tracking-widest mb-4">
@@ -348,10 +347,7 @@ export default function AssetManagerPage() {
                     </div>
                 </div>
 
-                {/* RIGHT: ASSET GRID */}
                 <div className="flex-1 bg-[#020202] flex flex-col relative">
-
-                    {/* Toolbar */}
                     <div className="h-12 border-b border-[#222] bg-[#080808] flex items-center justify-between px-6 shrink-0">
                         <div className="flex items-center gap-2 text-[10px] font-bold text-[#555] uppercase tracking-widest">
                             <LayoutGrid size={14} />
@@ -365,16 +361,12 @@ export default function AssetManagerPage() {
                         </div>
                     </div>
 
-                    {/* Grid Content */}
                     <div className="flex-1 overflow-y-auto p-6 md:p-8">
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-
-                            {/* "New Asset" Tile */}
                             <button
                                 onClick={handleOpenDraft}
                                 className="group aspect-[3/4] bg-[#050505] border border-dashed border-[#333] hover:border-red-600 hover:bg-[#080808] flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden"
                             >
-                                {/* Crosshair decor */}
                                 <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-[#333]" />
                                 <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-[#333]" />
                                 <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-[#333]" />
@@ -388,7 +380,6 @@ export default function AssetManagerPage() {
                                 </span>
                             </button>
 
-                            {/* Render Assets */}
                             {loading ? (
                                 <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-50">
                                     <Loader2 className="animate-spin text-red-600 mb-4" size={24} />
@@ -396,7 +387,6 @@ export default function AssetManagerPage() {
                                 </div>
                             ) : displayedAssets.map((asset) => (
                                 <div key={asset.id} className="relative group">
-                                    {/* Wrapping AssetCard to enforce grid layout */}
                                     <AssetCard
                                         variant="default"
                                         asset={asset}
@@ -409,7 +399,6 @@ export default function AssetManagerPage() {
                                         }}
                                         onDelete={handleDelete}
                                     />
-                                    {/* Corner accent for tech feel */}
                                     <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-red-600/0 group-hover:border-red-600 transition-colors pointer-events-none" />
                                 </div>
                             ))}
@@ -419,7 +408,6 @@ export default function AssetManagerPage() {
 
             </div>
 
-            {/* --- MODAL --- */}
             {selectedAsset && (
                 <AssetModal
                     isOpen={!!selectedAsset}
@@ -435,14 +423,13 @@ export default function AssetManagerPage() {
                     setGenPrompt={setGenPrompt}
                     isProcessing={selectedAsset.id !== "new" && generatingIds.has(selectedAsset.id)}
 
-                    // PASS THE UPDATED HANDLER HERE
                     onGenerate={(prompt, useRef) => handleGenerate(selectedAsset, prompt, useRef)}
 
                     onCreateAndGenerate={handleCreateAndGenerate}
                     genre={(project as any)?.genre || "cinematic"}
                     style={project?.moodboard?.lighting || "realistic"}
                     onUpload={() => { }}
-                    onUpdateTraits={(data) => handleSaveAsset(selectedAsset, data)}
+                    onUpdateTraits={(data) => handleSaveAsset(selectedAsset, data)} // Now returns Promise<Asset>
                     onLinkVoice={async () => { }}
                     styles={{
                         modal: {
@@ -458,7 +445,6 @@ export default function AssetManagerPage() {
     );
 }
 
-// --- SUB-COMPONENTS ---
 const TabButton = ({ active, onClick, icon, label, count }: any) => (
     <button
         onClick={onClick}

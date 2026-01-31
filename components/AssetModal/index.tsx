@@ -33,12 +33,9 @@ interface AssetModalProps {
     style: string;
 
     onUpload: (f: File) => void;
-
-    // UPDATED: Now accepts arguments and returns the URL for immediate preview update
     onGenerate: (prompt: string, useRef: boolean) => Promise<string | void | undefined>;
-
     onCreateAndGenerate?: (data: any) => Promise<void>;
-    onUpdateTraits: (data: any) => Promise<void>;
+    onUpdateTraits: (data: any) => Promise<any>; // Update type to allow returning Asset
     onLinkVoice: (v: { voice_id: string; voice_name: string }) => Promise<void>;
 
     styles?: any;
@@ -65,8 +62,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     // Visuals State
     const [refImage, setRefImage] = useState<string | null>(null);
     const [localDisplayImage, setLocalDisplayImage] = useState<string | undefined>(currentData.image_url);
-
-    // Reference Usage Toggle
     const [useRefForGen, setUseRefForGen] = useState(true);
 
     // Voice State
@@ -93,7 +88,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
-    // Sync local image with prop updates (e.g. if parent reloaded data)
     useEffect(() => {
         setLocalDisplayImage(currentData.image_url);
     }, [currentData.image_url]);
@@ -148,7 +142,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         setEditableName(rawData.name || "");
         setInitialName(rawData.name || "");
 
-        // Initialize Ref State
         const hasRef = !!rawData.ref_image_url;
         setRefImage(rawData.ref_image_url || null);
         setUseRefForGen(hasRef);
@@ -160,8 +153,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             setGenPrompt(existingPrompt);
         }
     };
-
-    // --- HANDLERS ---
 
     const updatePrompt = (name: string, traits: any) => {
         const constructed = assetType === 'location'
@@ -245,43 +236,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         updatePrompt(editableName, updatedTraits);
     };
 
-    const handleRefUpload = async (file: File) => {
-        if (isCreationMode) {
-            toast.error("Please save the asset first.");
-            return;
-        }
-        const toastId = toast.loading("Uploading reference...");
-        try {
-            const res = await uploadAssetReference(props.projectId, assetType, currentData.id, file);
-            if (res.data.ref_image_url) {
-                setRefImage(res.data.ref_image_url);
-                setUseRefForGen(true);
-                toast.success("Reference Linked", { id: toastId });
-            }
-        } catch (e) {
-            console.error(e);
-            toast.error("Upload failed", { id: toastId });
-        }
-    };
-
-    const handleMainUpload = async (file: File) => {
-        if (isCreationMode) {
-            toast.error("Please save the asset first.");
-            return;
-        }
-        const toastId = toast.loading("Uploading visual...");
-        try {
-            const res = await uploadAssetMain(props.projectId, assetType, currentData.id, file);
-            if (res.data.image_url) {
-                setLocalDisplayImage(res.data.image_url);
-                toast.success("Visual Updated", { id: toastId });
-            }
-        } catch (e) {
-            console.error(e);
-            toast.error("Upload failed", { id: toastId });
-        }
-    };
-
     const constructPayload = () => {
         let payload: any = {};
         if (assetType === 'location') {
@@ -313,7 +267,77 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         return payload;
     };
 
-    // --- SAVE LOGIC ---
+    // --- UPLOAD HANDLER: REF (FIXED) ---
+    const handleRefUpload = async (file: File) => {
+        let targetId = currentData.id;
+
+        if (isCreationMode) {
+            if (!isNameValid) { toast.error("Enter a name first"); return; }
+            const toastId = toast.loading("Creating asset before upload...");
+            try {
+                // Wait for parent to create and return the new asset
+                const newAsset = await onUpdateTraits(constructPayload());
+                if (!newAsset || !newAsset.id) throw new Error("Creation failed");
+
+                targetId = newAsset.id;
+                setInitialTraits(editableTraits);
+                setInitialName(editableName);
+                toast.success("Created!", { id: toastId });
+            } catch (e) {
+                toast.error("Failed to create asset", { id: toastId });
+                return;
+            }
+        }
+
+        // Proceed to upload with real ID
+        const toastId = toast.loading("Uploading reference...");
+        try {
+            const res = await uploadAssetReference(props.projectId, assetType, targetId, file);
+            if (res.data.ref_image_url) {
+                setRefImage(res.data.ref_image_url);
+                setUseRefForGen(true);
+                toast.success("Reference Linked", { id: toastId });
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Upload failed", { id: toastId });
+        }
+    };
+
+    // --- UPLOAD HANDLER: MAIN (FIXED) ---
+    const handleMainUpload = async (file: File) => {
+        let targetId = currentData.id;
+
+        if (isCreationMode) {
+            if (!isNameValid) { toast.error("Enter a name first"); return; }
+            const toastId = toast.loading("Creating asset before upload...");
+            try {
+                const newAsset = await onUpdateTraits(constructPayload());
+                if (!newAsset || !newAsset.id) throw new Error("Creation failed");
+
+                targetId = newAsset.id;
+                setInitialTraits(editableTraits);
+                setInitialName(editableName);
+                toast.success("Created!", { id: toastId });
+            } catch (e) {
+                toast.error("Failed to create asset", { id: toastId });
+                return;
+            }
+        }
+
+        const toastId = toast.loading("Uploading visual...");
+        try {
+            const res = await uploadAssetMain(props.projectId, assetType, targetId, file);
+            if (res.data.image_url) {
+                setLocalDisplayImage(res.data.image_url);
+                toast.success("Visual Updated", { id: toastId });
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Upload failed", { id: toastId });
+        }
+    };
+
     const handleSaveOnly = async () => {
         if (isCreationMode && !isNameValid) {
             toast.error("Please enter a name");
@@ -321,17 +345,11 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
         setIsSavingTraits(true);
         try {
-            if (isCreationMode && props.onCreateAndGenerate) {
-                toast.error("For new assets, please use Generate to create & visualize.");
-                setIsSavingTraits(false);
-                return;
-            }
-
             await onUpdateTraits(constructPayload());
             setInitialTraits(editableTraits);
             setInitialName(editableName);
             toast.success("Configuration Saved");
-            onClose();
+            // Do not close, allow user to continue
         } catch (e) {
             console.error(e);
             toast.error("Failed to save");
@@ -340,7 +358,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         }
     };
 
-    // --- GENERATE LOGIC ---
     const handleGenerateClick = async () => {
         if (!isNameValid) {
             toast.error("Please enter a name");
@@ -349,21 +366,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
         setIsGenerating(true);
         try {
-            // 1. Handle New Creation Special Case
             if (isCreationMode && props.onCreateAndGenerate) {
-                // For new assets, we rely on the parent's create-and-generate flow.
-                // We cannot easily pass 'useRef' here unless we update that prop too.
-                // Assuming default behavior for now.
                 await props.onCreateAndGenerate(constructPayload());
             } else {
-                // 2. Normal Update & Generate
-                // Save metadata first
                 await onUpdateTraits(constructPayload());
                 setInitialTraits(editableTraits);
                 setInitialName(editableName);
 
-                // 3. Trigger Generation via Parent Prop
-                // We pass the current prompt AND the useRef boolean
                 const resultUrl = await props.onGenerate(genPrompt, useRefForGen);
 
                 if (resultUrl && typeof resultUrl === 'string') {
@@ -482,7 +491,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 {/* FOOTER - SPLIT ACTIONS */}
                 {!isVoiceMode && (
                     <div className="p-5 border-t border-[#222] bg-[#0a0a0a] shrink-0 grid grid-cols-2 gap-3">
-                        {/* 1. SAVE CONFIGURATION (Left) */}
                         <button
                             onClick={handleSaveOnly}
                             disabled={isSaveDisabled}
@@ -491,7 +499,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                             {isSavingTraits ? "SAVING..." : "SAVE CONFIGURATION"}
                         </button>
 
-                        {/* 2. GENERATE AI (Right - Primary) */}
                         <button
                             onClick={handleGenerateClick}
                             disabled={isSaveDisabled}
