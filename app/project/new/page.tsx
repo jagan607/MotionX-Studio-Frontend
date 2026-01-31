@@ -103,11 +103,23 @@ export default function NewProjectPage() {
         setCreating(true);
 
         try {
-            const moodLabels: Record<string, string> = {};
+            // --- DYNAMIC MOODBOARD GENERATION ---
+            // 1. Start with the code (e.g., "A1-B2-C3")
+            const moodboardData: Record<string, any> = {
+                code: Object.values(moodSelection).join('-')
+            };
+
+            // 2. Iterate Manifest to build dynamic keys (e.g., lighting: "Naturalist")
             manifest?.axes.forEach(axis => {
                 const selectedId = moodSelection[axis.code_prefix];
                 const option = axis.options.find(o => o.id === selectedId);
-                if (option) moodLabels[axis.code_prefix] = option.label;
+
+                if (option) {
+                    // Convert Label to Snake Case Key (e.g. "Visual Style" -> "visual_style")
+                    // or just use the label lowercase. 
+                    const key = axis.label.toLowerCase().trim().replace(/\s+/g, '_');
+                    moodboardData[key] = option.label;
+                }
             });
 
             const payload = {
@@ -116,12 +128,7 @@ export default function NewProjectPage() {
                 type: formData.type,
                 aspect_ratio: formData.aspect_ratio,
                 style: formData.style,
-                moodboard: {
-                    code: Object.values(moodSelection).join('-'),
-                    lighting: moodLabels["A"],
-                    color: moodLabels["B"],
-                    texture: moodLabels["C"]
-                }
+                moodboard: moodboardData // <--- Sending the dynamic object
             };
 
             const res = await api.post("api/v1/project/create", payload);
