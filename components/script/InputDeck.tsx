@@ -11,8 +11,11 @@ import { MotionButton } from "@/components/ui/MotionButton";
 interface InputDeckProps {
     projectId: string;
     projectTitle: string;
-    // Align with Project['type'] from types.ts
-    projectType: "movie" | "micro_drama";
+    projectType: "movie" | "micro_drama" | "series"; // Updated to include 'series' just in case
+
+    // NEW PROP: Required for targeting specific episodes in series
+    episodeId?: string | null;
+
     onSuccess: (redirectUrl: string) => void;
     onCancel: () => void;
     isModal?: boolean;
@@ -23,6 +26,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     projectId,
     projectTitle,
     projectType,
+    episodeId, // Destructure the new prop
     onSuccess,
     onCancel,
     isModal = false,
@@ -38,7 +42,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     const [statusText, setStatusText] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Derived state for clearer logic
     const isMovie = projectType === "movie";
 
     // Auto-set title for Movies (locked field)
@@ -53,11 +56,17 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     };
 
     const executeProtocol = async () => {
-        if (!title) { toast.error("ENTER IDENTIFIER (TITLE)"); return; }
+        if (!title && !isMovie) { toast.error("ENTER IDENTIFIER (TITLE)"); return; }
 
         const formData = new FormData();
         formData.append("project_id", projectId);
-        formData.append("script_title", title);
+        // If not movie, use the typed title. If movie, stick to project title.
+        formData.append("script_title", title || projectTitle);
+
+        // PASS THE EPISODE ID IF AVAILABLE
+        if (episodeId) {
+            formData.append("episode_id", episodeId);
+        }
 
         // Priority: Synopsis > Paste > Upload
         if (synopsisText.trim()) {
@@ -78,7 +87,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         setStatusText("INITIALIZING UPLINK...");
 
         try {
-            // Note: Added leading slash for safety
             const res = await api.post("/api/v1/script/upload-script", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
@@ -98,7 +106,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     if (job.redirect_url) {
                         onSuccess(job.redirect_url);
                     } else {
-                        // Fallback if URL is missing (or use a default)
                         toast.error("Redirect coordinates missing.");
                         setIsUploading(false);
                     }
@@ -123,8 +130,12 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     };
 
     const isButtonEnabled = () => {
-        if (!title) return false;
-        return synopsisText.trim() || pastedScript.trim() || selectedFile;
+        // For Movies, title is pre-filled. For Series, user must type it OR we use episodeId logic?
+        // Actually, if we have an episodeId selected, maybe the title isn't strict?
+        // Let's keep title strict for Series for now unless you want to auto-fill it from the selected episode name.
+        if (!title && !isMovie) return false;
+
+        return !!(synopsisText.trim() || pastedScript.trim() || selectedFile);
     };
 
     return (
