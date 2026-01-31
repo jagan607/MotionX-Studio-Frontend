@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react"; // Added useRef
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent
@@ -11,17 +11,17 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { arrayMove } from "@dnd-kit/sortable";
 import {
-    ArrowLeft, GripVertical, CheckCircle, Sparkles, X, FileText, Cpu
+    ArrowLeft, GripVertical, CheckCircle, Sparkles, X, FileText, Cpu, AlignLeft, Hash, Clock
 } from "lucide-react";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
 import { api } from "@/lib/api";
+import Link from "next/link";
 
 // --- DESIGN SYSTEM IMPORTS ---
 import { StudioLayout } from "@/components/ui/StudioLayout";
 import { MotionButton } from "@/components/ui/MotionButton";
-import Link from "next/link";
 
 // --- TYPES ---
 interface DraftScene {
@@ -46,12 +46,11 @@ export default function ScriptLab() {
     const [aiInstruction, setAiInstruction] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // --- FIX START: Use Ref to track intent ---
+    // Intent tracking
     const [isCommitting, setIsCommitting] = useState(false);
     const isCommittingRef = useRef(false);
-    // --- FIX END ---
 
-    // 1. REAL-TIME SYNC (Targeting Projects Collection)
+    // 1. REAL-TIME SYNC
     useEffect(() => {
         if (!draftId || !projectId) return;
 
@@ -60,23 +59,18 @@ export default function ScriptLab() {
                 const data = docSnap.data();
                 setDraft(data);
 
-                // Update scenes state only if not currently dragging/processing to avoid jitter
                 if (!isProcessing) {
                     const stableScenes = (data.scenes || []).map((s: any, i: number) => ({
                         ...s,
-                        id: s.id || `scene_${i}` // Fallback ID
+                        id: s.id || `scene_${i}`
                     }));
                     setScenes(stableScenes);
                 }
             } else {
-                // --- FIX START: Check if we are intentionally committing ---
-                // Only redirect to script if we are NOT currently committing.
                 if (!isCommittingRef.current) {
                     toast.error("Draft not found");
                     router.push(`/project/${projectId}/script`);
                 }
-                // If isCommittingRef.current is true, we do nothing and let handleCommit finish the redirect
-                // --- FIX END ---
             }
         });
         return () => unsub();
@@ -95,12 +89,9 @@ export default function ScriptLab() {
             const newIndex = scenes.findIndex((i) => i.id === over.id);
 
             const newOrder = arrayMove(scenes, oldIndex, newIndex);
-
-            // Re-index scene numbers
             const reindexed = newOrder.map((s, idx) => ({ ...s, scene_number: idx + 1 }));
-            setScenes(reindexed); // Optimistic update
+            setScenes(reindexed);
 
-            // Persist
             try {
                 await updateDoc(doc(db, "projects", projectId, "drafts", draftId), {
                     scenes: reindexed
@@ -130,13 +121,10 @@ export default function ScriptLab() {
             });
 
             const newText = res.data.new_text;
-
-            // Optimistic Update
             const updatedScenes = [...scenes];
             updatedScenes[sceneIndex] = { ...targetScene, summary: newText };
             setScenes(updatedScenes);
 
-            // DB Update
             await updateDoc(doc(db, "projects", projectId, "drafts", draftId), {
                 scenes: updatedScenes
             });
@@ -154,7 +142,7 @@ export default function ScriptLab() {
     // 4. COMMIT DRAFT
     const handleCommit = async () => {
         setIsCommitting(true);
-        isCommittingRef.current = true; // <--- Set intent immediately
+        isCommittingRef.current = true;
 
         try {
             await api.post("api/v1/script/commit-draft", {
@@ -163,118 +151,144 @@ export default function ScriptLab() {
             });
 
             toast.success("Sequence Approved");
-            // Redirect to Stage 4: Assets
             router.push(`/project/${projectId}/assets`);
 
         } catch (e: any) {
             console.error(e);
             toast.error("Failed to finalize: " + (e.response?.data?.detail || e.message));
-
             setIsCommitting(false);
-            isCommittingRef.current = false; // <--- Reset on failure
+            isCommittingRef.current = false;
         }
     };
 
     return (
         <StudioLayout>
-            {/* NAV */}
-            <div className="flex items-center justify-between mb-8">
-                <Link href={`/project/${projectId}/script`} className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] text-motion-text-muted hover:text-motion-text transition-colors">
-                    <ArrowLeft size={14} /> BACK TO SCRIPT
-                </Link>
+            <div className="min-h-screen bg-[#050505] text-[#EEE] font-sans selection:bg-red-900/30 p-8 pb-32">
 
-                <div className="flex items-center gap-2 text-[10px] font-mono text-motion-red bg-motion-red/10 px-3 py-1 border border-motion-red/20">
-                    <FileText size={12} /> SCRIPT LAB // STAGING
-                </div>
-            </div>
+                {/* --- HEADER --- */}
+                <header className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-10 gap-6 border-b border-[#222] pb-6">
+                    <div className="w-full xl:w-auto">
+                        <Link href={`/project/${projectId}/script`} className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] text-[#555] hover:text-white mb-4 transition-colors group">
+                            <ArrowLeft size={12} className="group-hover:-translate-x-1 transition-transform" /> SCRIPT SOURCE
+                        </Link>
 
-            {/* HEADER */}
-            <div className="flex items-end justify-between mb-12 border-b border-motion-border pb-6">
-                <div>
-                    <h1 className="text-4xl font-display uppercase mb-2">{draft?.title || "UNTITLED SEQUENCE"}</h1>
-                    <p className="text-motion-text-muted text-xs font-mono tracking-widest">
-                        SCENES: {scenes.length} // DETECTED CAST: {draft?.detected_characters?.length || 0}
-                    </p>
-                </div>
-
-                <div className="w-[200px]">
-                    <MotionButton onClick={handleCommit} loading={isCommitting}>
-                        <CheckCircle size={16} /> APPROVE SEQUENCE
-                    </MotionButton>
-                </div>
-            </div>
-
-            {/* MAIN GRID */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                {/* LEFT: DRAGGABLE LIST */}
-                <div className="lg:col-span-2 space-y-4">
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                        <SortableContext items={scenes} strategy={verticalListSortingStrategy}>
-                            {scenes.map((scene, i) => (
-                                <SortableSceneCard
-                                    key={scene.id}
-                                    scene={scene}
-                                    index={i}
-                                    isActive={activeSceneId === scene.id}
-                                    onEdit={() => setActiveSceneId(scene.id)}
-                                />
-                            ))}
-                        </SortableContext>
-                    </DndContext>
-                </div>
-
-                {/* RIGHT: AI DIRECTOR (Sticky) */}
-                <div className="lg:col-span-1">
-                    <div className="sticky top-8 bg-motion-surface border border-motion-border p-6">
-                        <div className="flex items-center gap-2 text-[10px] font-bold tracking-[2px] text-motion-red mb-6">
-                            <Cpu size={14} /> AI DIRECTOR
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-2 w-2 bg-red-600 animate-pulse rounded-full" />
+                            <h1 className="text-4xl font-display font-bold uppercase tracking-tighter text-white leading-none">
+                                SEQUENCE <span className="text-[#333]">EDITOR</span>
+                            </h1>
                         </div>
 
-                        {activeSceneId ? (
-                            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                                <div className="mb-4 text-xs text-motion-text-muted border-b border-motion-border pb-3">
-                                    <span className="text-white font-bold">MODIFYING: </span>
-                                    SCENE {scenes.find(s => s.id === activeSceneId)?.scene_number}
-                                </div>
-
-                                <textarea
-                                    value={aiInstruction}
-                                    onChange={(e) => setAiInstruction(e.target.value)}
-                                    placeholder="Enter instructions (e.g., 'Make the dialogue more tense', 'Change setting to night')..."
-                                    className="w-full h-32 bg-motion-bg border border-motion-border p-4 text-xs text-motion-text placeholder:text-motion-text-muted focus:outline-none focus:border-motion-red resize-none mb-4"
-                                />
-
-                                <MotionButton onClick={handleAiRewrite} loading={isProcessing} variant="outline" className="mb-3">
-                                    <Sparkles size={14} /> EXECUTE REWRITE
-                                </MotionButton>
-
-                                <button
-                                    onClick={() => setActiveSceneId(null)}
-                                    className="w-full text-center text-[10px] font-bold tracking-widest text-motion-text-muted hover:text-white transition-colors"
-                                >
-                                    CANCEL SELECTION
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="border border-dashed border-motion-border p-8 text-center">
-                                <Sparkles size={24} className="text-motion-text-muted mx-auto mb-4 opacity-50" />
-                                <div className="text-[10px] font-bold tracking-widest text-motion-text-muted">
-                                    SELECT A SCENE TO MODIFY WITH AI
-                                </div>
-                            </div>
-                        )}
+                        <div className="flex gap-6 mt-2 text-xs font-mono text-[#666]">
+                            <span className="flex items-center gap-2"><AlignLeft size={12} /> {draft?.title || "UNTITLED"}</span>
+                            <span className="flex items-center gap-2"><Hash size={12} /> {scenes.length} SCENES</span>
+                            <span className="flex items-center gap-2"><Clock size={12} /> EST. {scenes.length * 2} MINS</span>
+                        </div>
                     </div>
+
+                    <div className="w-full xl:w-auto">
+                        <MotionButton onClick={handleCommit} loading={isCommitting} className="w-full xl:w-auto px-8 py-3 text-xs tracking-[0.2em] font-bold">
+                            <CheckCircle size={14} className="mr-2" /> APPROVE SEQUENCE
+                        </MotionButton>
+                    </div>
+                </header>
+
+                {/* --- MAIN WORKSPACE --- */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-250px)]">
+
+                    {/* LEFT: SCENE TIMELINE (Scrollable) */}
+                    <div className="lg:col-span-8 flex flex-col h-full overflow-hidden">
+                        <div className="bg-[#0A0A0A] border border-[#222] p-2 flex items-center justify-between mb-4">
+                            <span className="text-[10px] font-bold uppercase text-[#666] tracking-widest pl-2">Timeline Strip</span>
+                            <span className="text-[10px] font-mono text-[#444]">AUTO-SAVE ENABLED</span>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 pb-20">
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                <SortableContext items={scenes} strategy={verticalListSortingStrategy}>
+                                    {scenes.map((scene, i) => (
+                                        <SortableSceneCard
+                                            key={scene.id}
+                                            scene={scene}
+                                            index={i}
+                                            isActive={activeSceneId === scene.id}
+                                            onEdit={() => setActiveSceneId(scene.id)}
+                                        />
+                                    ))}
+                                </SortableContext>
+                            </DndContext>
+                        </div>
+                    </div>
+
+                    {/* RIGHT: AI CONSOLE (Sticky) */}
+                    <div className="lg:col-span-4 h-full flex flex-col">
+                        <div className="bg-[#0E0E0E] border border-[#222] h-full flex flex-col">
+
+                            {/* Console Header */}
+                            <div className="h-10 border-b border-[#222] bg-[#111] flex items-center px-4 justify-between shrink-0">
+                                <div className="flex items-center gap-2">
+                                    <Cpu size={14} className="text-red-600" />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#AAA]">Director AI</span>
+                                </div>
+                                <div className="h-1.5 w-1.5 bg-green-500 rounded-full shadow-[0_0_5px_#22c55e]" />
+                            </div>
+
+                            {/* Console Content */}
+                            <div className="flex-1 p-6 flex flex-col">
+                                {activeSceneId ? (
+                                    <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                        <div className="mb-6">
+                                            <div className="text-[9px] font-mono text-[#555] uppercase mb-1">TARGET LOCK</div>
+                                            <div className="text-sm font-bold text-white border-l-2 border-red-600 pl-3 py-1">
+                                                SCENE {String(scenes.find(s => s.id === activeSceneId)?.scene_number).padStart(2, '0')}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex-1 flex flex-col gap-4">
+                                            <div className="relative group flex-1">
+                                                <div className="absolute top-0 left-0 text-[9px] font-mono bg-[#0E0E0E] px-2 text-[#666] -mt-2 ml-2">INSTRUCTION INPUT</div>
+                                                <textarea
+                                                    value={aiInstruction}
+                                                    onChange={(e) => setAiInstruction(e.target.value)}
+                                                    placeholder="// Enter directorial commands...&#10;> Make it darker&#10;> Add rain&#10;> Remove dialogue"
+                                                    className="w-full h-full bg-[#050505] border border-[#333] p-4 text-xs font-mono text-[#DDD] placeholder-[#333] focus:border-red-600 focus:outline-none transition-colors resize-none leading-relaxed"
+                                                />
+                                            </div>
+
+                                            <MotionButton onClick={handleAiRewrite} loading={isProcessing} className="w-full py-4 text-xs font-bold tracking-[0.1em]">
+                                                <Sparkles size={14} className="mr-2" /> EXECUTE REWRITE
+                                            </MotionButton>
+
+                                            <button
+                                                onClick={() => setActiveSceneId(null)}
+                                                className="text-[10px] font-bold text-[#444] hover:text-[#888] tracking-widest uppercase py-2 transition-colors border border-transparent hover:border-[#222]"
+                                            >
+                                                CANCEL OPERATION
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-center opacity-50 space-y-4">
+                                        <div className="h-16 w-16 border border-[#333] rounded-full flex items-center justify-center bg-[#050505]">
+                                            <Sparkles size={24} className="text-[#333]" />
+                                        </div>
+                                        <div>
+                                            <div className="text-xs font-bold text-[#666] uppercase tracking-widest mb-1">System Idle</div>
+                                            <div className="text-[10px] font-mono text-[#444]">SELECT A SCENE STRIP TO BEGIN</div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-
             </div>
-
-            <div className="h-20" />
         </StudioLayout>
     );
 }
 
-// --- SUB-COMPONENT: Sortable Card ---
+// --- SUB-COMPONENT: SCENE STRIP ---
 function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: scene.id });
 
@@ -287,43 +301,48 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
         <div
             ref={setNodeRef}
             style={style}
+            onClick={onEdit}
             className={`
-                group relative flex gap-4 p-6 border transition-all duration-200
+                group relative flex items-stretch border-l-2 transition-all duration-200 cursor-pointer
                 ${isActive
-                    ? 'bg-motion-surface border-motion-red shadow-[0_0_30px_rgba(255,0,0,0.1)]'
-                    : 'bg-transparent border-motion-border hover:border-motion-text/50'}
+                    ? 'bg-[#111] border-l-red-600 border-y border-r border-y-[#222] border-r-[#222] shadow-[0_0_20px_rgba(0,0,0,0.5)] z-10 scale-[1.01]'
+                    : 'bg-[#080808] border-l-[#333] border-y border-r border-transparent hover:bg-[#0C0C0C] hover:border-y-[#222] hover:border-r-[#222]'}
             `}
         >
             {/* Drag Handle */}
             <div
                 {...attributes} {...listeners}
-                className="cursor-grab text-motion-text-muted hover:text-white flex items-start pt-1 outline-none"
+                className="w-10 bg-[#050505] border-r border-[#222] flex items-center justify-center cursor-grab active:cursor-grabbing text-[#333] hover:text-[#666] transition-colors"
+                onClick={(e) => e.stopPropagation()}
             >
-                <GripVertical size={18} />
+                <GripVertical size={16} />
             </div>
 
-            {/* Content */}
-            <div className="flex-1 cursor-default" onClick={onEdit}>
-                <div className={`text-[10px] font-mono font-bold tracking-wider mb-2 ${isActive ? 'text-motion-red' : 'text-motion-text-muted'}`}>
-                    SCENE {String(index + 1).padStart(2, '0')} // {scene.header} // {scene.time}
+            {/* Scene Info */}
+            <div className="flex-1 p-4">
+                <div className="flex items-baseline gap-3 mb-2 border-b border-[#222] pb-2">
+                    <span className={`text-lg font-display font-bold ${isActive ? 'text-red-600' : 'text-[#444] group-hover:text-[#666]'}`}>
+                        {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span className={`text-xs font-bold uppercase tracking-wider ${isActive ? 'text-white' : 'text-[#888]'}`}>
+                        {scene.header}
+                    </span>
+                    <span className="ml-auto text-[9px] font-mono text-[#444] uppercase">{scene.time || "N/A"}</span>
                 </div>
-                <div className="text-sm text-motion-text leading-relaxed font-sans opacity-90">
+
+                <p className={`text-sm leading-relaxed font-serif ${isActive ? 'text-[#CCC]' : 'text-[#666]'}`}>
                     {scene.summary}
-                </div>
+                </p>
             </div>
 
-            {/* Edit Trigger */}
-            <button
-                onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                className={`
-                    w-8 h-8 flex items-center justify-center border transition-all
-                    ${isActive
-                        ? 'bg-motion-red border-motion-red text-white'
-                        : 'bg-transparent border-motion-border text-motion-text-muted hover:text-white hover:border-white'}
-                `}
-            >
-                <Sparkles size={14} />
-            </button>
+            {/* Status Indicator / Edit Icon */}
+            <div className={`w-12 flex items-center justify-center border-l border-[#222] transition-colors ${isActive ? 'bg-red-900/10' : 'bg-transparent'}`}>
+                {isActive ? (
+                    <div className="h-2 w-2 bg-red-600 rounded-full shadow-[0_0_8px_#DC2626]" />
+                ) : (
+                    <Sparkles size={14} className="text-[#333] group-hover:text-[#666]" />
+                )}
+            </div>
         </div>
     );
 }

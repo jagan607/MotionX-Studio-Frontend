@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-    ArrowRight, Users, MapPin, Sparkles, Loader2
+    ArrowRight, Users, MapPin, Sparkles, Loader2, Plus, Film, Aperture
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -108,14 +108,7 @@ export default function AssetManagerPage() {
 
         let score = 0;
         const visualsDone = all.filter(a => a.image_url).length;
-        score += (visualsDone / all.length) * 70;
-
-        if (assets.characters.length > 0) {
-            const audioDone = assets.characters.filter(c => c.voice_config?.voice_id).length;
-            score += (audioDone / assets.characters.length) * 30;
-        } else {
-            score += 30;
-        }
+        score += (visualsDone / all.length) * 100;
 
         return Math.round(score);
     };
@@ -194,7 +187,6 @@ export default function AssetManagerPage() {
 
             let finalPrompt = customPrompt;
             if (!finalPrompt) {
-                // FIX: Now asset.type is guaranteed to be set correctly by loadData
                 if (asset.type === 'location') {
                     finalPrompt = constructLocationPrompt(
                         asset.name,
@@ -250,9 +242,11 @@ export default function AssetManagerPage() {
             // Ensure the newly created asset also has the type injected immediately for local state
             const newAsset = { ...response.data.asset, type: type };
 
+            // 2. Switch context
             setSelectedAsset(newAsset);
             loadData();
 
+            // 3. Trigger Generate
             await handleGenerate(newAsset, draftData.prompt);
 
         } catch (e) {
@@ -279,75 +273,95 @@ export default function AssetManagerPage() {
 
     return (
         <StudioLayout>
-            <div className="min-h-screen bg-black text-white p-8 pb-32 font-sans">
+            <div className="min-h-screen bg-[#050505] text-[#EEE] font-sans selection:bg-red-900/30 p-8 pb-32">
 
-                {/* HEADER */}
-                <header className="flex flex-col xl:flex-row justify-between items-end mb-8 gap-6 border-b border-neutral-800 pb-6">
+                {/* 1. BRUTALIST HEADER */}
+                <header className="flex flex-col xl:flex-row justify-between items-end mb-10 gap-6 border-b border-[#222] pb-6">
                     <div className="w-full xl:w-auto">
-                        <div className="flex items-center justify-between mb-2">
-                            <h1 className="text-3xl font-display uppercase tracking-wider text-white">Asset Manager</h1>
-                            <div className="text-right xl:hidden">
-                                <span className="text-2xl font-mono text-motion-red">{calculateProgress()}%</span>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-2 w-2 bg-red-600 animate-pulse rounded-full" />
+                            <h1 className="text-4xl font-display font-bold uppercase tracking-tighter text-white leading-none">
+                                PRE-PRODUCTION <span className="text-[#333]">/ ASSETS</span>
+                            </h1>
+                        </div>
+
+                        <div className="flex items-center gap-4 mt-4">
+                            <div className="text-xs font-mono text-[#666] tracking-widest">
+                                STATUS: <span className="text-red-500">ACTIVE</span>
+                            </div>
+                            <div className="text-xs font-mono text-[#666] tracking-widest">
+                                PROGRESS: <span className="text-white">{calculateProgress()}%</span>
                             </div>
                         </div>
 
                         {/* PROGRESS BAR */}
-                        <div className="w-full xl:w-[400px] h-2 bg-neutral-900 rounded-full overflow-hidden flex">
+                        <div className="w-full xl:w-[400px] h-1 bg-[#111] mt-3 overflow-hidden">
                             <div
-                                className="h-full bg-motion-red transition-all duration-1000 ease-out"
+                                className="h-full bg-red-600 transition-all duration-1000 ease-out"
                                 style={{ width: `${calculateProgress()}%` }}
                             />
                         </div>
-                        <p className="text-[10px] font-mono text-neutral-500 mt-2 uppercase tracking-widest">
-                            Configuration Progress // {calculateProgress()}% Complete
-                        </p>
                     </div>
 
-                    <div className="flex items-center gap-3 w-full xl:w-auto">
-                        <div className="flex bg-neutral-900 border border-neutral-800 rounded p-1 mr-auto xl:mr-0">
+                    {/* ACTION BAR */}
+                    <div className="flex items-center gap-4 w-full xl:w-auto">
+                        {/* Tab Switcher */}
+                        <div className="flex bg-[#0A0A0A] border border-[#222] p-1">
                             <TabButton
                                 active={activeTab === 'cast'}
                                 onClick={() => setActiveTab('cast')}
-                                icon={<Users size={14} />}
-                                label={`CAST (${assets.characters.length})`}
+                                icon={<Users size={12} />}
+                                label={`CAST [${assets.characters.length}]`}
                             />
+                            <div className="w-[1px] bg-[#222] my-1 mx-1" />
                             <TabButton
                                 active={activeTab === 'locations'}
                                 onClick={() => setActiveTab('locations')}
-                                icon={<MapPin size={14} />}
-                                label={`LOCATIONS (${assets.locations.length})`}
+                                icon={<MapPin size={12} />}
+                                label={`LOCATIONS [${assets.locations.length}]`}
                             />
                         </div>
 
+                        {/* Generate All */}
                         <button
                             onClick={handleGenerateAll}
-                            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] font-bold tracking-widest transition-all"
+                            className="flex items-center gap-2 px-4 py-2 bg-[#111] hover:bg-[#1A1A1A] border border-[#333] text-[10px] font-bold tracking-widest transition-colors uppercase text-[#888] hover:text-white"
                         >
-                            <Sparkles size={12} className="text-motion-red" /> GENERATE ALL
+                            <Sparkles size={12} className="text-red-600" /> BATCH GENERATE
                         </button>
 
+                        {/* Next Step */}
                         <MotionButton onClick={() => router.push(`/project/${projectId}/studio`)}>
                             ENTER STUDIO <ArrowRight size={14} className="ml-2" />
                         </MotionButton>
                     </div>
                 </header>
 
-                {/* GRID */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                    <AssetCard
-                        variant="create"
-                        onCreate={handleOpenDraft}
-                        label={`New ${activeTab === 'cast' ? 'Character' : 'Location'}`}
-                    />
+                {/* 2. ASSET GRID */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
 
+                    {/* Create New Card */}
+                    <button
+                        onClick={handleOpenDraft}
+                        className="group relative aspect-[9/16] bg-[#080808] border border-dashed border-[#333] hover:border-red-600/50 flex flex-col items-center justify-center transition-all duration-300 hover:bg-[#0A0A0A]"
+                    >
+                        <div className="h-10 w-10 rounded-full bg-[#111] flex items-center justify-center border border-[#222] group-hover:border-red-600 group-hover:text-red-600 transition-colors mb-3">
+                            <Plus size={18} />
+                        </div>
+                        <span className="text-[10px] font-bold tracking-widest text-[#666] group-hover:text-white uppercase">
+                            ADD {activeTab === 'cast' ? 'ACTOR' : 'LOCATION'}
+                        </span>
+                    </button>
+
+                    {/* Loading State */}
                     {loading ? (
-                        <div className="col-span-full py-20 flex justify-center text-neutral-500 font-mono text-xs">
-                            <Loader2 className="animate-spin mr-2" /> LOADING ASSETS...
+                        <div className="col-span-full py-20 flex justify-center text-[#444] font-mono text-xs items-center gap-2">
+                            <Loader2 className="animate-spin" size={14} /> FETCHING ASSET MANIFEST...
                         </div>
                     ) : displayedAssets.map((asset) => (
                         <AssetCard
                             key={asset.id}
-                            variant="default"
+                            variant="default" // You might need to update your AssetCard to support this 'default' variant or match props
                             asset={asset}
                             projectId={projectId}
                             isGenerating={generatingIds.has(asset.id)}
@@ -362,7 +376,7 @@ export default function AssetManagerPage() {
                     ))}
                 </div>
 
-                {/* MODAL */}
+                {/* 3. MODAL OVERLAY */}
                 {selectedAsset && (
                     <AssetModal
                         isOpen={!!selectedAsset}
@@ -385,7 +399,14 @@ export default function AssetManagerPage() {
                         onUpload={() => { }}
                         onUpdateTraits={(data) => handleSaveAsset(selectedAsset, data)}
                         onLinkVoice={async () => { }}
-                        styles={{ modal: { background: '#090909', border: '1px solid #222', borderRadius: '12px' } }}
+                        styles={{
+                            modal: {
+                                background: '#090909',
+                                border: '1px solid #333',
+                                borderRadius: '0px',
+                                boxShadow: '0 0 50px rgba(0,0,0,0.8)'
+                            }
+                        }}
                     />
                 )}
             </div>
@@ -396,7 +417,7 @@ export default function AssetManagerPage() {
 const TabButton = ({ active, onClick, icon, label }: any) => (
     <button
         onClick={onClick}
-        className={`flex items-center gap-2 px-4 py-2 rounded text-[10px] font-bold tracking-widest transition-all ${active ? "bg-neutral-800 text-white shadow-sm" : "text-neutral-500 hover:text-white"
+        className={`flex items-center gap-2 px-4 py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${active ? "bg-[#1A1A1A] text-white shadow-sm" : "text-[#555] hover:text-[#AAA]"
             }`}
     >
         {icon} {label}
