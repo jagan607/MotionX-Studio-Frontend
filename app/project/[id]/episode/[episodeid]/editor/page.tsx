@@ -18,7 +18,7 @@ import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
 import { api, fetchProject, fetchEpisodes } from "@/lib/api";
 import { Project } from "@/lib/types";
-import { v4 as uuidv4 } from 'uuid'; // Ensure you have this installed: npm install uuid
+import { v4 as uuidv4 } from 'uuid';
 
 // --- COMPONENTS ---
 import { ScriptWorkstation, WorkstationScene, Character } from "@/app/components/script/ScriptWorkstation";
@@ -36,19 +36,18 @@ export default function SceneManagerPage() {
     const [scenes, setScenes] = useState<WorkstationScene[]>([]);
     const [project, setProject] = useState<Project | null>(null);
     const [episodes, setEpisodes] = useState<any[]>([]);
-    const [characters, setCharacters] = useState<Character[]>([]); // New State
+    const [characters, setCharacters] = useState<Character[]>([]);
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // 1. FETCH CONTEXT (Project, Episodes, Characters)
+    // 1. FETCH CONTEXT
     useEffect(() => {
         if (!projectId) return;
 
         const loadContext = async () => {
             try {
-                // Fetch basic project info and episode structure
                 const [projData, epsData] = await Promise.all([
                     fetchProject(projectId),
                     fetchEpisodes(projectId)
@@ -56,7 +55,7 @@ export default function SceneManagerPage() {
 
                 setProject(projData);
 
-                // Fetch Available Characters for the Dropdown
+                // Load Characters
                 try {
                     const charQuery = query(collection(db, "projects", projectId, "characters"));
                     const charSnapshot = await getDocs(charQuery);
@@ -69,7 +68,7 @@ export default function SceneManagerPage() {
                     console.error("Failed to load characters", e);
                 }
 
-                // Episode Logic (Movie vs Series)
+                // Episode Logic
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
                 if (projData.type === 'movie') {
@@ -82,6 +81,7 @@ export default function SceneManagerPage() {
                     }
                     setEpisodes(eps);
                 } else {
+                    // Series Logic
                     eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
                     const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
                     setEpisodes(realEpisodes.length > 0 ? realEpisodes : eps);
@@ -110,13 +110,11 @@ export default function SceneManagerPage() {
             snapshot.forEach((doc) => {
                 const data = doc.data();
 
-                // Robust Header Mapping
                 const headerText = data.slugline || data.header || data.scene_header || data.title || "";
                 const fallbackHeader = (data.int_ext && data.location)
                     ? `${data.int_ext}. ${data.location} - ${data.time || ''}`
                     : "UNKNOWN SCENE";
 
-                // Robust Summary Mapping
                 const summaryText = data.synopsis || data.summary || data.action || data.description || "";
 
                 loadedScenes.push({
@@ -126,11 +124,8 @@ export default function SceneManagerPage() {
                     summary: summaryText,
                     time: data.time || "",
                     status: data.status || "draft",
-
-                    // Prioritize cast_ids, fallback to characters if array of strings
                     cast_ids: data.cast_ids || data.characters || [],
                     location_id: data.location_id || "",
-
                     ...data
                 });
             });
@@ -150,46 +145,40 @@ export default function SceneManagerPage() {
 
     // --- HANDLERS ---
 
-    // NEW: Add a fresh scene to the timeline
     const handleAddScene = async () => {
         try {
-            // Calculate next scene number
             const maxSceneNum = scenes.length > 0
                 ? Math.max(...scenes.map(s => s.scene_number))
                 : 0;
             const newSceneNum = maxSceneNum + 1;
 
-            const newSceneId = `scene_${uuidv4().slice(0, 8)}`; // Short ID
+            const newSceneId = `scene_${uuidv4().slice(0, 8)}`;
             const sceneRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", newSceneId);
 
             await setDoc(sceneRef, {
                 id: newSceneId,
                 scene_number: newSceneNum,
                 slugline: "INT. UNTITLED SCENE - DAY",
-                synopsis: "", // Empty for AI generation
+                synopsis: "",
                 cast_ids: [],
                 status: "draft",
                 created_at: serverTimestamp()
             });
 
             toast.success("New Scene Created");
-            // Workstation will auto-update via onSnapshot
         } catch (e) {
             console.error("Add Scene Error:", e);
             toast.error("Failed to create scene");
         }
     };
 
-    // NEW: Update Cast List for a Scene
     const handleUpdateCast = async (sceneId: string, newCast: string[]) => {
         try {
             const sceneRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
             await updateDoc(sceneRef, {
                 cast_ids: newCast,
-                // Also update legacy field for safety if needed
                 characters: newCast
             });
-            // Toast removed to avoid spamming on rapid clicks
         } catch (e) {
             console.error("Update Cast Error:", e);
             toast.error("Failed to update cast");
@@ -224,16 +213,21 @@ export default function SceneManagerPage() {
         toast.loading("Switching Reel...", { duration: 800 });
     };
 
+    // --- FIX: DRAG & DROP PERSISTENCE ---
     const handleReorder = async (newOrder: WorkstationScene[]) => {
+        // 1. Optimistic UI update
         setScenes(newOrder);
+
         try {
             const batch = writeBatch(db);
+
+            // 2. Force update every scene number to match the new array index
+            // We removed the conditional 'if' check because the local object might already match the index
             newOrder.forEach((scene, index) => {
                 const ref = doc(db, "projects", projectId, "episodes", episodeId, "scenes", scene.id);
-                if (scene.scene_number !== index + 1) {
-                    batch.update(ref, { scene_number: index + 1 });
-                }
+                batch.update(ref, { scene_number: index + 1 });
             });
+
             await batch.commit();
         } catch (e) {
             console.error(e);
@@ -266,7 +260,7 @@ export default function SceneManagerPage() {
                 project_style: (project as any)?.style || "Realistic",
                 previous_scene_summary: prevScene ? prevScene.summary : "Start of Episode",
                 next_scene_header: nextScene ? nextScene.header : "End of Episode",
-                characters: targetScene.cast_ids || [], // Use updated cast
+                characters: targetScene.cast_ids || [],
                 custom_references: memoryReferences
             };
 
@@ -340,16 +334,12 @@ export default function SceneManagerPage() {
                 contextEpisodes={episodes}
                 scenes={scenes}
 
-                // Pass Character List for Dropdown
                 availableCharacters={characters}
 
-                // Actions
                 onReorder={handleReorder}
                 onRewrite={handleRewrite}
                 onCommit={handleExit}
                 onFetchRemoteScenes={fetchRemoteScenes}
-
-                // NEW ACTIONS
                 onAddScene={handleAddScene}
                 onUpdateCast={handleUpdateCast}
 
