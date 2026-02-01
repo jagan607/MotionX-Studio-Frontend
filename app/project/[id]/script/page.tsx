@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { InputDeck } from "@/components/script/InputDeck";
 import {
     ArrowLeft, Terminal, ShieldCheck, Cpu, HardDrive,
@@ -10,12 +10,12 @@ import {
 } from "lucide-react";
 import { fetchProject, fetchEpisodes } from "@/lib/api";
 import { Project } from "@/lib/types";
-import Link from "next/link";
 import { toast } from "react-hot-toast";
 
 export default function ScriptIngestionPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams(); // <--- 1. Get Query Params
     const projectId = params.id as string;
 
     const [project, setProject] = useState<Project | null>(null);
@@ -68,8 +68,14 @@ export default function ScriptIngestionPage() {
 
                     setEpisodes(finalEpisodes);
 
-                    // Default to first available episode
-                    if (finalEpisodes.length > 0) {
+                    // --- 2. CHECK FOR MODE=NEW ---
+                    if (searchParams.get("mode") === "new") {
+                        setSelectedEpisodeId(null);
+                        // Optional: Toast to confirm state
+                        // toast("Ready for New Episode", { icon: '✨' });
+                    }
+                    // Default to first available episode if NOT creating new
+                    else if (finalEpisodes.length > 0) {
                         setSelectedEpisodeId(finalEpisodes[0].id);
                     }
                 }
@@ -81,34 +87,32 @@ export default function ScriptIngestionPage() {
             }
         };
         loadData();
-    }, [projectId]);
+    }, [projectId, searchParams]); // Added searchParams to deps to ensure it's captured
 
     const handleEpisodeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
-        if (val === "new_placeholder") return; // Should not happen with UI logic below
+        if (val === "new_placeholder") return;
         setSelectedEpisodeId(val);
+
+        // Remove ?mode=new from URL purely for cleanliness (optional), 
+        // but keeping it doesn't hurt since we only check on load.
+        // router.replace(`/project/${projectId}/script`, { scroll: false }); 
+
         toast.success(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
     };
 
     const handleNewEpisode = () => {
-        setSelectedEpisodeId(null); // Null triggers "New Mode"
+        setSelectedEpisodeId(null);
         toast("New Sequence Initialized", { icon: '✨' });
     };
 
     // --- HELPER: GET CURRENT EPISODE DATA ---
     const activeEpisode = episodes.find(e => e.id === selectedEpisodeId);
 
-    // Title Logic: 
-    // - Movie: Project Title
-    // - Series (Existing): Episode Title
-    // - Series (New): Empty (User must type)
     const currentTitle = project?.type === 'movie'
         ? (project.title)
         : (activeEpisode?.title || "");
 
-    // Script Logic:
-    // - Existing: Preview from DB
-    // - New: Empty
     const currentScript = activeEpisode?.script_preview || "";
 
     return (
