@@ -45,6 +45,7 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     const [selectedRefs, setSelectedRefs] = useState<ContextReference[]>(initialSelection);
 
     // --- 1. INITIALIZE ---
+    // Auto-select first episode if available and nothing selected
     useEffect(() => {
         if (isOpen && episodes.length > 0 && !activeEpisodeId) {
             setActiveEpisodeId(episodes[0].id);
@@ -130,6 +131,11 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                            {episodes.length === 0 && (
+                                <div className="p-4 text-[10px] text-[#444] font-mono text-center">
+                                    No active reels found.
+                                </div>
+                            )}
                             {episodes.map((ep) => (
                                 <button
                                     key={ep.id}
@@ -151,8 +157,9 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
 
                     {/* RIGHT: SCENE LIST (Detail) */}
                     <div className="flex-1 bg-[#020202] flex flex-col relative">
-                        {/* Loading Overlay */}
-                        {loadingEp === activeEpisodeId && (
+
+                        {/* FIX: Loader logic now strictly checks if activeEpisodeId exists to avoid null===null infinite state */}
+                        {activeEpisodeId && loadingEp === activeEpisodeId && (
                             <div className="absolute inset-0 z-20 bg-black/50 flex items-center justify-center backdrop-blur-[2px]">
                                 <Loader2 className="animate-spin text-red-600" />
                             </div>

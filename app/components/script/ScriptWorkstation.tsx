@@ -42,11 +42,14 @@ interface ScriptWorkstationProps {
     commitLabel: string;
     customHeader?: React.ReactNode;
     episodeContext?: EpisodeContext;
+
+    // FIX: Add this missing prop definition
+    contextEpisodes?: any[];
+
     scenes: WorkstationScene[];
 
     // Actions
     onReorder: (newOrder: WorkstationScene[]) => void;
-    // Updated Rewrite Signature to accept context payload
     onRewrite: (sceneId: string, instruction: string, contextRefs?: ContextReference[]) => Promise<void>;
     onCommit: () => void;
 
@@ -63,11 +66,12 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
     commitLabel,
     customHeader,
     episodeContext,
+    contextEpisodes, // Destructure here
     scenes,
     onReorder,
     onRewrite,
     onCommit,
-    onFetchRemoteScenes, // New Prop
+    onFetchRemoteScenes,
     isProcessing,
     isCommitting
 }) => {
@@ -131,7 +135,8 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                 <ContextSelectorModal
                     isOpen={isContextModalOpen}
                     onClose={() => setIsContextModalOpen(false)}
-                    episodes={episodeContext?.episodes || []}
+                    // FIX: Prioritize explicit prop, fallback to context, default to empty
+                    episodes={contextEpisodes || episodeContext?.episodes || []}
                     onFetchScenes={onFetchRemoteScenes}
                     initialSelection={selectedContext}
                     onConfirm={(newSelection) => setSelectedContext(newSelection)}
@@ -141,7 +146,8 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
             <div className="flex-1 flex overflow-hidden relative z-40">
                 {/* LEFT: TIMELINE */}
                 <div className="flex-1 flex flex-col bg-[#050505] relative border-r border-[#222]">
-                    {/* ... (Previous Toolbar Logic Unchanged) ... */}
+
+                    {/* TOOLBAR */}
                     <div className="h-14 border-b border-[#222] bg-[#080808] flex items-center justify-between px-4 shrink-0">
                         {episodeContext && episodeContext.episodes.length > 0 ? (
                             <div className="flex items-center gap-3 w-full max-w-[70%]">

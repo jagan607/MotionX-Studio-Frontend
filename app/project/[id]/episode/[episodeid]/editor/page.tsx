@@ -10,7 +10,7 @@ import {
     doc,
     updateDoc,
     writeBatch,
-    getDocs // Added for lazy loading context
+    getDocs // Required for lazy loading context
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
@@ -54,7 +54,7 @@ export default function SceneManagerPage() {
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
                 if (projData.type === 'movie') {
-                    // Movie Logic: Ensure at least one reel exists
+                    // Movie Logic: Ensure at least one reel exists visually
                     const mainReelId = projData.default_episode_id || "main";
                     if (eps.length === 0) {
                         eps = [{ id: mainReelId, title: "Main Picture Reel", episode_number: 1 }];
@@ -91,13 +91,26 @@ export default function SceneManagerPage() {
                 const data = doc.data();
 
                 // 1. HEADER MAPPING
-                const headerText = data.slugline || data.header || data.scene_header || data.title || "";
+                // DB uses 'slugline' primarily, but we check others for robustness
+                const headerText =
+                    data.slugline ||
+                    data.header ||
+                    data.scene_header ||
+                    data.title ||
+                    "";
+
                 const fallbackHeader = (data.int_ext && data.location)
                     ? `${data.int_ext}. ${data.location} - ${data.time || ''}`
                     : "UNKNOWN SCENE";
 
                 // 2. SUMMARY MAPPING
-                const summaryText = data.synopsis || data.summary || data.action || "";
+                // DB uses 'synopsis' primarily for the description
+                const summaryText =
+                    data.synopsis ||
+                    data.summary ||
+                    data.action ||
+                    data.description ||
+                    "";
 
                 loadedScenes.push({
                     id: doc.id,
@@ -147,7 +160,6 @@ export default function SceneManagerPage() {
                     scene_number: data.scene_number,
                     header: data.slugline || data.header || "UNKNOWN SCENE",
                     summary: data.synopsis || data.summary || "",
-                    // Add extra fields if needed for context display
                 };
             });
         } catch (e) {
@@ -230,9 +242,10 @@ export default function SceneManagerPage() {
             const newText = res.data.new_text;
 
             const ref = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
+            // Updating 'synopsis' as it is the primary read field
             await updateDoc(ref, {
                 synopsis: newText,
-                summary: newText,
+                summary: newText, // Backfill for compatibility
                 status: 'draft'
             });
 
@@ -286,6 +299,9 @@ export default function SceneManagerPage() {
                     currentEpisodeId: episodeId,
                     onSwitchEpisode: handleSwitchEpisode
                 } : undefined}
+
+                // FIX: Ensure Context Modal always gets the episode list (Movies & Series)
+                contextEpisodes={episodes}
 
                 scenes={scenes}
 
