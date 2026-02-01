@@ -52,26 +52,32 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
     const isMovie = projectType === "movie";
 
-    // --- 1. SYNC TITLE ---
-    // Updates when switching episodes or loading the project
+    // --- STATE SYNC ---
     useEffect(() => {
         if (isMovie) {
-            setTitle(projectTitle); // Movie title is locked to project name
+            setTitle(projectTitle);
         } else {
-            setTitle(initialTitle); // Series title updates on dropdown change
+            setTitle(initialTitle || "");
         }
     }, [isMovie, projectTitle, initialTitle]);
 
-    // --- 2. SYNC SCRIPT PREVIEW & RESET FORM ---
-    // This runs when the selected episode changes
     useEffect(() => {
-        // Pre-fill existing script if available, or clear if new
         setSynopsisText(initialScript || "");
-
-        // Always clear manual uploads/pastes when switching context
         setPastedScript("");
         setSelectedFile(null);
     }, [initialScript, episodeId]);
+
+    // --- MODIFICATION LOGIC ---
+    // We are in "Update Mode" only if we have an episode ID AND existing script content.
+    // Otherwise, we are initializing/creating.
+    const isUpdateMode = !!episodeId && !!initialScript;
+
+    // Check if current form state differs from initial props
+    const isModified =
+        (title || "") !== (initialTitle || "") ||
+        (synopsisText || "") !== (initialScript || "") ||
+        !!selectedFile ||
+        !!pastedScript;
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
@@ -84,13 +90,10 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         formData.append("project_id", projectId);
         formData.append("script_title", title || projectTitle);
 
-        // Only append episode_id if it exists (for updates). 
-        // If null (New Episode), backend handles creation.
         if (episodeId) {
             formData.append("episode_id", episodeId);
         }
 
-        // Priority: Synopsis > Paste > Upload
         if (synopsisText.trim()) {
             const content = `[TYPE: SYNOPSIS/TREATMENT]\n\n${synopsisText}`;
             const blob = new Blob([content], { type: "text/plain" });
@@ -147,11 +150,18 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     };
 
     const getButtonText = () => {
+        if (isUpdateMode) {
+            return isModified ? "MODIFY SCRIPT" : "SCRIPT SYNCED";
+        }
         if (synopsisText.trim()) return "GENERATE & INGEST";
         return "INITIALIZE INGESTION";
     };
 
     const isButtonEnabled = () => {
+        if (isUpdateMode) {
+            return isModified;
+        }
+        // Creation Logic
         if (!title && !isMovie) return false;
         return !!(synopsisText.trim() || pastedScript.trim() || selectedFile);
     };
@@ -169,7 +179,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     </label>
 
                     {isMovie ? (
-                        // MOVIE: Locked View
                         <div className="flex items-center justify-between w-full border-b border-neutral-700 py-2">
                             <span className="text-xl font-display text-white/50 uppercase select-none">
                                 {projectTitle || "UNTITLED PROJECT"}
@@ -180,7 +189,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                             </div>
                         </div>
                     ) : (
-                        // MICRO DRAMA / SERIES: Input View
                         <input
                             className="w-full bg-transparent border-b border-neutral-700 py-2 text-xl font-display text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors uppercase"
                             placeholder={`ENTER EPISODE TITLE...`}

@@ -15,7 +15,7 @@ import { toast } from "react-hot-toast";
 export default function ScriptIngestionPage() {
     const params = useParams();
     const router = useRouter();
-    const searchParams = useSearchParams(); // <--- 1. Get Query Params
+    const searchParams = useSearchParams();
     const projectId = params.id as string;
 
     const [project, setProject] = useState<Project | null>(null);
@@ -46,36 +46,24 @@ export default function ScriptIngestionPage() {
                 const proj = await fetchProject(projectId);
                 setProject(proj);
 
-                // ALWAYS fetch episodes (containers) to get script data
                 const epsData = await fetchEpisodes(projectId);
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
                 if (proj.type === 'movie') {
-                    // Movie Logic: Load the episodes so we can access the data
                     setEpisodes(eps);
-
-                    // Auto-select the default episode
                     const targetId = proj.default_episode_id || "main";
                     const found = eps.find((e: any) => e.id === targetId);
                     setSelectedEpisodeId(found ? found.id : (eps[0]?.id || targetId));
                 } else {
-                    // Series Logic: Sort and Filter
                     eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
-
-                    // Hide ghost episode if real content exists
                     const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
                     const finalEpisodes = realEpisodes.length > 0 ? realEpisodes : eps;
 
                     setEpisodes(finalEpisodes);
 
-                    // --- 2. CHECK FOR MODE=NEW ---
                     if (searchParams.get("mode") === "new") {
                         setSelectedEpisodeId(null);
-                        // Optional: Toast to confirm state
-                        // toast("Ready for New Episode", { icon: '✨' });
-                    }
-                    // Default to first available episode if NOT creating new
-                    else if (finalEpisodes.length > 0) {
+                    } else if (finalEpisodes.length > 0) {
                         setSelectedEpisodeId(finalEpisodes[0].id);
                     }
                 }
@@ -87,17 +75,12 @@ export default function ScriptIngestionPage() {
             }
         };
         loadData();
-    }, [projectId, searchParams]); // Added searchParams to deps to ensure it's captured
+    }, [projectId, searchParams]);
 
     const handleEpisodeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         if (val === "new_placeholder") return;
         setSelectedEpisodeId(val);
-
-        // Remove ?mode=new from URL purely for cleanliness (optional), 
-        // but keeping it doesn't hurt since we only check on load.
-        // router.replace(`/project/${projectId}/script`, { scroll: false }); 
-
         toast.success(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
     };
 
@@ -106,7 +89,6 @@ export default function ScriptIngestionPage() {
         toast("New Sequence Initialized", { icon: '✨' });
     };
 
-    // --- HELPER: GET CURRENT EPISODE DATA ---
     const activeEpisode = episodes.find(e => e.id === selectedEpisodeId);
 
     const currentTitle = project?.type === 'movie'
@@ -117,7 +99,6 @@ export default function ScriptIngestionPage() {
 
     return (
         <div className="fixed inset-0 z-50 bg-[#020202] text-white font-sans overflow-hidden flex flex-col">
-
             {/* --- CINEMATIC STYLES --- */}
             <style jsx global>{`
                 button[type="submit"], .deck-root button[type="submit"] {
@@ -176,7 +157,6 @@ export default function ScriptIngestionPage() {
             {/* --- HEADER --- */}
             <header className="h-20 bg-transparent flex items-center justify-between px-8 z-50 relative border-b border-white/5">
                 <div className="flex items-center gap-8">
-                    {/* LEFT SIDE: REC Indicator */}
                     <div className="flex items-center gap-3">
                         <div className="relative">
                             <div className="w-2.5 h-2.5 bg-red-600 rounded-full animate-pulse z-10 relative" />
@@ -192,7 +172,6 @@ export default function ScriptIngestionPage() {
                         SYSTEM SECURE
                     </div>
 
-                    {/* RIGHT SIDE: ENTER STUDIO BUTTON */}
                     <button
                         onClick={() => router.push(`/project/${projectId}/studio`)}
                         className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold tracking-widest uppercase transition-colors text-white rounded-sm"
@@ -204,7 +183,6 @@ export default function ScriptIngestionPage() {
 
             {/* --- MAIN LAYOUT --- */}
             <div className="flex-1 flex overflow-hidden relative z-40">
-
                 <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-red-600/5 rounded-full blur-[150px] pointer-events-none" />
                 <div className="absolute bottom-[-20%] right-[-10%] w-[800px] h-[800px] bg-blue-600/5 rounded-full blur-[150px] pointer-events-none" />
 
@@ -223,7 +201,7 @@ export default function ScriptIngestionPage() {
                             </span>
                         </div>
 
-                        {/* EPISODE SELECTOR (Dropdown + NEW Button) */}
+                        {/* EPISODE SELECTOR */}
                         {project?.type !== 'movie' && (
                             <div className="animate-in fade-in slide-in-from-left-4 duration-500">
                                 <div className="text-[10px] font-bold text-neutral-500 uppercase mb-2 flex items-center gap-2 tracking-widest">
@@ -242,7 +220,6 @@ export default function ScriptIngestionPage() {
                                                 </option>
                                             ))}
 
-                                            {/* Show placeholder if in "New Mode" */}
                                             {selectedEpisodeId === null && (
                                                 <option value="new_placeholder" disabled>-- CREATING NEW --</option>
                                             )}
@@ -256,13 +233,13 @@ export default function ScriptIngestionPage() {
                                         </div>
                                     </div>
 
-                                    {/* NEW BUTTON */}
+                                    {/* HIGHLIGHTED NEW BUTTON */}
                                     <button
                                         onClick={handleNewEpisode}
-                                        className="px-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-red-600 hover:text-red-500 transition-all text-neutral-400"
+                                        className="px-4 bg-red-600/10 border border-red-600/50 rounded-lg hover:bg-red-600 hover:text-white text-red-500 transition-all shadow-[0_0_15px_rgba(220,38,38,0.2)] hover:shadow-[0_0_20px_rgba(220,38,38,0.5)]"
                                         title="Create New Episode"
                                     >
-                                        <Plus size={16} />
+                                        <Plus size={18} />
                                     </button>
                                 </div>
                             </div>
@@ -358,7 +335,6 @@ export default function ScriptIngestionPage() {
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     );
