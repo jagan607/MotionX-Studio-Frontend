@@ -73,7 +73,7 @@ export default function SceneManagerPage() {
         loadContext();
     }, [projectId]);
 
-    // 2. REAL-TIME SCENES SYNC (Improved Mapping)
+    // 2. REAL-TIME SCENES SYNC (CORRECTED DATA MAPPING)
     useEffect(() => {
         if (!projectId || !episodeId) return;
 
@@ -87,23 +87,43 @@ export default function SceneManagerPage() {
             snapshot.forEach((doc) => {
                 const data = doc.data();
 
-                // ROBUST HEADER MAPPING
-                // Try multiple common fields for the scene heading
-                const headerText = data.header || data.slugline || data.scene_header || data.title || "";
+                // --- 1. HEADER MAPPING (Prioritize 'slugline') ---
+                // Based on screenshots: 'slugline' ("INT. CLASSROOM") is the key field.
+                const headerText =
+                    data.slugline ||
+                    data.header ||
+                    data.scene_header ||
+                    data.title ||
+                    "";
 
-                // If header is missing but we have parts (INT/EXT + LOC)
+                // Fallback construction if slugline is missing
                 const fallbackHeader = (data.int_ext && data.location)
                     ? `${data.int_ext}. ${data.location} - ${data.time || ''}`
                     : "UNKNOWN SCENE";
+
+                // --- 2. SUMMARY MAPPING (Prioritize 'synopsis') ---
+                // Based on screenshots: 'synopsis' contains the visual description.
+                const summaryText =
+                    data.synopsis ||
+                    data.summary ||
+                    data.action ||
+                    data.description ||
+                    data.visuals ||
+                    "";
 
                 loadedScenes.push({
                     id: doc.id,
                     scene_number: data.scene_number,
                     header: headerText || fallbackHeader,
-                    summary: data.summary || data.content || data.description || "",
-                    time: data.time || "",
+                    summary: summaryText,
+                    time: data.time || "", // Screenshot confirms 'time' field exists
                     status: data.status || "draft",
-                    // Pass through raw data for safety
+
+                    // --- 3. METADATA MAPPING ---
+                    // Screenshot confirms 'cast_ids' is the array of strings
+                    cast_ids: data.cast_ids || [],
+                    location_id: data.location_id || "",
+
                     ...data
                 });
             });
@@ -148,7 +168,8 @@ export default function SceneManagerPage() {
 
     const handleRewrite = async (sceneId: string, instruction: string) => {
         setIsProcessing(true);
-        const targetScene = scenes.find(s => s.id === sceneId);
+        const currentIndex = scenes.findIndex(s => s.id === sceneId);
+        const targetScene = scenes[currentIndex];
 
         if (!targetScene) {
             setIsProcessing(false);
@@ -156,17 +177,32 @@ export default function SceneManagerPage() {
         }
 
         try {
+            // GATHER SMART CONTEXT
+            const prevScene = currentIndex > 0 ? scenes[currentIndex - 1] : null;
+            const nextScene = currentIndex < scenes.length - 1 ? scenes[currentIndex + 1] : null;
+
+            const contextPayload = {
+                project_genre: (project as any)?.genre || "Cinematic",
+                project_style: (project as any)?.style || "Realistic",
+                previous_scene_summary: prevScene ? prevScene.summary : "Start of Episode",
+                next_scene_header: nextScene ? nextScene.header : "End of Episode",
+                characters: (targetScene as any).cast_ids || []
+            };
+
             const res = await api.post("api/v1/script/rewrite-scene", {
                 original_text: targetScene.summary,
                 instruction: instruction,
-                context: `Scene Heading: ${targetScene.header}`
+                context: `Scene Heading: ${targetScene.header}`,
+                smart_context: contextPayload
             });
 
             const newText = res.data.new_text;
 
             const ref = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
+            // We update 'synopsis' because that's the field we read from
             await updateDoc(ref, {
-                summary: newText,
+                synopsis: newText,
+                summary: newText, // Update legacy field just in case
                 status: 'draft'
             });
 
