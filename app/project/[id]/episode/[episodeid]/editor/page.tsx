@@ -10,15 +10,18 @@ import {
     doc,
     updateDoc,
     writeBatch,
-    getDocs // Required for lazy loading context
+    setDoc,
+    getDocs,
+    serverTimestamp
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
 import { api, fetchProject, fetchEpisodes } from "@/lib/api";
 import { Project } from "@/lib/types";
+import { v4 as uuidv4 } from 'uuid'; // Ensure you have this installed: npm install uuid
 
 // --- COMPONENTS ---
-import { ScriptWorkstation, WorkstationScene } from "@/app/components/script/ScriptWorkstation";
+import { ScriptWorkstation, WorkstationScene, Character } from "@/app/components/script/ScriptWorkstation";
 import { StudioHeader } from "@/app/components/studio/StudioHeader";
 import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
 
@@ -33,17 +36,19 @@ export default function SceneManagerPage() {
     const [scenes, setScenes] = useState<WorkstationScene[]>([]);
     const [project, setProject] = useState<Project | null>(null);
     const [episodes, setEpisodes] = useState<any[]>([]);
+    const [characters, setCharacters] = useState<Character[]>([]); // New State
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // 1. FETCH CONTEXT (Project Info & Episode List)
+    // 1. FETCH CONTEXT (Project, Episodes, Characters)
     useEffect(() => {
         if (!projectId) return;
 
         const loadContext = async () => {
             try {
+                // Fetch basic project info and episode structure
                 const [projData, epsData] = await Promise.all([
                     fetchProject(projectId),
                     fetchEpisodes(projectId)
@@ -51,24 +56,33 @@ export default function SceneManagerPage() {
 
                 setProject(projData);
 
+                // Fetch Available Characters for the Dropdown
+                try {
+                    const charQuery = query(collection(db, "projects", projectId, "characters"));
+                    const charSnapshot = await getDocs(charQuery);
+                    const loadedChars = charSnapshot.docs.map(doc => ({
+                        id: doc.id,
+                        name: doc.data().name || "Unknown"
+                    }));
+                    setCharacters(loadedChars);
+                } catch (e) {
+                    console.error("Failed to load characters", e);
+                }
+
+                // Episode Logic (Movie vs Series)
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
                 if (projData.type === 'movie') {
-                    // FILTER: Ignore the "Ghost" episode created during init
+                    // Filter Ghost Episode
                     eps = eps.filter((e: any) => !(e.title === "Main Script" && e.synopsis === "Initial setup"));
 
-                    // Movie Logic: Ensure at least one reel exists visually
                     const mainReelId = projData.default_episode_id || "main";
-
-                    // If list is empty (or became empty after filtering), show default Main Reel
                     if (eps.length === 0) {
                         eps = [{ id: mainReelId, title: "Main Picture Reel", episode_number: 1 }];
                     }
                     setEpisodes(eps);
                 } else {
-                    // Series Logic: Sort and Filter
                     eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
-                    // Filter "Initial setup" for series as well to be safe
                     const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
                     setEpisodes(realEpisodes.length > 0 ? realEpisodes : eps);
                 }
@@ -82,7 +96,7 @@ export default function SceneManagerPage() {
         loadContext();
     }, [projectId]);
 
-    // 2. REAL-TIME SCENES SYNC (FIXED DATA MAPPING)
+    // 2. REAL-TIME SCENES SYNC
     useEffect(() => {
         if (!projectId || !episodeId) return;
 
@@ -96,25 +110,14 @@ export default function SceneManagerPage() {
             snapshot.forEach((doc) => {
                 const data = doc.data();
 
-                // 1. HEADER MAPPING
-                const headerText =
-                    data.slugline ||
-                    data.header ||
-                    data.scene_header ||
-                    data.title ||
-                    "";
-
+                // Robust Header Mapping
+                const headerText = data.slugline || data.header || data.scene_header || data.title || "";
                 const fallbackHeader = (data.int_ext && data.location)
                     ? `${data.int_ext}. ${data.location} - ${data.time || ''}`
                     : "UNKNOWN SCENE";
 
-                // 2. SUMMARY MAPPING
-                const summaryText =
-                    data.synopsis ||
-                    data.summary ||
-                    data.action ||
-                    data.description ||
-                    "";
+                // Robust Summary Mapping
+                const summaryText = data.synopsis || data.summary || data.action || data.description || "";
 
                 loadedScenes.push({
                     id: doc.id,
@@ -124,7 +127,7 @@ export default function SceneManagerPage() {
                     time: data.time || "",
                     status: data.status || "draft",
 
-                    // 3. METADATA MAPPING (Cast & Location)
+                    // Prioritize cast_ids, fallback to characters if array of strings
                     cast_ids: data.cast_ids || data.characters || [],
                     location_id: data.location_id || "",
 
@@ -147,7 +150,52 @@ export default function SceneManagerPage() {
 
     // --- HANDLERS ---
 
-    // NEW: Fetch function for Context Matrix (Lazy Loads other episodes)
+    // NEW: Add a fresh scene to the timeline
+    const handleAddScene = async () => {
+        try {
+            // Calculate next scene number
+            const maxSceneNum = scenes.length > 0
+                ? Math.max(...scenes.map(s => s.scene_number))
+                : 0;
+            const newSceneNum = maxSceneNum + 1;
+
+            const newSceneId = `scene_${uuidv4().slice(0, 8)}`; // Short ID
+            const sceneRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", newSceneId);
+
+            await setDoc(sceneRef, {
+                id: newSceneId,
+                scene_number: newSceneNum,
+                slugline: "INT. UNTITLED SCENE - DAY",
+                synopsis: "", // Empty for AI generation
+                cast_ids: [],
+                status: "draft",
+                created_at: serverTimestamp()
+            });
+
+            toast.success("New Scene Created");
+            // Workstation will auto-update via onSnapshot
+        } catch (e) {
+            console.error("Add Scene Error:", e);
+            toast.error("Failed to create scene");
+        }
+    };
+
+    // NEW: Update Cast List for a Scene
+    const handleUpdateCast = async (sceneId: string, newCast: string[]) => {
+        try {
+            const sceneRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
+            await updateDoc(sceneRef, {
+                cast_ids: newCast,
+                // Also update legacy field for safety if needed
+                characters: newCast
+            });
+            // Toast removed to avoid spamming on rapid clicks
+        } catch (e) {
+            console.error("Update Cast Error:", e);
+            toast.error("Failed to update cast");
+        }
+    };
+
     const fetchRemoteScenes = async (targetEpisodeId: string) => {
         try {
             const q = query(
@@ -155,8 +203,6 @@ export default function SceneManagerPage() {
                 orderBy("scene_number", "asc")
             );
             const snapshot = await getDocs(q);
-
-            // Map raw docs to clean context objects
             return snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
@@ -168,7 +214,6 @@ export default function SceneManagerPage() {
             });
         } catch (e) {
             console.error("Context Load Error:", e);
-            toast.error("Failed to load context scenes");
             return [];
         }
     };
@@ -196,7 +241,6 @@ export default function SceneManagerPage() {
         }
     };
 
-    // UPDATED: Handle Rewrite now accepts Context References
     const handleRewrite = async (sceneId: string, instruction: string, contextRefs?: any[]) => {
         setIsProcessing(true);
         const currentIndex = scenes.findIndex(s => s.id === sceneId);
@@ -208,34 +252,24 @@ export default function SceneManagerPage() {
         }
 
         try {
-            // 1. Gather Standard Local Context
             const prevScene = currentIndex > 0 ? scenes[currentIndex - 1] : null;
             const nextScene = currentIndex < scenes.length - 1 ? scenes[currentIndex + 1] : null;
 
-            // 2. Format Custom Context References (from Matrix)
             const memoryReferences = contextRefs?.map(ref => ({
                 source: ref.sourceLabel,
                 header: ref.header,
                 content: ref.summary
             })) || [];
 
-            // 3. Build Rich Payload
             const contextPayload = {
                 project_genre: (project as any)?.genre || "Cinematic",
                 project_style: (project as any)?.style || "Realistic",
-
-                // Immediate Flow
                 previous_scene_summary: prevScene ? prevScene.summary : "Start of Episode",
                 next_scene_header: nextScene ? nextScene.header : "End of Episode",
-
-                // Character Awareness
-                characters: targetScene.cast_ids || [],
-
-                // The "Brain" - Long Term Memory
+                characters: targetScene.cast_ids || [], // Use updated cast
                 custom_references: memoryReferences
             };
 
-            // 4. Send to Backend
             const res = await api.post("api/v1/script/rewrite-scene", {
                 original_text: targetScene.summary,
                 instruction: instruction,
@@ -246,14 +280,13 @@ export default function SceneManagerPage() {
             const newText = res.data.new_text;
 
             const ref = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
-            // Updating 'synopsis' as it is the primary read field
             await updateDoc(ref, {
                 synopsis: newText,
-                summary: newText, // Backfill for compatibility
+                summary: newText,
                 status: 'draft'
             });
 
-            toast.success("Scene rewritten with Context");
+            toast.success("Scene Updated");
         } catch (e) {
             console.error(e);
             toast.error("AI Rewrite Failed");
@@ -304,18 +337,21 @@ export default function SceneManagerPage() {
                     onSwitchEpisode: handleSwitchEpisode
                 } : undefined}
 
-                // FIX: Ensure Context Modal always gets the episode list (Movies & Series)
                 contextEpisodes={episodes}
-
                 scenes={scenes}
+
+                // Pass Character List for Dropdown
+                availableCharacters={characters}
 
                 // Actions
                 onReorder={handleReorder}
                 onRewrite={handleRewrite}
                 onCommit={handleExit}
-
-                // Context Matrix Integration
                 onFetchRemoteScenes={fetchRemoteScenes}
+
+                // NEW ACTIONS
+                onAddScene={handleAddScene}
+                onUpdateCast={handleUpdateCast}
 
                 isProcessing={isProcessing}
                 isCommitting={false}

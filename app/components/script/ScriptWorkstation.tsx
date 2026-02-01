@@ -11,7 +11,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, CheckCircle2, Sparkles,
-    AlignLeft, Clock, Film, Scissors, Cpu, Terminal, Activity, Loader2, ChevronDown, Layers, PlayCircle, MapPin, Users, Plus, X
+    AlignLeft, Clock, Film, Scissors, Cpu, Terminal, Activity, Loader2, ChevronDown, Layers, PlayCircle, MapPin, Users, Plus, X, Trash2
 } from "lucide-react";
 
 // Import the Context Modal
@@ -30,6 +30,11 @@ export interface WorkstationScene {
     [key: string]: any;
 }
 
+export interface Character {
+    id: string;
+    name: string;
+}
+
 export interface EpisodeContext {
     episodes: any[];
     currentEpisodeId: string;
@@ -42,18 +47,22 @@ interface ScriptWorkstationProps {
     commitLabel: string;
     customHeader?: React.ReactNode;
     episodeContext?: EpisodeContext;
-
-    // FIX: Add this missing prop definition
     contextEpisodes?: any[];
-
     scenes: WorkstationScene[];
+
+    // Available Characters for the Dropdown
+    availableCharacters?: Character[];
 
     // Actions
     onReorder: (newOrder: WorkstationScene[]) => void;
     onRewrite: (sceneId: string, instruction: string, contextRefs?: ContextReference[]) => Promise<void>;
     onCommit: () => void;
 
-    // NEW: Function to fetch scenes for the modal (passed from page)
+    // NEW ACTIONS
+    onAddScene?: () => void; // Function to create new scene
+    onUpdateCast?: (sceneId: string, newCast: string[]) => void; // Function to update cast
+
+    // Function to fetch scenes for the modal (passed from page)
     onFetchRemoteScenes?: (episodeId: string) => Promise<any[]>;
 
     isProcessing: boolean;
@@ -66,11 +75,14 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
     commitLabel,
     customHeader,
     episodeContext,
-    contextEpisodes, // Destructure here
+    contextEpisodes,
     scenes,
+    availableCharacters = [], // Default to empty if not passed yet
     onReorder,
     onRewrite,
     onCommit,
+    onAddScene,      // New Prop
+    onUpdateCast,    // New Prop
     onFetchRemoteScenes,
     isProcessing,
     isCommitting
@@ -100,7 +112,6 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
 
     const handleExecuteAi = async () => {
         if (!activeSceneId || !aiInstruction.trim()) return;
-        // Pass the manually selected context references to the parent handler
         await onRewrite(activeSceneId, aiInstruction, selectedContext);
         setAiInstruction("");
     };
@@ -109,7 +120,33 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
         setSelectedContext(prev => prev.filter(r => r.id !== id));
     };
 
+    // --- CAST HANDLERS ---
+    const handleAddCharacter = (charId: string) => {
+        if (!activeSceneId || !onUpdateCast) return;
+        const scene = scenes.find(s => s.id === activeSceneId);
+        if (!scene) return;
+
+        const currentCast = scene.cast_ids || scene.characters || [];
+        // Avoid duplicates
+        if (!currentCast.includes(charId)) {
+            onUpdateCast(activeSceneId, [...currentCast, charId]);
+        }
+    };
+
+    const handleRemoveCharacter = (charId: string) => {
+        if (!activeSceneId || !onUpdateCast) return;
+        const scene = scenes.find(s => s.id === activeSceneId);
+        if (!scene) return;
+
+        const currentCast = scene.cast_ids || scene.characters || [];
+        onUpdateCast(activeSceneId, currentCast.filter(id => id !== charId));
+    };
+
     const activeScene = scenes.find(s => s.id === activeSceneId);
+
+    // Logic for "Active Cast" display
+    const activeCastList = activeScene?.cast_ids || activeScene?.characters || [];
+
     const totalWords = scenes.reduce((acc, s) => acc + (s.summary?.split(" ").length || 0), 0);
     const estDuration = Math.ceil(totalWords / 200);
 
@@ -135,7 +172,6 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                 <ContextSelectorModal
                     isOpen={isContextModalOpen}
                     onClose={() => setIsContextModalOpen(false)}
-                    // FIX: Prioritize explicit prop, fallback to context, default to empty
                     episodes={contextEpisodes || episodeContext?.episodes || []}
                     onFetchScenes={onFetchRemoteScenes}
                     initialSelection={selectedContext}
@@ -178,9 +214,9 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-2 pb-20">
                         {scenes.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center opacity-30 gap-3">
+                            <div className="h-40 flex flex-col items-center justify-center opacity-30 gap-3">
                                 <Film size={32} className="text-[#333]" />
                                 <span className="text-xs font-mono">NO SCENE DATA FOUND</span>
                             </div>
@@ -199,8 +235,20 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                                 </SortableContext>
                             </DndContext>
                         )}
+
+                        {/* --- NEW SCENE BUTTON --- */}
+                        {onAddScene && (
+                            <button
+                                onClick={onAddScene}
+                                className="w-full h-12 border border-dashed border-[#333] rounded-sm flex items-center justify-center gap-2 text-[#555] hover:text-[#CCC] hover:border-[#666] hover:bg-[#111] transition-all group"
+                            >
+                                <Plus size={16} className="group-hover:scale-110 transition-transform" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest">Add New Scene</span>
+                            </button>
+                        )}
+
                         {scenes.length > 0 && (
-                            <div className="h-20 flex items-center justify-center border-t border-dashed border-[#222] mt-4">
+                            <div className="h-10 flex items-center justify-center border-t border-dashed border-[#222] mt-4 opacity-50">
                                 <span className="text-[9px] font-mono text-[#333]">END OF SEQUENCE</span>
                             </div>
                         )}
@@ -216,9 +264,10 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                         <div className={`w-2 h-2 rounded-full ${isProcessing ? 'bg-yellow-500 animate-pulse' : 'bg-green-900'}`} />
                     </div>
 
-                    <div className="flex-1 p-6 flex flex-col">
+                    <div className="flex-1 p-6 flex flex-col overflow-y-auto">
                         {activeScene ? (
                             <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
+                                {/* SCENE HEADER BOX */}
                                 <div className="mb-6 p-4 border border-[#222] bg-[#0C0C0C] rounded-sm relative overflow-hidden">
                                     <div className="absolute top-0 left-0 w-1 h-full bg-red-600" />
                                     <div className="text-[9px] font-mono text-red-500 mb-1 uppercase">Target Locked</div>
@@ -231,51 +280,95 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                                     </div>
                                 </div>
 
-                                <div className="flex-1 flex flex-col gap-4">
-                                    <div className="flex items-center justify-between text-[10px] font-bold text-[#888] uppercase">
-                                        <span className="flex items-center gap-2"><Terminal size={12} /> Context Aware Prompt</span>
-                                        {/* ADD CONTEXT BUTTON */}
-                                        <button
-                                            onClick={() => setIsContextModalOpen(true)}
-                                            className="text-red-500 hover:text-white flex items-center gap-1 transition-colors"
-                                        >
-                                            <Plus size={10} /> Add Reference
-                                        </button>
-                                    </div>
+                                <div className="flex-1 flex flex-col gap-6">
 
-                                    {/* CONTEXT STACK (Visual Chips) */}
-                                    <div className="p-3 bg-[#111] border border-[#222] rounded-sm mb-2 max-h-[120px] overflow-y-auto">
-                                        <div className="text-[9px] text-[#555] uppercase font-bold mb-2">Active Context</div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {/* Static Chips */}
-                                            <span className="px-2 py-1 bg-blue-900/20 text-blue-500 text-[9px] border border-blue-900/30 rounded-sm">Prev. Scene</span>
+                                    {/* --- CAST MANAGER --- */}
+                                    <div>
+                                        <div className="flex items-center justify-between text-[10px] font-bold text-[#888] uppercase mb-2">
+                                            <span className="flex items-center gap-2"><Users size={12} /> Scene Cast</span>
+                                            <span className="text-[9px] text-[#444]">{activeCastList.length} Active</span>
+                                        </div>
+                                        <div className="p-3 bg-[#111] border border-[#222] rounded-sm flex flex-col gap-2">
+                                            {/* Cast List */}
+                                            <div className="flex flex-wrap gap-2">
+                                                {activeCastList.map((charId: string) => (
+                                                    <div key={charId} className="flex items-center gap-1.5 px-2 py-1 bg-green-900/10 border border-green-900/30 text-green-500 text-[10px] font-bold uppercase rounded-sm group">
+                                                        <span>{charId.replace(/_/g, " ")}</span>
+                                                        <button
+                                                            onClick={() => handleRemoveCharacter(charId)}
+                                                            className="hover:text-white transition-colors"
+                                                        >
+                                                            <X size={10} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                {activeCastList.length === 0 && (
+                                                    <span className="text-[10px] text-[#444] italic py-1">No characters assigned.</span>
+                                                )}
+                                            </div>
 
-                                            {/* Dynamic User Selection */}
-                                            {selectedContext.map(ref => (
-                                                <div key={ref.id} className="flex items-center gap-1 px-2 py-1 bg-[#1A1A1A] border border-[#333] text-[#AAA] text-[9px] rounded-sm group hover:border-[#555]">
-                                                    <span>{ref.sourceLabel}</span>
-                                                    <button onClick={() => removeContextRef(ref.id)} className="hover:text-red-500"><X size={8} /></button>
-                                                </div>
-                                            ))}
-
-                                            {selectedContext.length === 0 && (
-                                                <span className="text-[9px] text-[#444] italic px-1">No custom references added.</span>
+                                            {/* Add Character Dropdown (Simple HTML Select for now) */}
+                                            {onUpdateCast && (
+                                                <select
+                                                    className="w-full bg-[#080808] border border-[#333] text-[#888] text-[10px] p-2 rounded-sm outline-none focus:border-[#555] cursor-pointer uppercase"
+                                                    onChange={(e) => {
+                                                        if (e.target.value) {
+                                                            handleAddCharacter(e.target.value);
+                                                            e.target.value = ""; // Reset
+                                                        }
+                                                    }}
+                                                    value=""
+                                                >
+                                                    <option value="" disabled>+ Add Character...</option>
+                                                    {availableCharacters.map(char => (
+                                                        <option key={char.id} value={char.id}>{char.name}</option>
+                                                    ))}
+                                                </select>
                                             )}
                                         </div>
                                     </div>
 
-                                    <textarea
-                                        value={aiInstruction}
-                                        onChange={(e) => setAiInstruction(e.target.value)}
-                                        placeholder="// Enter directorial commands...&#10;> Make the dialogue more intense&#10;> Change setting to night"
-                                        className="ai-input w-full flex-1 p-4 text-xs resize-none rounded-sm placeholder:text-[#444]"
-                                    />
-                                    <div className="flex gap-2 pt-4">
-                                        <button onClick={handleExecuteAi} disabled={isProcessing || !aiInstruction.trim()} className="action-btn flex-1 py-3 text-[10px] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                            {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                                            EXECUTE SMART AI
-                                        </button>
-                                        <button onClick={() => setActiveSceneId(null)} className="px-4 py-3 border border-[#333] text-[10px] font-bold text-[#666] hover:text-white hover:bg-[#111] transition-colors uppercase tracking-widest rounded-sm">Cancel</button>
+                                    {/* --- AI PROMPT --- */}
+                                    <div className="flex-1 flex flex-col">
+                                        <div className="flex items-center justify-between text-[10px] font-bold text-[#888] uppercase mb-2">
+                                            <span className="flex items-center gap-2"><Terminal size={12} /> Context Aware Prompt</span>
+                                            <button
+                                                onClick={() => setIsContextModalOpen(true)}
+                                                className="text-red-500 hover:text-white flex items-center gap-1 transition-colors"
+                                            >
+                                                <Plus size={10} /> Add Reference
+                                            </button>
+                                        </div>
+
+                                        {/* CONTEXT STACK */}
+                                        <div className="p-3 bg-[#111] border border-[#222] rounded-sm mb-2 max-h-[80px] overflow-y-auto">
+                                            <div className="text-[9px] text-[#555] uppercase font-bold mb-2">Active Context</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                <span className="px-2 py-1 bg-blue-900/20 text-blue-500 text-[9px] border border-blue-900/30 rounded-sm">Prev. Scene</span>
+                                                {selectedContext.map(ref => (
+                                                    <div key={ref.id} className="flex items-center gap-1 px-2 py-1 bg-[#1A1A1A] border border-[#333] text-[#AAA] text-[9px] rounded-sm group hover:border-[#555]">
+                                                        <span>{ref.sourceLabel}</span>
+                                                        <button onClick={() => removeContextRef(ref.id)} className="hover:text-red-500"><X size={8} /></button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <textarea
+                                            value={aiInstruction}
+                                            onChange={(e) => setAiInstruction(e.target.value)}
+                                            placeholder={activeScene.summary
+                                                ? "// Enter directorial commands...\n> Make the dialogue more intense\n> Change setting to night"
+                                                : "// Describe the scene...\n> Saitama walks into a grocery store and realizes he forgot his wallet."}
+                                            className="ai-input w-full flex-1 p-4 text-xs resize-none rounded-sm placeholder:text-[#444] min-h-[120px]"
+                                        />
+                                        <div className="flex gap-2 pt-4">
+                                            <button onClick={handleExecuteAi} disabled={isProcessing || !aiInstruction.trim()} className="action-btn flex-1 py-3 text-[10px] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                                                {activeScene.summary ? "EXECUTE REWRITE" : "GENERATE SCENE"}
+                                            </button>
+                                            <button onClick={() => setActiveSceneId(null)} className="px-4 py-3 border border-[#333] text-[10px] font-bold text-[#666] hover:text-white hover:bg-[#111] transition-colors uppercase tracking-widest rounded-sm">Cancel</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -317,9 +410,6 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
     // --- CAST UNIFICATION (Robust Check) ---
     const rawCast = scene.cast_ids || scene.characters || [];
     const castList = Array.isArray(rawCast) ? rawCast : [];
-
-    const wordCount = (scene.summary || "").split(" ").length;
-    const durationSec = Math.ceil((wordCount / 200) * 60);
 
     return (
         <div
