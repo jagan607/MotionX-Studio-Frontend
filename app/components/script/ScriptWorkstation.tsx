@@ -21,8 +21,9 @@ export interface WorkstationScene {
     header: string;
     summary: string;
     time?: string;
-    cast_ids?: string[]; // Added support for cast
-    location_id?: string; // Added support for location
+    cast_ids?: string[];    // DB Field Variation 1
+    characters?: string[];  // DB Field Variation 2
+    location_id?: string;
     [key: string]: any;
 }
 
@@ -88,7 +89,7 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
 
     // Calculate Total Stats
     const totalWords = scenes.reduce((acc, s) => acc + (s.summary?.split(" ").length || 0), 0);
-    const estDuration = Math.ceil(totalWords / 200);
+    const estDuration = Math.ceil(totalWords / 200); // approx mins
 
     return (
         <div className="fixed inset-0 z-50 bg-[#050505] text-[#EEE] font-sans overflow-hidden flex flex-col">
@@ -115,11 +116,11 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                     <div className="h-14 border-b border-[#222] bg-[#080808] flex items-center justify-between px-4 shrink-0">
                         {episodeContext && episodeContext.episodes.length > 0 ? (
                             <div className="flex items-center gap-3 w-full max-w-[70%]">
-                                <div className="h-8 w-8 bg-gradient-to-br from-red-600 to-red-900 flex items-center justify-center rounded-sm shrink-0 shadow-lg shadow-red-900/20">
-                                    <Layers size={14} className="text-white" />
+                                <div className="h-8 w-8 bg-red-900/20 border border-red-900/50 flex items-center justify-center rounded-sm shrink-0">
+                                    <Layers size={14} className="text-red-500" />
                                 </div>
-                                <div className="flex-1 relative group bg-[#111] border border-[#222] hover:border-[#444] hover:bg-[#151515] transition-all rounded-sm h-8 flex items-center px-3">
-                                    <span className="absolute -top-2.5 left-2 bg-[#080808] px-1 text-[7px] font-mono text-[#555] uppercase tracking-widest leading-none">Active Sequence</span>
+                                <div className="flex-1 relative group bg-[#111] border border-[#222] hover:border-[#444] transition-colors rounded-sm h-8 flex items-center px-3">
+                                    <span className="absolute -top-2 left-2 bg-[#080808] px-1 text-[8px] font-mono text-[#555] uppercase tracking-widest leading-none">Active Reel</span>
                                     <select className="ep-select" value={episodeContext.currentEpisodeId} onChange={(e) => episodeContext.onSwitchEpisode(e.target.value)}>
                                         {episodeContext.episodes.map((ep) => (
                                             <option key={ep.id} value={ep.id}>
@@ -206,8 +207,10 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                                         <div className="flex flex-wrap gap-1">
                                             <span className="px-2 py-0.5 bg-red-900/20 text-red-500 text-[9px] border border-red-900/30 rounded-sm">Project Genre</span>
                                             <span className="px-2 py-0.5 bg-blue-900/20 text-blue-500 text-[9px] border border-blue-900/30 rounded-sm">Prev. Scene</span>
+
+                                            {/* Count merged list */}
                                             <span className="px-2 py-0.5 bg-green-900/20 text-green-500 text-[9px] border border-green-900/30 rounded-sm">
-                                                {activeScene.cast_ids?.length || 0} Characters
+                                                {(activeScene.cast_ids || activeScene.characters || []).length} Characters
                                             </span>
                                         </div>
                                     </div>
@@ -258,10 +261,14 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
     const isInt = rawHeader.includes("INT.");
     const isExt = rawHeader.includes("EXT.");
 
-    // Clean header for display (remove INT/EXT prefix for the main title)
+    // Clean header
     const cleanLocation = rawHeader.replace("INT.", "").replace("EXT.", "").replace("EXT", "").replace("INT", "").split("-")[0].trim();
 
-    // Word count & duration estimate
+    // --- CAST UNIFICATION (Robust Check) ---
+    // Firestore screenshots show data is sometimes in 'cast_ids' and sometimes in 'characters'
+    const rawCast = scene.cast_ids || scene.characters || [];
+    const castList = Array.isArray(rawCast) ? rawCast : [];
+
     const wordCount = (scene.summary || "").split(" ").length;
     const durationSec = Math.ceil((wordCount / 200) * 60);
 
@@ -277,50 +284,53 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
             </div>
 
             <div className="flex-1 p-3 overflow-hidden flex flex-col justify-center">
-                {/* TOP ROW: Tags & Time */}
+                {/* Header Row */}
                 <div className="flex items-center gap-2 mb-2">
                     <span className={`text-sm font-mono font-bold ${isActive ? 'text-red-500' : 'text-[#444]'}`}>
                         {String(index + 1).padStart(2, '0')}
                     </span>
-
-                    {/* TYPE BADGE */}
                     {isInt && <span className="px-1.5 py-0.5 bg-[#151515] border border-[#222] text-[9px] font-bold text-[#666] rounded-sm">INT</span>}
                     {isExt && <span className="px-1.5 py-0.5 bg-[#151515] border border-[#222] text-[9px] font-bold text-[#666] rounded-sm">EXT</span>}
-
-                    {/* TIME PILL */}
                     {scene.time && <span className="ml-auto text-[9px] font-mono text-[#333] bg-[#080808] px-2 py-0.5 rounded-sm border border-[#1A1A1A]">{scene.time}</span>}
                 </div>
 
-                {/* MIDDLE: Location Header */}
                 <div className="text-xs font-bold text-white uppercase tracking-wider truncate mb-2 pl-1">
                     {cleanLocation || rawHeader}
                 </div>
 
-                {/* BOTTOM: Summary */}
-                <div className="flex items-start gap-3 pl-1 border-l-2 border-[#222]">
+                <div className="flex items-start gap-3 pl-1 border-l-2 border-[#222] mb-3">
                     <p className="text-[10px] text-[#777] leading-relaxed font-mono line-clamp-2 flex-1">
                         {scene.summary || "No visual description available."}
                     </p>
                 </div>
 
-                {/* FOOTER: Tags (Cast / Location) */}
-                <div className="flex items-center gap-3 mt-3 pt-2 border-t border-[#151515] pl-1 overflow-hidden">
-                    {/* Location Tag */}
-                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-red-900/10 border border-red-900/30 rounded-sm shrink-0">
+                {/* --- FOOTER TAGS (Cast & Location) --- */}
+                <div className="flex items-center gap-2 pt-2 border-t border-[#151515] pl-1 flex-wrap">
+                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-red-900/10 border border-red-900/30 rounded-sm">
                         <MapPin size={8} className="text-red-600" />
                         <span className="text-[8px] font-bold text-red-500 uppercase truncate max-w-[80px]">
                             {cleanLocation || "LOC"}
                         </span>
                     </div>
 
-                    {/* Cast Tag */}
-                    {scene.cast_ids && scene.cast_ids.length > 0 && (
-                        <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-green-900/10 border border-green-900/30 rounded-sm shrink-0">
-                            <Users size={8} className="text-green-600" />
-                            <span className="text-[8px] font-bold text-green-500 uppercase truncate max-w-[100px]">
-                                {scene.cast_ids.length} CHARS
-                            </span>
-                        </div>
+                    {/* Render Cast Tags */}
+                    {castList.length > 0 ? (
+                        <>
+                            {castList.slice(0, 3).map((cast: string, i: number) => (
+                                <div key={i} className="flex items-center gap-1.5 px-1.5 py-0.5 bg-green-900/10 border border-green-900/30 rounded-sm">
+                                    <Users size={8} className="text-green-600" />
+                                    <span className="text-[8px] font-bold text-green-500 uppercase truncate max-w-[80px]">
+                                        {/* Sanitize Display: Remove underscores for readability */}
+                                        {cast.replace(/_/g, " ")}
+                                    </span>
+                                </div>
+                            ))}
+                            {castList.length > 3 && (
+                                <span className="text-[8px] font-mono text-[#555] ml-1">+{castList.length - 3}</span>
+                            )}
+                        </>
+                    ) : (
+                        <span className="text-[8px] font-mono text-[#333] italic">No cast detected</span>
                     )}
                 </div>
             </div>

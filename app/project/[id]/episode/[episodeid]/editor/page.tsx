@@ -37,7 +37,7 @@ export default function SceneManagerPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // 1. FETCH CONTEXT
+    // 1. FETCH CONTEXT (Project Info & Episode List)
     useEffect(() => {
         if (!projectId) return;
 
@@ -53,12 +53,14 @@ export default function SceneManagerPage() {
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
                 if (projData.type === 'movie') {
+                    // Movie Logic: Ensure at least one reel exists
                     const mainReelId = projData.default_episode_id || "main";
                     if (eps.length === 0) {
                         eps = [{ id: mainReelId, title: "Main Picture Reel", episode_number: 1 }];
                     }
                     setEpisodes(eps);
                 } else {
+                    // Series Logic: Sort and Filter
                     eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
                     const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
                     setEpisodes(realEpisodes.length > 0 ? realEpisodes : eps);
@@ -73,7 +75,7 @@ export default function SceneManagerPage() {
         loadContext();
     }, [projectId]);
 
-    // 2. REAL-TIME SCENES SYNC (CORRECTED DATA MAPPING)
+    // 2. REAL-TIME SCENES SYNC (Improved Mapping based on DB structure)
     useEffect(() => {
         if (!projectId || !episodeId) return;
 
@@ -87,8 +89,8 @@ export default function SceneManagerPage() {
             snapshot.forEach((doc) => {
                 const data = doc.data();
 
-                // --- 1. HEADER MAPPING (Prioritize 'slugline') ---
-                // Based on screenshots: 'slugline' ("INT. CLASSROOM") is the key field.
+                // 1. HEADER MAPPING
+                // DB uses 'slugline' primarily, but we check others for robustness
                 const headerText =
                     data.slugline ||
                     data.header ||
@@ -96,19 +98,17 @@ export default function SceneManagerPage() {
                     data.title ||
                     "";
 
-                // Fallback construction if slugline is missing
                 const fallbackHeader = (data.int_ext && data.location)
                     ? `${data.int_ext}. ${data.location} - ${data.time || ''}`
                     : "UNKNOWN SCENE";
 
-                // --- 2. SUMMARY MAPPING (Prioritize 'synopsis') ---
-                // Based on screenshots: 'synopsis' contains the visual description.
+                // 2. SUMMARY MAPPING
+                // DB uses 'synopsis' primarily for the description
                 const summaryText =
                     data.synopsis ||
                     data.summary ||
                     data.action ||
                     data.description ||
-                    data.visuals ||
                     "";
 
                 loadedScenes.push({
@@ -116,12 +116,11 @@ export default function SceneManagerPage() {
                     scene_number: data.scene_number,
                     header: headerText || fallbackHeader,
                     summary: summaryText,
-                    time: data.time || "", // Screenshot confirms 'time' field exists
+                    time: data.time || "",
                     status: data.status || "draft",
 
-                    // --- 3. METADATA MAPPING ---
-                    // Screenshot confirms 'cast_ids' is the array of strings
-                    cast_ids: data.cast_ids || [],
+                    // 3. CAST MAPPING (Checks 'cast_ids' OR 'characters')
+                    cast_ids: data.cast_ids || data.characters || [],
                     location_id: data.location_id || "",
 
                     ...data
@@ -199,10 +198,10 @@ export default function SceneManagerPage() {
             const newText = res.data.new_text;
 
             const ref = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
-            // We update 'synopsis' because that's the field we read from
+            // Updating 'synopsis' as it is the primary read field
             await updateDoc(ref, {
                 synopsis: newText,
-                summary: newText, // Update legacy field just in case
+                summary: newText, // Backfill for compatibility
                 status: 'draft'
             });
 
