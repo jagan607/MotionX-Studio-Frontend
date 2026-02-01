@@ -153,56 +153,45 @@ export interface DashboardProject extends Project {
 }
 
 // 1. Fetch User Projects with Smart Previews
+
 export const fetchUserDashboardProjects = async (uid: string): Promise<DashboardProject[]> => {
     try {
-        // A. Fetch from "projects" collection (Unified)
+        // A. Fetch from "projects" collection
+        // REQUIRED: You must create the index for 'owner_id' + 'updated_at'
         const q = query(
             collection(db, "projects"),
             where("owner_id", "==", uid),
-            orderBy("created_at", "desc")
+            orderBy("updated_at", "desc")
         );
 
-        // Fallback query in case index is missing
-        const snap = await getDocs(q).catch(() =>
-            getDocs(query(collection(db, "projects"), where("owner_id", "==", uid)))
-        );
+        // Fallback query with explicit logging
+        const snap = await getDocs(q).catch((e) => {
+            console.error("⚠️ SORT FAILED. Missing Index? Click the link in the error above.", e);
+            // Fallback to unsorted (ID order)
+            return getDocs(query(collection(db, "projects"), where("owner_id", "==", uid)));
+        });
 
         const projectData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DashboardProject));
 
+        // ... (Rest of your working Deep Search logic) ...
         // B. Deep Search for Preview Media
         const enriched = await Promise.all(projectData.map(async (p) => {
             let vid = null, img = p.moodboard?.cover_image || null;
 
             try {
-                let scenesRef;
+                // Your working logic
+                const scenesRef = collection(db, "projects", p.id, "episodes", "main", "scenes");
+                const scs = await getDocs(query(scenesRef, limit(1)));
+                if (!scs.empty) {
+                    const shotsRef = collection(scs.docs[0].ref, "shots");
+                    const shs = await getDocs(query(shotsRef, where("status", "==", "rendered"), limit(3)));
 
-                if (p.type === 'movie') {
-                    // Movie: Scenes are direct children
-                    scenesRef = collection(db, "projects", p.id, "scenes");
-                } else {
-                    // Series: Check first episode
-                    const eps = await getDocs(query(collection(db, "projects", p.id, "episodes"), limit(1)));
-                    if (!eps.empty) {
-                        scenesRef = collection(db, "projects", p.id, "episodes", eps.docs[0].id, "scenes");
-                    }
-                }
-
-                if (scenesRef) {
-                    const scs = await getDocs(query(scenesRef, limit(1)));
-                    if (!scs.empty) {
-                        // Check shots in the first scene
-                        const shotsRef = collection(scs.docs[0].ref, "shots");
-                        const shs = await getDocs(query(shotsRef, where("status", "==", "rendered"), limit(3)));
-
-                        vid = shs.docs.find(d => d.data().video_url)?.data().video_url || null;
-                        if (!img) img = shs.docs.find(d => d.data().image_url)?.data().image_url || null;
-                    }
+                    vid = shs.docs.find(d => d.data().video_url)?.data().video_url || null;
+                    if (!img) img = shs.docs.find(d => d.data().image_url)?.data().image_url || null;
                 }
             } catch (e) {
                 console.warn(`Preview fetch failed for ${p.id}`, e);
             }
-
-            console.log("Enriched Project", { ...p, previewVideo: vid, previewImage: img });
             return { ...p, previewVideo: vid, previewImage: img };
         }));
 
@@ -227,15 +216,32 @@ export const fetchUserCredits = async (userId: string): Promise<number> => {
     }
 };
 
-// 2. Fetch Global Feed
 export const fetchGlobalFeed = async () => {
     try {
-        const snap = await getDocs(query(collectionGroup(db, 'shots'), limit(40)));
-        let valid = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter((s: any) => s.image_url || s.video_url);
-        // Simple shuffle
+        // 1. Database-side Filtering: Only fetch shots that represent completed work
+        // We filter by 'status' to ensure we only get rendered content.
+        // We also order by 'created_at' desc to get recent content first.
+        const q = query(
+            collectionGroup(db, 'shots'),
+            where("status", "==", "rendered"), // Only get successfully rendered shots
+            orderBy("created_at", "desc"),     // Get the newest ones
+            limit(50)                          // Increase limit slightly since we are filtering better
+        );
+
+        const snap = await getDocs(q);
+
+        // 2. Map & Client-side Validation
+        // Even with DB filtering, we double-check for the media URL to be safe.
+        let valid = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter((s: any) => s.image_url || s.video_url);
+
+        // 3. Shuffle
+        // Random sort is fine for this scale (50 items).
         return valid.sort(() => 0.5 - Math.random());
     } catch (e) {
         console.error("Feed Load Error", e);
+        // Fallback: Return empty array so UI doesn't crash
         return [];
     }
 };
