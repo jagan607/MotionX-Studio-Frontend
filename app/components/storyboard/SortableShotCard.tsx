@@ -92,13 +92,22 @@ export const SortableShotCard = ({
     // Only allow linking if current shot has image, next shot has image, using Kling, and not already chained
     const canLink = hasImage && Boolean(nextShotImage) && videoProvider === 'kling' && !isMorphedByPrev;
 
-    const handleCharToggle = (charName: string) => {
+    // --- FIX: CAST TOGGLE LOGIC ---
+    // Now uses ID instead of Name to match DB structure
+    const handleCharToggle = (charId: string) => {
         if (isMorphedByPrev) return;
         const current = Array.isArray(shot.characters) ? shot.characters : [];
-        const normChar = normalize(charName);
-        const updated = current.some((c) => normalize(c) === normChar)
-            ? current.filter((c) => normalize(c) !== normChar)
-            : [...current, charName];
+
+        // Check if the ID is already present
+        const isPresent = current.includes(charId);
+
+        let updated;
+        if (isPresent) {
+            updated = current.filter((c) => c !== charId);
+        } else {
+            updated = [...current, charId];
+        }
+
         onUpdateShot(shot.id, "characters", updated);
     };
 
@@ -259,14 +268,21 @@ export const SortableShotCard = ({
                 <label style={labelStyle}>CASTING</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {castMembers.map((char) => {
-                        const isActive = Array.isArray(shot.characters) && shot.characters.some((c) => normalize(c) === normalize(char.name));
+                        // FIX: Check for ID primarily, with fallback to Name normalization for legacy data
+                        const isActive = Array.isArray(shot.characters) && (
+                            shot.characters.includes(char.id) ||
+                            shot.characters.some(c => normalize(c) === normalize(char.name))
+                        );
+
                         // Using styles.charToggle safe access
                         const baseStyle = styles?.charToggle ? styles.charToggle(isActive) : {};
+
                         return (
                             <button
                                 disabled={isMorphedByPrev}
                                 key={char.id}
-                                onClick={() => handleCharToggle(char.name)}
+                                // FIX: Use char.id for toggling
+                                onClick={() => handleCharToggle(char.id)}
                                 style={{
                                     ...baseStyle,
                                     fontSize: '10px', padding: '4px 10px', borderRadius: '4px', opacity: isMorphedByPrev ? 0.5 : 1,
