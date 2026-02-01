@@ -64,6 +64,8 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                 setSceneCache(prev => ({ ...prev, [activeEpisodeId]: fetchedScenes }));
             } catch (e) {
                 console.error("Failed to load scenes for context", e);
+                // Fallback to empty array on error so spinner stops
+                setSceneCache(prev => ({ ...prev, [activeEpisodeId]: [] }));
             } finally {
                 setLoadingEp(null);
             }
@@ -96,6 +98,9 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     };
 
     if (!isOpen) return null;
+
+    // Helper to get current active scenes
+    const currentScenes = activeEpisodeId ? sceneCache[activeEpisodeId] : null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -158,7 +163,7 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                     {/* RIGHT: SCENE LIST (Detail) */}
                     <div className="flex-1 bg-[#020202] flex flex-col relative">
 
-                        {/* FIX: Loader logic now strictly checks if activeEpisodeId exists to avoid null===null infinite state */}
+                        {/* Loading Overlay */}
                         {activeEpisodeId && loadingEp === activeEpisodeId && (
                             <div className="absolute inset-0 z-20 bg-black/50 flex items-center justify-center backdrop-blur-[2px]">
                                 <Loader2 className="animate-spin text-red-600" />
@@ -170,51 +175,61 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                                 <FileText size={12} /> Scene Data
                             </div>
                             <div className="flex items-center gap-2 text-[9px] text-[#444] font-mono">
-                                {sceneCache[activeEpisodeId || ""]?.length || 0} SCENES DETECTED
+                                {currentScenes?.length || 0} SCENES DETECTED
                             </div>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                            {activeEpisodeId && sceneCache[activeEpisodeId] ? (
-                                sceneCache[activeEpisodeId].map((scene) => {
-                                    const isSelected = selectedRefs.some(r => r.id === scene.id);
-                                    // Robust header fallback
-                                    const header = scene.slugline || scene.header || scene.title || "UNKNOWN SCENE";
-                                    const summary = scene.synopsis || scene.summary || "";
+                            {currentScenes ? (
+                                currentScenes.length > 0 ? (
+                                    // HAS SCENES
+                                    currentScenes.map((scene) => {
+                                        const isSelected = selectedRefs.some(r => r.id === scene.id);
+                                        // Robust header fallback
+                                        const header = scene.slugline || scene.header || scene.title || "UNKNOWN SCENE";
+                                        const summary = scene.synopsis || scene.summary || "";
 
-                                    return (
-                                        <div
-                                            key={scene.id}
-                                            onClick={() => toggleSelection(scene, episodes.find(e => e.id === activeEpisodeId))}
-                                            className={`p-4 border transition-all cursor-pointer flex gap-4 group
-                                            ${isSelected
-                                                    ? "bg-[#0A0A0A] border-green-900/50 shadow-[inset_0_0_20px_rgba(20,83,45,0.1)]"
-                                                    : "bg-[#050505] border-[#151515] hover:border-[#333] hover:bg-[#080808]"}`}
-                                        >
-                                            {/* Checkbox Visual */}
-                                            <div className={`w-5 h-5 rounded-sm border flex items-center justify-center shrink-0 mt-0.5 transition-colors
-                                                ${isSelected ? "bg-green-600 border-green-600" : "border-[#333] group-hover:border-[#555]"}`}
+                                        return (
+                                            <div
+                                                key={scene.id}
+                                                onClick={() => toggleSelection(scene, episodes.find(e => e.id === activeEpisodeId))}
+                                                className={`p-4 border transition-all cursor-pointer flex gap-4 group
+                                                ${isSelected
+                                                        ? "bg-[#0A0A0A] border-green-900/50 shadow-[inset_0_0_20px_rgba(20,83,45,0.1)]"
+                                                        : "bg-[#050505] border-[#151515] hover:border-[#333] hover:bg-[#080808]"}`}
                                             >
-                                                {isSelected && <Check size={12} className="text-black stroke-[4]" />}
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <span className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? "text-white" : "text-[#888]"}`}>
-                                                        {header}
-                                                    </span>
-                                                    <span className="text-[9px] font-mono text-[#444] bg-[#111] px-1.5 py-0.5 rounded-sm">
-                                                        SC {String(scene.scene_number).padStart(2, '0')}
-                                                    </span>
+                                                {/* Checkbox Visual */}
+                                                <div className={`w-5 h-5 rounded-sm border flex items-center justify-center shrink-0 mt-0.5 transition-colors
+                                                    ${isSelected ? "bg-green-600 border-green-600" : "border-[#333] group-hover:border-[#555]"}`}
+                                                >
+                                                    {isSelected && <Check size={12} className="text-black stroke-[4]" />}
                                                 </div>
-                                                <p className="text-[10px] text-[#555] line-clamp-2 font-mono leading-relaxed group-hover:text-[#777]">
-                                                    {summary || "No description available."}
-                                                </p>
+
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? "text-white" : "text-[#888]"}`}>
+                                                            {header}
+                                                        </span>
+                                                        <span className="text-[9px] font-mono text-[#444] bg-[#111] px-1.5 py-0.5 rounded-sm">
+                                                            SC {String(scene.scene_number).padStart(2, '0')}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[10px] text-[#555] line-clamp-2 font-mono leading-relaxed group-hover:text-[#777]">
+                                                        {summary || "No description available."}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                })
+                                        );
+                                    })
+                                ) : (
+                                    // LOADED BUT EMPTY
+                                    <div className="h-full flex flex-col items-center justify-center opacity-40">
+                                        <AlertCircle size={24} className="mb-2 text-[#666]" />
+                                        <span className="text-xs font-mono text-[#555]">NO SCENES FOUND IN THIS REEL</span>
+                                    </div>
+                                )
                             ) : (
+                                // NOT LOADED / NO SELECTION
                                 <div className="h-full flex flex-col items-center justify-center opacity-30">
                                     <ArrowRight size={24} className="mb-2" />
                                     <span className="text-xs font-mono">SELECT A REEL TO BROWSE</span>

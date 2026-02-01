@@ -54,8 +54,13 @@ export default function SceneManagerPage() {
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
                 if (projData.type === 'movie') {
+                    // FILTER: Ignore the "Ghost" episode created during init
+                    eps = eps.filter((e: any) => !(e.title === "Main Script" && e.synopsis === "Initial setup"));
+
                     // Movie Logic: Ensure at least one reel exists visually
                     const mainReelId = projData.default_episode_id || "main";
+
+                    // If list is empty (or became empty after filtering), show default Main Reel
                     if (eps.length === 0) {
                         eps = [{ id: mainReelId, title: "Main Picture Reel", episode_number: 1 }];
                     }
@@ -63,6 +68,7 @@ export default function SceneManagerPage() {
                 } else {
                     // Series Logic: Sort and Filter
                     eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
+                    // Filter "Initial setup" for series as well to be safe
                     const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
                     setEpisodes(realEpisodes.length > 0 ? realEpisodes : eps);
                 }
@@ -91,7 +97,6 @@ export default function SceneManagerPage() {
                 const data = doc.data();
 
                 // 1. HEADER MAPPING
-                // DB uses 'slugline' primarily, but we check others for robustness
                 const headerText =
                     data.slugline ||
                     data.header ||
@@ -104,7 +109,6 @@ export default function SceneManagerPage() {
                     : "UNKNOWN SCENE";
 
                 // 2. SUMMARY MAPPING
-                // DB uses 'synopsis' primarily for the description
                 const summaryText =
                     data.synopsis ||
                     data.summary ||
@@ -210,7 +214,7 @@ export default function SceneManagerPage() {
 
             // 2. Format Custom Context References (from Matrix)
             const memoryReferences = contextRefs?.map(ref => ({
-                source: ref.sourceLabel, // e.g., "EP 1 • SC 5"
+                source: ref.sourceLabel,
                 header: ref.header,
                 content: ref.summary
             })) || [];
