@@ -100,16 +100,19 @@ export default function NewProjectPage() {
         setCreating(true);
 
         try {
-            const moodboardData: Record<string, any> = {
-                code: Object.values(moodSelection).join('-')
-            };
+            // TRANSFORM: Convert selection map to Array<{title, option}>
+            // The backend now expects List[MoodboardItem]
+            const moodboardList: { title: string; option: string }[] = [];
 
             manifest?.axes.forEach(axis => {
                 const selectedId = moodSelection[axis.code_prefix];
                 const option = axis.options.find(o => o.id === selectedId);
+
                 if (option) {
-                    const key = axis.label.toLowerCase().trim().replace(/\s+/g, '_');
-                    moodboardData[key] = option.label;
+                    moodboardList.push({
+                        title: axis.label, // e.g. "Lighting"
+                        option: option.label // e.g. "Cinematic"
+                    });
                 }
             });
 
@@ -119,10 +122,13 @@ export default function NewProjectPage() {
                 type: formData.type,
                 aspect_ratio: formData.aspect_ratio,
                 style: formData.style,
-                moodboard: moodboardData
+                moodboard: moodboardList // <--- Send the Array
             };
 
-            const res = await api.post("api/v1/project/create", payload);
+            // Ensure the endpoint matches your backend router (singular vs plural)
+            // You likely used 'project/create' based on previous context.
+            const res = await api.post("/api/v1/project/create", payload);
+
             router.push(`/project/${res.data.id}`);
 
         } catch (e: any) {

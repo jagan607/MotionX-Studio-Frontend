@@ -164,7 +164,6 @@ export default function StudioPage() {
                 projectId={projectId}
                 projectTitle={project.title}
                 renderProgress={stats.visualProgress}
-                credits={2450} // TODO: Replace with actual User Context credits
                 onOpenSettings={() => setIsSettingsOpen(true)}
             />
 
