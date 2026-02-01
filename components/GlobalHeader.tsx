@@ -20,7 +20,8 @@ export default function GlobalHeader() {
         pathname.includes('/studio') ||
         pathname.includes('/draft') ||
         pathname.includes('/assets') ||
-        pathname.includes('/new')
+        pathname.includes('/new') ||
+        pathname.includes('/editor') // <--- ADDED THIS to hide on Scene Manager
     );
 
     // If we are on Login, Landing, Pricing, OR an Editor Page -> Hide this header

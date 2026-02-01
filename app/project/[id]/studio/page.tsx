@@ -140,7 +140,6 @@ export default function StudioPage() {
 
     // --- HANDLERS ---
     const handleNewEpisode = () => {
-        // Redirect to Script Page with Query Param to trigger "New Mode"
         router.push(`/project/${projectId}/script?mode=new`);
     };
 
@@ -164,6 +163,7 @@ export default function StudioPage() {
                 projectId={projectId}
                 projectTitle={project.title}
                 renderProgress={stats.visualProgress}
+                activeEpisodeId={activeEpisodeId} // <--- PASSED HERE
                 onOpenSettings={() => setIsSettingsOpen(true)}
             />
 

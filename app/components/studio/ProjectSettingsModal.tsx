@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Save, Loader2, Sliders, Palette, Lightbulb, Grid, Plus, Trash2 } from "lucide-react";
+import { X, Save, Loader2, Sliders, Palette } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { api } from "@/lib/api";
 import { Project } from "@/lib/types";
@@ -15,7 +15,7 @@ interface MoodboardItem {
 interface ProjectSettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
-    project: Project;
+    project: Project | null;
     onUpdate: (updatedProject: Project) => void;
 }
 
@@ -32,7 +32,7 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
         genre: "",
         style: "",
         aspect_ratio: "16:9",
-        moodboard: [] as MoodboardItem[] // CHANGED: Array
+        moodboard: [] as MoodboardItem[]
     });
 
     // Initialize form
@@ -68,7 +68,9 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
         }
     }, [isOpen, project]);
 
-    if (!isOpen) return null;
+    // FIXED: Guard clause handles null project. 
+    // TypeScript now knows 'project' is not null below this line.
+    if (!isOpen || !project) return null;
 
     const handleMetaChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -88,7 +90,7 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
                 genre: formData.genre,
                 style: formData.style,
                 aspect_ratio: formData.aspect_ratio,
-                moodboard: formData.moodboard // Sending Array now
+                moodboard: formData.moodboard
             };
 
             // Use PATCH
