@@ -6,7 +6,7 @@ import { InputDeck } from "@/components/script/InputDeck";
 import {
     ArrowLeft, Terminal, ShieldCheck, Cpu, HardDrive,
     Zap, Clapperboard, CheckCircle2,
-    Loader2, Layers, ChevronDown, Film
+    Loader2, Layers, ChevronDown, Film, ArrowRight, Plus
 } from "lucide-react";
 import { fetchProject, fetchEpisodes } from "@/lib/api";
 import { Project } from "@/lib/types";
@@ -47,7 +47,6 @@ export default function ScriptIngestionPage() {
                 setProject(proj);
 
                 // ALWAYS fetch episodes (containers) to get script data
-                // Even movies have a "main" episode container that holds the script_preview
                 const epsData = await fetchEpisodes(projectId);
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
@@ -55,7 +54,7 @@ export default function ScriptIngestionPage() {
                     // Movie Logic: Load the episodes so we can access the data
                     setEpisodes(eps);
 
-                    // Auto-select the default episode (usually "main" or the only one present)
+                    // Auto-select the default episode
                     const targetId = proj.default_episode_id || "main";
                     const found = eps.find((e: any) => e.id === targetId);
                     setSelectedEpisodeId(found ? found.id : (eps[0]?.id || targetId));
@@ -85,17 +84,31 @@ export default function ScriptIngestionPage() {
     }, [projectId]);
 
     const handleEpisodeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedEpisodeId(e.target.value);
+        const val = e.target.value;
+        if (val === "new_placeholder") return; // Should not happen with UI logic below
+        setSelectedEpisodeId(val);
         toast.success(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
+    };
+
+    const handleNewEpisode = () => {
+        setSelectedEpisodeId(null); // Null triggers "New Mode"
+        toast("New Sequence Initialized", { icon: '✨' });
     };
 
     // --- HELPER: GET CURRENT EPISODE DATA ---
     const activeEpisode = episodes.find(e => e.id === selectedEpisodeId);
 
-    // Title: Movies use Project Title, Series use Episode Title
-    const currentTitle = project?.type === 'movie' ? (project.title) : (activeEpisode?.title || "");
+    // Title Logic: 
+    // - Movie: Project Title
+    // - Series (Existing): Episode Title
+    // - Series (New): Empty (User must type)
+    const currentTitle = project?.type === 'movie'
+        ? (project.title)
+        : (activeEpisode?.title || "");
 
-    // Script: Always pull from the active container (Works for both Movie "main" and Series episodes)
+    // Script Logic:
+    // - Existing: Preview from DB
+    // - New: Empty
     const currentScript = activeEpisode?.script_preview || "";
 
     return (
@@ -159,18 +172,7 @@ export default function ScriptIngestionPage() {
             {/* --- HEADER --- */}
             <header className="h-20 bg-transparent flex items-center justify-between px-8 z-50 relative border-b border-white/5">
                 <div className="flex items-center gap-8">
-                    <button
-                        onClick={() => router.push("/dashboard")}
-                        className="flex items-center gap-3 text-neutral-400 hover:text-white transition-colors group"
-                    >
-                        <div className="p-2 bg-white/5 rounded group-hover:bg-white/10 transition-colors">
-                            <ArrowLeft size={16} />
-                        </div>
-                        <span className="text-xs font-bold tracking-[0.2em] uppercase">Abort</span>
-                    </button>
-
-                    <div className="h-8 w-[1px] bg-white/10" />
-
+                    {/* LEFT SIDE: REC Indicator */}
                     <div className="flex items-center gap-3">
                         <div className="relative">
                             <div className="w-2.5 h-2.5 bg-red-600 rounded-full animate-pulse z-10 relative" />
@@ -185,6 +187,14 @@ export default function ScriptIngestionPage() {
                         <CheckCircle2 size={12} />
                         SYSTEM SECURE
                     </div>
+
+                    {/* RIGHT SIDE: ENTER STUDIO BUTTON */}
+                    <button
+                        onClick={() => router.push(`/project/${projectId}/studio`)}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold tracking-widest uppercase transition-colors text-white rounded-sm"
+                    >
+                        ENTER STUDIO <ArrowRight size={14} />
+                    </button>
                 </div>
             </header>
 
@@ -209,29 +219,47 @@ export default function ScriptIngestionPage() {
                             </span>
                         </div>
 
-                        {/* EPISODE SELECTOR (Dropdown) */}
-                        {/* Only show for non-movies OR if we want debugging access to movie containers */}
+                        {/* EPISODE SELECTOR (Dropdown + NEW Button) */}
                         {project?.type !== 'movie' && (
                             <div className="animate-in fade-in slide-in-from-left-4 duration-500">
                                 <div className="text-[10px] font-bold text-neutral-500 uppercase mb-2 flex items-center gap-2 tracking-widest">
                                     <Layers size={14} /> Active Reel
                                 </div>
-                                <div className="relative group">
-                                    <select
-                                        value={selectedEpisodeId || ""}
-                                        onChange={handleEpisodeChange}
-                                        className="w-full appearance-none bg-black/50 border border-white/10 text-white text-xs font-mono uppercase tracking-wider py-3 pl-4 pr-10 rounded-lg hover:border-red-600/50 hover:bg-white/5 focus:outline-none focus:border-red-600 transition-all cursor-pointer"
-                                    >
-                                        {episodes.map((ep) => (
-                                            <option key={ep.id} value={ep.id} className="bg-[#050505] text-neutral-300">
-                                                {ep.title || `EPISODE ${ep.episode_number}`}
-                                            </option>
-                                        ))}
-                                        {episodes.length === 0 && <option disabled>No Reels Available</option>}
-                                    </select>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500 group-hover:text-white transition-colors">
-                                        <ChevronDown size={14} />
+                                <div className="flex gap-2">
+                                    <div className="relative group flex-1">
+                                        <select
+                                            value={selectedEpisodeId || "new_placeholder"}
+                                            onChange={handleEpisodeChange}
+                                            className="w-full appearance-none bg-black/50 border border-white/10 text-white text-xs font-mono uppercase tracking-wider py-3 pl-4 pr-10 rounded-lg hover:border-red-600/50 hover:bg-white/5 focus:outline-none focus:border-red-600 transition-all cursor-pointer"
+                                        >
+                                            {episodes.map((ep) => (
+                                                <option key={ep.id} value={ep.id} className="bg-[#050505] text-neutral-300">
+                                                    {ep.title || `EPISODE ${ep.episode_number}`}
+                                                </option>
+                                            ))}
+
+                                            {/* Show placeholder if in "New Mode" */}
+                                            {selectedEpisodeId === null && (
+                                                <option value="new_placeholder" disabled>-- CREATING NEW --</option>
+                                            )}
+
+                                            {episodes.length === 0 && selectedEpisodeId !== null && (
+                                                <option disabled>No Reels Available</option>
+                                            )}
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500 group-hover:text-white transition-colors">
+                                            <ChevronDown size={14} />
+                                        </div>
                                     </div>
+
+                                    {/* NEW BUTTON */}
+                                    <button
+                                        onClick={handleNewEpisode}
+                                        className="px-3 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-red-600 hover:text-red-500 transition-all text-neutral-400"
+                                        title="Create New Episode"
+                                    >
+                                        <Plus size={16} />
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -291,8 +319,8 @@ export default function ScriptIngestionPage() {
                                         {project?.type !== 'movie' && (
                                             <div className="text-[10px] font-mono text-neutral-500 mt-1 flex items-center gap-1">
                                                 TARGET: <Film size={10} />
-                                                <span className="text-white">
-                                                    {episodes.find(e => e.id === selectedEpisodeId)?.title || "UNKNOWN REEL"}
+                                                <span className={selectedEpisodeId === null ? "text-red-500 font-bold" : "text-white"}>
+                                                    {selectedEpisodeId === null ? "NEW SEQUENCE" : (activeEpisode?.title || "UNKNOWN REEL")}
                                                 </span>
                                             </div>
                                         )}

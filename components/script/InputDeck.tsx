@@ -14,7 +14,7 @@ interface InputDeckProps {
     projectType: "movie" | "micro_drama" | "series";
     episodeId?: string | null;
 
-    // NEW PROPS: Data to pre-fill
+    // Data to pre-fill
     initialTitle?: string;
     initialScript?: string;
 
@@ -53,6 +53,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     const isMovie = projectType === "movie";
 
     // --- 1. SYNC TITLE ---
+    // Updates when switching episodes or loading the project
     useEffect(() => {
         if (isMovie) {
             setTitle(projectTitle); // Movie title is locked to project name
@@ -61,11 +62,16 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         }
     }, [isMovie, projectTitle, initialTitle]);
 
-    // --- 2. SYNC SCRIPT PREVIEW ---
+    // --- 2. SYNC SCRIPT PREVIEW & RESET FORM ---
+    // This runs when the selected episode changes
     useEffect(() => {
-        // If the selected episode has a script/synopsis in DB, fill it in
+        // Pre-fill existing script if available, or clear if new
         setSynopsisText(initialScript || "");
-    }, [initialScript]);
+
+        // Always clear manual uploads/pastes when switching context
+        setPastedScript("");
+        setSelectedFile(null);
+    }, [initialScript, episodeId]);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
@@ -78,10 +84,13 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         formData.append("project_id", projectId);
         formData.append("script_title", title || projectTitle);
 
+        // Only append episode_id if it exists (for updates). 
+        // If null (New Episode), backend handles creation.
         if (episodeId) {
             formData.append("episode_id", episodeId);
         }
 
+        // Priority: Synopsis > Paste > Upload
         if (synopsisText.trim()) {
             const content = `[TYPE: SYNOPSIS/TREATMENT]\n\n${synopsisText}`;
             const blob = new Blob([content], { type: "text/plain" });
@@ -178,7 +187,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             disabled={isUploading}
-                        // Removed autoFocus so it doesn't jump when switching dropdowns
                         />
                     )}
                 </div>
