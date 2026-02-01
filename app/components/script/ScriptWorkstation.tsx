@@ -11,8 +11,11 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, CheckCircle2, Sparkles,
-    AlignLeft, Clock, Film, Scissors, Cpu, Terminal, Activity, Loader2, ChevronDown, Layers, PlayCircle, MapPin, Users
+    AlignLeft, Clock, Film, Scissors, Cpu, Terminal, Activity, Loader2, ChevronDown, Layers, PlayCircle, MapPin, Users, Plus, X
 } from "lucide-react";
+
+// Import the Context Modal
+import { ContextSelectorModal, ContextReference } from "./ContextSelectorModal";
 
 // --- TYPES ---
 export interface WorkstationScene {
@@ -21,8 +24,8 @@ export interface WorkstationScene {
     header: string;
     summary: string;
     time?: string;
-    cast_ids?: string[];    // DB Field Variation 1
-    characters?: string[];  // DB Field Variation 2
+    cast_ids?: string[];
+    characters?: string[];
     location_id?: string;
     [key: string]: any;
 }
@@ -40,9 +43,16 @@ interface ScriptWorkstationProps {
     customHeader?: React.ReactNode;
     episodeContext?: EpisodeContext;
     scenes: WorkstationScene[];
+
+    // Actions
     onReorder: (newOrder: WorkstationScene[]) => void;
-    onRewrite: (sceneId: string, instruction: string) => Promise<void>;
+    // Updated Rewrite Signature to accept context payload
+    onRewrite: (sceneId: string, instruction: string, contextRefs?: ContextReference[]) => Promise<void>;
     onCommit: () => void;
+
+    // NEW: Function to fetch scenes for the modal (passed from page)
+    onFetchRemoteScenes?: (episodeId: string) => Promise<any[]>;
+
     isProcessing: boolean;
     isCommitting: boolean;
 }
@@ -57,11 +67,16 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
     onReorder,
     onRewrite,
     onCommit,
+    onFetchRemoteScenes, // New Prop
     isProcessing,
     isCommitting
 }) => {
     const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
     const [aiInstruction, setAiInstruction] = useState("");
+
+    // --- CONTEXT STATE ---
+    const [isContextModalOpen, setIsContextModalOpen] = useState(false);
+    const [selectedContext, setSelectedContext] = useState<ContextReference[]>([]);
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -81,15 +96,18 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
 
     const handleExecuteAi = async () => {
         if (!activeSceneId || !aiInstruction.trim()) return;
-        await onRewrite(activeSceneId, aiInstruction);
+        // Pass the manually selected context references to the parent handler
+        await onRewrite(activeSceneId, aiInstruction, selectedContext);
         setAiInstruction("");
     };
 
-    const activeScene = scenes.find(s => s.id === activeSceneId);
+    const removeContextRef = (id: string) => {
+        setSelectedContext(prev => prev.filter(r => r.id !== id));
+    };
 
-    // Calculate Total Stats
+    const activeScene = scenes.find(s => s.id === activeSceneId);
     const totalWords = scenes.reduce((acc, s) => acc + (s.summary?.split(" ").length || 0), 0);
-    const estDuration = Math.ceil(totalWords / 200); // approx mins
+    const estDuration = Math.ceil(totalWords / 200);
 
     return (
         <div className="fixed inset-0 z-50 bg-[#050505] text-[#EEE] font-sans overflow-hidden flex flex-col">
@@ -108,11 +126,22 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
 
             {customHeader}
 
+            {/* --- CONTEXT MODAL --- */}
+            {onFetchRemoteScenes && (
+                <ContextSelectorModal
+                    isOpen={isContextModalOpen}
+                    onClose={() => setIsContextModalOpen(false)}
+                    episodes={episodeContext?.episodes || []}
+                    onFetchScenes={onFetchRemoteScenes}
+                    initialSelection={selectedContext}
+                    onConfirm={(newSelection) => setSelectedContext(newSelection)}
+                />
+            )}
+
             <div className="flex-1 flex overflow-hidden relative z-40">
                 {/* LEFT: TIMELINE */}
                 <div className="flex-1 flex flex-col bg-[#050505] relative border-r border-[#222]">
-
-                    {/* TOOLBAR */}
+                    {/* ... (Previous Toolbar Logic Unchanged) ... */}
                     <div className="h-14 border-b border-[#222] bg-[#080808] flex items-center justify-between px-4 shrink-0">
                         {episodeContext && episodeContext.episodes.length > 0 ? (
                             <div className="flex items-center gap-3 w-full max-w-[70%]">
@@ -136,7 +165,6 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                                 <Scissors size={12} /> Timeline
                             </div>
                         )}
-
                         <div className="flex items-center gap-2">
                             <div className="text-[9px] font-mono text-[#444] flex items-center gap-2 bg-[#111] px-3 py-1 rounded-sm border border-[#222]">
                                 <Clock size={10} /> EST. {estDuration}M
@@ -144,7 +172,6 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                         </div>
                     </div>
 
-                    {/* CONTENT */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-2">
                         {scenes.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center opacity-30 gap-3">
@@ -199,21 +226,38 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                                 </div>
 
                                 <div className="flex-1 flex flex-col gap-4">
-                                    <div className="flex items-center gap-2 text-[10px] font-bold text-[#888] uppercase">
-                                        <Terminal size={12} /> Context Aware Prompt
+                                    <div className="flex items-center justify-between text-[10px] font-bold text-[#888] uppercase">
+                                        <span className="flex items-center gap-2"><Terminal size={12} /> Context Aware Prompt</span>
+                                        {/* ADD CONTEXT BUTTON */}
+                                        <button
+                                            onClick={() => setIsContextModalOpen(true)}
+                                            className="text-red-500 hover:text-white flex items-center gap-1 transition-colors"
+                                        >
+                                            <Plus size={10} /> Add Reference
+                                        </button>
                                     </div>
-                                    <div className="p-3 bg-[#111] border border-[#222] rounded-sm mb-2">
-                                        <div className="text-[9px] text-[#555] uppercase font-bold mb-1">Active Context</div>
-                                        <div className="flex flex-wrap gap-1">
-                                            <span className="px-2 py-0.5 bg-red-900/20 text-red-500 text-[9px] border border-red-900/30 rounded-sm">Project Genre</span>
-                                            <span className="px-2 py-0.5 bg-blue-900/20 text-blue-500 text-[9px] border border-blue-900/30 rounded-sm">Prev. Scene</span>
 
-                                            {/* Count merged list */}
-                                            <span className="px-2 py-0.5 bg-green-900/20 text-green-500 text-[9px] border border-green-900/30 rounded-sm">
-                                                {(activeScene.cast_ids || activeScene.characters || []).length} Characters
-                                            </span>
+                                    {/* CONTEXT STACK (Visual Chips) */}
+                                    <div className="p-3 bg-[#111] border border-[#222] rounded-sm mb-2 max-h-[120px] overflow-y-auto">
+                                        <div className="text-[9px] text-[#555] uppercase font-bold mb-2">Active Context</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {/* Static Chips */}
+                                            <span className="px-2 py-1 bg-blue-900/20 text-blue-500 text-[9px] border border-blue-900/30 rounded-sm">Prev. Scene</span>
+
+                                            {/* Dynamic User Selection */}
+                                            {selectedContext.map(ref => (
+                                                <div key={ref.id} className="flex items-center gap-1 px-2 py-1 bg-[#1A1A1A] border border-[#333] text-[#AAA] text-[9px] rounded-sm group hover:border-[#555]">
+                                                    <span>{ref.sourceLabel}</span>
+                                                    <button onClick={() => removeContextRef(ref.id)} className="hover:text-red-500"><X size={8} /></button>
+                                                </div>
+                                            ))}
+
+                                            {selectedContext.length === 0 && (
+                                                <span className="text-[9px] text-[#444] italic px-1">No custom references added.</span>
+                                            )}
                                         </div>
                                     </div>
+
                                     <textarea
                                         value={aiInstruction}
                                         onChange={(e) => setAiInstruction(e.target.value)}
@@ -265,7 +309,6 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
     const cleanLocation = rawHeader.replace("INT.", "").replace("EXT.", "").replace("EXT", "").replace("INT", "").split("-")[0].trim();
 
     // --- CAST UNIFICATION (Robust Check) ---
-    // Firestore screenshots show data is sometimes in 'cast_ids' and sometimes in 'characters'
     const rawCast = scene.cast_ids || scene.characters || [];
     const castList = Array.isArray(rawCast) ? rawCast : [];
 
@@ -320,7 +363,6 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
                                 <div key={i} className="flex items-center gap-1.5 px-1.5 py-0.5 bg-green-900/10 border border-green-900/30 rounded-sm">
                                     <Users size={8} className="text-green-600" />
                                     <span className="text-[8px] font-bold text-green-500 uppercase truncate max-w-[80px]">
-                                        {/* Sanitize Display: Remove underscores for readability */}
                                         {cast.replace(/_/g, " ")}
                                     </span>
                                 </div>

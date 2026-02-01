@@ -9,7 +9,8 @@ import {
     orderBy,
     doc,
     updateDoc,
-    writeBatch
+    writeBatch,
+    getDocs // Added for lazy loading context
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
@@ -75,7 +76,7 @@ export default function SceneManagerPage() {
         loadContext();
     }, [projectId]);
 
-    // 2. REAL-TIME SCENES SYNC (Improved Mapping based on DB structure)
+    // 2. REAL-TIME SCENES SYNC (FIXED DATA MAPPING)
     useEffect(() => {
         if (!projectId || !episodeId) return;
 
@@ -90,26 +91,13 @@ export default function SceneManagerPage() {
                 const data = doc.data();
 
                 // 1. HEADER MAPPING
-                // DB uses 'slugline' primarily, but we check others for robustness
-                const headerText =
-                    data.slugline ||
-                    data.header ||
-                    data.scene_header ||
-                    data.title ||
-                    "";
-
+                const headerText = data.slugline || data.header || data.scene_header || data.title || "";
                 const fallbackHeader = (data.int_ext && data.location)
                     ? `${data.int_ext}. ${data.location} - ${data.time || ''}`
                     : "UNKNOWN SCENE";
 
                 // 2. SUMMARY MAPPING
-                // DB uses 'synopsis' primarily for the description
-                const summaryText =
-                    data.synopsis ||
-                    data.summary ||
-                    data.action ||
-                    data.description ||
-                    "";
+                const summaryText = data.synopsis || data.summary || data.action || "";
 
                 loadedScenes.push({
                     id: doc.id,
@@ -119,7 +107,7 @@ export default function SceneManagerPage() {
                     time: data.time || "",
                     status: data.status || "draft",
 
-                    // 3. CAST MAPPING (Checks 'cast_ids' OR 'characters')
+                    // 3. METADATA MAPPING (Cast & Location)
                     cast_ids: data.cast_ids || data.characters || [],
                     location_id: data.location_id || "",
 
@@ -141,6 +129,33 @@ export default function SceneManagerPage() {
     }, [projectId, episodeId, isProcessing]);
 
     // --- HANDLERS ---
+
+    // NEW: Fetch function for Context Matrix (Lazy Loads other episodes)
+    const fetchRemoteScenes = async (targetEpisodeId: string) => {
+        try {
+            const q = query(
+                collection(db, "projects", projectId, "episodes", targetEpisodeId, "scenes"),
+                orderBy("scene_number", "asc")
+            );
+            const snapshot = await getDocs(q);
+
+            // Map raw docs to clean context objects
+            return snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    scene_number: data.scene_number,
+                    header: data.slugline || data.header || "UNKNOWN SCENE",
+                    summary: data.synopsis || data.summary || "",
+                    // Add extra fields if needed for context display
+                };
+            });
+        } catch (e) {
+            console.error("Context Load Error:", e);
+            toast.error("Failed to load context scenes");
+            return [];
+        }
+    };
 
     const handleSwitchEpisode = (newEpisodeId: string) => {
         if (newEpisodeId === episodeId) return;
@@ -165,7 +180,8 @@ export default function SceneManagerPage() {
         }
     };
 
-    const handleRewrite = async (sceneId: string, instruction: string) => {
+    // UPDATED: Handle Rewrite now accepts Context References
+    const handleRewrite = async (sceneId: string, instruction: string, contextRefs?: any[]) => {
         setIsProcessing(true);
         const currentIndex = scenes.findIndex(s => s.id === sceneId);
         const targetScene = scenes[currentIndex];
@@ -176,18 +192,34 @@ export default function SceneManagerPage() {
         }
 
         try {
-            // GATHER SMART CONTEXT
+            // 1. Gather Standard Local Context
             const prevScene = currentIndex > 0 ? scenes[currentIndex - 1] : null;
             const nextScene = currentIndex < scenes.length - 1 ? scenes[currentIndex + 1] : null;
 
+            // 2. Format Custom Context References (from Matrix)
+            const memoryReferences = contextRefs?.map(ref => ({
+                source: ref.sourceLabel, // e.g., "EP 1 • SC 5"
+                header: ref.header,
+                content: ref.summary
+            })) || [];
+
+            // 3. Build Rich Payload
             const contextPayload = {
                 project_genre: (project as any)?.genre || "Cinematic",
                 project_style: (project as any)?.style || "Realistic",
+
+                // Immediate Flow
                 previous_scene_summary: prevScene ? prevScene.summary : "Start of Episode",
                 next_scene_header: nextScene ? nextScene.header : "End of Episode",
-                characters: (targetScene as any).cast_ids || []
+
+                // Character Awareness
+                characters: targetScene.cast_ids || [],
+
+                // The "Brain" - Long Term Memory
+                custom_references: memoryReferences
             };
 
+            // 4. Send to Backend
             const res = await api.post("api/v1/script/rewrite-scene", {
                 original_text: targetScene.summary,
                 instruction: instruction,
@@ -198,14 +230,13 @@ export default function SceneManagerPage() {
             const newText = res.data.new_text;
 
             const ref = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
-            // Updating 'synopsis' as it is the primary read field
             await updateDoc(ref, {
                 synopsis: newText,
-                summary: newText, // Backfill for compatibility
+                summary: newText,
                 status: 'draft'
             });
 
-            toast.success("Scene rewritten");
+            toast.success("Scene rewritten with Context");
         } catch (e) {
             console.error(e);
             toast.error("AI Rewrite Failed");
@@ -257,9 +288,15 @@ export default function SceneManagerPage() {
                 } : undefined}
 
                 scenes={scenes}
+
+                // Actions
                 onReorder={handleReorder}
                 onRewrite={handleRewrite}
                 onCommit={handleExit}
+
+                // Context Matrix Integration
+                onFetchRemoteScenes={fetchRemoteScenes}
+
                 isProcessing={isProcessing}
                 isCommitting={false}
             />
