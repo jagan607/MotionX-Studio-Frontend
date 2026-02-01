@@ -6,7 +6,7 @@ import { InputDeck } from "@/components/script/InputDeck";
 import {
     Terminal, ShieldCheck, Cpu, HardDrive,
     Zap, Clapperboard, Layers, ChevronDown, Film, Plus,
-    Loader2, Edit3, AlertCircle
+    Loader2
 } from "lucide-react";
 import { fetchProject, fetchEpisodes } from "@/lib/api";
 import { Project } from "@/lib/types";
@@ -35,9 +35,8 @@ export default function ScriptIngestionPage() {
     const [activeStatus, setActiveStatus] = useState<string>("Waiting for data stream...");
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-    // --- GATEWAY STATE (Safety Check) ---
+    // --- GATEWAY STATE (Status Check Only) ---
     const [hasExistingScenes, setHasExistingScenes] = useState(false);
-    const [checkingScenes, setCheckingScenes] = useState(false);
 
     // 1. LOAD PROJECT & EPISODES
     useEffect(() => {
@@ -78,7 +77,7 @@ export default function ScriptIngestionPage() {
         loadData();
     }, [projectId, searchParams]);
 
-    // 2. CHECK FOR EXISTING SCENES (Gateway Logic)
+    // 2. CHECK FOR EXISTING SCENES (For Status Indicator Only)
     useEffect(() => {
         const checkScenes = async () => {
             if (!selectedEpisodeId || selectedEpisodeId === "new_placeholder") {
@@ -86,7 +85,6 @@ export default function ScriptIngestionPage() {
                 return;
             }
 
-            setCheckingScenes(true);
             try {
                 const q = query(collection(db, "projects", projectId, "episodes", selectedEpisodeId, "scenes"), limit(1));
                 const snap = await getDocs(q);
@@ -101,8 +99,6 @@ export default function ScriptIngestionPage() {
                 }
             } catch (e) {
                 console.error("Scene check failed", e);
-            } finally {
-                setCheckingScenes(false);
             }
         };
 
@@ -287,11 +283,7 @@ export default function ScriptIngestionPage() {
                                 <span className="animate-pulse text-green-500 mr-2">➜</span>
                                 <span className="text-neutral-300">{activeStatus}</span>
                             </div>
-                            {activeStatus !== "Waiting for data stream..." && !hasExistingScenes && (
-                                <div className="w-full h-0.5 bg-neutral-800 mt-2 overflow-hidden">
-                                    <div className="h-full bg-red-600 w-1/3 animate-indeterminate-bar" />
-                                </div>
-                            )}
+                            {/* Indeterminate Bar is optional here, removing for cleaner UI if overwrite is enabled */}
                         </div>
                     </div>
 
@@ -313,74 +305,40 @@ export default function ScriptIngestionPage() {
                     <div className="flex-1 overflow-y-auto p-12 pb-32 flex flex-col items-center justify-start scroll-smooth">
                         <div className="w-full max-w-4xl relative z-10 shrink-0">
 
-                            {/* GATEWAY LOGIC: Check if scenes exist */}
-                            {checkingScenes ? (
-                                <div className="flex flex-col items-center justify-center py-32 gap-4">
-                                    <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-                                    <span className="text-xs font-mono text-neutral-500 tracking-widest">SCANNING REEL DATA...</span>
-                                </div>
-                            ) : hasExistingScenes ? (
-                                // --- ACTIVE SEQUENCE DETECTED (Safe Mode) ---
-                                <div className="bg-[#050505]/80 border border-red-900/30 rounded-xl p-12 shadow-2xl backdrop-blur-md flex flex-col items-center text-center animate-in fade-in zoom-in-95">
-                                    <div className="w-16 h-16 bg-red-900/10 rounded-full flex items-center justify-center mb-6 border border-red-500/20">
-                                        <AlertCircle size={32} className="text-red-500" />
+                            {/* STANDARD INPUT DECK (Always Visible) */}
+                            <div className="bg-[#050505]/80 border border-white/10 rounded-xl p-8 shadow-2xl backdrop-blur-md deck-root relative group">
+                                <div className="absolute -inset-[1px] bg-gradient-to-r from-red-600/0 via-red-600/20 to-red-600/0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                                <div className="flex justify-between items-end mb-8 pb-4 border-b border-white/5">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-white uppercase tracking-tight">Data Entry</h2>
+                                        {project?.type !== 'movie' && (
+                                            <div className="text-[10px] font-mono text-neutral-500 mt-1 flex items-center gap-1">
+                                                TARGET: <Film size={10} />
+                                                <span className={selectedEpisodeId === null ? "text-red-500 font-bold" : "text-white"}>
+                                                    {selectedEpisodeId === null ? "NEW SEQUENCE" : (activeEpisode?.title || "UNKNOWN REEL")}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
-                                    <h2 className="text-2xl font-bold text-white uppercase tracking-tight mb-2">Active Sequence Detected</h2>
-                                    <p className="text-sm text-neutral-400 max-w-md mb-8 leading-relaxed">
-                                        This reel already contains parsed scenes. Entering ingestion mode will allow you to overwrite the existing script, but you might lose current scene data.
-                                    </p>
-
-                                    <div className="flex gap-4">
-                                        <button
-                                            onClick={() => router.push(`/project/${projectId}/episode/${selectedEpisodeId}/editor`)}
-                                            className="px-8 py-4 bg-green-600 hover:bg-green-500 text-white font-bold text-xs uppercase tracking-widest rounded transition-all shadow-lg hover:shadow-green-900/50 flex items-center gap-2"
-                                        >
-                                            <Edit3 size={14} /> Open Scene Manager
-                                        </button>
-
-                                        <button
-                                            onClick={() => setHasExistingScenes(false)}
-                                            className="px-8 py-4 bg-transparent border border-neutral-700 hover:border-red-600 hover:text-red-500 text-neutral-500 font-bold text-xs uppercase tracking-widest rounded transition-all"
-                                        >
-                                            Overwrite (New Draft)
-                                        </button>
-                                    </div>
+                                    <div className="text-[10px] font-mono text-neutral-500">UPLOAD OR PASTE</div>
                                 </div>
-                            ) : (
-                                // --- STANDARD INPUT DECK ---
-                                <div className="bg-[#050505]/80 border border-white/10 rounded-xl p-8 shadow-2xl backdrop-blur-md deck-root relative group">
-                                    <div className="absolute -inset-[1px] bg-gradient-to-r from-red-600/0 via-red-600/20 to-red-600/0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
-                                    <div className="flex justify-between items-end mb-8 pb-4 border-b border-white/5">
-                                        <div>
-                                            <h2 className="text-xl font-bold text-white uppercase tracking-tight">Data Entry</h2>
-                                            {project?.type !== 'movie' && (
-                                                <div className="text-[10px] font-mono text-neutral-500 mt-1 flex items-center gap-1">
-                                                    TARGET: <Film size={10} />
-                                                    <span className={selectedEpisodeId === null ? "text-red-500 font-bold" : "text-white"}>
-                                                        {selectedEpisodeId === null ? "NEW SEQUENCE" : (activeEpisode?.title || "UNKNOWN REEL")}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="text-[10px] font-mono text-neutral-500">UPLOAD OR PASTE</div>
-                                    </div>
+                                <InputDeck
+                                    projectId={projectId}
+                                    projectTitle={project?.title || ""}
+                                    projectType={project?.type || "micro_drama"}
+                                    episodeId={selectedEpisodeId}
+                                    initialTitle={currentTitle}
+                                    initialScript={currentScript}
+                                    isModal={false}
+                                    className="w-full"
+                                    onCancel={() => router.push("/dashboard")}
+                                    onSuccess={(url) => router.push(url)}
+                                    onStatusChange={handleIngestStatus}
+                                />
+                            </div>
 
-                                    <InputDeck
-                                        projectId={projectId}
-                                        projectTitle={project?.title || ""}
-                                        projectType={project?.type || "micro_drama"}
-                                        episodeId={selectedEpisodeId}
-                                        initialTitle={currentTitle}
-                                        initialScript={currentScript}
-                                        isModal={false}
-                                        className="w-full"
-                                        onCancel={() => router.push("/dashboard")}
-                                        onSuccess={(url) => router.push(url)}
-                                        onStatusChange={handleIngestStatus}
-                                    />
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
