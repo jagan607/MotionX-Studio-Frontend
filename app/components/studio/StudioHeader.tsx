@@ -9,10 +9,9 @@ import {
     Database,
     Settings,
     CheckCircle2,
-    Plus,
-    Zap
+    Plus
 } from "lucide-react";
-import { useCredits } from "@/hooks/useCredits"; // Ensures connection to users/{uid}/credits
+import { useCredits } from "@/hooks/useCredits"; // Dynamically fetches from users/{uid}
 import CreditModal from "@/app/components/modals/CreditModal";
 
 interface StudioHeaderProps {
@@ -30,7 +29,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
     onOpenSettings,
     className = ""
 }) => {
-    const { credits } = useCredits(); // Connects to Firestore: users/{uid} -> field: credits
+    const { credits } = useCredits(); // Live DB connection
     const [showTopUp, setShowTopUp] = useState(false);
 
     return (
@@ -39,70 +38,72 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
 
             <header className={`h-20 border-b border-[#222] bg-[#050505] flex items-center justify-between px-6 shrink-0 z-50 select-none ${className}`}>
 
-                {/* --- LEFT: NAVIGATION & CONTEXT --- */}
+                {/* --- LEFT: DASHBOARD & IDENTITY --- */}
                 <div className="flex items-center h-full gap-6">
 
                     {/* 1. Dashboard Back Link */}
                     <Link
                         href="/dashboard"
-                        className="flex items-center gap-2 text-[#444] hover:text-white transition-colors group h-full"
-                        title="Return to Dashboard"
+                        className="flex items-center gap-3 text-[#555] hover:text-white transition-colors group h-full"
                     >
-                        <div className="p-2 rounded-full group-hover:bg-[#111] transition-colors">
-                            <ArrowLeft size={18} className="group-hover:-translate-x-0.5 transition-transform duration-300" />
-                        </div>
+                        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-300" />
+                        <span className="text-[10px] font-bold tracking-[0.2em] uppercase">Dashboard</span>
                     </Link>
 
                     <div className="h-8 w-[1px] bg-[#222]" />
 
-                    {/* 2. Project Context (Revamped Layout) */}
-                    <div className="flex flex-col justify-center">
-                        {/* System Label */}
-                        <div className="flex items-center gap-2 mb-0.5">
-                            <MonitorPlay size={10} className="text-red-600" />
-                            <span className="text-[9px] font-mono text-[#555] tracking-[0.2em] uppercase leading-none">
+                    {/* 2. System Identity & Project Title (Side by Side) */}
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <MonitorPlay size={14} className="text-red-600" />
+                            <h2 className="text-sm font-display font-bold text-white uppercase tracking-tight leading-none">
                                 Visualization Studio
-                            </span>
+                            </h2>
                         </div>
 
-                        {/* Project Title & Config */}
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-lg font-display font-bold text-white tracking-wide uppercase leading-none truncate max-w-[300px]">
-                                {projectTitle || "Untitled Project"}
-                            </h1>
+                        {/* Separator Slash */}
+                        <span className="text-[#333] font-mono text-lg">/</span>
 
-                            {/* Settings Button */}
-                            <button
-                                onClick={onOpenSettings}
-                                className="flex items-center gap-1.5 px-2 py-0.5 ml-2 bg-[#111] border border-[#222] rounded hover:border-[#444] hover:bg-[#1A1A1A] transition-all group"
-                            >
-                                <Settings size={10} className="text-[#666] group-hover:text-white group-hover:rotate-90 transition-all duration-500" />
-                                <span className="text-[9px] font-mono font-bold text-[#666] group-hover:text-white uppercase tracking-wider">Config</span>
-                            </button>
-                        </div>
+                        <h1 className="text-sm font-mono text-[#888] uppercase tracking-wider truncate max-w-[300px]">
+                            {projectTitle || "Untitled Project"}
+                        </h1>
                     </div>
                 </div>
 
                 {/* --- RIGHT: TOOLS, STATUS & CREDITS --- */}
                 <div className="flex items-center h-full gap-8">
 
-                    {/* 1. Editor Navigation */}
-                    <div className="flex items-center bg-[#0A0A0A] border border-[#222] rounded-sm overflow-hidden">
-                        <Link
-                            href={`/project/${projectId}/script`}
-                            className="flex items-center gap-2 px-5 py-2.5 border-r border-[#222] hover:bg-[#151515] transition-colors group"
+                    {/* 1. Toolset: Config + Navigation */}
+                    <div className="flex items-center gap-3">
+                        {/* Config CTA (Moved to Right) */}
+                        <button
+                            onClick={onOpenSettings}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#0A0A0A] border border-[#222] hover:bg-[#151515] hover:border-[#444] transition-all group rounded-sm"
                         >
-                            <FileText size={12} className="text-[#666] group-hover:text-white transition-colors" />
-                            <span className="text-[10px] font-bold text-[#666] group-hover:text-white uppercase tracking-widest transition-colors">Script</span>
-                        </Link>
-                        <Link
-                            href={`/project/${projectId}/assets`}
-                            className="flex items-center gap-2 px-5 py-2.5 hover:bg-[#151515] transition-colors group"
-                        >
-                            <Database size={12} className="text-[#666] group-hover:text-white transition-colors" />
-                            <span className="text-[10px] font-bold text-[#666] group-hover:text-white uppercase tracking-widest transition-colors">Assets</span>
-                        </Link>
+                            <Settings size={12} className="text-[#666] group-hover:text-white group-hover:rotate-90 transition-all duration-500" />
+                            <span className="text-[10px] font-bold text-[#666] group-hover:text-white uppercase tracking-widest">Config</span>
+                        </button>
+
+                        {/* Navigation Group */}
+                        <div className="flex items-center bg-[#0A0A0A] border border-[#222] rounded-sm overflow-hidden">
+                            <Link
+                                href={`/project/${projectId}/script`}
+                                className="flex items-center gap-2 px-5 py-2 border-r border-[#222] hover:bg-[#151515] transition-colors group"
+                            >
+                                <FileText size={12} className="text-[#666] group-hover:text-white transition-colors" />
+                                <span className="text-[10px] font-bold text-[#666] group-hover:text-white uppercase tracking-widest">Script</span>
+                            </Link>
+                            <Link
+                                href={`/project/${projectId}/assets`}
+                                className="flex items-center gap-2 px-5 py-2 hover:bg-[#151515] transition-colors group"
+                            >
+                                <Database size={12} className="text-[#666] group-hover:text-white transition-colors" />
+                                <span className="text-[10px] font-bold text-[#666] group-hover:text-white uppercase tracking-widest">Assets</span>
+                            </Link>
+                        </div>
                     </div>
+
+                    <div className="h-8 w-[1px] bg-[#222]" />
 
                     {/* 2. Render Progress Bar */}
                     <div className="flex flex-col items-end min-w-[140px]">
@@ -125,7 +126,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
 
                     <div className="h-8 w-[1px] bg-[#222]" />
 
-                    {/* 3. Credits & Top Up (Matching Global Header) */}
+                    {/* 3. Credits & Top Up (Dynamic) */}
                     <div className="flex items-center gap-5">
                         <div className="text-right">
                             <div className="flex items-center justify-end gap-1.5 mb-0.5">
