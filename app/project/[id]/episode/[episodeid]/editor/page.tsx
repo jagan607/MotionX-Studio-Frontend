@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
-import { api, fetchProject, fetchEpisodes } from "@/lib/api"; // Added fetchEpisodes
+import { api, fetchProject, fetchEpisodes } from "@/lib/api";
 import { Project } from "@/lib/types";
 
 // --- COMPONENTS ---
@@ -29,19 +29,15 @@ export default function SceneManagerPage() {
     const episodeId = params.episodeid as string;
 
     // --- STATE ---
-    // Content Data
     const [scenes, setScenes] = useState<WorkstationScene[]>([]);
     const [project, setProject] = useState<Project | null>(null);
-    const [episodes, setEpisodes] = useState<any[]>([]); // New: Full Episode List
+    const [episodes, setEpisodes] = useState<any[]>([]);
 
-    // UI State
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-    // Loading States
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // 1. FETCH PROJECT & EPISODES (Context)
+    // 1. FETCH CONTEXT
     useEffect(() => {
         if (!projectId) return;
 
@@ -54,18 +50,15 @@ export default function SceneManagerPage() {
 
                 setProject(projData);
 
-                // --- Process Episodes (Consistent with Studio/Script Pages) ---
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
                 if (projData.type === 'movie') {
-                    // Movie Logic: Ensure at least the main reel exists visually
                     const mainReelId = projData.default_episode_id || "main";
                     if (eps.length === 0) {
                         eps = [{ id: mainReelId, title: "Main Picture Reel", episode_number: 1 }];
                     }
                     setEpisodes(eps);
                 } else {
-                    // Series Logic: Sort and Filter
                     eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
                     const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
                     setEpisodes(realEpisodes.length > 0 ? realEpisodes : eps);
@@ -80,7 +73,7 @@ export default function SceneManagerPage() {
         loadContext();
     }, [projectId]);
 
-    // 2. REAL-TIME SCENES SYNC (Content)
+    // 2. REAL-TIME SCENES SYNC (Improved Mapping)
     useEffect(() => {
         if (!projectId || !episodeId) return;
 
@@ -93,13 +86,24 @@ export default function SceneManagerPage() {
             const loadedScenes: WorkstationScene[] = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
+
+                // ROBUST HEADER MAPPING
+                // Try multiple common fields for the scene heading
+                const headerText = data.header || data.slugline || data.scene_header || data.title || "";
+
+                // If header is missing but we have parts (INT/EXT + LOC)
+                const fallbackHeader = (data.int_ext && data.location)
+                    ? `${data.int_ext}. ${data.location} - ${data.time || ''}`
+                    : "UNKNOWN SCENE";
+
                 loadedScenes.push({
                     id: doc.id,
                     scene_number: data.scene_number,
-                    header: data.header || "UNKNOWN SCENE",
-                    summary: data.summary || "",
+                    header: headerText || fallbackHeader,
+                    summary: data.summary || data.content || data.description || "",
                     time: data.time || "",
                     status: data.status || "draft",
+                    // Pass through raw data for safety
                     ...data
                 });
             });
@@ -119,10 +123,8 @@ export default function SceneManagerPage() {
 
     // --- HANDLERS ---
 
-    // NEW: Handle Context Switch via Dropdown
     const handleSwitchEpisode = (newEpisodeId: string) => {
         if (newEpisodeId === episodeId) return;
-        // Navigate to the new URL. Next.js App Router will handle the re-render.
         router.push(`/project/${projectId}/episode/${newEpisodeId}/editor`);
         toast.loading("Switching Reel...", { duration: 800 });
     };
@@ -181,8 +183,6 @@ export default function SceneManagerPage() {
         router.push(`/project/${projectId}/assets`);
     };
 
-    // --- RENDER ---
-
     if (isLoading) {
         return (
             <div className="fixed inset-0 bg-[#050505] flex items-center justify-center text-white font-mono text-xs gap-3">
@@ -194,7 +194,6 @@ export default function SceneManagerPage() {
 
     return (
         <>
-            {/* SETTINGS MODAL (For Header Config Button) */}
             <ProjectSettingsModal
                 isOpen={isSettingsOpen}
                 onClose={() => setIsSettingsOpen(false)}
@@ -203,12 +202,10 @@ export default function SceneManagerPage() {
             />
 
             <ScriptWorkstation
-                // Layout Config
                 title="SCENE MANAGER"
                 backLink={`/project/${projectId}/assets`}
                 commitLabel="RETURN TO STUDIO"
 
-                // INJECT STUDIO HEADER
                 customHeader={
                     <StudioHeader
                         projectTitle={project?.title || "Loading..."}
@@ -218,14 +215,12 @@ export default function SceneManagerPage() {
                     />
                 }
 
-                // INJECT EPISODE CONTEXT (For Dropdown)
                 episodeContext={project?.type === 'micro_drama' ? {
                     episodes: episodes,
                     currentEpisodeId: episodeId,
                     onSwitchEpisode: handleSwitchEpisode
-                } : undefined} // Undefined context = Static "Timeline" label (for Movies)
+                } : undefined}
 
-                // Data & Actions
                 scenes={scenes}
                 onReorder={handleReorder}
                 onRewrite={handleRewrite}

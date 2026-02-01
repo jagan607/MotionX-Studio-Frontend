@@ -10,8 +10,9 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-    ArrowLeft, GripVertical, CheckCircle2, Sparkles,
-    AlignLeft, Clock, Film, Scissors, Cpu, Terminal, Activity, Loader2, ChevronDown, Layers
+    GripVertical, CheckCircle2, Sparkles,
+    AlignLeft, Clock, Film, Scissors, Cpu, Terminal, Activity, Loader2, ChevronDown, Layers, PlayCircle,
+    ArrowLeft
 } from "lucide-react";
 
 // --- TYPES ---
@@ -37,7 +38,7 @@ interface ScriptWorkstationProps {
     commitLabel: string;
     customHeader?: React.ReactNode;
 
-    // NEW PROP: Context for Series Navigation
+    // Context for Series Navigation
     episodeContext?: EpisodeContext;
 
     scenes: WorkstationScene[];
@@ -53,7 +54,7 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
     backLink,
     commitLabel,
     customHeader,
-    episodeContext, // Destructure new prop
+    episodeContext,
     scenes,
     onReorder,
     onRewrite,
@@ -101,13 +102,13 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                 .ai-input { background: rgba(10,10,10,0.5); border: 1px solid #333; color: #EEE; font-family: 'Courier New', monospace; }
                 .ai-input:focus { outline: none; border-color: #DC2626; background: rgba(20,20,20,0.8); }
                 
-                /* Dropdown Styling */
+                /* Styled Select */
                 .ep-select {
                     -webkit-appearance: none;
                     background-color: transparent;
-                    color: #888;
-                    font-size: 10px;
-                    font-weight: bold;
+                    color: white;
+                    font-size: 11px;
+                    font-weight: 800;
                     text-transform: uppercase;
                     letter-spacing: 1px;
                     border: none;
@@ -115,14 +116,15 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                     outline: none;
                     padding-right: 1.5em;
                     width: 100%;
+                    text-overflow: ellipsis;
                 }
-                .ep-select:hover { color: white; }
-                .ep-select option { background-color: #0A0A0A; color: #EEE; }
+                .ep-select option { background-color: #111; color: #EEE; padding: 10px; }
             `}</style>
 
             {/* HEADER */}
             {customHeader ? customHeader : (
                 <header className="h-16 border-b border-[#222] bg-[#080808] flex items-center justify-between px-6 shrink-0 z-50">
+                    {/* Fallback Header Content (Unchanged) */}
                     <div className="flex items-center gap-8">
                         <Link href={backLink} className="flex items-center gap-2 text-[#666] hover:text-white transition-colors group">
                             <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
@@ -135,10 +137,6 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                         </div>
                     </div>
                     <div className="flex items-center gap-6">
-                        <div className="hidden md:flex gap-6 text-[10px] font-mono text-[#444]">
-                            <span className="flex items-center gap-2"><AlignLeft size={12} /> {scenes.length} SCENES</span>
-                            <span className="flex items-center gap-2"><Clock size={12} /> EST. DURATION: {scenes.length * 2}M</span>
-                        </div>
                         <button onClick={onCommit} disabled={isCommitting} className="action-btn px-6 py-2 text-[10px] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                             {isCommitting ? <Sparkles size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
                             {commitLabel}
@@ -153,24 +151,31 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                 {/* LEFT: TIMELINE */}
                 <div className="flex-1 flex flex-col bg-[#050505] relative border-r border-[#222]">
 
-                    {/* TOOLBAR with DROPDOWN LOGIC */}
-                    <div className="h-10 border-b border-[#222] bg-[#0A0A0A] flex items-center justify-between px-4 shrink-0">
+                    {/* HIGHLIGHTED TOOLBAR */}
+                    <div className="h-14 border-b border-[#222] bg-[#080808] flex items-center justify-between px-4 shrink-0">
                         {episodeContext && episodeContext.episodes.length > 0 ? (
-                            // --- EPISODE SELECTOR ---
-                            <div className="relative group flex items-center gap-2 min-w-[200px]">
-                                <Layers size={12} className="text-[#555] shrink-0" />
-                                <select
-                                    className="ep-select"
-                                    value={episodeContext.currentEpisodeId}
-                                    onChange={(e) => episodeContext.onSwitchEpisode(e.target.value)}
-                                >
-                                    {episodeContext.episodes.map((ep) => (
-                                        <option key={ep.id} value={ep.id}>
-                                            {ep.title || `EPISODE ${ep.episode_number}`}
-                                        </option>
-                                    ))}
-                                </select>
-                                <ChevronDown size={10} className="absolute right-0 text-[#555] pointer-events-none group-hover:text-white" />
+                            // --- EPISODE SELECTOR (Enhanced) ---
+                            <div className="flex items-center gap-3 w-full max-w-[70%]">
+                                <div className="h-8 w-8 bg-red-900/20 border border-red-900/50 flex items-center justify-center rounded-sm shrink-0">
+                                    <Layers size={14} className="text-red-500" />
+                                </div>
+                                <div className="flex-1 relative group bg-[#111] border border-[#222] hover:border-[#444] transition-colors rounded-sm h-8 flex items-center px-3">
+                                    <span className="absolute -top-2 left-2 bg-[#080808] px-1 text-[8px] font-mono text-[#555] uppercase tracking-widest leading-none">
+                                        Active Reel
+                                    </span>
+                                    <select
+                                        className="ep-select"
+                                        value={episodeContext.currentEpisodeId}
+                                        onChange={(e) => episodeContext.onSwitchEpisode(e.target.value)}
+                                    >
+                                        {episodeContext.episodes.map((ep) => (
+                                            <option key={ep.id} value={ep.id}>
+                                                {ep.episode_number ? `#${ep.episode_number} - ` : ''}{ep.title || "UNTITLED REEL"}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown size={10} className="absolute right-3 text-red-600 pointer-events-none" />
+                                </div>
                             </div>
                         ) : (
                             // --- STATIC HEADER ---
@@ -179,33 +184,47 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                             </div>
                         )}
 
-                        <div className="text-[9px] font-mono text-[#333]">AUTO-SAVE: ACTIVE</div>
+                        <div className="flex items-center gap-2">
+                            <div className="text-[9px] font-mono text-[#444] bg-[#111] px-2 py-1 rounded-sm border border-[#222]">
+                                {scenes.length} CLIPS
+                            </div>
+                        </div>
                     </div>
 
                     {/* CONTENT */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                            <SortableContext items={scenes} strategy={verticalListSortingStrategy}>
-                                {scenes.map((scene, i) => (
-                                    <SortableSceneCard
-                                        key={scene.id}
-                                        scene={scene}
-                                        index={i}
-                                        isActive={activeSceneId === scene.id}
-                                        onEdit={() => setActiveSceneId(scene.id)}
-                                    />
-                                ))}
-                            </SortableContext>
-                        </DndContext>
-                        <div className="h-20 flex items-center justify-center border-t border-dashed border-[#222] mt-4">
-                            <span className="text-[9px] font-mono text-[#333]">END OF SEQUENCE</span>
-                        </div>
+                        {scenes.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center opacity-30 gap-3">
+                                <Film size={32} className="text-[#333]" />
+                                <span className="text-xs font-mono">NO SCENE DATA FOUND</span>
+                            </div>
+                        ) : (
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                <SortableContext items={scenes} strategy={verticalListSortingStrategy}>
+                                    {scenes.map((scene, i) => (
+                                        <SortableSceneCard
+                                            key={scene.id}
+                                            scene={scene}
+                                            index={i}
+                                            isActive={activeSceneId === scene.id}
+                                            onEdit={() => setActiveSceneId(scene.id)}
+                                        />
+                                    ))}
+                                </SortableContext>
+                            </DndContext>
+                        )}
+
+                        {scenes.length > 0 && (
+                            <div className="h-20 flex items-center justify-center border-t border-dashed border-[#222] mt-4">
+                                <span className="text-[9px] font-mono text-[#333]">END OF SEQUENCE</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* RIGHT: AI CONSOLE */}
-                <div className="w-[400px] bg-[#080808] flex flex-col shrink-0">
-                    <div className="h-10 border-b border-[#222] bg-[#0A0A0A] flex items-center justify-between px-4 shrink-0">
+                <div className="w-[400px] bg-[#080808] flex flex-col shrink-0 border-l border-[#222]">
+                    <div className="h-14 border-b border-[#222] bg-[#080808] flex items-center justify-between px-6 shrink-0">
                         <div className="text-[10px] font-bold text-[#555] uppercase tracking-widest flex items-center gap-2">
                             <Cpu size={12} /> Director Console
                         </div>
@@ -218,13 +237,14 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                                 <div className="mb-6 p-4 border border-[#222] bg-[#0C0C0C] rounded-sm relative overflow-hidden">
                                     <div className="absolute top-0 left-0 w-1 h-full bg-red-600" />
                                     <div className="text-[9px] font-mono text-red-500 mb-1 uppercase">Target Locked</div>
-                                    <div className="text-xl font-bold text-white mb-2">
+                                    <div className="text-xl font-bold text-white mb-2 line-clamp-1">
                                         SCENE {String(activeScene.scene_number).padStart(2, '0')}
                                     </div>
-                                    <div className="text-[10px] text-[#666] uppercase tracking-widest truncate">
-                                        {activeScene.header || "UNKNOWN HEADER"}
+                                    <div className="text-[10px] text-[#888] uppercase tracking-widest font-bold truncate border-t border-[#222] pt-2 mt-2">
+                                        {activeScene.header || "NO HEADER DATA"}
                                     </div>
                                 </div>
+
                                 <div className="flex-1 flex flex-col gap-4">
                                     <div className="flex items-center gap-2 text-[10px] font-bold text-[#888] uppercase">
                                         <Terminal size={12} /> Modification Prompt
@@ -232,8 +252,8 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                                     <textarea
                                         value={aiInstruction}
                                         onChange={(e) => setAiInstruction(e.target.value)}
-                                        placeholder="// Enter directorial commands..."
-                                        className="ai-input w-full flex-1 p-4 text-xs resize-none rounded-sm placeholder:text-[#333]"
+                                        placeholder="// Enter directorial commands...&#10;> Make the dialogue more intense&#10;> Change setting to night&#10;> Add rain effect"
+                                        className="ai-input w-full flex-1 p-4 text-xs resize-none rounded-sm placeholder:text-[#444]"
                                     />
                                     <div className="flex gap-2 pt-4">
                                         <button
@@ -252,8 +272,8 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                             </div>
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center opacity-40 gap-4">
-                                <div className="w-16 h-16 rounded-full border border-[#333] flex items-center justify-center">
-                                    <Sparkles size={24} className="text-[#666]" />
+                                <div className="w-16 h-16 rounded-full border border-[#333] flex items-center justify-center bg-[#0A0A0A]">
+                                    <PlayCircle size={24} className="text-[#666]" />
                                 </div>
                                 <div>
                                     <div className="text-xs font-bold text-[#666] uppercase tracking-widest mb-1">System Idle</div>
@@ -282,18 +302,23 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
             ref={setNodeRef}
             style={style}
             onClick={onEdit}
-            className={`group relative flex w-full border border-transparent transition-all duration-200 cursor-pointer ${isActive ? 'bg-[#111] border-[#333] border-l-2 border-l-red-600 shadow-lg z-10' : 'bg-[#0A0A0A] border-[#222] hover:border-[#444] hover:bg-[#0E0E0E]'}`}
+            className={`group relative flex w-full border transition-all duration-200 cursor-pointer ${isActive ? 'bg-[#111] border-[#444] border-l-2 border-l-red-600 shadow-lg z-10' : 'bg-[#0A0A0A] border-[#222] hover:border-[#444] hover:bg-[#0E0E0E]'}`}
         >
             <div {...attributes} {...listeners} className="w-8 flex items-center justify-center border-r border-[#222] cursor-grab active:cursor-grabbing hover:bg-[#151515] transition-colors" onClick={(e) => e.stopPropagation()}>
                 <GripVertical size={14} className="text-[#333] group-hover:text-[#666]" />
             </div>
-            <div className="flex-1 p-4">
+            <div className="flex-1 p-4 overflow-hidden">
                 <div className="flex items-center gap-3 mb-2">
                     <span className={`text-lg font-mono font-bold ${isActive ? 'text-red-500' : 'text-[#444]'}`}>{String(index + 1).padStart(2, '0')}</span>
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">{scene.header}</span>
-                    {scene.time && <span className="ml-auto text-[9px] font-mono text-[#444] bg-[#151515] px-2 py-0.5 rounded-full">{scene.time}</span>}
+                    {/* Fallback to summary or generic text if header is completely missing */}
+                    <span className="text-xs font-bold text-white uppercase tracking-wider truncate flex-1">
+                        {scene.header || scene.slugline || "UNKNOWN SCENE"}
+                    </span>
+                    {scene.time && <span className="ml-auto text-[9px] font-mono text-[#444] bg-[#151515] px-2 py-0.5 rounded-full whitespace-nowrap">{scene.time}</span>}
                 </div>
-                <p className="text-xs text-[#888] leading-relaxed font-mono line-clamp-2 pl-9 border-l border-[#222]">{scene.summary}</p>
+                <p className="text-xs text-[#888] leading-relaxed font-mono line-clamp-2 pl-9 border-l border-[#222]">
+                    {scene.summary || scene.content || "No visual description available."}
+                </p>
             </div>
             <div className={`w-10 flex items-center justify-center border-l border-[#222] transition-colors ${isActive ? 'bg-red-900/10' : 'bg-transparent'}`}>
                 <Sparkles size={14} className={isActive ? 'text-red-500' : 'text-[#333] group-hover:text-[#666]'} />
