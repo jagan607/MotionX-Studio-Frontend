@@ -3,11 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-    ArrowRight, Users, MapPin, Sparkles, Loader2, Plus,
-    Database, Aperture, Search, LayoutGrid, ArrowLeft, Terminal
+    Users, MapPin, Sparkles, Loader2, Plus,
+    LayoutGrid, Search
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import Link from "next/link";
 
 // --- API & TYPES ---
 import {
@@ -24,6 +23,11 @@ import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptU
 // --- COMPONENTS ---
 import { AssetModal } from "@/components/AssetModal";
 import { AssetCard } from "@/components/AssetCard";
+
+// --- LAYOUT COMPONENTS ---
+import { StudioLayout } from "@/app/components/studio/StudioLayout";
+import { StudioHeader } from "@/app/components/studio/StudioHeader";
+import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
 
 export default function AssetManagerPage() {
     const params = useParams();
@@ -49,6 +53,9 @@ export default function AssetManagerPage() {
     const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
     const [genPrompt, setGenPrompt] = useState("");
+
+    // UI State
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // --- LOAD DATA ---
     useEffect(() => {
@@ -90,13 +97,6 @@ export default function AssetManagerPage() {
         }
     }, [assets]);
 
-    const calculateProgress = () => {
-        const all = [...assets.characters, ...assets.locations];
-        if (all.length === 0) return 0;
-        const visualsDone = all.filter(a => a.image_url).length;
-        return Math.round((visualsDone / all.length) * 100);
-    };
-
     // --- ACTIONS ---
 
     const handleOpenDraft = () => {
@@ -114,33 +114,29 @@ export default function AssetManagerPage() {
         setSelectedAsset(draftAsset);
     };
 
-    // --- UPDATED SAVE HANDLER ---
-    // Returns the Asset object (Promise<Asset | void>)
     const handleSaveAsset = async (asset: Asset, data: any) => {
         try {
             if (asset.id === "new") {
-                // Create Mode: Return the new asset so Modal can use the ID
+                // Create Mode
                 const res = await createAsset(projectId, { ...data, type: asset.type });
                 const newAsset = { ...res.data.asset, type: asset.type };
 
                 toast.success("ENTRY CREATED");
-
-                // Update local state to switch from "new" to real ID
                 setSelectedAsset(newAsset);
                 loadData();
-                return newAsset; // <--- RETURN THE ASSET
+                return newAsset;
 
             } else {
                 // Update Mode
                 await updateAsset(projectId, asset.type, asset.id, data);
                 toast.success("DATABASE UPDATED");
                 loadData();
-                return asset; // <--- RETURN THE ASSET
+                return asset;
             }
         } catch (e) {
             console.error(e);
             toast.error("SAVE FAILED");
-            throw e; // Throw so modal knows it failed
+            throw e;
         }
     };
 
@@ -228,9 +224,9 @@ export default function AssetManagerPage() {
     const displayedAssets = activeTab === 'cast' ? assets.characters : assets.locations;
 
     return (
-        <div className="fixed inset-0 z-50 bg-[#050505] text-[#EEE] font-sans overflow-hidden flex flex-col">
+        <StudioLayout>
 
-            {/* --- CSS OVERRIDES FOR ASSET CARDS --- */}
+            {/* --- CSS OVERRIDES --- */}
             <style jsx global>{`
                 div[class*="rounded-xl"], div[class*="bg-white"], div[class*="bg-zinc-900"] {
                     border-radius: 0px !important;
@@ -254,58 +250,29 @@ export default function AssetManagerPage() {
                     letter-spacing: 1px;
                 }
                 .action-btn:hover { background-color: #B91C1C !important; }
-                ::-webkit-scrollbar { width: 6px; }
-                ::-webkit-scrollbar-track { background: #050505; }
-                ::-webkit-scrollbar-thumb { background: #333; }
             `}</style>
 
-            {/* --- HEADER --- */}
-            <header className="h-20 border-b border-[#222] bg-[#080808] flex items-center justify-between px-8 shrink-0 z-50">
-                <div className="flex items-center gap-8">
-                    <Link href={`/project/${projectId}/script`} className="flex items-center gap-2 text-[#666] hover:text-white transition-colors group">
-                        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-[10px] font-bold tracking-[0.2em] uppercase">Return</span>
-                    </Link>
+            {/* --- STUDIO HEADER --- */}
+            <StudioHeader
+                projectId={projectId}
+                projectTitle={project?.title || "Loading..."}
+                // Try to use the project's default episode ID so "Scenes" tab works
+                activeEpisodeId={project?.default_episode_id || ""}
+                onOpenSettings={() => setIsSettingsOpen(true)}
+            />
 
-                    <div className="h-8 w-[1px] bg-[#222]" />
-
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <Database size={16} className="text-red-600" />
-                            <h1 className="text-xl font-display font-bold uppercase text-white tracking-tight leading-none">
-                                ASSET DEPOT
-                            </h1>
-                        </div>
-                        <div className="text-[10px] font-mono text-[#555] uppercase tracking-widest">
-                            {project?.title || "PROJECT LOADING..."}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-6">
-                    <div className="flex flex-col items-end">
-                        <div className="text-[10px] font-mono text-[#666] mb-1 uppercase tracking-widest">
-                            VISUALIZATION: <span className="text-white">{calculateProgress()}%</span>
-                        </div>
-                        <div className="w-32 h-1 bg-[#222]">
-                            <div className="h-full bg-red-600 transition-all duration-500" style={{ width: `${calculateProgress()}%` }} />
-                        </div>
-                    </div>
-
-                    <div className="h-8 w-[1px] bg-[#222]" />
-
-                    <button
-                        onClick={() => router.push(`/project/${projectId}/studio`)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold tracking-widest uppercase transition-colors text-white"
-                    >
-                        ENTER STUDIO <ArrowRight size={14} />
-                    </button>
-                </div>
-            </header>
+            {/* --- SETTINGS MODAL --- */}
+            <ProjectSettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                project={project}
+                onUpdate={setProject}
+            />
 
             {/* --- MAIN CONTENT --- */}
             <div className="flex-1 flex overflow-hidden relative z-40">
 
+                {/* SIDEBAR */}
                 <div className="w-[280px] bg-[#050505] border-r border-[#222] flex flex-col shrink-0">
                     <div className="p-6 border-b border-[#222]">
                         <div className="text-[10px] font-bold text-[#444] uppercase tracking-widest mb-4">
@@ -347,6 +314,7 @@ export default function AssetManagerPage() {
                     </div>
                 </div>
 
+                {/* GRID VIEW */}
                 <div className="flex-1 bg-[#020202] flex flex-col relative">
                     <div className="h-12 border-b border-[#222] bg-[#080808] flex items-center justify-between px-6 shrink-0">
                         <div className="flex items-center gap-2 text-[10px] font-bold text-[#555] uppercase tracking-widest">
@@ -429,7 +397,7 @@ export default function AssetManagerPage() {
                     genre={(project as any)?.genre || "cinematic"}
                     style={project?.moodboard?.lighting || "realistic"}
                     onUpload={() => { }}
-                    onUpdateTraits={(data) => handleSaveAsset(selectedAsset, data)} // Now returns Promise<Asset>
+                    onUpdateTraits={(data) => handleSaveAsset(selectedAsset, data)}
                     onLinkVoice={async () => { }}
                     styles={{
                         modal: {
@@ -441,7 +409,7 @@ export default function AssetManagerPage() {
                     }}
                 />
             )}
-        </div>
+        </StudioLayout>
     );
 }
 

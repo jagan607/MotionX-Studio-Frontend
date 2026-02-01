@@ -16,8 +16,8 @@ export const StudioLayout: React.FC<StudioLayoutProps> = ({
 
             {/* --- GLOBAL STUDIO STYLES --- */}
             <style jsx global>{`
-                /* 1. Brutalist Reset */
-                div[class*="rounded-"], div[class*="rounded"] {
+                /* 1. Brutalist Reset: Force sharp corners */
+                div[class*="rounded-"], div[class*="rounded"], button, input, select {
                     border-radius: 0px !important;
                 }
                 
@@ -33,16 +33,17 @@ export const StudioLayout: React.FC<StudioLayoutProps> = ({
                     background-color: #0F0F0F !important;
                 }
 
-                /* 3. Custom Scrollbar */
+                /* 3. Custom Scrollbar (Dark/Minimal) */
                 ::-webkit-scrollbar { width: 6px; height: 6px; }
                 ::-webkit-scrollbar-track { background: #050505; }
-                ::-webkit-scrollbar-thumb { background: #333; }
+                ::-webkit-scrollbar-thumb { background: #333; border: 1px solid #050505; }
                 ::-webkit-scrollbar-thumb:hover { background: #555; }
 
                 /* 4. Font Smoothing */
                 body {
                     -webkit-font-smoothing: antialiased;
                     -moz-osx-font-smoothing: grayscale;
+                    background-color: #050505;
                 }
             `}</style>
 

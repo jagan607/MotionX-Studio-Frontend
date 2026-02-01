@@ -123,13 +123,8 @@ export default function StudioPage() {
 
     // --- 3. COMPUTED STATS ---
     const calculateStats = () => {
-        const visualProgress = scenes.length > 0
-            ? Math.round((scenes.filter(s => s.status === 'approved').length / scenes.length) * 100)
-            : 0;
-
         return {
             sceneCount: scenes.length,
-            visualProgress,
             assetCount: assets.characters.length + assets.locations.length,
             format: (project as any)?.aspect_ratio || "16:9"
         };
@@ -162,8 +157,8 @@ export default function StudioPage() {
             <StudioHeader
                 projectId={projectId}
                 projectTitle={project.title}
-                renderProgress={stats.visualProgress}
-                activeEpisodeId={activeEpisodeId} // <--- PASSED HERE
+                // renderProgress prop removed as per new interface
+                activeEpisodeId={activeEpisodeId}
                 onOpenSettings={() => setIsSettingsOpen(true)}
             />
 

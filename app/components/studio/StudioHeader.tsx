@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
     ArrowLeft, MonitorPlay, FileText, Database, Settings,
-    CheckCircle2, Plus, Edit3, Clapperboard
+    Plus, Edit3, Clapperboard
 } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import CreditModal from "@/app/components/modals/CreditModal";
@@ -12,8 +13,8 @@ import CreditModal from "@/app/components/modals/CreditModal";
 interface StudioHeaderProps {
     projectTitle: string;
     projectId: string;
-    renderProgress: number;
-    activeEpisodeId?: string;
+    // Removed renderProgress as requested
+    activeEpisodeId?: string; // Crucial for the 'Scenes' link
     onOpenSettings: () => void;
     className?: string;
 }
@@ -21,24 +22,44 @@ interface StudioHeaderProps {
 export const StudioHeader: React.FC<StudioHeaderProps> = ({
     projectTitle,
     projectId,
-    renderProgress,
     activeEpisodeId,
     onOpenSettings,
     className = ""
 }) => {
+    const pathname = usePathname();
     const { credits } = useCredits();
     const [showTopUp, setShowTopUp] = useState(false);
 
-    // Determine if Scene Manager should be enabled
-    const hasActiveEpisode = activeEpisodeId && activeEpisodeId !== "empty" && activeEpisodeId !== "new_placeholder";
+    // --- NAVIGATION LOGIC ---
+    // Helper to determine strictly which tab is active based on the URL
+    const getActiveTab = () => {
+        if (pathname.includes("/script")) return "script";
+        if (pathname.includes("/editor")) return "scenes";
+        if (pathname.endsWith("/assets")) return "assets";
+        if (pathname.endsWith("/studio")) return "studio";
+        return "";
+    };
+
+    const activeTab = getActiveTab();
+
+    // Scenes Link Construction
+    // Valid only if we have a valid Episode ID (not empty/placeholder)
+    const canEnterScenes = activeEpisodeId && activeEpisodeId !== "empty" && activeEpisodeId !== "new_placeholder";
+    const scenesHref = canEnterScenes ? `/project/${projectId}/episode/${activeEpisodeId}/editor` : "#";
+
+    // --- STYLES ---
+    const tabBase = "flex items-center gap-2 px-4 py-1.5 rounded-sm transition-all duration-200 text-[10px] font-bold uppercase tracking-widest select-none";
+    const tabActive = "bg-[#222] text-white shadow-sm border border-[#333]";
+    const tabInactive = "text-[#666] hover:text-white hover:bg-[#151515] border border-transparent";
+    const tabDisabled = "text-[#333] cursor-not-allowed border border-transparent opacity-50";
 
     return (
         <>
             <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
 
-            <header className={`h-20 border-b border-[#222] bg-[#050505] flex items-center justify-between px-6 shrink-0 z-50 select-none ${className}`}>
+            <header className={`h-20 border-b border-[#222] bg-[#050505] flex items-center justify-between px-6 shrink-0 z-50 ${className}`}>
 
-                {/* --- LEFT: CONTEXT --- */}
+                {/* --- LEFT: CONTEXT & BACK --- */}
                 <div className="flex items-center h-full gap-6">
                     <Link href="/dashboard" className="flex items-center gap-3 text-[#555] hover:text-white transition-colors group h-full">
                         <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
@@ -61,78 +82,66 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                     </div>
                 </div>
 
-                {/* --- RIGHT: WORKFLOW TOOLS --- */}
+                {/* --- RIGHT: WORKFLOW & TOOLS --- */}
                 <div className="flex items-center h-full gap-8">
 
                     <div className="flex items-center gap-3">
 
-                        {/* 4. CONFIG */}
+                        {/* CONFIG BUTTON (Separate from Switcher) */}
                         <button
                             onClick={onOpenSettings}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#0A0A0A] border border-[#222] hover:bg-[#151515] hover:border-[#444] transition-all group rounded-sm"
+                            className="flex items-center gap-2 px-4 py-2 bg-[#0A0A0A] border border-[#222] hover:bg-[#151515] hover:border-[#444] transition-all group rounded-sm mr-2"
                             title="Project Settings"
                         >
                             <Settings size={12} className="text-[#666] group-hover:text-white group-hover:rotate-90 transition-all duration-500" />
                             <span className="text-[10px] font-bold text-[#666] group-hover:text-white uppercase tracking-widest">Config</span>
                         </button>
 
-                        {/* WORKFLOW NAVIGATION GROUP */}
-                        <div className="flex items-center bg-[#0A0A0A] border border-[#222] rounded-sm overflow-hidden p-1 gap-1">
+                        {/* MAIN NAVIGATION SWITCHER */}
+                        <div className="flex items-center bg-[#0A0A0A] border border-[#222] rounded-sm p-1 gap-1">
 
-                            {/* 1. SCRIPT (Ingestion) */}
+                            {/* 1. STUDIO */}
                             <Link
-                                href={`/project/${projectId}/script`}
-                                className="flex items-center gap-2 px-4 py-1.5 hover:bg-[#151515] rounded-sm transition-colors group"
-                                title="Ingest Script"
+                                href={`/project/${projectId}/studio`}
+                                className={`${tabBase} ${activeTab === "studio" ? tabActive : tabInactive}`}
                             >
-                                <FileText size={12} className="text-[#666] group-hover:text-white transition-colors" />
-                                <span className="text-[10px] font-bold text-[#666] group-hover:text-white uppercase tracking-widest transition-colors">Script</span>
+                                <Clapperboard size={12} className={activeTab === "studio" ? "text-red-500" : "text-[#666]"} />
+                                <span>Studio</span>
                             </Link>
 
-                            {/* 2. SCENES (Editor) - Highlighted if Active */}
-                            {hasActiveEpisode ? (
+                            {/* 2. SCRIPT */}
+                            <Link
+                                href={`/project/${projectId}/script`}
+                                className={`${tabBase} ${activeTab === "script" ? tabActive : tabInactive}`}
+                            >
+                                <FileText size={12} className={activeTab === "script" ? "text-red-500" : "text-[#666]"} />
+                                <span>Script</span>
+                            </Link>
+
+                            {/* 3. SCENES (Conditional Link) */}
+                            {canEnterScenes ? (
                                 <Link
-                                    href={`/project/${projectId}/episode/${activeEpisodeId}/editor`}
-                                    className="flex items-center gap-2 px-4 py-1.5 bg-[#1A1A1A] border border-transparent hover:bg-red-600 hover:text-white hover:border-red-500 rounded-sm group transition-all shadow-sm hover:shadow-red-900/20"
-                                    title="Open Scene Manager"
+                                    href={scenesHref}
+                                    className={`${tabBase} ${activeTab === "scenes" ? tabActive : tabInactive}`}
                                 >
-                                    <Edit3 size={12} className="text-white group-hover:text-white" />
-                                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">Scenes</span>
+                                    <Edit3 size={12} className={activeTab === "scenes" ? "text-red-500" : "text-[#666]"} />
+                                    <span>Scenes</span>
                                 </Link>
                             ) : (
-                                <div className="flex items-center gap-2 px-4 py-1.5 opacity-30 cursor-not-allowed">
+                                <div className={`${tabBase} ${tabDisabled}`}>
                                     <Edit3 size={12} />
-                                    <span className="text-[10px] font-bold uppercase tracking-widest">Scenes</span>
+                                    <span>Scenes</span>
                                 </div>
                             )}
 
-                            {/* 3. ASSETS */}
+                            {/* 4. ASSETS */}
                             <Link
                                 href={`/project/${projectId}/assets`}
-                                className="flex items-center gap-2 px-4 py-1.5 hover:bg-[#151515] rounded-sm transition-colors group"
-                                title="View Assets"
+                                className={`${tabBase} ${activeTab === "assets" ? tabActive : tabInactive}`}
                             >
-                                <Database size={12} className="text-[#666] group-hover:text-white transition-colors" />
-                                <span className="text-[10px] font-bold text-[#666] group-hover:text-white uppercase tracking-widest transition-colors">Assets</span>
+                                <Database size={12} className={activeTab === "assets" ? "text-red-500" : "text-[#666]"} />
+                                <span>Assets</span>
                             </Link>
-                        </div>
-                    </div>
-
-                    <div className="h-8 w-[1px] bg-[#222]" />
-
-                    {/* STATUS: Render Queue */}
-                    <div className="flex flex-col items-end min-w-[140px]">
-                        <div className="flex items-center justify-between w-full mb-1.5">
-                            <span className="text-[9px] font-mono text-[#555] tracking-widest">RENDER QUEUE</span>
-                            <div className="flex items-center gap-2">
-                                {renderProgress === 100 && <CheckCircle2 size={10} className="text-green-500" />}
-                                <span className={`text-[10px] font-mono font-bold ${renderProgress > 0 ? 'text-white' : 'text-[#333]'}`}>
-                                    {renderProgress}%
-                                </span>
-                            </div>
-                        </div>
-                        <div className="w-full h-1 bg-[#151515] overflow-hidden">
-                            <div className="h-full bg-red-600 transition-all duration-700 ease-out" style={{ width: `${renderProgress}%` }} />
                         </div>
                     </div>
 

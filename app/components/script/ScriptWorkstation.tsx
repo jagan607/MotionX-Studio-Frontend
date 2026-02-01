@@ -128,11 +128,10 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
             `}</style>
 
             {/* --- HEADER LOGIC --- */}
+            {/* If customHeader is provided (Studio Mode), render it. Otherwise use default (Draft Mode) */}
             {customHeader ? (
-                // 1. Render Custom Studio Header if provided
                 customHeader
             ) : (
-                // 2. Fallback to Default Internal Header (For Ingestion/Drafts)
                 <header className="h-16 border-b border-[#222] bg-[#080808] flex items-center justify-between px-6 shrink-0 z-50">
                     <div className="flex items-center gap-8">
                         <Link href={backLink} className="flex items-center gap-2 text-[#666] hover:text-white transition-colors group">

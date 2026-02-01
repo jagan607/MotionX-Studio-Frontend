@@ -13,8 +13,8 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
-import { api, fetchProject } from "@/lib/api"; // Added fetchProject
-import { Project } from "@/lib/types"; // Added Project type
+import { api, fetchProject } from "@/lib/api";
+import { Project } from "@/lib/types";
 
 // --- COMPONENTS ---
 import { ScriptWorkstation, WorkstationScene } from "@/app/components/script/ScriptWorkstation";
@@ -67,7 +67,7 @@ export default function SceneManagerPage() {
                     header: data.header || "UNKNOWN SCENE",
                     summary: data.summary || "",
                     time: data.time || "",
-                    status: data.status || "draft", // Ensure status exists
+                    status: data.status || "draft",
                     ...data
                 });
             });
@@ -84,14 +84,6 @@ export default function SceneManagerPage() {
 
         return () => unsub();
     }, [projectId, episodeId, isProcessing]);
-
-    // 3. CALCULATE PROGRESS (For Header)
-    const calculateProgress = () => {
-        if (scenes.length === 0) return 0;
-        // Assume 'approved' or 'rendered' status counts as progress
-        const completed = scenes.filter(s => s.status === 'approved' || s.status === 'rendered').length;
-        return Math.round((completed / scenes.length) * 100);
-    };
 
     // --- HANDLERS ---
 
@@ -181,7 +173,7 @@ export default function SceneManagerPage() {
                     <StudioHeader
                         projectTitle={project?.title || "Loading..."}
                         projectId={projectId}
-                        renderProgress={calculateProgress()}
+                        // renderProgress removed
                         activeEpisodeId={episodeId}
                         onOpenSettings={() => setIsSettingsOpen(true)}
                     />
