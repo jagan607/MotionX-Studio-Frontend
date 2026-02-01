@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import {
-    Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2, Lock
+    Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2, Lock, ChevronRight
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { api, checkJobStatus } from "@/lib/api";
@@ -14,12 +14,13 @@ interface InputDeckProps {
     projectType: "movie" | "micro_drama" | "series";
     episodeId?: string | null;
 
-    // Data to pre-fill
     initialTitle?: string;
     initialScript?: string;
 
     onSuccess: (redirectUrl: string) => void;
     onCancel: () => void;
+    onStatusChange?: (status: string) => void;
+
     isModal?: boolean;
     className?: string;
 }
@@ -29,36 +30,42 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     projectTitle,
     projectType,
     episodeId,
-
-    // Default values
     initialTitle = "",
     initialScript = "",
-
     onSuccess,
     onCancel,
+    onStatusChange,
     isModal = false,
     className = ""
 }) => {
     const [title, setTitle] = useState("");
     const [synopsisText, setSynopsisText] = useState("");
-
-    // File/Paste State
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pastedScript, setPastedScript] = useState("");
-
     const [isUploading, setIsUploading] = useState(false);
-    const [statusText, setStatusText] = useState("");
+
+    // Log History State
+    const [logs, setLogs] = useState<string[]>([]);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const logsContainerRef = useRef<HTMLDivElement>(null);
 
     const isMovie = projectType === "movie";
 
+    // --- SCROLL TO BOTTOM OF LOGS ---
+    useEffect(() => {
+        if (logsContainerRef.current) {
+            logsContainerRef.current.scrollTo({
+                top: logsContainerRef.current.scrollHeight,
+                behavior: "smooth"
+            });
+        }
+    }, [logs]);
+
     // --- STATE SYNC ---
     useEffect(() => {
-        if (isMovie) {
-            setTitle(projectTitle);
-        } else {
-            setTitle(initialTitle || "");
-        }
+        if (isMovie) setTitle(projectTitle);
+        else setTitle(initialTitle || "");
     }, [isMovie, projectTitle, initialTitle]);
 
     useEffect(() => {
@@ -67,12 +74,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         setSelectedFile(null);
     }, [initialScript, episodeId]);
 
-    // --- MODIFICATION LOGIC ---
-    // We are in "Update Mode" only if we have an episode ID AND existing script content.
-    // Otherwise, we are initializing/creating.
     const isUpdateMode = !!episodeId && !!initialScript;
-
-    // Check if current form state differs from initial props
     const isModified =
         (title || "") !== (initialTitle || "") ||
         (synopsisText || "") !== (initialScript || "") ||
@@ -83,16 +85,21 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
     };
 
+    const addLog = (message: string) => {
+        setLogs(prev => {
+            if (prev[prev.length - 1] === message) return prev;
+            return [...prev, message];
+        });
+        if (onStatusChange) onStatusChange(message);
+    };
+
     const executeProtocol = async () => {
         if (!title && !isMovie) { toast.error("ENTER IDENTIFIER (TITLE)"); return; }
 
         const formData = new FormData();
         formData.append("project_id", projectId);
         formData.append("script_title", title || projectTitle);
-
-        if (episodeId) {
-            formData.append("episode_id", episodeId);
-        }
+        if (episodeId) formData.append("episode_id", episodeId);
 
         if (synopsisText.trim()) {
             const content = `[TYPE: SYNOPSIS/TREATMENT]\n\n${synopsisText}`;
@@ -109,7 +116,8 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         }
 
         setIsUploading(true);
-        setStatusText("INITIALIZING UPLINK...");
+        setLogs([]);
+        addLog("INITIALIZING UPLINK...");
 
         try {
             const res = await api.post("/api/v1/script/upload-script", formData, {
@@ -117,19 +125,21 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             });
 
             const jobId = res.data.job_id;
-            setStatusText("AI ANALYZING SCRIPT STRUCTURE...");
+            addLog("PAYLOAD ACCEPTED. JOB ID: " + jobId.substring(0, 8));
+            addLog("WAITING FOR WORKER NODE...");
 
             const pollInterval = setInterval(async () => {
                 const job = await checkJobStatus(jobId);
 
-                if (job.progress && job.status !== "completed") {
-                    setStatusText(job.progress.toUpperCase());
+                if (job.progress) {
+                    addLog(job.progress.toUpperCase());
                 }
 
                 if (job.status === "completed") {
                     clearInterval(pollInterval);
+                    addLog("SEQUENCE COMPLETE. REDIRECTING...");
                     if (job.redirect_url) {
-                        onSuccess(job.redirect_url);
+                        setTimeout(() => onSuccess(job.redirect_url), 800);
                     } else {
                         toast.error("Redirect coordinates missing.");
                         setIsUploading(false);
@@ -137,47 +147,44 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 } else if (job.status === "failed") {
                     clearInterval(pollInterval);
                     setIsUploading(false);
+                    addLog("ERROR: " + (job.error || "UNKNOWN FAILURE"));
                     toast.error(job.error || "Ingestion Failed");
                 }
-            }, 2000);
+            }, 1000); // Faster polling for smoother UI
 
         } catch (e: any) {
             console.error(e);
             setIsUploading(false);
             const errorMsg = e.response?.data?.detail || e.message;
+            addLog("FATAL ERROR: " + errorMsg);
             toast.error(`Protocol Failed: ${errorMsg}`);
         }
     };
 
     const getButtonText = () => {
-        if (isUpdateMode) {
-            return isModified ? "MODIFY SCRIPT" : "SCRIPT SYNCED";
-        }
+        if (isUpdateMode) return isModified ? "MODIFY SCRIPT" : "SCRIPT SYNCED";
         if (synopsisText.trim()) return "GENERATE & INGEST";
         return "INITIALIZE INGESTION";
     };
 
     const isButtonEnabled = () => {
-        if (isUpdateMode) {
-            return isModified;
-        }
-        // Creation Logic
+        if (isUpdateMode) return isModified;
         if (!title && !isMovie) return false;
         return !!(synopsisText.trim() || pastedScript.trim() || selectedFile);
     };
 
     return (
-        <div className={`flex flex-col bg-neutral-900/30 border border-neutral-800 rounded-xl shadow-2xl h-full ${className}`}>
+        // REMOVED: h-full. Added: h-auto (implicit).
+        <div className={`flex flex-col bg-neutral-900/30 border border-neutral-800 rounded-xl shadow-2xl ${className}`}>
 
-            {/* CONTENT */}
-            <div className="flex-1 flex flex-col p-6 min-h-0">
+            {/* CONTENT - REMOVED: flex-1, min-h-0. Added: gap-4 */}
+            <div className="flex flex-col p-6 gap-6">
 
                 {/* DYNAMIC SESSION IDENTIFIER */}
-                <div className="mb-6 shrink-0">
+                <div className="shrink-0">
                     <label className="text-[9px] font-mono text-motion-text-muted uppercase tracking-widest mb-2 block">
                         {isMovie ? "Project Script Title" : "Episode Identifier"}
                     </label>
-
                     {isMovie ? (
                         <div className="flex items-center justify-between w-full border-b border-neutral-700 py-2">
                             <span className="text-xl font-display text-white/50 uppercase select-none">
@@ -200,16 +207,18 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 </div>
 
                 {/* PRIMARY: AI GENERATION */}
-                <div className="mb-5 flex-1 flex flex-col min-h-0">
+                {/* REMOVED: flex-1, min-h-0 */}
+                <div className="flex flex-col">
                     <div className="flex items-center gap-2 mb-2 shrink-0">
                         <Sparkles size={14} className="text-motion-red" />
                         <span className="text-[10px] font-bold tracking-[1px] uppercase text-white">AI Generation</span>
                         <span className="text-[9px] text-motion-text-muted ml-auto">PRIMARY</span>
                     </div>
-                    <div className="relative h-[200px]">
+                    {/* INCREASED HEIGHT to h-[240px] to prevent feeling cramped */}
+                    <div className="relative h-[240px]">
                         <textarea
                             className="w-full h-full bg-black/40 border border-neutral-700 p-4 font-sans text-sm text-motion-text placeholder:text-neutral-600 focus:outline-none focus:border-motion-red resize-none leading-relaxed rounded-lg"
-                            placeholder="Describe your scene... (e.g., A cyberpunk detective chases a rogue android through a neon-lit market...)"
+                            placeholder="Describe your scene..."
                             value={synopsisText}
                             onChange={(e) => setSynopsisText(e.target.value)}
                             disabled={isUploading}
@@ -221,7 +230,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 </div>
 
                 {/* OR DIVIDER */}
-                <div className="flex items-center gap-4 my-4 shrink-0">
+                <div className="flex items-center gap-4 shrink-0">
                     <div className="flex-1 h-px bg-neutral-800"></div>
                     <span className="text-[10px] font-bold tracking-widest text-neutral-500">OR</span>
                     <div className="flex-1 h-px bg-neutral-800"></div>
@@ -230,76 +239,65 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 {/* SECONDARY INPUTS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 shrink-0">
                     {/* Upload */}
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <Upload size={12} className="text-neutral-500" />
-                            <span className="text-[10px] font-bold tracking-[1px] uppercase text-neutral-400">Data Upload</span>
-                        </div>
-                        <div
-                            onClick={() => fileInputRef.current?.click()}
-                            className="h-20 border border-dashed border-neutral-700 hover:border-neutral-500 hover:bg-white/5 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group rounded-lg">
-                            <input type="file" ref={fileInputRef} hidden onChange={handleFileSelect} accept=".pdf,.docx,.txt" />
-                            {selectedFile ? (
-                                <div className="text-center animate-in fade-in zoom-in">
-                                    <Disc size={16} className="text-motion-red mb-1 animate-spin-slow mx-auto" />
-                                    <div className="font-bold text-[10px] tracking-widest text-white truncate max-w-[150px]">{selectedFile.name}</div>
-                                </div>
-                            ) : (
-                                <>
-                                    <Upload size={16} className="text-neutral-600 group-hover:text-neutral-400 transition-colors" />
-                                    <div className="text-[9px] font-bold tracking-widest text-neutral-600 group-hover:text-neutral-400">
-                                        CLICK TO UPLOAD
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                    <div onClick={() => !isUploading && fileInputRef.current?.click()} className={`h-16 border border-dashed border-neutral-700 flex flex-col items-center justify-center gap-2 group rounded-lg transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:border-neutral-500 cursor-pointer hover:bg-white/5'}`}>
+                        <input type="file" ref={fileInputRef} hidden onChange={handleFileSelect} accept=".pdf,.docx,.txt" disabled={isUploading} />
+                        {selectedFile ? (
+                            <div className="text-[10px] font-bold text-white truncate max-w-[150px]">{selectedFile.name}</div>
+                        ) : (
+                            <div className="flex items-center gap-2 text-[10px] text-neutral-600 group-hover:text-neutral-400">
+                                <Upload size={12} /> UPLOAD FILE
+                            </div>
+                        )}
                     </div>
-
                     {/* Paste */}
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <Terminal size={12} className="text-neutral-500" />
-                            <span className="text-[10px] font-bold tracking-[1px] uppercase text-neutral-400">Terminal Paste</span>
-                        </div>
-                        <textarea
-                            className="w-full h-20 bg-black/30 border border-neutral-700 p-3 font-mono text-[11px] text-green-500 placeholder:text-green-900/50 focus:outline-none focus:border-green-600 resize-none leading-relaxed rounded-lg"
-                            placeholder="// PASTE SCRIPT..."
-                            value={pastedScript}
-                            onChange={(e) => setPastedScript(e.target.value)}
-                            disabled={isUploading}
-                        />
-                    </div>
+                    <textarea
+                        className="w-full h-16 bg-black/30 border border-neutral-700 p-3 font-mono text-[10px] text-green-500 placeholder:text-green-900/50 focus:outline-none focus:border-green-600 resize-none leading-relaxed rounded-lg"
+                        placeholder="// PASTE..."
+                        value={pastedScript}
+                        onChange={(e) => setPastedScript(e.target.value)}
+                        disabled={isUploading}
+                    />
                 </div>
 
                 {isModal && (
                     <div className="mt-4 pt-4 border-t border-neutral-800">
-                        <button
-                            onClick={onCancel}
-                            className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-bold tracking-widest text-motion-text-muted hover:text-motion-red transition-colors"
-                        >
-                            <X size={14} /> ABORT SEQUENCE
+                        <button onClick={onCancel} className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-bold tracking-widest text-motion-text-muted hover:text-motion-red transition-colors">
+                            <X size={14} /> ABORT
                         </button>
                     </div>
                 )}
             </div>
 
-            {/* FOOTER */}
-            <div className="shrink-0 p-4 border-t border-neutral-800 bg-black/30">
-                {isUploading && (
-                    <div className="flex justify-between items-center text-[10px] font-mono text-motion-red mb-2">
-                        <span className="animate-pulse">{statusText}</span>
-                        <Loader2 className="animate-spin" size={12} />
+            {/* FOOTER: TERMINAL OR BUTTON */}
+            <div className="shrink-0 p-4 border-t border-neutral-800 bg-black/30 min-h-[5.5rem] flex flex-col justify-center">
+                {isUploading ? (
+                    // --- LIVE TERMINAL LOG ---
+                    // Fixed height h-32 to allow viewing multiple log lines
+                    <div className="w-full h-32 bg-black border border-neutral-800 rounded p-3 font-mono text-[10px] overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between text-neutral-500 mb-2 pb-1 border-b border-neutral-900">
+                            <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={10} /> PROCESSING</span>
+                            <span>SEQ_ID_{Math.floor(Math.random() * 1000)}</span>
+                        </div>
+                        <div ref={logsContainerRef} className="flex-1 overflow-y-auto space-y-1 scrollbar-hide">
+                            {logs.map((log, i) => (
+                                <div key={i} className="flex gap-2 text-neutral-400">
+                                    <span className="text-neutral-700">➜</span>
+                                    <span className={i === logs.length - 1 ? "text-green-500 animate-pulse" : ""}>
+                                        {log}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
+                ) : (
+                    <MotionButton
+                        onClick={executeProtocol}
+                        disabled={!isButtonEnabled()}
+                        className="w-full py-3"
+                    >
+                        {getButtonText()}
+                    </MotionButton>
                 )}
-
-                <MotionButton
-                    onClick={executeProtocol}
-                    loading={isUploading}
-                    disabled={!isButtonEnabled()}
-                    className="w-full py-3"
-                >
-                    {getButtonText()}
-                </MotionButton>
             </div>
         </div>
     );

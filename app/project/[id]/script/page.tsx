@@ -4,9 +4,10 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { InputDeck } from "@/components/script/InputDeck";
 import {
-    ArrowLeft, Terminal, ShieldCheck, Cpu, HardDrive,
+    Terminal, ShieldCheck, Cpu, HardDrive,
     Zap, Clapperboard, CheckCircle2,
-    Loader2, Layers, ChevronDown, Film, ArrowRight, Plus
+    Layers, ChevronDown, Film, ArrowRight, Plus,
+    Loader2
 } from "lucide-react";
 import { fetchProject, fetchEpisodes } from "@/lib/api";
 import { Project } from "@/lib/types";
@@ -21,12 +22,12 @@ export default function ScriptIngestionPage() {
     const [project, setProject] = useState<Project | null>(null);
     const [loading, setLoading] = useState(true);
     const [timecode, setTimecode] = useState("00:00:00:00");
+    const [activeStatus, setActiveStatus] = useState<string>("Waiting for data stream...");
 
     // SERIES STATE
     const [episodes, setEpisodes] = useState<any[]>([]);
     const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null);
 
-    // Timecode logic
     useEffect(() => {
         const interval = setInterval(() => {
             const now = new Date();
@@ -58,7 +59,6 @@ export default function ScriptIngestionPage() {
                     eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
                     const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
                     const finalEpisodes = realEpisodes.length > 0 ? realEpisodes : eps;
-
                     setEpisodes(finalEpisodes);
 
                     if (searchParams.get("mode") === "new") {
@@ -81,25 +81,26 @@ export default function ScriptIngestionPage() {
         const val = e.target.value;
         if (val === "new_placeholder") return;
         setSelectedEpisodeId(val);
+        setActiveStatus("Waiting for data stream...");
         toast.success(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
     };
 
     const handleNewEpisode = () => {
         setSelectedEpisodeId(null);
+        setActiveStatus("Ready for new sequence...");
         toast("New Sequence Initialized", { icon: '✨' });
     };
 
+    const handleIngestStatus = (status: string) => {
+        setActiveStatus(status);
+    };
+
     const activeEpisode = episodes.find(e => e.id === selectedEpisodeId);
-
-    const currentTitle = project?.type === 'movie'
-        ? (project.title)
-        : (activeEpisode?.title || "");
-
+    const currentTitle = project?.type === 'movie' ? (project.title) : (activeEpisode?.title || "");
     const currentScript = activeEpisode?.script_preview || "";
 
     return (
         <div className="fixed inset-0 z-50 bg-[#020202] text-white font-sans overflow-hidden flex flex-col">
-            {/* --- CINEMATIC STYLES --- */}
             <style jsx global>{`
                 button[type="submit"], .deck-root button[type="submit"] {
                     background-color: #DC2626 !important;
@@ -171,11 +172,7 @@ export default function ScriptIngestionPage() {
                         <CheckCircle2 size={12} />
                         SYSTEM SECURE
                     </div>
-
-                    <button
-                        onClick={() => router.push(`/project/${projectId}/studio`)}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold tracking-widest uppercase transition-colors text-white rounded-sm"
-                    >
+                    <button onClick={() => router.push(`/project/${projectId}/studio`)} className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold tracking-widest uppercase transition-colors text-white rounded-sm">
                         ENTER STUDIO <ArrowRight size={14} />
                     </button>
                 </div>
@@ -209,36 +206,20 @@ export default function ScriptIngestionPage() {
                                 </div>
                                 <div className="flex gap-2">
                                     <div className="relative group flex-1">
-                                        <select
-                                            value={selectedEpisodeId || "new_placeholder"}
-                                            onChange={handleEpisodeChange}
-                                            className="w-full appearance-none bg-black/50 border border-white/10 text-white text-xs font-mono uppercase tracking-wider py-3 pl-4 pr-10 rounded-lg hover:border-red-600/50 hover:bg-white/5 focus:outline-none focus:border-red-600 transition-all cursor-pointer"
-                                        >
+                                        <select value={selectedEpisodeId || "new_placeholder"} onChange={handleEpisodeChange} className="w-full appearance-none bg-black/50 border border-white/10 text-white text-xs font-mono uppercase tracking-wider py-3 pl-4 pr-10 rounded-lg hover:border-red-600/50 hover:bg-white/5 focus:outline-none focus:border-red-600 transition-all cursor-pointer">
                                             {episodes.map((ep) => (
                                                 <option key={ep.id} value={ep.id} className="bg-[#050505] text-neutral-300">
                                                     {ep.title || `EPISODE ${ep.episode_number}`}
                                                 </option>
                                             ))}
-
-                                            {selectedEpisodeId === null && (
-                                                <option value="new_placeholder" disabled>-- CREATING NEW --</option>
-                                            )}
-
-                                            {episodes.length === 0 && selectedEpisodeId !== null && (
-                                                <option disabled>No Reels Available</option>
-                                            )}
+                                            {selectedEpisodeId === null && <option value="new_placeholder" disabled>-- CREATING NEW --</option>}
+                                            {episodes.length === 0 && selectedEpisodeId !== null && <option disabled>No Reels Available</option>}
                                         </select>
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500 group-hover:text-white transition-colors">
                                             <ChevronDown size={14} />
                                         </div>
                                     </div>
-
-                                    {/* HIGHLIGHTED NEW BUTTON */}
-                                    <button
-                                        onClick={handleNewEpisode}
-                                        className="px-4 bg-red-600/10 border border-red-600/50 rounded-lg hover:bg-red-600 hover:text-white text-red-500 transition-all shadow-[0_0_15px_rgba(220,38,38,0.2)] hover:shadow-[0_0_20px_rgba(220,38,38,0.5)]"
-                                        title="Create New Episode"
-                                    >
+                                    <button onClick={handleNewEpisode} className="px-4 bg-red-600/10 border border-red-600/50 rounded-lg hover:bg-red-600 hover:text-white text-red-500 transition-all shadow-[0_0_15px_rgba(220,38,38,0.2)] hover:shadow-[0_0_20px_rgba(220,38,38,0.5)]">
                                         <Plus size={18} />
                                     </button>
                                 </div>
@@ -247,34 +228,38 @@ export default function ScriptIngestionPage() {
                     </div>
 
                     <div className="p-10 space-y-10">
+                        {/* Static Info */}
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-[11px] font-bold text-white uppercase tracking-widest">
                                 <Terminal size={14} className="text-red-500" /> Ingestion Protocol
                             </div>
                             <p className="text-xs text-neutral-400 leading-relaxed pl-4 border-l-2 border-red-600/30">
                                 This terminal accepts raw screenplay data. The Neural Engine will parse headers, action lines, and dialogue blocks automatically.
-                                {project?.type !== 'movie' && " Ensure the correct reel is selected above."}
                             </p>
                         </div>
 
-                        <div className="p-5 bg-gradient-to-br from-white/5 to-transparent border border-white/5 rounded-lg">
-                            <div className="flex items-center gap-3 mb-2">
+                        {/* DYNAMIC ANALYSIS BOX */}
+                        <div className="p-5 bg-gradient-to-br from-white/5 to-transparent border border-white/5 rounded-lg relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-red-600/5 translate-y-full group-hover:translate-y-0 transition-transform duration-700 pointer-events-none" />
+                            <div className="flex items-center gap-3 mb-3">
                                 <Cpu size={18} className="text-white" />
                                 <span className="text-xs font-bold text-white uppercase tracking-wider">Analysis Engine</span>
                             </div>
-                            <div className="text-[10px] text-neutral-500">
-                                Waiting for data stream...
+                            <div className="text-[10px] font-mono text-neutral-400 h-10 flex items-center">
+                                <span className="animate-pulse text-green-500 mr-2">➜</span>
+                                <span className="text-neutral-300">{activeStatus}</span>
                             </div>
+                            {activeStatus !== "Waiting for data stream..." && (
+                                <div className="w-full h-0.5 bg-neutral-800 mt-2 overflow-hidden">
+                                    <div className="h-full bg-red-600 w-1/3 animate-indeterminate-bar" />
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     <div className="mt-auto p-6 border-t border-white/5 bg-black/60 flex justify-between">
-                        <div className="flex items-center gap-2 text-[10px] text-neutral-500 font-mono">
-                            <ShieldCheck size={12} /> ENCRYPTED
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] text-neutral-500 font-mono">
-                            <HardDrive size={12} /> LOCAL
-                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-neutral-500 font-mono"><ShieldCheck size={12} /> ENCRYPTED</div>
+                        <div className="flex items-center gap-2 text-[10px] text-neutral-500 font-mono"><HardDrive size={12} /> LOCAL</div>
                     </div>
                 </div>
 
@@ -287,11 +272,13 @@ export default function ScriptIngestionPage() {
                         <div className="text-[10px] font-mono text-neutral-600">INPUT_STREAM_READY</div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-12 flex flex-col items-center">
-                        <div className="w-full max-w-4xl relative z-10">
-                            {/* Glass Panel Container for InputDeck */}
+                    {/* SCROLL CONTAINER: Added pb-32, justify-start, items-center */}
+                    <div className="flex-1 overflow-y-auto p-12 pb-32 flex flex-col items-center justify-start scroll-smooth">
+                        {/* CONTENT WRAPPER: Added shrink-0, transition-all */}
+                        <div className="w-full max-w-4xl relative z-10 shrink-0">
+
+                            {/* Glass Panel */}
                             <div className="bg-[#050505]/80 border border-white/10 rounded-xl p-8 shadow-2xl backdrop-blur-md deck-root relative group">
-                                {/* Glowing Border Effect on Hover */}
                                 <div className="absolute -inset-[1px] bg-gradient-to-r from-red-600/0 via-red-600/20 to-red-600/0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
                                 <div className="flex justify-between items-end mb-8 pb-4 border-b border-white/5">
@@ -320,15 +307,13 @@ export default function ScriptIngestionPage() {
                                         projectTitle={project?.title || ""}
                                         projectType={project?.type || "micro_drama"}
                                         episodeId={selectedEpisodeId}
-
-                                        // PASS INITIAL DATA HERE
                                         initialTitle={currentTitle}
                                         initialScript={currentScript}
-
                                         isModal={false}
                                         className="w-full"
                                         onCancel={() => router.push("/dashboard")}
                                         onSuccess={(url) => router.push(url)}
+                                        onStatusChange={handleIngestStatus}
                                     />
                                 )}
                             </div>
