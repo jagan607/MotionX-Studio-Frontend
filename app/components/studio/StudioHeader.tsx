@@ -13,8 +13,7 @@ import CreditModal from "@/app/components/modals/CreditModal";
 interface StudioHeaderProps {
     projectTitle: string;
     projectId: string;
-    // Removed renderProgress as requested
-    activeEpisodeId?: string; // Crucial for the 'Scenes' link
+    activeEpisodeId?: string; // Used for Scenes link AND Script context persistence
     onOpenSettings: () => void;
     className?: string;
 }
@@ -31,7 +30,6 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
     const [showTopUp, setShowTopUp] = useState(false);
 
     // --- NAVIGATION LOGIC ---
-    // Helper to determine strictly which tab is active based on the URL
     const getActiveTab = () => {
         if (pathname.includes("/script")) return "script";
         if (pathname.includes("/editor")) return "scenes";
@@ -42,10 +40,18 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
 
     const activeTab = getActiveTab();
 
-    // Scenes Link Construction
-    // Valid only if we have a valid Episode ID (not empty/placeholder)
-    const canEnterScenes = activeEpisodeId && activeEpisodeId !== "empty" && activeEpisodeId !== "new_placeholder";
-    const scenesHref = canEnterScenes ? `/project/${projectId}/episode/${activeEpisodeId}/editor` : "#";
+    // --- LINK CONSTRUCTION ---
+    const hasValidEpisode = activeEpisodeId && activeEpisodeId !== "empty" && activeEpisodeId !== "new_placeholder";
+
+    // 1. Scenes Link: Direct route to editor
+    const scenesHref = hasValidEpisode
+        ? `/project/${projectId}/episode/${activeEpisodeId}/editor`
+        : "#";
+
+    // 2. Script Link: Append query param to persist context
+    const scriptHref = hasValidEpisode
+        ? `/project/${projectId}/script?episode_id=${activeEpisodeId}`
+        : `/project/${projectId}/script`;
 
     // --- STYLES ---
     const tabBase = "flex items-center gap-2 px-4 py-1.5 rounded-sm transition-all duration-200 text-[10px] font-bold uppercase tracking-widest select-none";
@@ -87,7 +93,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
 
                     <div className="flex items-center gap-3">
 
-                        {/* CONFIG BUTTON (Separate from Switcher) */}
+                        {/* CONFIG BUTTON */}
                         <button
                             onClick={onOpenSettings}
                             className="flex items-center gap-2 px-4 py-2 bg-[#0A0A0A] border border-[#222] hover:bg-[#151515] hover:border-[#444] transition-all group rounded-sm mr-2"
@@ -109,17 +115,17 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                 <span>Studio</span>
                             </Link>
 
-                            {/* 2. SCRIPT */}
+                            {/* 2. SCRIPT (Updated to use scriptHref) */}
                             <Link
-                                href={`/project/${projectId}/script`}
+                                href={scriptHref}
                                 className={`${tabBase} ${activeTab === "script" ? tabActive : tabInactive}`}
                             >
                                 <FileText size={12} className={activeTab === "script" ? "text-red-500" : "text-[#666]"} />
                                 <span>Script</span>
                             </Link>
 
-                            {/* 3. SCENES (Conditional Link) */}
-                            {canEnterScenes ? (
+                            {/* 3. SCENES */}
+                            {hasValidEpisode ? (
                                 <Link
                                     href={scenesHref}
                                     className={`${tabBase} ${activeTab === "scenes" ? tabActive : tabInactive}`}

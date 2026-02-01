@@ -60,10 +60,23 @@ export default function ScriptIngestionPage() {
                     const finalEpisodes = realEpisodes.length > 0 ? realEpisodes : eps;
                     setEpisodes(finalEpisodes);
 
-                    // Handle "New Mode" or Default Selection
-                    if (searchParams.get("mode") === "new") {
+                    // --- CONTEXT LOGIC UPDATE ---
+                    const mode = searchParams.get("mode");
+                    const contextEpisodeId = searchParams.get("episode_id"); // Catch the ID passed from Header
+
+                    if (mode === "new") {
                         setSelectedEpisodeId(null);
+                    } else if (contextEpisodeId) {
+                        // Validate that the context ID actually exists
+                        const exists = finalEpisodes.find((e: any) => e.id === contextEpisodeId);
+                        if (exists) {
+                            setSelectedEpisodeId(contextEpisodeId);
+                        } else {
+                            // Fallback if ID is invalid
+                            setSelectedEpisodeId(finalEpisodes[0]?.id || null);
+                        }
                     } else if (finalEpisodes.length > 0) {
+                        // Default to first episode
                         setSelectedEpisodeId(finalEpisodes[0].id);
                     }
                 }
@@ -77,7 +90,7 @@ export default function ScriptIngestionPage() {
         loadData();
     }, [projectId, searchParams]);
 
-    // 2. CHECK FOR EXISTING SCENES (For Status Indicator Only)
+    // 2. CHECK FOR EXISTING SCENES
     useEffect(() => {
         const checkScenes = async () => {
             if (!selectedEpisodeId || selectedEpisodeId === "new_placeholder") {
@@ -109,12 +122,18 @@ export default function ScriptIngestionPage() {
     const handleEpisodeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         if (val === "new_placeholder") return;
+
+        // Update URL to reflect change (keeps context if user refreshes)
+        router.push(`/project/${projectId}/script?episode_id=${val}`);
+
+        // State update happens via useEffect when searchParams change, 
+        // but we set it optimistically here for UI snappiness
         setSelectedEpisodeId(val);
         toast.success(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
     };
 
     const handleNewEpisode = () => {
-        setSelectedEpisodeId(null);
+        router.push(`/project/${projectId}/script?mode=new`);
         setActiveStatus("Ready for new sequence...");
         setHasExistingScenes(false);
         toast("New Sequence Initialized", { icon: '✨' });
@@ -283,7 +302,6 @@ export default function ScriptIngestionPage() {
                                 <span className="animate-pulse text-green-500 mr-2">➜</span>
                                 <span className="text-neutral-300">{activeStatus}</span>
                             </div>
-                            {/* Indeterminate Bar is optional here, removing for cleaner UI if overwrite is enabled */}
                         </div>
                     </div>
 

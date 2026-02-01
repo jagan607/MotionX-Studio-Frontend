@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
-import { api, fetchProject } from "@/lib/api";
+import { api, fetchProject, fetchEpisodes } from "@/lib/api"; // Added fetchEpisodes
 import { Project } from "@/lib/types";
 
 // --- COMPONENTS ---
@@ -32,6 +32,7 @@ export default function SceneManagerPage() {
     // Content Data
     const [scenes, setScenes] = useState<WorkstationScene[]>([]);
     const [project, setProject] = useState<Project | null>(null);
+    const [episodes, setEpisodes] = useState<any[]>([]); // New: Full Episode List
 
     // UI State
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -40,15 +41,46 @@ export default function SceneManagerPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // 1. FETCH PROJECT DETAILS (For Header)
+    // 1. FETCH PROJECT & EPISODES (Context)
     useEffect(() => {
         if (!projectId) return;
-        fetchProject(projectId)
-            .then(setProject)
-            .catch(err => console.error("Failed to load project info", err));
+
+        const loadContext = async () => {
+            try {
+                const [projData, epsData] = await Promise.all([
+                    fetchProject(projectId),
+                    fetchEpisodes(projectId)
+                ]);
+
+                setProject(projData);
+
+                // --- Process Episodes (Consistent with Studio/Script Pages) ---
+                let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
+
+                if (projData.type === 'movie') {
+                    // Movie Logic: Ensure at least the main reel exists visually
+                    const mainReelId = projData.default_episode_id || "main";
+                    if (eps.length === 0) {
+                        eps = [{ id: mainReelId, title: "Main Picture Reel", episode_number: 1 }];
+                    }
+                    setEpisodes(eps);
+                } else {
+                    // Series Logic: Sort and Filter
+                    eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
+                    const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
+                    setEpisodes(realEpisodes.length > 0 ? realEpisodes : eps);
+                }
+
+            } catch (err) {
+                console.error("Failed to load project context", err);
+                toast.error("Failed to load project details");
+            }
+        };
+
+        loadContext();
     }, [projectId]);
 
-    // 2. REAL-TIME SCENES SYNC
+    // 2. REAL-TIME SCENES SYNC (Content)
     useEffect(() => {
         if (!projectId || !episodeId) return;
 
@@ -86,6 +118,14 @@ export default function SceneManagerPage() {
     }, [projectId, episodeId, isProcessing]);
 
     // --- HANDLERS ---
+
+    // NEW: Handle Context Switch via Dropdown
+    const handleSwitchEpisode = (newEpisodeId: string) => {
+        if (newEpisodeId === episodeId) return;
+        // Navigate to the new URL. Next.js App Router will handle the re-render.
+        router.push(`/project/${projectId}/episode/${newEpisodeId}/editor`);
+        toast.loading("Switching Reel...", { duration: 800 });
+    };
 
     const handleReorder = async (newOrder: WorkstationScene[]) => {
         setScenes(newOrder);
@@ -173,11 +213,17 @@ export default function SceneManagerPage() {
                     <StudioHeader
                         projectTitle={project?.title || "Loading..."}
                         projectId={projectId}
-                        // renderProgress removed
                         activeEpisodeId={episodeId}
                         onOpenSettings={() => setIsSettingsOpen(true)}
                     />
                 }
+
+                // INJECT EPISODE CONTEXT (For Dropdown)
+                episodeContext={project?.type === 'micro_drama' ? {
+                    episodes: episodes,
+                    currentEpisodeId: episodeId,
+                    onSwitchEpisode: handleSwitchEpisode
+                } : undefined} // Undefined context = Static "Timeline" label (for Movies)
 
                 // Data & Actions
                 scenes={scenes}
