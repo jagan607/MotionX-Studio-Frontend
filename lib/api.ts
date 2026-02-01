@@ -2,7 +2,7 @@ import axios from "axios";
 import { auth, db } from "@/lib/firebase"; // Your firebase config
 import { API_BASE_URL } from "./config"; // Your backend URL (e.g., http://localhost:8000)
 import { Project } from "./types"; // Import the type for better safety
-import { collection, collectionGroup, getDocs, limit, orderBy, query, where } from "firebase/firestore";
+import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 
 // 1. Create the Axios Instance
 export const api = axios.create({
@@ -201,6 +201,8 @@ export const fetchUserDashboardProjects = async (uid: string): Promise<Dashboard
             } catch (e) {
                 console.warn(`Preview fetch failed for ${p.id}`, e);
             }
+
+            console.log("Enriched Project", { ...p, previewVideo: vid, previewImage: img });
             return { ...p, previewVideo: vid, previewImage: img };
         }));
 
@@ -208,6 +210,20 @@ export const fetchUserDashboardProjects = async (uid: string): Promise<Dashboard
     } catch (e) {
         console.error("Dashboard Load Error", e);
         return [];
+    }
+};
+
+export const fetchUserCredits = async (userId: string): Promise<number> => {
+    try {
+        const userRef = doc(db, "users", userId);
+        const snap = await getDoc(userRef);
+        if (snap.exists()) {
+            return snap.data().credits || 0;
+        }
+        return 0;
+    } catch (e) {
+        console.error("Credits Load Error", e);
+        return 0;
     }
 };
 

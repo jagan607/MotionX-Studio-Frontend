@@ -10,7 +10,8 @@ import {
     fetchProject,
     fetchProjectAssets,
     fetchScenes,
-    fetchEpisodes
+    fetchEpisodes,
+    fetchUserCredits
 } from "@/lib/api";
 import { Project, Asset } from "@/lib/types";
 import { SceneData } from "@/components/studio/SceneCard";
@@ -22,6 +23,7 @@ import { ReelSidebar } from "@/app/components/studio/ReelSidebar";
 import { SceneBin } from "@/app/components/studio/SceneBin";
 import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
 import { SceneStoryboardContainer } from "@/app/components/studio/SceneStoryboardContainer";
+import { auth } from "@/lib/firebase";
 
 export default function StudioPage() {
     const params = useParams();
@@ -43,6 +45,8 @@ export default function StudioPage() {
     // UI State
     const [selectedScene, setSelectedScene] = useState<SceneData | null>(null);
 
+    const [credits, setCredits] = useState<number>(0);
+
     // Asset DB
     const [assets, setAssets] = useState<{
         characters: Asset[],
@@ -56,13 +60,15 @@ export default function StudioPage() {
 
     const initializeStudio = async () => {
         try {
-            const [projData, assetData] = await Promise.all([
+            const [projData, assetData, creditsData] = await Promise.all([
                 fetchProject(projectId),
-                fetchProjectAssets(projectId)
+                fetchProjectAssets(projectId),
+                fetchUserCredits(auth.currentUser?.uid || "")
             ]);
 
             setProject(projData);
             setAssets(assetData);
+            setCredits(creditsData);
 
             // Handle Movie vs. Series Logic
             if (projData.type === 'micro_drama') {
@@ -205,7 +211,7 @@ export default function StudioPage() {
                     scene={selectedScene}
                     projectAssets={assets}
                     seriesTitle={project.title}
-                    credits={99}
+                    credits={credits}
                 />
             )}
         </StudioLayout>
