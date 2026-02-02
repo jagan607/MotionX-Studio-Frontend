@@ -7,8 +7,8 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { api } from "@/lib/api";
 import {
-    ArrowLeft, Film, Tv, Clapperboard, Box, Layers,
-    RectangleHorizontal, RectangleVertical, Monitor, Wand2, Loader2, Aperture, ChevronRight
+    ArrowLeft, Film, Tv, Clapperboard, Layers,
+    RectangleHorizontal, RectangleVertical, Monitor, Loader2, Aperture, ChevronRight
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -57,17 +57,28 @@ export default function NewProjectPage() {
     // 3. Mood Selection State
     const [moodSelection, setMoodSelection] = useState<Record<string, string>>({});
 
-    // --- FETCH MANIFEST ---
+    // --- FETCH MANIFEST (Dynamic based on Style) ---
     useEffect(() => {
+        let isMounted = true;
+
         async function fetchConfig() {
+            setLoadingManifest(true);
+            setMoodSelection({}); // Reset previous selection
+
             try {
-                const docRef = doc(db, "configs", "moodboard_manifest");
+                // DYNAMIC SWITCH: Choose collection based on style
+                const configId = formData.style === 'anime'
+                    ? "moodboard_manifest_anime"
+                    : "moodboard_manifest";
+
+                const docRef = doc(db, "configs", configId);
                 const snap = await getDoc(docRef);
 
-                if (snap.exists()) {
+                if (isMounted && snap.exists()) {
                     const data = snap.data() as Manifest;
                     setManifest(data);
 
+                    // Pre-select first option for each axis
                     const initialSelection: Record<string, string> = {};
                     data.axes.forEach((axis) => {
                         if (axis.options.length > 0) {
@@ -75,16 +86,23 @@ export default function NewProjectPage() {
                         }
                     });
                     setMoodSelection(initialSelection);
+                } else if (isMounted) {
+                    // Fallback or empty state if doc doesn't exist
+                    setManifest(null);
+                    // toast.error(`Configuration missing for ${formData.style}`);
                 }
             } catch (e) {
                 console.error("Config Error:", e);
-                // toast.error("Failed to load creative assets.");
+                toast.error("Failed to load creative assets.");
             } finally {
-                setLoadingManifest(false);
+                if (isMounted) setLoadingManifest(false);
             }
         }
+
         fetchConfig();
-    }, []);
+
+        return () => { isMounted = false; };
+    }, [formData.style]);
 
     // --- HANDLERS ---
     const handleMoodSelect = (prefix: string, option: MoodOption) => {
@@ -100,8 +118,6 @@ export default function NewProjectPage() {
         setCreating(true);
 
         try {
-            // TRANSFORM: Convert selection map to Array<{title, option}>
-            // The backend now expects List[MoodboardItem]
             const moodboardList: { title: string; option: string }[] = [];
 
             manifest?.axes.forEach(axis => {
@@ -110,8 +126,8 @@ export default function NewProjectPage() {
 
                 if (option) {
                     moodboardList.push({
-                        title: axis.label, // e.g. "Lighting"
-                        option: option.label // e.g. "Cinematic"
+                        title: axis.label,
+                        option: option.label
                     });
                 }
             });
@@ -122,13 +138,10 @@ export default function NewProjectPage() {
                 type: formData.type,
                 aspect_ratio: formData.aspect_ratio,
                 style: formData.style,
-                moodboard: moodboardList // <--- Send the Array
+                moodboard: moodboardList
             };
 
-            // Ensure the endpoint matches your backend router (singular vs plural)
-            // You likely used 'project/create' based on previous context.
             const res = await api.post("/api/v1/project/create", payload);
-
             router.push(`/project/${res.data.id}`);
 
         } catch (e: any) {
@@ -143,20 +156,20 @@ export default function NewProjectPage() {
         <button
             onClick={onClick}
             className={`
-                relative flex-1 p-4 border transition-all duration-300 flex flex-col justify-between h-28 group
+                relative flex-1 p-4 border transition-all duration-300 flex flex-col justify-between h-24 group rounded-sm
                 ${active
-                    ? 'border-red-600 bg-gradient-to-br from-red-950/20 to-transparent'
-                    : 'border-[#333] bg-[#0E0E0E] hover:border-[#666]'}
+                    ? 'border-red-600 bg-[#1A0505]'
+                    : 'border-[#222] bg-[#0E0E0E] hover:border-[#444]'}
             `}
         >
             <div className="flex justify-between items-start w-full">
-                <Icon className={`w-5 h-5 ${active ? 'text-red-500' : 'text-[#555] group-hover:text-[#888]'}`} />
+                <Icon className={`w-5 h-5 ${active ? 'text-red-500' : 'text-[#444] group-hover:text-[#666]'}`} />
                 {active && <div className="h-1.5 w-1.5 bg-red-500 rounded-full shadow-[0_0_8px_#EF4444]" />}
             </div>
 
             <div className="text-left">
-                <div className={`text-[10px] font-mono tracking-widest uppercase mb-1 ${active ? 'text-red-400' : 'text-[#555]'}`}>{subLabel}</div>
-                <div className={`text-sm font-bold tracking-wider uppercase ${active ? 'text-white' : 'text-[#888] group-hover:text-white'}`}>{label}</div>
+                <div className={`text-[9px] font-mono tracking-widest uppercase mb-1 ${active ? 'text-red-400' : 'text-[#555]'}`}>{subLabel}</div>
+                <div className={`text-xs font-bold tracking-wider uppercase ${active ? 'text-white' : 'text-[#777] group-hover:text-white'}`}>{label}</div>
             </div>
         </button>
     );
@@ -164,11 +177,10 @@ export default function NewProjectPage() {
     return (
         <StudioLayout>
             <style jsx global>{`
-                /* Custom Scrollbar for Dark Theme */
-                .dark-scrollbar::-webkit-scrollbar { width: 6px; }
+                .dark-scrollbar::-webkit-scrollbar { width: 4px; }
                 .dark-scrollbar::-webkit-scrollbar-track { background: #050505; }
-                .dark-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-                .dark-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+                .dark-scrollbar::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
+                .dark-scrollbar::-webkit-scrollbar-thumb:hover { background: #444; }
             `}</style>
 
             <div className="h-screen bg-[#050505] text-[#EEE] font-sans flex flex-col lg:flex-row overflow-hidden">
@@ -181,21 +193,21 @@ export default function NewProjectPage() {
                         <Link href="/dashboard" className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] text-[#555] hover:text-white mb-6 transition-colors group">
                             <ArrowLeft size={10} className="group-hover:-translate-x-1 transition-transform" /> BACK TO STUDIO
                         </Link>
-                        <h1 className="text-4xl font-display font-bold uppercase tracking-tighter text-white leading-none mb-2">
+                        <h1 className="text-3xl font-display font-bold uppercase tracking-tighter text-white leading-none mb-2">
                             New <span className="text-red-600">Production</span>
                         </h1>
-                        <p className="text-xs font-mono text-[#444] tracking-widest">SESSION_ID: {new Date().getTime().toString().slice(-6)}</p>
+                        <p className="text-[10px] font-mono text-[#444] tracking-widest">SESSION_ID: {new Date().getTime().toString().slice(-6)}</p>
                     </div>
 
                     {/* Scrollable Form */}
-                    <div className="flex-1 overflow-y-auto p-8 space-y-10 dark-scrollbar pb-32">
+                    <div className="flex-1 overflow-y-auto p-8 space-y-8 dark-scrollbar pb-32">
 
                         {/* 01. TYPE */}
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
                                 <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">01</span> FORMAT SELECTION
                             </div>
-                            <div className="flex gap-4">
+                            <div className="flex gap-3">
                                 <FormatSelector
                                     active={formData.type === 'movie'}
                                     onClick={() => setFormData({ ...formData, type: 'movie' })}
@@ -214,11 +226,11 @@ export default function NewProjectPage() {
                         </div>
 
                         {/* 02. ASPECT */}
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
                                 <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">02</span> ASPECT RATIO
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex gap-2">
                                 {[
                                     { id: '16:9', label: '16:9', sub: 'Cinema', icon: RectangleHorizontal },
                                     { id: '21:9', label: '21:9', sub: 'Wide', icon: Monitor },
@@ -227,68 +239,67 @@ export default function NewProjectPage() {
                                     <button
                                         key={opt.id}
                                         onClick={() => setFormData({ ...formData, aspect_ratio: opt.id as any })}
-                                        className={`flex-1 py-3 border flex flex-col items-center justify-center gap-2 transition-all ${formData.aspect_ratio === opt.id
-                                            ? 'border-white bg-[#1A1A1A] text-white'
-                                            : 'border-[#333] bg-[#0A0A0A] text-[#555] hover:border-[#555]'
+                                        className={`flex-1 py-3 border rounded-sm flex flex-col items-center justify-center gap-1 transition-all ${formData.aspect_ratio === opt.id
+                                            ? 'border-white bg-[#222] text-white'
+                                            : 'border-[#222] bg-[#0E0E0E] text-[#555] hover:border-[#444]'
                                             }`}
                                     >
-                                        <opt.icon size={16} />
+                                        <opt.icon size={14} />
                                         <span className="text-[10px] font-bold tracking-wider">{opt.label}</span>
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* 03. METADATA */}
-                        <div className="space-y-8">
-                            <div className="relative group">
-                                <label className="text-[10px] font-mono text-[#666] absolute -top-3 left-0 bg-[#080808] px-1 group-focus-within:text-red-500 transition-colors">
-                                    03 // PROJECT TITLE
+                        {/* 03. METADATA (VISUAL IMPROVEMENTS) */}
+                        <div className="space-y-6 pt-2">
+                            <div className="relative group bg-[#111] p-4 border border-[#222] rounded-sm focus-within:border-l-2 focus-within:border-l-red-600 transition-all">
+                                <label className="text-[9px] font-mono text-[#555] uppercase tracking-widest block mb-2 group-focus-within:text-red-500">
+                                    03 // Project Title
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    className="w-full bg-transparent border-b border-[#333] py-3 text-xl font-bold uppercase tracking-wide text-white placeholder-[#222] focus:border-red-600 focus:outline-none transition-colors"
-                                    placeholder="UNTITLED PROJECT"
+                                    className="w-full bg-transparent text-lg font-bold uppercase tracking-wide text-white placeholder-[#333] focus:outline-none"
+                                    placeholder="ENTER TITLE..."
                                     autoComplete="off"
                                 />
                             </div>
 
-                            <div className="relative group">
-                                <label className="text-[10px] font-mono text-[#666] absolute -top-3 left-0 bg-[#080808] px-1 group-focus-within:text-red-500 transition-colors">
-                                    04 // LOGLINE / GENRE
+                            <div className="relative group bg-[#111] p-4 border border-[#222] rounded-sm focus-within:border-l-2 focus-within:border-l-red-600 transition-all">
+                                <label className="text-[9px] font-mono text-[#555] uppercase tracking-widest block mb-2 group-focus-within:text-red-500">
+                                    04 // Logline & Genre
                                 </label>
                                 <textarea
                                     value={formData.genre}
                                     onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-                                    className="w-full bg-transparent border-b border-[#333] py-3 text-sm font-mono text-[#AAA] placeholder-[#222] focus:border-red-600 focus:outline-none transition-colors resize-none h-20"
-                                    placeholder="A cyberpunk detective hunts a rogue AI in Neo-Tokyo..."
+                                    className="w-full bg-transparent text-sm font-medium text-[#CCC] placeholder-[#333] focus:outline-none resize-none h-20 leading-relaxed"
+                                    placeholder="Describe the story setting, genre, and tone..."
                                 />
                             </div>
                         </div>
 
                         {/* 05. STYLE */}
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
                                 <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">05</span> RENDER ENGINE
                             </div>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                                 {[
                                     { id: 'realistic', label: 'REALISM', icon: Clapperboard },
-                                    { id: 'anime', label: 'ANIME', icon: Layers },
-                                    { id: '3d_render', label: '3D CGI', icon: Box }
+                                    { id: 'anime', label: 'ANIME', icon: Layers }
                                 ].map((s) => (
                                     <button
                                         key={s.id}
                                         onClick={() => setFormData({ ...formData, style: s.id as any })}
-                                        className={`py-3 border flex items-center justify-center gap-2 transition-all ${formData.style === s.id
-                                            ? 'border-red-600 text-red-500 bg-red-950/10'
-                                            : 'border-[#333] text-[#555] hover:text-[#888]'
+                                        className={`py-4 border rounded-sm flex items-center justify-center gap-3 transition-all ${formData.style === s.id
+                                            ? 'border-red-600 text-red-500 bg-[#1A0505]'
+                                            : 'border-[#222] text-[#555] hover:text-[#888] bg-[#0E0E0E]'
                                             }`}
                                     >
-                                        <s.icon size={14} />
-                                        <span className="text-[10px] font-bold tracking-widest">{s.label}</span>
+                                        <s.icon size={16} />
+                                        <span className="text-xs font-bold tracking-widest">{s.label}</span>
                                     </button>
                                 ))}
                             </div>
@@ -296,38 +307,39 @@ export default function NewProjectPage() {
                     </div>
                 </div>
 
-                {/* --- RIGHT: VISUAL MATRIX --- */}
+                {/* --- RIGHT: VISUAL MATRIX (Dynamic) --- */}
                 <div className="w-full lg:w-7/12 bg-[#050505] flex flex-col relative">
 
                     {/* Header */}
-                    <div className="h-16 border-b border-[#222] flex items-center justify-between px-8 bg-[#050505]/90 backdrop-blur-sm z-20 sticky top-0">
+                    <div className="h-16 border-b border-[#222] flex items-center justify-between px-8 bg-[#050505]/95 backdrop-blur-sm z-20 sticky top-0">
                         <div className="flex items-center gap-3">
-                            <Aperture className="text-red-600 animate-spin-slow" size={18} />
-                            <span className="text-xs font-bold uppercase tracking-[0.2em] text-white">Visual Matrix</span>
+                            <Aperture className="text-red-600 animate-spin-slow" size={16} />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white">Visual Matrix</span>
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="text-[9px] font-mono text-[#444]">
-                                VECTOR CODE: <span className="text-red-500">{moodSelection["A"] || "00"}-{moodSelection["B"] || "00"}-{moodSelection["C"] || "00"}</span>
+                                VECTOR: <span className="text-red-500">{moodSelection["A"] || "--"}-{moodSelection["B"] || "--"}-{moodSelection["C"] || "--"}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-8 space-y-12 dark-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-8 space-y-10 dark-scrollbar">
                         {loadingManifest ? (
                             <div className="h-full flex flex-col items-center justify-center opacity-50">
-                                <Loader2 className="animate-spin text-red-600 mb-4" size={32} />
-                                <span className="text-[10px] font-mono tracking-widest text-[#666]">DECRYPTING ASSET DATABASE...</span>
+                                <Loader2 className="animate-spin text-red-600 mb-4" size={24} />
+                                <span className="text-[10px] font-mono tracking-widest text-[#666]">ACCESSING DATABASE...</span>
                             </div>
                         ) : (
                             manifest?.axes.map((axis) => (
-                                <div key={axis.id} className="space-y-4">
-                                    <div className="flex items-end gap-4 border-b border-[#222] pb-2">
-                                        <span className="text-xl font-display font-bold uppercase text-white tracking-tight">{axis.label}</span>
-                                        <span className="text-[9px] font-mono text-red-600 mb-1">{axis.code_prefix} // {axis.description}</span>
+                                <div key={axis.id} className="space-y-3">
+                                    <div className="flex items-end gap-3 border-b border-[#1A1A1A] pb-2">
+                                        <span className="text-sm font-bold uppercase text-white tracking-widest">{axis.label}</span>
+                                        <span className="text-[9px] font-mono text-[#444] mb-0.5">// {axis.description}</span>
                                     </div>
 
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    {/* SMALLER GRID (3 cols on MD, 4 on XL) */}
+                                    <div className="grid grid-cols-3 xl:grid-cols-4 gap-3">
                                         {axis.options.map((option) => {
                                             const isSelected = moodSelection[axis.code_prefix] === option.id;
                                             return (
@@ -335,26 +347,29 @@ export default function NewProjectPage() {
                                                     key={option.id}
                                                     onClick={() => handleMoodSelect(axis.code_prefix, option)}
                                                     className={`
-                                                        relative aspect-video group overflow-hidden transition-all duration-500
-                                                        ${isSelected ? 'ring-2 ring-red-600 z-10 scale-[1.02]' : 'opacity-60 hover:opacity-100 grayscale hover:grayscale-0'}
+                                                        relative aspect-[16/10] group overflow-hidden transition-all duration-300 rounded-sm border
+                                                        ${isSelected
+                                                            ? 'border-red-600 z-10 opacity-100 ring-1 ring-red-600'
+                                                            : 'border-transparent opacity-40 hover:opacity-100 hover:border-[#444]'}
                                                     `}
                                                 >
+                                                    {/* Full Color Image Always (Removed grayscale) */}
                                                     <img
                                                         src={option.image_url}
                                                         alt={option.label}
-                                                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                                     />
 
-                                                    {/* Overlay */}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
+                                                    {/* Gradient Overlay */}
+                                                    <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent transition-opacity ${isSelected ? 'opacity-80' : 'opacity-60 group-hover:opacity-80'}`} />
 
                                                     {/* Label */}
-                                                    <div className="absolute bottom-0 left-0 w-full p-3 flex justify-between items-end">
-                                                        <div className="text-left">
-                                                            <div className={`text-[8px] font-mono ${isSelected ? 'text-red-500' : 'text-[#666]'}`}>{option.id}</div>
-                                                            <div className="text-[10px] font-bold uppercase text-white tracking-widest">{option.label}</div>
+                                                    <div className="absolute bottom-0 left-0 w-full p-2 flex justify-between items-end">
+                                                        <div className="text-left w-full">
+                                                            <div className={`text-[7px] font-mono mb-0.5 ${isSelected ? 'text-red-500' : 'text-[#888]'}`}>{option.id}</div>
+                                                            <div className="text-[9px] font-bold uppercase text-white tracking-wider truncate">{option.label}</div>
                                                         </div>
-                                                        {isSelected && <div className="h-1.5 w-1.5 bg-red-600 rounded-full shadow-[0_0_10px_#EF4444]" />}
+                                                        {isSelected && <div className="h-1 w-1 bg-red-600 rounded-full shadow-[0_0_5px_#EF4444] mb-1 mr-1" />}
                                                     </div>
                                                 </button>
                                             );
@@ -370,9 +385,9 @@ export default function NewProjectPage() {
                         <MotionButton
                             onClick={handleSubmit}
                             loading={creating}
-                            className="w-full md:w-auto px-12 py-6 text-sm tracking-[0.2em] font-bold bg-red-600 hover:bg-red-700 text-white"
+                            className="w-full md:w-auto px-10 py-4 text-xs tracking-[0.2em] font-bold bg-red-600 hover:bg-red-700 text-white rounded-sm"
                         >
-                            INITIALIZE SYSTEM <ChevronRight size={14} className="ml-2" />
+                            INITIALIZE SYSTEM <ChevronRight size={12} className="ml-2" />
                         </MotionButton>
                     </div>
                 </div>
