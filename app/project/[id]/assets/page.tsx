@@ -167,9 +167,9 @@ export default function AssetManagerPage() {
             let finalPrompt = customPrompt;
             if (!finalPrompt) {
                 if (asset.type === 'location') {
-                    finalPrompt = constructLocationPrompt(asset.name, (asset as any).visual_traits, (asset as any).visual_traits, (project as any)?.genre || "cinematic", project?.moodboard?.lighting || "realistic");
+                    finalPrompt = constructLocationPrompt(asset.name, (asset as any).visual_traits, (asset as any).visual_traits, (project as any)?.genre || "", project?.moodboard?.lighting || "");
                 } else {
-                    finalPrompt = constructCharacterPrompt(asset.name, (asset as any).visual_traits, (asset as any).visual_traits, (project as any)?.genre || "cinematic", project?.moodboard?.lighting || "realistic");
+                    finalPrompt = constructCharacterPrompt(asset.name, (asset as any).visual_traits, (asset as any).visual_traits, (project as any)?.genre || "", project?.moodboard?.lighting || "");
                 }
             }
 
@@ -394,8 +394,8 @@ export default function AssetManagerPage() {
                     onGenerate={(prompt, useRef) => handleGenerate(selectedAsset, prompt, useRef)}
 
                     onCreateAndGenerate={handleCreateAndGenerate}
-                    genre={(project as any)?.genre || "cinematic"}
-                    style={project?.moodboard?.lighting || "realistic"}
+                    genre={(project as any)?.genre}
+                    style={(project as any)?.style}
                     onUpload={() => { }}
                     onUpdateTraits={(data) => handleSaveAsset(selectedAsset, data)}
                     onLinkVoice={async () => { }}

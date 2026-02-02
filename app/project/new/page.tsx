@@ -51,7 +51,7 @@ export default function NewProjectPage() {
         genre: "",
         type: "movie" as "movie" | "micro_drama",
         aspect_ratio: "16:9" as "16:9" | "21:9" | "9:16",
-        style: "realistic" as "realistic" | "anime" | "3d_render",
+        style: "realistic" as "realistic" | "anime",
     });
 
     // 3. Mood Selection State

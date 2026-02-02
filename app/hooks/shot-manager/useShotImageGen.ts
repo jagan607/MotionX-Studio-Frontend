@@ -40,8 +40,7 @@ export const useShotImageGen = (
             const pSnap = await getDoc(projectRef);
             if (pSnap.exists()) {
                 const data = pSnap.data();
-                const mb = data.moodboard || {};
-                style = mb.style || data.style || "Cinematic, Realistic";
+                style = data.style || "Cinematic, Realistic";
                 genre = data.genre || "Drama";
             }
         } catch (e) { console.warn("Failed to fetch project style", e); }

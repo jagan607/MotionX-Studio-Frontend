@@ -259,8 +259,8 @@ export default function SceneManagerPage() {
             })) || [];
 
             const contextPayload = {
-                project_genre: (project as any)?.genre || "Cinematic",
-                project_style: (project as any)?.style || "Realistic",
+                project_genre: (project as any)?.genre,
+                project_style: (project as any)?.style,
                 previous_scene_summary: prevScene ? prevScene.summary : "Start of Episode",
                 next_scene_header: nextScene ? nextScene.header : "End of Episode",
                 characters: targetScene.cast_ids || [],
