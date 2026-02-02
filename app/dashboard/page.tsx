@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { collection, getDocs, query, where, orderBy, limit, collectionGroup, doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Plus, Film, Radio, Image as ImageIcon, Crosshair, Disc, Maximize, Signal, Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { DashboardProject, fetchUserDashboardProjects, fetchGlobalFeed } from "@/lib/api"; // Updated Imports
 
 const DEFAULT_SHOWREEL = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
 
 export default function Dashboard() {
     const [userCredits, setUserCredits] = useState<number | null>(null);
-    const [mySeries, setMySeries] = useState<any[]>([]);
+    const [myProjects, setMyProjects] = useState<DashboardProject[]>([]);
     const [globalShots, setGlobalShots] = useState<any[]>([]);
     const [activeProjectIndex, setActiveProjectIndex] = useState(0);
     const [bootState, setBootState] = useState<'booting' | 'ready'>('booting');
@@ -24,7 +25,6 @@ export default function Dashboard() {
     const filmStripRef = useRef<HTMLDivElement>(null);
 
     // --- SCROLLBAR HIDING STYLES ---
-    // We inject this to ensure NO scrollbars appear anywhere in this specific dashboard
     useEffect(() => {
         const style = document.createElement('style');
         style.innerHTML = `
@@ -46,9 +46,17 @@ export default function Dashboard() {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // Real-time Credits listener (Kept separate as it needs to be live)
                 onSnapshot(doc(db, "users", user.uid), (d) => setUserCredits(d.data()?.credits || 0));
-                await fetchUserProjects(user.uid);
-                await fetchGlobalFeed();
+
+                // Fetch Data using API Helpers
+                const [projects, feed] = await Promise.all([
+                    fetchUserDashboardProjects(user.uid),
+                    fetchGlobalFeed()
+                ]);
+
+                setMyProjects(projects);
+                setGlobalShots(feed);
                 setBootState('ready');
             } else {
                 router.replace("/login");
@@ -58,11 +66,9 @@ export default function Dashboard() {
     }, [router]);
 
     // --- SCROLL HANDLERS ---
-
-    // 1. Button Click Scroll
     const scrollFilmStrip = (direction: 'left' | 'right') => {
         if (filmStripRef.current) {
-            const scrollAmount = 300; // Pixel amount to scroll
+            const scrollAmount = 300;
             filmStripRef.current.scrollBy({
                 left: direction === 'left' ? -scrollAmount : scrollAmount,
                 behavior: 'smooth'
@@ -70,47 +76,13 @@ export default function Dashboard() {
         }
     };
 
-    // 2. Mouse Wheel Horizontal Scroll
     const handleFilmStripWheel = (e: React.WheelEvent) => {
         if (filmStripRef.current) {
             filmStripRef.current.scrollLeft += e.deltaY;
         }
     };
 
-    const fetchUserProjects = async (uid: string) => {
-        try {
-            const snap = await getDocs(query(collection(db, "series"), where("owner_id", "==", uid), orderBy("created_at", "desc")))
-                .catch(() => getDocs(query(collection(db, "series"), where("owner_id", "==", uid))));
-            const seriesData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-
-            const enriched = await Promise.all(seriesData.map(async (s: any) => {
-                let vid = null, img = s.cover_image || null;
-                try {
-                    const eps = await getDocs(query(collection(db, "series", s.id, "episodes"), limit(1)));
-                    if (!eps.empty) {
-                        const scs = await getDocs(query(collection(db, "series", s.id, "episodes", eps.docs[0].id, "scenes"), limit(1)));
-                        if (!scs.empty) {
-                            const shs = await getDocs(query(collection(db, "series", s.id, "episodes", eps.docs[0].id, "scenes", scs.docs[0].id, "shots"), where("status", "==", "rendered"), limit(3)));
-                            vid = shs.docs.find(d => d.data().video_url)?.data().video_url || null;
-                            if (!img) img = shs.docs.find(d => d.data().image_url)?.data().image_url || null;
-                        }
-                    }
-                } catch (e) { }
-                return { ...s, previewVideo: vid, previewImage: img };
-            }));
-            setMySeries(enriched);
-        } catch (e) { }
-    };
-
-    const fetchGlobalFeed = async () => {
-        try {
-            const snap = await getDocs(query(collectionGroup(db, 'shots'), limit(40)));
-            let valid = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter((s: any) => s.image_url || s.video_url);
-            setGlobalShots(valid.sort(() => 0.5 - Math.random()));
-        } catch (e) { }
-    };
-
-    const activeProject = mySeries[activeProjectIndex];
+    const activeProject = myProjects[activeProjectIndex];
     const filteredGlobal = globalShots.filter(s => {
         if (filter === 'MOTION') return !!s.video_url;
         if (filter === 'STATIC') return !s.video_url;
@@ -156,7 +128,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className="absolute inset-0 bg-[#0a0a0a]">
-                            {activeProject || mySeries.length === 0 ? (
+                            {activeProject || myProjects.length === 0 ? (
                                 <>
                                     {activeProject?.previewVideo ? (
                                         <video key={activeProject.id} autoPlay loop muted playsInline className="w-full h-full object-cover opacity-90" src={activeProject.previewVideo} />
@@ -170,7 +142,7 @@ export default function Dashboard() {
                                         <div className="flex items-end justify-between">
                                             <div>
                                                 <span className="bg-[#FF0000] text-black text-[9px] font-bold px-2 py-0.5 font-mono rounded-sm mr-3 uppercase inline-block mb-2">
-                                                    {activeProject ? "PROJECT_FOCUS" : "DEMO_MODE"}
+                                                    {activeProject ? (activeProject.type === 'movie' ? "FEATURE_FILM" : "SERIES") : "DEMO_MODE"}
                                                 </span>
                                                 <h1 className="text-5xl font-anton uppercase text-white leading-none drop-shadow-md">
                                                     {activeProject ? activeProject.title : "WELCOME STUDIO"}
@@ -178,7 +150,7 @@ export default function Dashboard() {
                                             </div>
 
                                             {activeProject && (
-                                                <Link href={`/series/${activeProject.id}`}>
+                                                <Link href={`/project/${activeProject.id}/studio`}>
                                                     <button className="bg-white text-black px-8 py-3 font-bold text-xs uppercase tracking-[2px] hover:bg-[#FF0000] hover:text-white transition-colors duration-300 flex items-center gap-3 cursor-pointer">
                                                         ENTER PRODUCTION <Maximize size={14} />
                                                     </button>
@@ -195,7 +167,7 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* FILM STRIP CONTAINER WITH BUTTONS */}
+                    {/* FILM STRIP CONTAINER */}
                     <div className="h-[160px] relative group/strip shrink-0">
 
                         {/* LEFT SCROLL BUTTON */}
@@ -206,26 +178,29 @@ export default function Dashboard() {
                             <ChevronLeft size={32} />
                         </button>
 
-                        {/* SCROLLABLE AREA - Added 'no-scrollbar' class */}
+                        {/* SCROLLABLE AREA */}
                         <div
                             ref={filmStripRef}
                             onWheel={handleFilmStripWheel}
-                            className="h-full flex gap-4 overflow-x-auto overflow-y-hidden no-scrollbar pb-1 items-center select-none px-1"
+                            className="h-full flex gap-4 overflow-x-auto overflow-y-hidden no-scrollbar pb-1 items-center select-none px-1 scroll-smooth"
                         >
-                            <Link href="/series/new" className="shrink-0 aspect-[16/9] h-full border border-dashed border-[#333] bg-[#0A0A0A] flex flex-col items-center justify-center text-[#444] hover:text-[#FF0000] hover:border-[#FF0000] hover:bg-[#0f0f0f] transition-all group rounded-sm">
+                            <Link href="/project/new" className="shrink-0 aspect-[16/9] h-full border border-dashed border-[#333] bg-[#0A0A0A] flex flex-col items-center justify-center text-[#444] hover:text-[#FF0000] hover:border-[#FF0000] hover:bg-[#0f0f0f] transition-all group rounded-sm">
                                 <Plus size={24} className="group-hover:scale-110 transition-transform" />
                                 <span className="text-[9px] font-mono mt-3 uppercase tracking-[2px]">NEW_SLATE</span>
                             </Link>
 
-                            {mySeries.map((s, i) => (
+                            {myProjects.map((p, i) => (
                                 <div
-                                    key={s.id}
+                                    key={p.id}
                                     onClick={() => setActiveProjectIndex(i)}
                                     className={`shrink-0 aspect-[16/9] h-full bg-black border cursor-pointer relative overflow-hidden transition-all duration-300 ${activeProjectIndex === i ? 'border-[#FF0000] scale-[1.0] z-10 shadow-[0_0_15px_rgba(255,0,0,0.2)] opacity-100' : 'border-[#222] opacity-60 hover:opacity-100 hover:border-[#444]'}`}
                                 >
-                                    {s.previewImage ? <img src={s.previewImage} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-[#111]"><Film size={20} className="opacity-20" /></div>}
-                                    <div className="absolute bottom-0 p-2 w-full bg-gradient-to-t from-black to-transparent">
-                                        <span className="text-white text-[9px] font-bold uppercase tracking-widest truncate block">{s.title}</span>
+                                    {p.previewImage ? <img src={p.previewImage} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-[#111]"><Film size={20} className="opacity-20" /></div>}
+                                    <div className="absolute bottom-0 p-2 w-full bg-gradient-to-t from-black to-transparent flex justify-between items-center">
+                                        <span className="text-white text-[9px] font-bold uppercase tracking-widest truncate block max-w-[70%]">{p.title}</span>
+                                        <span className="text-[8px] font-mono text-[#666] uppercase bg-black/50 px-1 rounded">
+                                            {p.type === 'movie' ? 'MOV' : 'SER'}
+                                        </span>
                                     </div>
                                 </div>
                             ))}
@@ -241,7 +216,7 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* RIGHT FEED STREAM - Added 'no-scrollbar' class */}
+                {/* RIGHT FEED STREAM */}
                 <div className="w-[320px] border-l border-[#222] pl-6 flex flex-col shrink-0 h-full overflow-hidden">
                     <div className="flex items-center justify-between mb-4 shrink-0 h-8 font-mono">
                         <span className="text-[10px] text-[#888] uppercase tracking-[2px] flex items-center gap-2"><Radio size={12} className={globalShots.length > 0 ? "text-[#FF0000] animate-pulse" : "text-[#333]"} /> FEED_STREAM</span>

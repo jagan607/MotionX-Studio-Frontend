@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { TimelineBoard } from "./TimelineBoard";
 import { useEpisodeData } from "../hooks/useEpisodeData";
-import { useShotManager } from "../hooks/useShotManager";
+// import { useShotManager } from "../hooks/useShotManager";
 
 export default function TimelinePage() {
     const params = useParams() as { id: string; episodeId: string };
@@ -26,7 +26,7 @@ export default function TimelinePage() {
     }, [loading, scenes, searchParams]);
 
     // 3. Load Shots
-    const shotMgr = useShotManager(params.id, params.episodeId, activeSceneId);
+    // const shotMgr = useShotManager(params.id, params.episodeId, activeSceneId);
 
     if (loading || !activeSceneId) {
         return <div className="h-screen w-screen bg-[#090909] text-white flex items-center justify-center"><Loader2 className="animate-spin mr-2" /> LOADING STUDIO...</div>;
@@ -56,12 +56,12 @@ export default function TimelinePage() {
 
             {/* The Editor */}
             <div className="flex-1 overflow-hidden">
-                <TimelineBoard
+                {/* <TimelineBoard
                     seriesId={params.id}
                     episodeId={params.episodeId}
                     sceneId={activeSceneId}
                     shots={shotMgr.shots}
-                />
+                /> */}
             </div>
         </main>
     );

@@ -11,9 +11,9 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
     const [castMembers, setCastMembers] = useState<CharacterProfile[]>([]);
 
     // --- LOCATION STATES ---
-    const [uniqueLocs, setUniqueLocs] = useState<string[]>([]); // Just the names (from script headers)
-    const [locations, setLocations] = useState<LocationProfile[]>([]); // The Full DB Objects
-    const [locationImages, setLocationImages] = useState<Record<string, string>>({}); // Legacy Map (ID -> URL)
+    const [uniqueLocs, setUniqueLocs] = useState<string[]>([]);
+    const [locations, setLocations] = useState<LocationProfile[]>([]);
+    const [locationImages, setLocationImages] = useState<Record<string, string>>({});
 
     const [loading, setLoading] = useState(true);
 
@@ -23,20 +23,26 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
         const fetchData = async () => {
             setLoading(true);
             try {
+                // NOTE: Check if your DB uses 'projects' or 'series' collection. 
+                // Using 'projects' based on your recent backend refactor.
+                const collectionName = "projects";
+
                 // A. FETCH EPISODE METADATA
-                const epRef = doc(db, "series", seriesId, "episodes", episodeId);
+                const epRef = doc(db, collectionName, seriesId, "episodes", episodeId);
                 const epDoc = await getDoc(epRef);
 
-                const seriesRef = doc(db, "series", seriesId);
+                const seriesRef = doc(db, collectionName, seriesId);
                 const seriesDoc = await getDoc(seriesRef);
 
                 if (!epDoc.exists()) return;
                 const epData = epDoc.data();
-                setEpisodeData(epData);
 
+                // Merge Series Metadata (Title, etc) into Episode Data
                 if (seriesDoc.exists()) {
                     const seriesData = seriesDoc.data();
-                    setEpisodeData({ ...epData, ...seriesData });
+                    setEpisodeData({ ...seriesData, ...epData });
+                } else {
+                    setEpisodeData(epData);
                 }
 
                 // B. FETCH SCENES
@@ -46,13 +52,13 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                 scenesData.sort((a, b) => a.scene_number - b.scene_number);
                 setScenes(scenesData);
 
-                // C. FETCH GLOBAL CHARACTERS (Optimized Batch Fetch)
+                // C. FETCH GLOBAL CHARACTERS
                 const castIds: string[] = epData.cast_ids || [];
 
                 if (castIds.length > 0) {
-                    const charRef = collection(db, "series", seriesId, "characters");
+                    const charRef = collection(db, collectionName, seriesId, "characters");
 
-                    // Batch request in chunks of 10 (Firestore 'IN' query limit)
+                    // Batch request in chunks of 10
                     const chunks = [];
                     for (let i = 0; i < castIds.length; i += 10) {
                         chunks.push(castIds.slice(i, i + 10));
@@ -66,12 +72,19 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
 
                         snap.forEach(doc => {
                             const data = doc.data();
+
+                            // --- FIX: Explicitly map required fields ---
                             fetchedChars.push({
-                                id: doc.id, // CRITICAL: Use the stable Firestore Document ID
+                                id: doc.id,
+                                name: data.name || "Unknown Character",
+                                type: 'character',          // Explicitly set type
+                                project_id: seriesId,       // Explicitly map seriesId
+                                image_url: data.image_url || "",
+                                status: data.status || 'active',
+                                visual_traits: data.visual_traits || {},
+                                voice_config: data.voice_config || {},
+                                // Spread rest of data to catch any custom fields
                                 ...data,
-                                face_sample_url: data.face_sample_url || data.image_url || "",
-                                // Ensure visual_traits is passed. Default to empty object if missing.
-                                visual_traits: data.visual_traits || {}
                             } as CharacterProfile);
                         });
                     }
@@ -80,14 +93,12 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                     setCastMembers([]);
                 }
 
-                // D. LOCATIONS (Updated Logic)
-                // 1. Extract unique names from the Script Scenes for display
+                // D. LOCATIONS
                 const locs = new Set<string>();
                 scenesData.forEach((s: any) => { if (s.location) locs.add(s.location); });
                 setUniqueLocs(Array.from(locs));
 
-                // 2. Fetch stored Location Profiles from Firestore
-                const locSnapshot = await getDocs(collection(db, "series", seriesId, "locations"));
+                const locSnapshot = await getDocs(collection(db, collectionName, seriesId, "locations"));
 
                 const fetchedLocations: LocationProfile[] = [];
                 const locMap: Record<string, string> = {};
@@ -95,19 +106,19 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
                 locSnapshot.forEach(doc => {
                     const data = doc.data();
 
-                    // Build the full object
                     const locObj: LocationProfile = {
-                        id: doc.id, // CRITICAL: Use the stable Firestore Document ID
-                        ...data, // This spreads top-level fields like terrain, atmosphere, lighting
+                        id: doc.id,
                         name: data.name || doc.id,
+                        type: 'location',           // Explicitly set type
+                        project_id: seriesId,       // Explicitly set ID
                         image_url: data.image_url || "",
-                        visual_traits: data.visual_traits || [], // Default to array for locations
-                        status: data.status || 'active'
+                        visual_traits: data.visual_traits || {},
+                        status: data.status || 'active',
+                        ...data
                     } as LocationProfile;
 
                     fetchedLocations.push(locObj);
 
-                    // Build map (ID -> Image URL) for the grid view
                     if (data.image_url) locMap[doc.id] = data.image_url;
                 });
 
@@ -129,10 +140,10 @@ export const useEpisodeData = (seriesId: string, episodeId: string) => {
         scenes,
         castMembers,
         setCastMembers,
-        uniqueLocs,      // List of strings (Scene headers)
-        locations,       // List of Objects (Full DB Profile)
-        setLocations,    // Setter for updates
-        locationImages,  // Map (ID -> URL)
+        uniqueLocs,
+        locations,
+        setLocations,
+        locationImages,
         setLocationImages,
         loading
     };

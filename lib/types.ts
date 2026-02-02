@@ -1,48 +1,110 @@
+// --- 1. SHARED TRAITS (Matches Backend) ---
+export interface CharacterVisualTraits {
+    age: string;
+    ethnicity: string;
+    hair: string;
+    clothing: string;
+    vibe: string;
+}
+
+export interface LocationVisualTraits {
+    terrain: string;      // e.g. "indoor", "outdoor"
+    atmosphere: string;   // e.g. "tense", "cozy"
+    lighting: string;     // e.g. "dim flickering light"
+    keywords: string;     // Comma-separated string (e.g. "messy, neon, cramped")
+}
+
+// --- 2. MOODBOARD ---
+export interface Moodboard {
+    [key: string]: any; // Allows dynamic keys (color, lighting, texture, etc.)
+}
+
+// --- 3. ASSET PROFILES ---
 export interface CharacterProfile {
     id: string;
     name: string;
-    face_sample_url?: string;
+    type: "character";
+    project_id: string;
+
     image_url?: string;
+    ref_image_url?: string; // <--- NEW: Reference Image URL
+
+    visual_traits: CharacterVisualTraits;
+    voice_sample?: string;
+    voice_suggestion?: string;
     voice_config?: {
         voice_id?: string;
         voice_name?: string;
         provider?: string;
-        suggestion?: string; // AI voice suggestion
+        stability?: number;
+        similarity_boost?: number;
+        suggestion?: string;
     };
-    status?: string;
-    visual_traits?: any;
+
+    status?: "pending" | "processing" | "generating" | "active" | "failed";
+    prompt?: string;
     base_prompt?: string;
+    created_at?: any;
 }
 
 export interface LocationProfile {
     id: string;
-    name: string;           // Maps to "name" (Full Header)
-    raw_name?: string;      // Maps to "raw_name" (Core Name)
+    name: string;
+    type: "location";
+    project_id: string;
+
     image_url?: string;
+    ref_image_url?: string; // <--- NEW: Reference Image URL
 
-    // Core traits extracted by AI
-    visual_traits?: string[];
-    atmosphere?: string;    // Maps to "atmosphere"
-    lighting?: string;      // Maps to "lighting"
-    terrain?: 'indoor' | 'outdoor' | string; // Maps to "terrain"
-
+    visual_traits: LocationVisualTraits;
+    status?: "pending" | "processing" | "generating" | "active" | "failed";
+    prompt?: string;
     base_prompt?: string;
-    description?: string;   // Composite description used by the backend
-    status?: 'active' | 'draft' | 'script_detected' | 'auto_detected' | string;
+    created_at?: any;
 }
 
-// --- NEW: SHOT INTERFACE ---
+// --- 4. THE UNIFIED ASSET TYPE ---
+export type Asset = CharacterProfile | LocationProfile;
+
+// --- 5. PROJECT INTERFACE ---
+export interface Project {
+    id: string;
+    title: string;
+    type: 'movie' | 'micro_drama';
+    default_episode_id?: string;
+    aspect_ratio?: string;
+    genre?: string;
+    moodboard?: Moodboard;
+    created_at?: any;
+    updated_at?: any;
+    user_id?: string;
+}
+
+// --- 6. SCENE & SHOT INTERFACES ---
+export interface Scene {
+    id: string;
+    scene_number: number;
+    header: string;
+    summary: string;
+    location_id: string; // Links to LocationProfile ID
+    characters: string[]; // List of Character Names or IDs
+    time: string;
+    visual_prompt: string;
+    dialogue?: Record<string, string>; // JSON Object: { "MAYA": "Hello" }
+    status: "draft" | "approved";
+}
+
 export interface Shot {
     id: string;
     shot_type: string;
 
     // Prompts
-    visual_action: string;      // Mapped from 'image_prompt' (Static)
-    video_prompt?: string;      // Mapped from 'video_prompt' (Motion) - NEW
+    visual_action: string;
+    video_prompt?: string;
 
     // Context
-    location?: string;          // NEW
-    characters: string[];       // Array of Character Names
+    location_id?: string;
+    characters: string[];
 
     // Media & Status
     image_url?: string;

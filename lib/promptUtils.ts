@@ -1,42 +1,69 @@
-// lib/promptUtils.ts
-
-
 // --- LOCATION PROMPT BUILDER ---
 export const constructLocationPrompt = (
     locationName: string,
-    visualTraits: string[] | any, // Can be array or object depending on legacy data
+    visualTraits: string | string[] | any, // Expanded to handle String (UI), Array (DB), or Object (Legacy/Type)
     allTraits: any, // The full flat object containing atmosphere, lighting, terrain
     genre: string,
     style: string
 ): string => {
-    // 1. Base Identity
-    let prompt = `Cinematic wide shot of ${locationName.toUpperCase()}.`;
+    // 1. Analyze Name (Parse INT./EXT.)
+    let subject = locationName;
+    let context = "wide shot"; // default
 
-    // 2. Atmosphere & Lighting (The "Vibe")
+    const upperName = locationName.toUpperCase();
+    if (upperName.includes("INT.") || upperName.includes("INTERIOR")) {
+        subject = locationName.replace(/INT\.|INTERIOR/gi, "").trim();
+        context = "cinematic interior shot";
+    } else if (upperName.includes("EXT.") || upperName.includes("EXTERIOR")) {
+        subject = locationName.replace(/EXT\.|EXTERIOR/gi, "").trim();
+        context = "cinematic exterior wide shot";
+    }
+
+    // 2. Base Identity (Force "Empty")
+    let prompt = `${context} of an empty ${subject}`;
+
+    // 3. Terrain/Setting (Grounding)
+    if (allTraits.terrain) prompt += `, situated in ${allTraits.terrain}`;
+
+    prompt += "."; // End subject clause
+
+    // 4. Specific Visual Details (The "Ingredients")
+    let details: string[] = [];
+
+    if (typeof visualTraits === 'string') {
+        // Handle live string input from UI (e.g. "mist, dark")
+        details = visualTraits.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    }
+    else if (Array.isArray(visualTraits)) {
+        // Handle DB Array (e.g. ["mist", "dark"])
+        details = visualTraits;
+    }
+    else if (visualTraits && typeof visualTraits === 'object') {
+        // Handle Legacy or Typed Objects
+        if (visualTraits.environment) details.push(visualTraits.environment);
+        if (visualTraits.architectural_style) details.push(visualTraits.architectural_style);
+
+        // Handle 'LocationVisualTraits' interface (keywords property)
+        if (visualTraits.keywords) {
+            const kw = Array.isArray(visualTraits.keywords)
+                ? visualTraits.keywords
+                : visualTraits.keywords.split(',');
+            details = [...details, ...kw];
+        }
+    }
+
+    if (details.length > 0) prompt += ` Visual Details: ${details.join(', ')}.`;
+
+    // 5. Atmosphere & Lighting (The "Vibe")
     if (allTraits.atmosphere) prompt += ` Atmosphere: ${allTraits.atmosphere}.`;
     if (allTraits.lighting) prompt += ` Lighting: ${allTraits.lighting}.`;
 
-    // 3. Specific Visual Details (The "Ingredients")
-    // Handle if visualTraits is an array (new schema) or object (legacy fallback)
-    if (Array.isArray(visualTraits) && visualTraits.length > 0) {
-        prompt += ` Visual details: ${visualTraits.join(', ')}.`;
-    } else if (visualTraits && typeof visualTraits === 'object' && !Array.isArray(visualTraits)) {
-        // Fallback for any legacy object structure
-        const details = [];
-        if (visualTraits.environment) details.push(visualTraits.environment);
-        if (visualTraits.architectural_style) details.push(visualTraits.architectural_style);
-        if (details.length > 0) prompt += ` Visual details: ${details.join(', ')}.`;
-    }
-
-    // 4. Terrain/Setting
-    if (allTraits.terrain) prompt += ` Setting: ${allTraits.terrain}.`;
-
-    // 5. Genre & Style
+    // 6. Style & Genre (Aesthetic wrapper)
     if (genre) prompt += ` Genre: ${genre}.`;
     if (style) prompt += ` Style: ${style}.`;
 
-    // 6. Hardcoded Stylistic Suffix (Ensures high quality)
-    prompt += "Detailed facial features, dramatic lighting, 8k";
+    // 7. FINAL SAFETY LOCK (Negative constraints as positive text for DALL-E)
+    prompt += " Scene must be completely empty, devoid of people, no characters, architectural photography.";
 
     return prompt;
 };
@@ -75,13 +102,9 @@ export const constructCharacterPrompt = (
         prompt += ` Description: ${allTraits.physical_description}.`;
     }
 
-    // retrieve genre and style from the series DB using getStorage in firebase.ts and append to the prompt
-    // storage is a function in firebase.ts that returns the series data
+    // 5. Genre & Style (Passed dynamically from Project Config)
     if (genre) prompt += ` Genre: ${genre}.`;
     if (style) prompt += ` Style: ${style}.`;
-
-    // 5. Hardcoded Stylistic Suffix
-    prompt += " Detailed facial features, dramatic lighting, 8k";
 
     return prompt;
 };

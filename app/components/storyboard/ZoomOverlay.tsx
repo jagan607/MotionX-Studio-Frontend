@@ -18,6 +18,7 @@ export const ZoomOverlay: React.FC<ZoomOverlayProps> = ({ media, onClose, styles
     // Reset state when opening new media
     useEffect(() => {
         if (media) {
+            console.log("media", media);
             // Default to original URL when opening
             setCurrentUrl(media.url);
             setMode('original');

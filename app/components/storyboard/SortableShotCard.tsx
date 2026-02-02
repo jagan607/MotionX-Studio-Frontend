@@ -1,18 +1,14 @@
 "use client";
 
+import React, { useState, useRef, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film, RefreshCw,
-    ChevronDown, ImagePlus, Mic2, Link2, Plus, ArrowRight, Lock,
-    CheckCircle2,
-    Wand2,
-    Loader2,
-    Palette
+    ImagePlus, Mic2, Link2, Plus, CheckCircle2,
+    Wand2, Loader2, Palette
 } from "lucide-react";
-import { useState, useRef, useEffect } from 'react';
 import imageCompression from 'browser-image-compression';
-import { toastError } from "@/lib/toast";
 
 interface CastMember { id: string; name: string; }
 interface Location { id: string; name: string; }
@@ -39,9 +35,11 @@ interface SortableShotCardProps {
     castMembers: CastMember[];
     locations: Location[];
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
+
     // UPDATED: Now accepts provider string
     onRender: (referenceFile?: File | null, provider?: 'gemini' | 'seedream') => void;
     onAnimate: (provider: 'kling' | 'seedance', endFrameUrl?: string | null) => void;
+
     onFinalize: () => void;
     isRendering: boolean;
     onExpand: () => void;
@@ -76,7 +74,7 @@ export const SortableShotCard = ({
 
     // --- PROVIDER STATES ---
     const [videoProvider, setVideoProvider] = useState<'kling' | 'seedance'>('kling');
-    const [imageProvider, setImageProvider] = useState<'gemini' | 'seedream'>('gemini'); // Default to Gemini
+    const [imageProvider, setImageProvider] = useState<'gemini' | 'seedream'>('gemini');
 
     // Use DB state, fallback to false
     const isLinked = shot.morph_to_next === true;
@@ -91,23 +89,32 @@ export const SortableShotCard = ({
     // Validation
     const hasImage = Boolean(shot.image_url);
     const hasVideo = Boolean(shot.video_url);
+    // Only allow linking if current shot has image, next shot has image, using Kling, and not already chained
     const canLink = hasImage && Boolean(nextShotImage) && videoProvider === 'kling' && !isMorphedByPrev;
 
-    const handleCharToggle = (charName: string) => {
+    // --- FIX: CAST TOGGLE LOGIC ---
+    // Now uses ID instead of Name to match DB structure
+    const handleCharToggle = (charId: string) => {
         if (isMorphedByPrev) return;
         const current = Array.isArray(shot.characters) ? shot.characters : [];
-        const normChar = normalize(charName);
-        const updated = current.some((c) => normalize(c) === normChar)
-            ? current.filter((c) => normalize(c) !== normChar)
-            : [...current, charName];
+
+        // Check if the ID is already present
+        const isPresent = current.includes(charId);
+
+        let updated;
+        if (isPresent) {
+            updated = current.filter((c) => c !== charId);
+        } else {
+            updated = [...current, charId];
+        }
+
         onUpdateShot(shot.id, "characters", updated);
     };
 
     // Ref Image Upload
     const [refFile, setRefFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [isCompressing, setIsCompressing] = useState(false);
+    const [, setIsCompressing] = useState(false);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -115,7 +122,6 @@ export const SortableShotCard = ({
             try {
                 const compressed = await imageCompression(e.target.files[0], { maxSizeMB: 1, maxWidthOrHeight: 1500, useWebWorker: true });
                 setRefFile(compressed);
-                setPreviewUrl(URL.createObjectURL(compressed));
             } finally { setIsCompressing(false); }
         }
     };
@@ -167,7 +173,7 @@ export const SortableShotCard = ({
     });
 
     return (
-        <div ref={setNodeRef} style={{ ...styles.shotCard, ...dragStyle, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        <div ref={setNodeRef} style={{ ...styles?.shotCard, ...dragStyle, position: 'relative', display: 'flex', flexDirection: 'column' }}>
 
             {/* --- LOCKED OVERLAY LABEL --- */}
             {isMorphedByPrev && (
@@ -262,9 +268,30 @@ export const SortableShotCard = ({
                 <label style={labelStyle}>CASTING</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {castMembers.map((char) => {
-                        const isActive = Array.isArray(shot.characters) && shot.characters.some((c) => normalize(c) === normalize(char.name));
+                        // FIX: Check for ID primarily, with fallback to Name normalization for legacy data
+                        const isActive = Array.isArray(shot.characters) && (
+                            shot.characters.includes(char.id) ||
+                            shot.characters.some(c => normalize(c) === normalize(char.name))
+                        );
+
+                        // Using styles.charToggle safe access
+                        const baseStyle = styles?.charToggle ? styles.charToggle(isActive) : {};
+
                         return (
-                            <button disabled={isMorphedByPrev} key={char.id} onClick={() => handleCharToggle(char.name)} style={{ ...styles.charToggle(isActive), fontSize: '10px', padding: '4px 10px', borderRadius: '4px', opacity: isMorphedByPrev ? 0.5 : 1 }}>
+                            <button
+                                disabled={isMorphedByPrev}
+                                key={char.id}
+                                // FIX: Use char.id for toggling
+                                onClick={() => handleCharToggle(char.id)}
+                                style={{
+                                    ...baseStyle,
+                                    fontSize: '10px', padding: '4px 10px', borderRadius: '4px', opacity: isMorphedByPrev ? 0.5 : 1,
+                                    border: '1px solid #333',
+                                    backgroundColor: isActive ? '#FF0000' : 'transparent',
+                                    color: isActive ? 'white' : '#666',
+                                    cursor: 'pointer'
+                                }}
+                            >
                                 {char.name}
                             </button>
                         );
