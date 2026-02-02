@@ -9,7 +9,7 @@ import {
     SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { useRouter } from "next/navigation";
-import { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 
 // --- INTERNAL SIBLING IMPORTS ---
 import { ShotImage } from "./ShotImage";
@@ -17,6 +17,7 @@ import { InpaintEditor } from "./InpaintEditor";
 import { SortableShotCard } from "./SortableShotCard";
 import { SceneContextStrip } from "./SceneContextStrip";
 import { LipSyncModal } from "./LipSyncModal";
+import { DownloadModal } from "./DownloadModal";
 import { styles } from "./BoardStyles";
 
 // --- GLOBAL UI IMPORTS ---
@@ -49,15 +50,14 @@ interface StoryboardOverlayProps {
     onApplyInpaint: any;
     onClose: () => void;
     onZoom: any;
-    onDownload: any;
-    onDeleteShot: any; // Original handler from parent
+    onDownload: any; // Kept for logging/analytics if needed
+    onDeleteShot: any;
 
     // Tour Props
     tourStep: number;
     onTourNext: () => void;
     onTourComplete: () => void;
 
-    // Optional styles prop override
     styles?: any;
 }
 
@@ -84,14 +84,69 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [pendingSummary, setPendingSummary] = useState<string | undefined>(undefined);
     const [isWiping, setIsWiping] = useState(false);
     const [lipSyncShot, setLipSyncShot] = useState<{ id: string, videoUrl: string } | null>(null);
-
-    // NEW: Delete Confirmation State
     const [shotToDelete, setShotToDelete] = useState<string | null>(null);
     const [isDeletingShot, setIsDeletingShot] = useState(false);
+    const [shotToDownload, setShotToDownload] = useState<any>(null);
 
     if (!activeSceneId) return null;
 
+    // --- DOWNLOAD HELPER ---
+    const forceDownload = async (url: string, filename: string) => {
+        const toastId = toast.loading("Downloading...");
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Cleanup
+            window.URL.revokeObjectURL(blobUrl);
+            toast.dismiss(toastId);
+            toast.success("Download started");
+        } catch (e) {
+            console.error("Download failed", e);
+            toast.dismiss(toastId);
+            // Fallback: Open in new tab
+            window.open(url, '_blank');
+        }
+    };
+
     // --- HANDLERS ---
+
+    const handleDownloadSelection = (type: 'image' | 'video' | 'both') => {
+        if (!shotToDownload) return;
+
+        const prefix = `shot_${String(shotToDownload.id).slice(-4)}`;
+
+        if (type === 'image' || type === 'both') {
+            if (shotToDownload.image_url) {
+                forceDownload(shotToDownload.image_url, `${prefix}_frame.jpg`);
+            } else {
+                toast.error("No image found for this shot.");
+            }
+        }
+
+        if (type === 'video' || type === 'both') {
+            if (shotToDownload.video_url) {
+                // Add slight delay if downloading both to prevent browser blocking
+                setTimeout(() => {
+                    forceDownload(shotToDownload.video_url, `${prefix}_motion.mp4`);
+                }, type === 'both' ? 800 : 0);
+            } else if (type === 'video') {
+                toast.error("No video found for this shot.");
+            }
+        }
+
+        setShotToDownload(null);
+        // Optional: Call parent onDownload for analytics logging
+        if (onDownload) onDownload(shotToDownload, type);
+    };
 
     const handleSafeAutoDirect = (overrideSummary?: string) => {
         if (shotMgr.shots.length > 0) {
@@ -142,7 +197,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         }
     };
 
-    // NEW: Handle Delete Confirmation
     const confirmDeleteShot = async () => {
         if (!shotToDelete) return;
         setIsDeletingShot(true);
@@ -301,6 +355,15 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 />
             )}
 
+            {/* DOWNLOAD MODAL WITH REAL LOGIC */}
+            {shotToDownload && (
+                <DownloadModal
+                    shot={shotToDownload}
+                    onClose={() => setShotToDownload(null)}
+                    onDownload={handleDownloadSelection} // Pass the handler that calls forceDownload
+                />
+            )}
+
             {/* MAIN CONTENT */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px', backgroundColor: '#050505' }}>
                 {shotMgr.shots.length === 0 ? (
@@ -329,7 +392,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                             shot={shot}
                                             index={index}
                                             styles={styles}
-                                            // UPDATE: Trigger modal logic
                                             onDelete={() => setShotToDelete(shot.id)}
                                             castMembers={castMembers}
                                             locations={locations}
@@ -356,7 +418,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                     shotId={shot.id}
                                                     isSystemLoading={shotMgr.loadingShots.has(shot.id)}
                                                     onClickZoom={() => handleOpenViewer(index)}
-                                                    onDownload={() => onDownload(shot)}
+                                                    onDownload={() => setShotToDownload(shot)} // Trigger Modal State
                                                     onStartInpaint={() => setInpaintData({ src: shot.image_url, shotId: shot.id })}
                                                     onAnimate={() => shotMgr.handleAnimateShot(shot, 'kling')}
                                                 />
@@ -380,7 +442,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </div>
             )}
 
-            {/* WARNING MODALS */}
+            {/* MODALS */}
             {showOverwriteWarning && (
                 <DeleteConfirmModal
                     title="OVERWRITE SCENE?"
@@ -401,7 +463,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 />
             )}
 
-            {/* NEW: DELETE SHOT CONFIRMATION MODAL */}
             {shotToDelete && (
                 <DeleteConfirmModal
                     title="DELETE SHOT?"
