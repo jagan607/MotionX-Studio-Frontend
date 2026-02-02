@@ -11,20 +11,19 @@ import {
 import { useRouter } from "next/navigation";
 import { Toaster } from "react-hot-toast";
 
-// --- INTERNAL SIBLING IMPORTS (From app/components/storyboard) ---
+// --- INTERNAL SIBLING IMPORTS ---
 import { ShotImage } from "./ShotImage";
 import { InpaintEditor } from "./InpaintEditor";
 import { SortableShotCard } from "./SortableShotCard";
 import { SceneContextStrip } from "./SceneContextStrip";
 import { LipSyncModal } from "./LipSyncModal";
-import { styles } from "./BoardStyles"; // <--- Styles imported from sibling file
+import { styles } from "./BoardStyles";
 
-// --- GLOBAL UI IMPORTS (From app/components/ui) ---
+// --- GLOBAL UI IMPORTS ---
 import { StoryboardTour } from "@/components/StoryboardTour";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 
 // --- CONTEXT IMPORT ---
-// Adjust this path if your context alias is different (e.g. "@/context/...")
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
 
 interface StoryboardOverlayProps {
@@ -51,7 +50,7 @@ interface StoryboardOverlayProps {
     onClose: () => void;
     onZoom: any;
     onDownload: any;
-    onDeleteShot: any;
+    onDeleteShot: any; // Original handler from parent
 
     // Tour Props
     tourStep: number;
@@ -77,7 +76,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    // Media Viewer Context
     const { openViewer } = useMediaViewer();
 
     // --- STATE ---
@@ -86,6 +84,10 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [pendingSummary, setPendingSummary] = useState<string | undefined>(undefined);
     const [isWiping, setIsWiping] = useState(false);
     const [lipSyncShot, setLipSyncShot] = useState<{ id: string, videoUrl: string } | null>(null);
+
+    // NEW: Delete Confirmation State
+    const [shotToDelete, setShotToDelete] = useState<string | null>(null);
+    const [isDeletingShot, setIsDeletingShot] = useState(false);
 
     if (!activeSceneId) return null;
 
@@ -140,8 +142,21 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         }
     };
 
+    // NEW: Handle Delete Confirmation
+    const confirmDeleteShot = async () => {
+        if (!shotToDelete) return;
+        setIsDeletingShot(true);
+        try {
+            await onDeleteShot(shotToDelete);
+        } catch (error) {
+            console.error("Delete shot failed", error);
+        } finally {
+            setIsDeletingShot(false);
+            setShotToDelete(null);
+        }
+    };
+
     const handleOpenViewer = (initialIndex: number) => {
-        console.log("Shot data:", shotMgr.shots);
         const mediaItems = shotMgr.shots.map((s: any, i: number) => ({
             id: s.id,
             type: ((s.image_url && s.video_url) ? 'mixed' : (s.video_url ? 'video' : 'image')) as 'image' | 'video' | 'mixed',
@@ -273,22 +288,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     credits={credits || 0}
                     onClose={() => setLipSyncShot(null)}
                     onGenerateVoice={(text, voiceId, emotion) => {
-                        // 1. Find the original shot object using the ID stored in state
                         const originalShot = shotMgr.shots.find((s: any) => s.id === lipSyncShot.id);
-
-                        if (!originalShot) {
-                            return Promise.reject("Shot not found");
-                        }
-
-                        // 2. Construct a payload object that matches what useShotAudioGen expects
-                        const shotPayload = {
-                            ...originalShot,      // Keep existing IDs/data
-                            voiceover_text: text, // Override with text from Modal
-                            voice_id: voiceId,    // Override with voice from Modal
-                            // emotion: emotion   // (Pass this if you update your hook to use it)
-                        };
-
-                        // 3. Call the manager with the single object
+                        if (!originalShot) return Promise.reject("Shot not found");
+                        const shotPayload = { ...originalShot, voiceover_text: text, voice_id: voiceId };
                         return shotMgr.handleGenerateVoiceover(shotPayload);
                     }}
                     onStartSync={(audioUrl, audioFile) => {
@@ -327,7 +329,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                             shot={shot}
                                             index={index}
                                             styles={styles}
-                                            onDelete={() => onDeleteShot(shot.id)}
+                                            // UPDATE: Trigger modal logic
+                                            onDelete={() => setShotToDelete(shot.id)}
                                             castMembers={castMembers}
                                             locations={locations}
                                             onUpdateShot={shotMgr.updateShot}
@@ -341,7 +344,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                             isRendering={shotMgr.loadingShots.has(shot.id)}
                                             onFinalize={() => shotMgr.handleFinalizeShot(shot)}
                                             onExpand={() => handleOpenViewer(index)}
-                                            // Additional props for Card
                                             nextShotImage={nextShotImage}
                                             isMorphedByPrev={isMorphedByPrev}
                                         >
@@ -378,7 +380,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </div>
             )}
 
-            {/* MODALS */}
+            {/* WARNING MODALS */}
             {showOverwriteWarning && (
                 <DeleteConfirmModal
                     title="OVERWRITE SCENE?"
@@ -396,6 +398,17 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     isDeleting={isWiping}
                     onConfirm={confirmGenerateAll}
                     onCancel={() => setShowGenerateWarning(false)}
+                />
+            )}
+
+            {/* NEW: DELETE SHOT CONFIRMATION MODAL */}
+            {shotToDelete && (
+                <DeleteConfirmModal
+                    title="DELETE SHOT?"
+                    message="This action will permanently delete this shot and any associated images/videos."
+                    isDeleting={isDeletingShot}
+                    onConfirm={confirmDeleteShot}
+                    onCancel={() => setShotToDelete(null)}
                 />
             )}
 

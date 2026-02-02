@@ -1,23 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
-import {
-    DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent
-} from '@dnd-kit/core';
-import {
-    SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import {
-    GripVertical, CheckCircle2, Sparkles,
-    AlignLeft, Clock, Film, Scissors, Cpu, Terminal, Activity, Loader2, ChevronDown, Layers, PlayCircle, MapPin, Users, Plus, X, Trash2
-} from "lucide-react";
-
-// Import the Context Modal
 import { ContextSelectorModal, ContextReference } from "./ContextSelectorModal";
+import { ScriptTimeline } from "./ScriptTimeline";
+import { DirectorConsole } from "./DirectorConsole";
 
-// --- TYPES ---
 export interface WorkstationScene {
     id: string;
     scene_number: number;
@@ -49,20 +36,15 @@ interface ScriptWorkstationProps {
     episodeContext?: EpisodeContext;
     contextEpisodes?: any[];
     scenes: WorkstationScene[];
-
-    // Available Characters for the Dropdown
     availableCharacters?: Character[];
 
     // Actions
     onReorder: (newOrder: WorkstationScene[]) => void;
     onRewrite: (sceneId: string, instruction: string, contextRefs?: ContextReference[]) => Promise<void>;
     onCommit: () => void;
-
-    // NEW ACTIONS
-    onAddScene?: () => void; // Function to create new scene
-    onUpdateCast?: (sceneId: string, newCast: string[]) => void; // Function to update cast
-
-    // Function to fetch scenes for the modal (passed from page)
+    onAddScene?: () => void;
+    onDeleteScene?: (id: string) => void; // New
+    onUpdateCast?: (sceneId: string, newCast: string[]) => void;
     onFetchRemoteScenes?: (episodeId: string) => Promise<any[]>;
 
     isProcessing: boolean;
@@ -70,85 +52,33 @@ interface ScriptWorkstationProps {
 }
 
 export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
-    title,
-    backLink,
-    commitLabel,
     customHeader,
     episodeContext,
     contextEpisodes,
     scenes,
-    availableCharacters = [], // Default to empty if not passed yet
+    availableCharacters = [],
     onReorder,
     onRewrite,
-    onCommit,
-    onAddScene,      // New Prop
-    onUpdateCast,    // New Prop
+    onAddScene,
+    onDeleteScene,
+    onUpdateCast,
     onFetchRemoteScenes,
-    isProcessing,
-    isCommitting
+    isProcessing
 }) => {
     const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
-    const [aiInstruction, setAiInstruction] = useState("");
-
-    // --- CONTEXT STATE ---
     const [isContextModalOpen, setIsContextModalOpen] = useState(false);
     const [selectedContext, setSelectedContext] = useState<ContextReference[]>([]);
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-    );
-
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (over && active.id !== over.id) {
-            const oldIndex = scenes.findIndex((i) => i.id === active.id);
-            const newIndex = scenes.findIndex((i) => i.id === over.id);
-            const newOrder = arrayMove(scenes, oldIndex, newIndex);
-            const reindexed = newOrder.map((s, idx) => ({ ...s, scene_number: idx + 1 }));
-            onReorder(reindexed);
-        }
-    };
-
-    const handleExecuteAi = async () => {
-        if (!activeSceneId || !aiInstruction.trim()) return;
-        await onRewrite(activeSceneId, aiInstruction, selectedContext);
-        setAiInstruction("");
+    const handleExecuteAi = async (instruction: string) => {
+        if (!activeSceneId || !instruction.trim()) return;
+        await onRewrite(activeSceneId, instruction, selectedContext);
     };
 
     const removeContextRef = (id: string) => {
         setSelectedContext(prev => prev.filter(r => r.id !== id));
     };
 
-    // --- CAST HANDLERS ---
-    const handleAddCharacter = (charId: string) => {
-        if (!activeSceneId || !onUpdateCast) return;
-        const scene = scenes.find(s => s.id === activeSceneId);
-        if (!scene) return;
-
-        const currentCast = scene.cast_ids || scene.characters || [];
-        // Avoid duplicates
-        if (!currentCast.includes(charId)) {
-            onUpdateCast(activeSceneId, [...currentCast, charId]);
-        }
-    };
-
-    const handleRemoveCharacter = (charId: string) => {
-        if (!activeSceneId || !onUpdateCast) return;
-        const scene = scenes.find(s => s.id === activeSceneId);
-        if (!scene) return;
-
-        const currentCast = scene.cast_ids || scene.characters || [];
-        onUpdateCast(activeSceneId, currentCast.filter(id => id !== charId));
-    };
-
-    const activeScene = scenes.find(s => s.id === activeSceneId);
-
-    // Logic for "Active Cast" display
-    const activeCastList = activeScene?.cast_ids || activeScene?.characters || [];
-
-    const totalWords = scenes.reduce((acc, s) => acc + (s.summary?.split(" ").length || 0), 0);
-    const estDuration = Math.ceil(totalWords / 200);
+    const activeScene = scenes.find(s => s.id === activeSceneId) || null;
 
     return (
         <div className="fixed inset-0 z-50 bg-[#050505] text-[#EEE] font-sans overflow-hidden flex flex-col">
@@ -157,17 +87,10 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                 ::-webkit-scrollbar-track { background: #050505; }
                 ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
                 ::-webkit-scrollbar-thumb:hover { background: #555; }
-                .action-btn { background-color: #DC2626; color: white; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; transition: all 0.2s ease; border: 1px solid #EF4444; }
-                .action-btn:hover { background-color: #B91C1C; box-shadow: 0 0 20px rgba(220, 38, 38, 0.4); }
-                .ai-input { background: rgba(10,10,10,0.5); border: 1px solid #333; color: #EEE; font-family: 'Courier New', monospace; }
-                .ai-input:focus { outline: none; border-color: #DC2626; background: rgba(20,20,20,0.8); }
-                .ep-select { -webkit-appearance: none; background-color: transparent; color: white; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; border: none; cursor: pointer; outline: none; padding-right: 1.5em; width: 100%; text-overflow: ellipsis; }
-                .ep-select option { background-color: #111; color: #EEE; padding: 10px; }
             `}</style>
 
             {customHeader}
 
-            {/* --- CONTEXT MODAL --- */}
             {onFetchRemoteScenes && (
                 <ContextSelectorModal
                     isOpen={isContextModalOpen}
@@ -180,302 +103,28 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
             )}
 
             <div className="flex-1 flex overflow-hidden relative z-40">
-                {/* LEFT: TIMELINE */}
-                <div className="flex-1 flex flex-col bg-[#050505] relative border-r border-[#222]">
+                <ScriptTimeline
+                    scenes={scenes}
+                    activeSceneId={activeSceneId}
+                    episodeContext={episodeContext}
+                    onSetActiveScene={setActiveSceneId}
+                    onReorder={onReorder}
+                    onAddScene={onAddScene}
+                    onDeleteScene={onDeleteScene}
+                />
 
-                    {/* TOOLBAR */}
-                    <div className="h-14 border-b border-[#222] bg-[#080808] flex items-center justify-between px-4 shrink-0">
-                        {episodeContext && episodeContext.episodes.length > 0 ? (
-                            <div className="flex items-center gap-3 w-full max-w-[70%]">
-                                <div className="h-8 w-8 bg-red-900/20 border border-red-900/50 flex items-center justify-center rounded-sm shrink-0">
-                                    <Layers size={14} className="text-red-500" />
-                                </div>
-                                <div className="flex-1 relative group bg-[#111] border border-[#222] hover:border-[#444] transition-colors rounded-sm h-8 flex items-center px-3">
-                                    <span className="absolute -top-2 left-2 bg-[#080808] px-1 text-[8px] font-mono text-[#555] uppercase tracking-widest leading-none">Active Reel</span>
-                                    <select className="ep-select" value={episodeContext.currentEpisodeId} onChange={(e) => episodeContext.onSwitchEpisode(e.target.value)}>
-                                        {episodeContext.episodes.map((ep) => (
-                                            <option key={ep.id} value={ep.id}>
-                                                {ep.episode_number ? `#${ep.episode_number} - ` : ''}{ep.title || "UNTITLED REEL"}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown size={10} className="absolute right-3 text-red-600 pointer-events-none" />
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="text-[10px] font-bold text-[#555] uppercase tracking-widest flex items-center gap-2">
-                                <Scissors size={12} /> Timeline
-                            </div>
-                        )}
-                        <div className="flex items-center gap-2">
-                            <div className="text-[9px] font-mono text-[#444] flex items-center gap-2 bg-[#111] px-3 py-1 rounded-sm border border-[#222]">
-                                <Clock size={10} /> EST. {estDuration}M
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2 pb-20">
-                        {scenes.length === 0 ? (
-                            <div className="h-40 flex flex-col items-center justify-center opacity-30 gap-3">
-                                <Film size={32} className="text-[#333]" />
-                                <span className="text-xs font-mono">NO SCENE DATA FOUND</span>
-                            </div>
-                        ) : (
-                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                <SortableContext items={scenes} strategy={verticalListSortingStrategy}>
-                                    {scenes.map((scene, i) => (
-                                        <SortableSceneCard
-                                            key={scene.id}
-                                            scene={scene}
-                                            index={i}
-                                            isActive={activeSceneId === scene.id}
-                                            onEdit={() => setActiveSceneId(scene.id)}
-                                        />
-                                    ))}
-                                </SortableContext>
-                            </DndContext>
-                        )}
-
-                        {/* --- NEW SCENE BUTTON --- */}
-                        {onAddScene && (
-                            <button
-                                onClick={onAddScene}
-                                className="w-full h-12 border border-dashed border-[#333] rounded-sm flex items-center justify-center gap-2 text-[#555] hover:text-[#CCC] hover:border-[#666] hover:bg-[#111] transition-all group"
-                            >
-                                <Plus size={16} className="group-hover:scale-110 transition-transform" />
-                                <span className="text-[10px] font-bold uppercase tracking-widest">Add New Scene</span>
-                            </button>
-                        )}
-
-                        {scenes.length > 0 && (
-                            <div className="h-10 flex items-center justify-center border-t border-dashed border-[#222] mt-4 opacity-50">
-                                <span className="text-[9px] font-mono text-[#333]">END OF SEQUENCE</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* RIGHT: AI CONSOLE */}
-                <div className="w-[400px] bg-[#080808] flex flex-col shrink-0 border-l border-[#222]">
-                    <div className="h-14 border-b border-[#222] bg-[#080808] flex items-center justify-between px-6 shrink-0">
-                        <div className="text-[10px] font-bold text-[#555] uppercase tracking-widest flex items-center gap-2">
-                            <Cpu size={12} /> Director Console
-                        </div>
-                        <div className={`w-2 h-2 rounded-full ${isProcessing ? 'bg-yellow-500 animate-pulse' : 'bg-green-900'}`} />
-                    </div>
-
-                    <div className="flex-1 p-6 flex flex-col overflow-y-auto">
-                        {activeScene ? (
-                            <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
-                                {/* SCENE HEADER BOX */}
-                                <div className="mb-6 p-4 border border-[#222] bg-[#0C0C0C] rounded-sm relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-1 h-full bg-red-600" />
-                                    <div className="text-[9px] font-mono text-red-500 mb-1 uppercase">Target Locked</div>
-                                    <div className="text-xl font-bold text-white mb-2 line-clamp-1">
-                                        SCENE {String(activeScene.scene_number).padStart(2, '0')}
-                                    </div>
-                                    <div className="text-[10px] text-[#888] uppercase tracking-widest font-bold truncate border-t border-[#222] pt-2 mt-2 flex items-center gap-2">
-                                        <MapPin size={10} />
-                                        {activeScene.header || "NO HEADER DATA"}
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 flex flex-col gap-6">
-
-                                    {/* --- CAST MANAGER --- */}
-                                    <div>
-                                        <div className="flex items-center justify-between text-[10px] font-bold text-[#888] uppercase mb-2">
-                                            <span className="flex items-center gap-2"><Users size={12} /> Scene Cast</span>
-                                            <span className="text-[9px] text-[#444]">{activeCastList.length} Active</span>
-                                        </div>
-                                        <div className="p-3 bg-[#111] border border-[#222] rounded-sm flex flex-col gap-2">
-                                            {/* Cast List */}
-                                            <div className="flex flex-wrap gap-2">
-                                                {activeCastList.map((charId: string) => (
-                                                    <div key={charId} className="flex items-center gap-1.5 px-2 py-1 bg-green-900/10 border border-green-900/30 text-green-500 text-[10px] font-bold uppercase rounded-sm group">
-                                                        <span>{charId.replace(/_/g, " ")}</span>
-                                                        <button
-                                                            onClick={() => handleRemoveCharacter(charId)}
-                                                            className="hover:text-white transition-colors"
-                                                        >
-                                                            <X size={10} />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                                {activeCastList.length === 0 && (
-                                                    <span className="text-[10px] text-[#444] italic py-1">No characters assigned.</span>
-                                                )}
-                                            </div>
-
-                                            {/* Add Character Dropdown (Simple HTML Select for now) */}
-                                            {onUpdateCast && (
-                                                <select
-                                                    className="w-full bg-[#080808] border border-[#333] text-[#888] text-[10px] p-2 rounded-sm outline-none focus:border-[#555] cursor-pointer uppercase"
-                                                    onChange={(e) => {
-                                                        if (e.target.value) {
-                                                            handleAddCharacter(e.target.value);
-                                                            e.target.value = ""; // Reset
-                                                        }
-                                                    }}
-                                                    value=""
-                                                >
-                                                    <option value="" disabled>+ Add Character...</option>
-                                                    {availableCharacters.map(char => (
-                                                        <option key={char.id} value={char.id}>{char.name}</option>
-                                                    ))}
-                                                </select>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* --- AI PROMPT --- */}
-                                    <div className="flex-1 flex flex-col">
-                                        <div className="flex items-center justify-between text-[10px] font-bold text-[#888] uppercase mb-2">
-                                            <span className="flex items-center gap-2"><Terminal size={12} /> Context Aware Prompt</span>
-                                            <button
-                                                onClick={() => setIsContextModalOpen(true)}
-                                                className="text-red-500 hover:text-white flex items-center gap-1 transition-colors"
-                                            >
-                                                <Plus size={10} /> Add Reference
-                                            </button>
-                                        </div>
-
-                                        {/* CONTEXT STACK */}
-                                        <div className="p-3 bg-[#111] border border-[#222] rounded-sm mb-2 max-h-[80px] overflow-y-auto">
-                                            <div className="text-[9px] text-[#555] uppercase font-bold mb-2">Active Context</div>
-                                            <div className="flex flex-wrap gap-2">
-                                                <span className="px-2 py-1 bg-blue-900/20 text-blue-500 text-[9px] border border-blue-900/30 rounded-sm">Prev. Scene</span>
-                                                {selectedContext.map(ref => (
-                                                    <div key={ref.id} className="flex items-center gap-1 px-2 py-1 bg-[#1A1A1A] border border-[#333] text-[#AAA] text-[9px] rounded-sm group hover:border-[#555]">
-                                                        <span>{ref.sourceLabel}</span>
-                                                        <button onClick={() => removeContextRef(ref.id)} className="hover:text-red-500"><X size={8} /></button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <textarea
-                                            value={aiInstruction}
-                                            onChange={(e) => setAiInstruction(e.target.value)}
-                                            placeholder={activeScene.summary
-                                                ? "// Enter directorial commands...\n> Make the dialogue more intense\n> Change setting to night"
-                                                : "// Describe the scene...\n> Saitama walks into a grocery store and realizes he forgot his wallet."}
-                                            className="ai-input w-full flex-1 p-4 text-xs resize-none rounded-sm placeholder:text-[#444] min-h-[120px]"
-                                        />
-                                        <div className="flex gap-2 pt-4">
-                                            <button onClick={handleExecuteAi} disabled={isProcessing || !aiInstruction.trim()} className="action-btn flex-1 py-3 text-[10px] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                                {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                                                {activeScene.summary ? "EXECUTE REWRITE" : "GENERATE SCENE"}
-                                            </button>
-                                            <button onClick={() => setActiveSceneId(null)} className="px-4 py-3 border border-[#333] text-[10px] font-bold text-[#666] hover:text-white hover:bg-[#111] transition-colors uppercase tracking-widest rounded-sm">Cancel</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-center opacity-40 gap-4">
-                                <div className="w-16 h-16 rounded-full border border-[#333] flex items-center justify-center bg-[#0A0A0A]">
-                                    <PlayCircle size={24} className="text-[#666]" />
-                                </div>
-                                <div>
-                                    <div className="text-xs font-bold text-[#666] uppercase tracking-widest mb-1">System Idle</div>
-                                    <div className="text-[10px] font-mono text-[#444]">SELECT A SCENE TO MODIFY</div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    <div className="p-4 border-t border-[#222] bg-[#050505]">
-                        <div className="flex items-center gap-2 text-[9px] font-mono text-[#444]">
-                            <Activity size={10} /> AI_ENGINE_V2: READY
-                        </div>
-                    </div>
-                </div>
+                <DirectorConsole
+                    activeScene={activeScene}
+                    availableCharacters={availableCharacters}
+                    selectedContext={selectedContext}
+                    isProcessing={isProcessing}
+                    onUpdateCast={onUpdateCast}
+                    onExecuteAi={handleExecuteAi}
+                    onOpenContextModal={() => setIsContextModalOpen(true)}
+                    onRemoveContextRef={removeContextRef}
+                    onCancelSelection={() => setActiveSceneId(null)}
+                />
             </div>
         </div>
     );
 };
-
-function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: scene.id });
-    const style = { transform: CSS.Transform.toString(transform), transition };
-
-    // --- SMART PARSING ---
-    const rawHeader = scene.header || scene.slugline || "UNKNOWN SCENE";
-    const isInt = rawHeader.includes("INT.");
-    const isExt = rawHeader.includes("EXT.");
-
-    // Clean header
-    const cleanLocation = rawHeader.replace("INT.", "").replace("EXT.", "").replace("EXT", "").replace("INT", "").split("-")[0].trim();
-
-    // --- CAST UNIFICATION (Robust Check) ---
-    const rawCast = scene.cast_ids || scene.characters || [];
-    const castList = Array.isArray(rawCast) ? rawCast : [];
-
-    return (
-        <div
-            ref={setNodeRef}
-            style={style}
-            onClick={onEdit}
-            className={`group relative flex w-full border transition-all duration-200 cursor-pointer ${isActive ? 'bg-[#111] border-[#444] border-l-2 border-l-red-600 shadow-lg z-10' : 'bg-[#0A0A0A] border-[#222] hover:border-[#444] hover:bg-[#0E0E0E]'}`}
-        >
-            <div {...attributes} {...listeners} className="w-8 flex items-center justify-center border-r border-[#222] cursor-grab active:cursor-grabbing hover:bg-[#151515] transition-colors" onClick={(e) => e.stopPropagation()}>
-                <GripVertical size={14} className="text-[#333] group-hover:text-[#666]" />
-            </div>
-
-            <div className="flex-1 p-3 overflow-hidden flex flex-col justify-center">
-                {/* Header Row */}
-                <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-sm font-mono font-bold ${isActive ? 'text-red-500' : 'text-[#444]'}`}>
-                        {String(index + 1).padStart(2, '0')}
-                    </span>
-                    {isInt && <span className="px-1.5 py-0.5 bg-[#151515] border border-[#222] text-[9px] font-bold text-[#666] rounded-sm">INT</span>}
-                    {isExt && <span className="px-1.5 py-0.5 bg-[#151515] border border-[#222] text-[9px] font-bold text-[#666] rounded-sm">EXT</span>}
-                    {scene.time && <span className="ml-auto text-[9px] font-mono text-[#333] bg-[#080808] px-2 py-0.5 rounded-sm border border-[#1A1A1A]">{scene.time}</span>}
-                </div>
-
-                <div className="text-xs font-bold text-white uppercase tracking-wider truncate mb-2 pl-1">
-                    {cleanLocation || rawHeader}
-                </div>
-
-                <div className="flex items-start gap-3 pl-1 border-l-2 border-[#222] mb-3">
-                    <p className="text-[10px] text-[#777] leading-relaxed font-mono line-clamp-2 flex-1">
-                        {scene.summary || "No visual description available."}
-                    </p>
-                </div>
-
-                {/* --- FOOTER TAGS (Cast & Location) --- */}
-                <div className="flex items-center gap-2 pt-2 border-t border-[#151515] pl-1 flex-wrap">
-                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-red-900/10 border border-red-900/30 rounded-sm">
-                        <MapPin size={8} className="text-red-600" />
-                        <span className="text-[8px] font-bold text-red-500 uppercase truncate max-w-[80px]">
-                            {cleanLocation || "LOC"}
-                        </span>
-                    </div>
-
-                    {/* Render Cast Tags */}
-                    {castList.length > 0 ? (
-                        <>
-                            {castList.slice(0, 3).map((cast: string, i: number) => (
-                                <div key={i} className="flex items-center gap-1.5 px-1.5 py-0.5 bg-green-900/10 border border-green-900/30 rounded-sm">
-                                    <Users size={8} className="text-green-600" />
-                                    <span className="text-[8px] font-bold text-green-500 uppercase truncate max-w-[80px]">
-                                        {cast.replace(/_/g, " ")}
-                                    </span>
-                                </div>
-                            ))}
-                            {castList.length > 3 && (
-                                <span className="text-[8px] font-mono text-[#555] ml-1">+{castList.length - 3}</span>
-                            )}
-                        </>
-                    ) : (
-                        <span className="text-[8px] font-mono text-[#333] italic">No cast detected</span>
-                    )}
-                </div>
-            </div>
-
-            <div className={`w-10 flex items-center justify-center border-l border-[#222] transition-colors ${isActive ? 'bg-red-900/10' : 'bg-transparent'}`}>
-                <Sparkles size={14} className={isActive ? 'text-red-500' : 'text-[#333] group-hover:text-[#666]'} />
-            </div>
-        </div>
-    );
-}

@@ -12,6 +12,7 @@ import {
     writeBatch,
     setDoc,
     getDocs,
+    deleteDoc, // Added deleteDoc
     serverTimestamp
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -42,7 +43,7 @@ export default function SceneManagerPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // 1. FETCH CONTEXT
+    // 1. FETCH CONTEXT (Project Info & Episode List)
     useEffect(() => {
         if (!projectId) return;
 
@@ -68,7 +69,6 @@ export default function SceneManagerPage() {
                     console.error("Failed to load characters", e);
                 }
 
-                // Episode Logic
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
                 if (projData.type === 'movie') {
@@ -81,7 +81,6 @@ export default function SceneManagerPage() {
                     }
                     setEpisodes(eps);
                 } else {
-                    // Series Logic
                     eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
                     const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
                     setEpisodes(realEpisodes.length > 0 ? realEpisodes : eps);
@@ -185,6 +184,17 @@ export default function SceneManagerPage() {
         }
     };
 
+    const handleDeleteScene = async (sceneId: string) => {
+        try {
+            const sceneRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
+            await deleteDoc(sceneRef);
+            toast.success("Scene Deleted");
+        } catch (e) {
+            console.error("Delete Scene Error:", e);
+            toast.error("Failed to delete scene");
+        }
+    };
+
     const fetchRemoteScenes = async (targetEpisodeId: string) => {
         try {
             const q = query(
@@ -213,21 +223,14 @@ export default function SceneManagerPage() {
         toast.loading("Switching Reel...", { duration: 800 });
     };
 
-    // --- FIX: DRAG & DROP PERSISTENCE ---
     const handleReorder = async (newOrder: WorkstationScene[]) => {
-        // 1. Optimistic UI update
         setScenes(newOrder);
-
         try {
             const batch = writeBatch(db);
-
-            // 2. Force update every scene number to match the new array index
-            // We removed the conditional 'if' check because the local object might already match the index
             newOrder.forEach((scene, index) => {
                 const ref = doc(db, "projects", projectId, "episodes", episodeId, "scenes", scene.id);
                 batch.update(ref, { scene_number: index + 1 });
             });
-
             await batch.commit();
         } catch (e) {
             console.error(e);
@@ -333,15 +336,16 @@ export default function SceneManagerPage() {
 
                 contextEpisodes={episodes}
                 scenes={scenes}
-
                 availableCharacters={characters}
 
+                // Actions
                 onReorder={handleReorder}
                 onRewrite={handleRewrite}
                 onCommit={handleExit}
                 onFetchRemoteScenes={fetchRemoteScenes}
                 onAddScene={handleAddScene}
                 onUpdateCast={handleUpdateCast}
+                onDeleteScene={handleDeleteScene} // Pass delete handler
 
                 isProcessing={isProcessing}
                 isCommitting={false}
