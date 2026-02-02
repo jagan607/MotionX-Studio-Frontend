@@ -2,11 +2,12 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import {
-    Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2, Lock, ChevronRight
+    Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2, Lock, ChevronRight, Database
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { api, checkJobStatus } from "@/lib/api";
 import { MotionButton } from "@/components/ui/MotionButton";
+import { ContextReference } from "@/app/components/script/ContextSelectorModal"; // Import Type
 
 interface InputDeckProps {
     projectId: string;
@@ -23,6 +24,9 @@ interface InputDeckProps {
 
     isModal?: boolean;
     className?: string;
+
+    // NEW: Context Prop
+    contextReferences?: ContextReference[];
 }
 
 export const InputDeck: React.FC<InputDeckProps> = ({
@@ -36,7 +40,8 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     onCancel,
     onStatusChange,
     isModal = false,
-    className = ""
+    className = "",
+    contextReferences = [] // Default empty
 }) => {
     const [title, setTitle] = useState("");
     const [synopsisText, setSynopsisText] = useState("");
@@ -101,6 +106,17 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         formData.append("script_title", title || projectTitle);
         if (episodeId) formData.append("episode_id", episodeId);
 
+        // --- INJECT CONTEXT ---
+        if (contextReferences.length > 0) {
+            formData.append("smart_context", JSON.stringify({
+                references: contextReferences.map(ref => ({
+                    source: ref.sourceLabel,
+                    header: ref.header,
+                    content: ref.summary
+                }))
+            }));
+        }
+
         if (synopsisText.trim()) {
             const content = `[TYPE: SYNOPSIS/TREATMENT]\n\n${synopsisText}`;
             const blob = new Blob([content], { type: "text/plain" });
@@ -150,7 +166,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     addLog("ERROR: " + (job.error || "UNKNOWN FAILURE"));
                     toast.error(job.error || "Ingestion Failed");
                 }
-            }, 1000); // Faster polling for smoother UI
+            }, 1000);
 
         } catch (e: any) {
             console.error(e);
@@ -174,10 +190,9 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     };
 
     return (
-        // REMOVED: h-full. Added: h-auto (implicit).
         <div className={`flex flex-col bg-neutral-900/30 border border-neutral-800 rounded-xl shadow-2xl ${className}`}>
 
-            {/* CONTENT - REMOVED: flex-1, min-h-0. Added: gap-4 */}
+            {/* CONTENT */}
             <div className="flex flex-col p-6 gap-6">
 
                 {/* DYNAMIC SESSION IDENTIFIER */}
@@ -207,18 +222,29 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 </div>
 
                 {/* PRIMARY: AI GENERATION */}
-                {/* REMOVED: flex-1, min-h-0 */}
                 <div className="flex flex-col">
-                    <div className="flex items-center gap-2 mb-2 shrink-0">
-                        <Sparkles size={14} className="text-motion-red" />
-                        <span className="text-[10px] font-bold tracking-[1px] uppercase text-white">AI Generation</span>
-                        <span className="text-[9px] text-motion-text-muted ml-auto">PRIMARY</span>
+                    <div className="flex items-center justify-between mb-2 shrink-0">
+                        <div className="flex items-center gap-2">
+                            <Sparkles size={14} className="text-motion-red" />
+                            <span className="text-[10px] font-bold tracking-[1px] uppercase text-white">AI Generation</span>
+                            <span className="text-[9px] text-motion-text-muted">PRIMARY</span>
+                        </div>
+
+                        {/* CONTEXT BADGE */}
+                        {contextReferences.length > 0 && (
+                            <div className="flex items-center gap-1 text-[9px] font-bold text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded border border-blue-900/50">
+                                <Database size={10} />
+                                {contextReferences.length} REFS ACTIVE
+                            </div>
+                        )}
                     </div>
-                    {/* INCREASED HEIGHT to h-[240px] to prevent feeling cramped */}
+
                     <div className="relative h-[240px]">
                         <textarea
                             className="w-full h-full bg-black/40 border border-neutral-700 p-4 font-sans text-sm text-motion-text placeholder:text-neutral-600 focus:outline-none focus:border-motion-red resize-none leading-relaxed rounded-lg"
-                            placeholder="Describe your scene..."
+                            placeholder={contextReferences.length > 0
+                                ? "Describe the next events (AI will use context references)..."
+                                : "Describe your scene..."}
                             value={synopsisText}
                             onChange={(e) => setSynopsisText(e.target.value)}
                             disabled={isUploading}
@@ -271,8 +297,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             {/* FOOTER: TERMINAL OR BUTTON */}
             <div className="shrink-0 p-4 border-t border-neutral-800 bg-black/30 min-h-[5.5rem] flex flex-col justify-center">
                 {isUploading ? (
-                    // --- LIVE TERMINAL LOG ---
-                    // Fixed height h-32 to allow viewing multiple log lines
                     <div className="w-full h-32 bg-black border border-neutral-800 rounded p-3 font-mono text-[10px] overflow-hidden flex flex-col">
                         <div className="flex items-center justify-between text-neutral-500 mb-2 pb-1 border-b border-neutral-900">
                             <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={10} /> PROCESSING</span>

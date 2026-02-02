@@ -6,18 +6,19 @@ import { InputDeck } from "@/components/script/InputDeck";
 import {
     Terminal, ShieldCheck, Cpu, HardDrive,
     Zap, Clapperboard, Layers, ChevronDown, Film, Plus,
-    Loader2
+    Loader2, Database
 } from "lucide-react";
 import { fetchProject, fetchEpisodes } from "@/lib/api";
 import { Project } from "@/lib/types";
 import { toast } from "react-hot-toast";
-import { collection, getDocs, limit, query } from "firebase/firestore";
+import { collection, getDocs, limit, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 // --- LAYOUT COMPONENTS ---
 import { StudioLayout } from "@/app/components/studio/StudioLayout";
 import { StudioHeader } from "@/app/components/studio/StudioHeader";
 import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
+import { ContextSelectorModal, ContextReference } from "@/app/components/script/ContextSelectorModal";
 
 export default function ScriptIngestionPage() {
     const params = useParams();
@@ -29,6 +30,10 @@ export default function ScriptIngestionPage() {
     const [project, setProject] = useState<Project | null>(null);
     const [episodes, setEpisodes] = useState<any[]>([]);
     const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null);
+
+    // --- CONTEXT STATE ---
+    const [isContextModalOpen, setIsContextModalOpen] = useState(false);
+    const [selectedContext, setSelectedContext] = useState<ContextReference[]>([]);
 
     // --- UI STATE ---
     const [loading, setLoading] = useState(true);
@@ -49,34 +54,34 @@ export default function ScriptIngestionPage() {
                 const epsData = await fetchEpisodes(projectId);
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
+                // Filter out ghost episodes for cleaner context selection
+                const contextReadyEpisodes = eps.filter((e: any) => !(e.title === "Main Script" && e.synopsis === "Initial setup"));
+
                 if (proj.type === 'movie') {
-                    setEpisodes(eps);
+                    setEpisodes(contextReadyEpisodes); // Use filtered list for context modal too
                     const targetId = proj.default_episode_id || "main";
                     const found = eps.find((e: any) => e.id === targetId);
                     setSelectedEpisodeId(found ? found.id : (eps[0]?.id || targetId));
                 } else {
                     eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
+
+                    // Filter "Initial setup" for active selection logic
                     const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
                     const finalEpisodes = realEpisodes.length > 0 ? realEpisodes : eps;
-                    setEpisodes(finalEpisodes);
+
+                    // Use clean list for Context Modal
+                    setEpisodes(contextReadyEpisodes.length > 0 ? contextReadyEpisodes : eps);
 
                     // --- CONTEXT LOGIC UPDATE ---
                     const mode = searchParams.get("mode");
-                    const contextEpisodeId = searchParams.get("episode_id"); // Catch the ID passed from Header
+                    const contextEpisodeId = searchParams.get("episode_id");
 
                     if (mode === "new") {
                         setSelectedEpisodeId(null);
                     } else if (contextEpisodeId) {
-                        // Validate that the context ID actually exists
                         const exists = finalEpisodes.find((e: any) => e.id === contextEpisodeId);
-                        if (exists) {
-                            setSelectedEpisodeId(contextEpisodeId);
-                        } else {
-                            // Fallback if ID is invalid
-                            setSelectedEpisodeId(finalEpisodes[0]?.id || null);
-                        }
+                        setSelectedEpisodeId(exists ? contextEpisodeId : (finalEpisodes[0]?.id || null));
                     } else if (finalEpisodes.length > 0) {
-                        // Default to first episode
                         setSelectedEpisodeId(finalEpisodes[0].id);
                     }
                 }
@@ -119,15 +124,35 @@ export default function ScriptIngestionPage() {
     }, [selectedEpisodeId, projectId]);
 
     // --- HANDLERS ---
+
+    // Lazy Loader for Context Modal
+    const fetchRemoteScenes = async (targetEpisodeId: string) => {
+        try {
+            const q = query(
+                collection(db, "projects", projectId, "episodes", targetEpisodeId, "scenes"),
+                orderBy("scene_number", "asc")
+            );
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    scene_number: data.scene_number,
+                    header: data.slugline || data.header || "UNKNOWN SCENE",
+                    summary: data.synopsis || data.summary || "",
+                };
+            });
+        } catch (e) {
+            console.error("Context Load Error:", e);
+            toast.error("Failed to load context scenes");
+            return [];
+        }
+    };
+
     const handleEpisodeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         if (val === "new_placeholder") return;
-
-        // Update URL to reflect change (keeps context if user refreshes)
         router.push(`/project/${projectId}/script?episode_id=${val}`);
-
-        // State update happens via useEffect when searchParams change, 
-        // but we set it optimistically here for UI snappiness
         setSelectedEpisodeId(val);
         toast.success(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
     };
@@ -214,6 +239,16 @@ export default function ScriptIngestionPage() {
                 }
                 svg { max-width: 48px; max-height: 48px; }
             `}</style>
+
+            {/* --- CONTEXT MODAL --- */}
+            <ContextSelectorModal
+                isOpen={isContextModalOpen}
+                onClose={() => setIsContextModalOpen(false)}
+                episodes={episodes}
+                onFetchScenes={fetchRemoteScenes}
+                initialSelection={selectedContext}
+                onConfirm={(newSelection) => setSelectedContext(newSelection)}
+            />
 
             {/* --- STUDIO HEADER --- */}
             <StudioHeader
@@ -303,6 +338,39 @@ export default function ScriptIngestionPage() {
                                 <span className="text-neutral-300">{activeStatus}</span>
                             </div>
                         </div>
+
+                        {/* CONTEXT MATRIX MODULE */}
+                        <div className="p-5 bg-gradient-to-br from-white/5 to-transparent border border-white/5 rounded-lg mt-4 group">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                    <Database size={18} className="text-blue-500" />
+                                    <span className="text-xs font-bold text-white uppercase tracking-wider">Context Matrix</span>
+                                </div>
+                                <button onClick={() => setIsContextModalOpen(true)} className="text-[10px] text-blue-400 hover:text-white transition-colors uppercase font-bold">
+                                    + Edit
+                                </button>
+                            </div>
+
+                            <div className="text-[10px] text-neutral-400 leading-relaxed mb-3">
+                                {selectedContext.length === 0
+                                    ? "No active memory references. AI will generate in isolation."
+                                    : `${selectedContext.length} narrative threads loaded into memory.`}
+                            </div>
+
+                            {/* Mini Chips Display */}
+                            {selectedContext.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedContext.slice(0, 3).map(ref => (
+                                        <span key={ref.id} className="px-2 py-1 bg-blue-900/20 border border-blue-900/30 rounded text-[9px] text-blue-300 truncate max-w-[100px]">
+                                            {ref.sourceLabel}
+                                        </span>
+                                    ))}
+                                    {selectedContext.length > 3 && (
+                                        <span className="px-2 py-1 bg-white/5 rounded text-[9px] text-neutral-500">+{selectedContext.length - 3}</span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className="mt-auto p-6 border-t border-white/5 bg-black/60 flex justify-between">
@@ -354,6 +422,8 @@ export default function ScriptIngestionPage() {
                                     onCancel={() => router.push("/dashboard")}
                                     onSuccess={(url) => router.push(url)}
                                     onStatusChange={handleIngestStatus}
+                                    // PASS CONTEXT
+                                    contextReferences={selectedContext}
                                 />
                             </div>
 
