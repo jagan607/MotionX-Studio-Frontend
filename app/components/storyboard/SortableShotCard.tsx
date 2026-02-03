@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film, RefreshCw,
     ImagePlus, Mic2, Link2, Plus, CheckCircle2,
-    Wand2, Loader2, Palette
+    Wand2, Loader2, Palette, XCircle
 } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 
@@ -35,11 +35,8 @@ interface SortableShotCardProps {
     castMembers: CastMember[];
     locations: Location[];
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
-
-    // UPDATED: Now accepts provider string
     onRender: (referenceFile?: File | null, provider?: 'gemini' | 'seedream') => void;
     onAnimate: (provider: 'kling' | 'seedance', endFrameUrl?: string | null) => void;
-
     onFinalize: () => void;
     isRendering: boolean;
     onExpand: () => void;
@@ -89,32 +86,41 @@ export const SortableShotCard = ({
     // Validation
     const hasImage = Boolean(shot.image_url);
     const hasVideo = Boolean(shot.video_url);
-    // Only allow linking if current shot has image, next shot has image, using Kling, and not already chained
     const canLink = hasImage && Boolean(nextShotImage) && videoProvider === 'kling' && !isMorphedByPrev;
 
-    // --- FIX: CAST TOGGLE LOGIC ---
-    // Now uses ID instead of Name to match DB structure
+    // --- CAST TOGGLE LOGIC ---
     const handleCharToggle = (charId: string) => {
         if (isMorphedByPrev) return;
         const current = Array.isArray(shot.characters) ? shot.characters : [];
-
-        // Check if the ID is already present
         const isPresent = current.includes(charId);
-
         let updated;
         if (isPresent) {
             updated = current.filter((c) => c !== charId);
         } else {
             updated = [...current, charId];
         }
-
         onUpdateShot(shot.id, "characters", updated);
     };
 
-    // Ref Image Upload
+    // --- REF IMAGE LOGIC (UPDATED) ---
     const [refFile, setRefFile] = useState<File | null>(null);
+    const [refPreviewUrl, setRefPreviewUrl] = useState<string | null>(null); // For showing the image
+    const [isHoveringRef, setIsHoveringRef] = useState(false); // For expanding
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [, setIsCompressing] = useState(false);
+
+    // Create Object URL when file is selected
+    useEffect(() => {
+        if (!refFile) {
+            setRefPreviewUrl(null);
+            return;
+        }
+        const objectUrl = URL.createObjectURL(refFile);
+        setRefPreviewUrl(objectUrl);
+
+        // Cleanup memory
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [refFile]);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -124,6 +130,12 @@ export const SortableShotCard = ({
                 setRefFile(compressed);
             } finally { setIsCompressing(false); }
         }
+    };
+
+    const clearRefImage = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setRefFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     // Local Buffers
@@ -160,7 +172,6 @@ export const SortableShotCard = ({
         cursor: isMorphedByPrev ? 'not-allowed' : 'text'
     };
 
-    // Helper for toggle buttons
     const toggleStyle = (active: boolean) => ({
         flex: 1, padding: '6px', fontSize: '9px', fontWeight: 'bold',
         border: active ? '1px solid #FF0000' : '1px solid #333',
@@ -190,15 +201,12 @@ export const SortableShotCard = ({
             {/* --- GUTTER LINK BUTTON --- */}
             {canLink && (
                 <>
-                    {/* Visual Connector Beam */}
                     {isLinked && (
                         <div style={{
                             position: 'absolute', top: '50%', right: '-30px', width: '40px', height: '2px',
                             backgroundColor: '#FF0000', zIndex: 40, transform: 'translateY(-50%)', boxShadow: '0 0 8px #FF0000'
                         }} />
                     )}
-
-                    {/* The Button */}
                     <div
                         onClick={() => onUpdateShot(shot.id, "morph_to_next", !isLinked)}
                         title={isLinked ? "Unlink from Next Shot" : "Morph into Next Shot"}
@@ -268,20 +276,15 @@ export const SortableShotCard = ({
                 <label style={labelStyle}>CASTING</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {castMembers.map((char) => {
-                        // FIX: Check for ID primarily, with fallback to Name normalization for legacy data
                         const isActive = Array.isArray(shot.characters) && (
                             shot.characters.includes(char.id) ||
                             shot.characters.some(c => normalize(c) === normalize(char.name))
                         );
-
-                        // Using styles.charToggle safe access
                         const baseStyle = styles?.charToggle ? styles.charToggle(isActive) : {};
-
                         return (
                             <button
                                 disabled={isMorphedByPrev}
                                 key={char.id}
-                                // FIX: Use char.id for toggling
                                 onClick={() => handleCharToggle(char.id)}
                                 style={{
                                     ...baseStyle,
@@ -299,15 +302,92 @@ export const SortableShotCard = ({
                 </div>
             </div>
 
-            {/* PROMPTS */}
+            {/* PROMPTS & REF IMAGE */}
             <div style={{ marginBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', position: 'relative' }}>
                     <label style={labelStyle}>IMAGE PROMPT</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', position: 'relative' }}>
                         <input disabled={isMorphedByPrev} type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept="image/*" />
-                        <button disabled={isMorphedByPrev} onClick={() => fileInputRef.current?.click()} style={{ background: 'none', border: 'none', color: (refFile && !isMorphedByPrev) ? '#00FF41' : '#666', cursor: isMorphedByPrev ? 'not-allowed' : 'pointer', fontSize: '9px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
-                            <ImagePlus size={10} /> {refFile ? "REF LOADED" : "ADD REF"}
-                        </button>
+
+                        {/* REF BUTTON / PREVIEW */}
+                        <div
+                            onMouseEnter={() => setIsHoveringRef(true)}
+                            onMouseLeave={() => setIsHoveringRef(false)}
+                            style={{ position: 'relative' }} // Container for hover logic
+                        >
+                            <button
+                                disabled={isMorphedByPrev}
+                                onClick={() => fileInputRef.current?.click()}
+                                style={{
+                                    background: 'none',
+                                    border: refPreviewUrl ? '1px solid #00FF41' : 'none',
+                                    color: (refFile && !isMorphedByPrev) ? '#00FF41' : '#666',
+                                    cursor: isMorphedByPrev ? 'not-allowed' : 'pointer',
+                                    fontSize: '9px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    fontWeight: 'bold',
+                                    padding: refPreviewUrl ? '2px 6px' : '0',
+                                    borderRadius: '4px',
+                                    backgroundColor: refPreviewUrl ? 'rgba(0, 255, 65, 0.1)' : 'transparent'
+                                }}
+                            >
+                                {refPreviewUrl ? (
+                                    <>
+                                        <div style={{
+                                            width: '12px', height: '12px',
+                                            backgroundImage: `url(${refPreviewUrl})`,
+                                            backgroundSize: 'cover',
+                                            borderRadius: '2px'
+                                        }} />
+                                        REF ACTIVE
+                                    </>
+                                ) : (
+                                    <>
+                                        <ImagePlus size={10} /> ADD REF
+                                    </>
+                                )}
+                            </button>
+
+                            {/* HOVER EXPANSION */}
+                            {refPreviewUrl && isHoveringRef && (
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: '100%',
+                                    right: 0,
+                                    marginBottom: '8px',
+                                    width: '160px',
+                                    height: 'auto',
+                                    backgroundColor: '#000',
+                                    border: '1px solid #00FF41',
+                                    borderRadius: '6px',
+                                    overflow: 'hidden',
+                                    zIndex: 9999,
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.8)'
+                                }}>
+                                    <img
+                                        src={refPreviewUrl}
+                                        alt="Ref Preview"
+                                        style={{ width: '100%', height: 'auto', display: 'block' }}
+                                    />
+                                    <button
+                                        onClick={clearRefImage}
+                                        style={{
+                                            position: 'absolute', top: '4px', right: '4px',
+                                            background: 'rgba(0,0,0,0.7)', border: 'none',
+                                            color: '#FFF', borderRadius: '50%',
+                                            width: '20px', height: '20px',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            cursor: 'pointer'
+                                        }}
+                                        title="Remove Reference"
+                                    >
+                                        <XCircle size={12} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <textarea disabled={isMorphedByPrev} style={inputStyle} minLength={60} value={isMorphedByPrev ? "Content determined by morph transition." : localVisualAction} onChange={(e) => { setLocalVisualAction(e.target.value); onUpdateShot(shot.id, "visual_action", e.target.value); }} placeholder="Visual description..." />
@@ -321,7 +401,7 @@ export const SortableShotCard = ({
             {/* ACTION FOOTER */}
             <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #1a1a1a', opacity: isMorphedByPrev ? 0.3 : 1, pointerEvents: isMorphedByPrev ? 'none' : 'auto' }}>
 
-                {/* 1. IMAGE PROVIDER SELECTION (NEW) */}
+                {/* 1. IMAGE PROVIDER SELECTION */}
                 <div style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
                     <button
                         onClick={() => setImageProvider('seedream')}
@@ -340,7 +420,7 @@ export const SortableShotCard = ({
                 {/* 2. RE-GEN / FINALIZE */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
                     <button
-                        onClick={() => onRender(refFile, imageProvider)} // Pass provider here
+                        onClick={() => onRender(refFile, imageProvider)}
                         disabled={isBusy}
                         style={{ padding: '10px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: isBusy ? '#666' : '#FFF', fontSize: '10px', fontWeight: 'bold', cursor: isBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px' }}
                     >
