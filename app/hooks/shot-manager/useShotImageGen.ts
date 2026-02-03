@@ -46,15 +46,18 @@ export const useShotImageGen = (
         } catch (e) { console.warn("Failed to fetch project style", e); }
 
         // 2. Prepare FormData Payload
-        // Since backend uses UploadFile, we must use FormData, not JSON.
         const formData = new FormData();
 
-        // Append text fields matches GenerateShotRequest model
+        // Append text fields
         formData.append("project_id", projectId);
         formData.append("episode_id", episodeId);
         formData.append("scene_id", sceneId);
         formData.append("shot_id", shot.id);
-        formData.append("scene_action", `${shot.visual_action || shot.action} ${style}`.trim());
+
+        // Combine action + style for better results
+        const actionPrompt = `${shot.visual_action || shot.action} ${style}`.trim();
+        formData.append("scene_action", actionPrompt);
+
         formData.append("characters", Array.isArray(shot.characters) ? shot.characters.join(",") : (shot.characters || ""));
         formData.append("location", shot.location || "");
         formData.append("shot_type", shot.shot_type || "Wide Shot");
@@ -64,14 +67,16 @@ export const useShotImageGen = (
         formData.append("genre", genre);
 
         // 3. Append File if it exists
-        // FastAPI will map this to 'reference_image: UploadFile'
         if (referenceFile) {
             formData.append("reference_image", referenceFile);
         }
 
         try {
-            // Note: When sending FormData, axios/api wrapper usually handles Content-Type automatically.
-            const res = await api.post("/api/v1/images/generate_shot", formData);
+            // FIX: Explicitly set Content-Type to multipart/form-data
+            // This overrides the 'application/json' default in your lib/api.ts
+            const res = await api.post("/api/v1/images/generate_shot", formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
 
             if (res.data.status === "queued") {
                 toast.success(`Generating with ${provider}...`);
@@ -103,7 +108,11 @@ export const useShotImageGen = (
             formData.append("shot_id", shot.id);
             formData.append("image_url", shot.image_url);
 
-            await api.post("/api/v1/shot/finalize_shot", formData);
+            // Same fix here for consistency, although finalize usually doesn't send files
+            await api.post("/api/v1/shot/finalize_shot", formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+
             toast.success("Shot Finalized");
         } catch (e: any) {
             toast.error(getErrorMessage(e));

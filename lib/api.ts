@@ -1,35 +1,31 @@
 import axios from "axios";
-import { auth, db } from "@/lib/firebase"; // Your firebase config
-import { API_BASE_URL } from "./config"; // Your backend URL (e.g., http://localhost:8000)
-import { Project } from "./types"; // Import the type for better safety
+import { auth, db } from "@/lib/firebase";
+import { API_BASE_URL } from "./config";
+import { Project } from "./types";
 import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 
 // 1. Create the Axios Instance
 export const api = axios.create({
-    baseURL: `${API_BASE_URL}`, // Automatically prefixes all URLs
+    baseURL: `${API_BASE_URL}`,
     headers: {
         "Content-Type": "application/json",
     },
 });
 
-// 2. The "Auth Interceptor" (The Magic Part)
+// 2. Auth Interceptor
 api.interceptors.request.use(
     async (config) => {
         const user = auth.currentUser;
-
         if (user) {
             const token = await user.getIdToken();
             config.headers.Authorization = `Bearer ${token}`;
         }
-
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
-// 3. Response Interceptor (Global Error Handling)
+// 3. Response Interceptor
 api.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -42,9 +38,7 @@ api.interceptors.response.use(
 
 // --- 4. PROJECT HELPERS ---
 
-// Fetch the project document (to get the Moodboard)
 export const fetchProject = async (projectId: string): Promise<Project> => {
-    // Assumes you have a router @ /api/v1/project/{id}
     const res = await api.get(`/api/v1/project/${projectId}`);
     return res.data;
 };
@@ -66,31 +60,23 @@ export const checkJobStatus = async (jobId: string) => {
 
 // --- 6. ASSET MANAGEMENT ---
 
-// Fetch all assets (The Grid)
 export const fetchProjectAssets = async (projectId: string) => {
-    // Returns { characters: [...], locations: [...] }
     const res = await api.get(`/api/v1/assets/${projectId}/all`);
     return res.data;
 };
 
-// Create a new asset (Supports Atomic Payload: Name + Traits + Voice)
 export const createAsset = async (projectId: string, data: any) => {
-    // 'data' can now include { name, type, visual_traits, voice_config, prompt }
     return await api.post(`/api/v1/assets/${projectId}/create`, data);
 };
 
-// Update traits, prompt, or status
 export const updateAsset = async (projectId: string, assetType: string, assetId: string, data: any) => {
-    // assetType should be "character" or "location"
     return await api.put(`/api/v1/assets/${projectId}/${assetType}/${assetId}`, data);
 };
 
-// Delete an asset
 export const deleteAsset = async (projectId: string, type: string, assetId: string) => {
     return await api.delete(`/api/v1/assets/${projectId}/${type}/${assetId}`);
 };
 
-// Upload Reference Image
 export const uploadAssetReference = async (projectId: string, assetType: string, assetId: string, file: File) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -99,7 +85,6 @@ export const uploadAssetReference = async (projectId: string, assetType: string,
     });
 };
 
-// NEW: Upload Main Image (Direct override)
 export const uploadAssetMain = async (projectId: string, assetType: string, assetId: string, file: File) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -108,7 +93,6 @@ export const uploadAssetMain = async (projectId: string, assetType: string, asse
     });
 };
 
-// Trigger Asset AI Image Generation
 export const triggerAssetGeneration = async (
     projectId: string,
     assetId: string,
@@ -116,7 +100,7 @@ export const triggerAssetGeneration = async (
     prompt?: string,
     style?: any,
     aspect_ratio?: string,
-    useRef?: boolean // <--- NEW PARAMETER
+    useRef?: boolean
 ) => {
     const res = await api.post(`/api/v1/assets/${projectId}/generate`, {
         asset_id: assetId,
@@ -124,27 +108,50 @@ export const triggerAssetGeneration = async (
         prompt,
         style,
         aspect_ratio,
-        use_ref: useRef // <--- PASS TO BACKEND (snake_case)
+        use_ref: useRef
     });
     return res.data;
 };
 
-// --- 7. STUDIO & SCENES (New) ---
+// --- 7. SHOT GENERATION (NEW - Fixes 422 Error) ---
 
-// Fetch Scenes for a specific "Container" (Episode ID or Project ID for movies)
+export const generateShotImage = async (
+    projectId: string,
+    shotId: string,
+    prompt: string,
+    referenceFile?: File | null,
+    provider: 'gemini' | 'seedream' = 'gemini'
+) => {
+    // 1. Create FormData
+    const formData = new FormData();
+
+    // 2. Append Fields
+    formData.append("project_id", projectId);
+    formData.append("shot_id", shotId);
+    formData.append("prompt", prompt);
+    formData.append("provider", provider);
+
+    // 3. Append File (If exists)
+    if (referenceFile) {
+        formData.append("reference_image", referenceFile);
+    }
+
+    // 4. Send (Browser sets boundary automatically)
+    const res = await api.post("/api/v1/images/generate_shot", formData);
+    return res.data;
+};
+
+// --- 8. STUDIO & SCENES ---
+
 export const fetchScenes = async (projectId: string, containerId?: string) => {
-    // If containerId is missing (Movie), the backend should handle the default logic
     const query = containerId ? `?container_id=${containerId}` : '';
     const res = await api.get(`/api/v1/script/${projectId}/scenes${query}`);
     return res.data;
-    // Expects: { scenes: [...], stats: {...} }
 };
 
-// Fetch Episodes (For Micro-Dramas / Series)
 export const fetchEpisodes = async (projectId: string) => {
     const res = await api.get(`/api/v1/project/${projectId}/episodes`);
     return res.data;
-    // Expects: [{ id: "ep1", title: "Pilot", number: 1 }, ...]
 };
 
 export interface DashboardProject extends Project {
@@ -152,34 +159,25 @@ export interface DashboardProject extends Project {
     previewImage?: string | null;
 }
 
-// 1. Fetch User Projects with Smart Previews
-
 export const fetchUserDashboardProjects = async (uid: string): Promise<DashboardProject[]> => {
     try {
-        // A. Fetch from "projects" collection
-        // REQUIRED: You must create the index for 'owner_id' + 'updated_at'
         const q = query(
             collection(db, "projects"),
             where("owner_id", "==", uid),
             orderBy("updated_at", "desc")
         );
 
-        // Fallback query with explicit logging
         const snap = await getDocs(q).catch((e) => {
             console.error("⚠️ SORT FAILED. Missing Index? Click the link in the error above.", e);
-            // Fallback to unsorted (ID order)
             return getDocs(query(collection(db, "projects"), where("owner_id", "==", uid)));
         });
 
         const projectData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DashboardProject));
 
-        // ... (Rest of your working Deep Search logic) ...
-        // B. Deep Search for Preview Media
         const enriched = await Promise.all(projectData.map(async (p) => {
             let vid = null, img = p.moodboard?.cover_image || null;
 
             try {
-                // Your working logic
                 const scenesRef = collection(db, "projects", p.id, "episodes", "main", "scenes");
                 const scs = await getDocs(query(scenesRef, limit(1)));
                 if (!scs.empty) {
@@ -218,30 +216,22 @@ export const fetchUserCredits = async (userId: string): Promise<number> => {
 
 export const fetchGlobalFeed = async () => {
     try {
-        // 1. Database-side Filtering: Only fetch shots that represent completed work
-        // We filter by 'status' to ensure we only get rendered content.
-        // We also order by 'created_at' desc to get recent content first.
         const q = query(
             collectionGroup(db, 'shots'),
-            where("status", "==", "rendered"), // Only get successfully rendered shots
-            orderBy("created_at", "desc"),     // Get the newest ones
-            limit(50)                          // Increase limit slightly since we are filtering better
+            where("status", "==", "rendered"),
+            orderBy("created_at", "desc"),
+            limit(50)
         );
 
         const snap = await getDocs(q);
 
-        // 2. Map & Client-side Validation
-        // Even with DB filtering, we double-check for the media URL to be safe.
         let valid = snap.docs
             .map(d => ({ id: d.id, ...d.data() }))
             .filter((s: any) => s.image_url || s.video_url);
 
-        // 3. Shuffle
-        // Random sort is fine for this scale (50 items).
         return valid.sort(() => 0.5 - Math.random());
     } catch (e) {
         console.error("Feed Load Error", e);
-        // Fallback: Return empty array so UI doesn't crash
         return [];
     }
 };
