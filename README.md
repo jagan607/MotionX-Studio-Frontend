@@ -31,7 +31,7 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 # Magic Card
 
 Card Number	4012 8888 8888 1881
-Expiry	Any future date (e.g., 12/30)
+
 CVV	123
 Card Holder	Any Name (e.g., "Test User")
 
