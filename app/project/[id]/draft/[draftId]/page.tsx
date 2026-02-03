@@ -18,7 +18,7 @@ import { CheckCircle2, FileText } from "lucide-react";
 
 // --- COMPONENTS ---
 import { ScriptWorkstation, WorkstationScene } from "@/app/components/script/ScriptWorkstation";
-import { MotionButton } from "@/components/ui/MotionButton"; // Adjust path if needed
+import { MotionButton } from "@/components/ui/MotionButton";
 
 export default function DraftPage() {
     const params = useParams();
@@ -178,7 +178,9 @@ export default function DraftPage() {
             });
 
             toast.success("Sequence Approved");
-            router.push(`/project/${projectId}/assets`);
+
+            // --- FIX: ADD ONBOARDING PARAM ---
+            router.push(`/project/${projectId}/assets?onboarding=true`);
 
         } catch (e: any) {
             console.error(e);

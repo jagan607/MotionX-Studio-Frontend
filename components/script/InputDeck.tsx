@@ -41,7 +41,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     onStatusChange,
     isModal = false,
     className = "",
-    contextReferences = [] // Default empty
+    contextReferences = [] // Default empty array
 }) => {
     const [title, setTitle] = useState("");
     const [synopsisText, setSynopsisText] = useState("");
@@ -106,15 +106,17 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         formData.append("script_title", title || projectTitle);
         if (episodeId) formData.append("episode_id", episodeId);
 
-        // --- INJECT CONTEXT ---
-        if (contextReferences.length > 0) {
-            formData.append("smart_context", JSON.stringify({
+        // --- INJECT CONTEXT (Corrected Logic) ---
+        if (contextReferences && contextReferences.length > 0) {
+            const contextPayload = {
                 references: contextReferences.map(ref => ({
-                    source: ref.sourceLabel,
-                    header: ref.header,
-                    content: ref.summary
+                    source: ref.sourceLabel || "Context Ref",
+                    header: ref.header || "Unknown Scene",
+                    content: ref.summary || ""
                 }))
-            }));
+            };
+            // Stringify explicitly for the backend to parse
+            formData.append("smart_context", JSON.stringify(contextPayload));
         }
 
         if (synopsisText.trim()) {

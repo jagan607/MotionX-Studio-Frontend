@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
     Users, MapPin, Sparkles, Loader2, Plus,
-    LayoutGrid, Search
+    LayoutGrid, Search, ArrowRight, CheckCircle2, Clapperboard
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -15,7 +15,8 @@ import {
     deleteAsset,
     createAsset,
     triggerAssetGeneration,
-    updateAsset
+    updateAsset,
+    fetchEpisodes // Needed to find where to go next
 } from "@/lib/api";
 import { Asset, CharacterProfile, LocationProfile, Project } from "@/lib/types";
 import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils';
@@ -23,6 +24,7 @@ import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptU
 // --- COMPONENTS ---
 import { AssetModal } from "@/components/AssetModal";
 import { AssetCard } from "@/components/AssetCard";
+import { MotionButton } from "@/components/ui/MotionButton"; // Re-using your button component
 
 // --- LAYOUT COMPONENTS ---
 import { StudioLayout } from "@/app/components/studio/StudioLayout";
@@ -32,7 +34,10 @@ import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsMod
 export default function AssetManagerPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
+
     const projectId = params.id as string;
+    const isOnboarding = searchParams.get("onboarding") === "true"; // <--- 1. DETECT CONTEXT
 
     // --- STATE ---
     const [activeTab, setActiveTab] = useState<'cast' | 'locations'>('cast');
@@ -99,6 +104,14 @@ export default function AssetManagerPage() {
 
     // --- ACTIONS ---
 
+    // <--- 2. NEW: ENTER STUDIO HANDLER
+    const handleEnterStudio = async () => {
+        if (!project) return;
+        toast.success("ENTERING PRODUCTION ENVIRONMENT");
+        router.push(`/project/${projectId}/studio`);
+
+    };
+
     const handleOpenDraft = () => {
         const type = activeTab === 'cast' ? 'character' : 'location';
         const draftAsset: any = {
@@ -117,17 +130,13 @@ export default function AssetManagerPage() {
     const handleSaveAsset = async (asset: Asset, data: any) => {
         try {
             if (asset.id === "new") {
-                // Create Mode
                 const res = await createAsset(projectId, { ...data, type: asset.type });
                 const newAsset = { ...res.data.asset, type: asset.type };
-
                 toast.success("ENTRY CREATED");
                 setSelectedAsset(newAsset);
                 loadData();
                 return newAsset;
-
             } else {
-                // Update Mode
                 await updateAsset(projectId, asset.type, asset.id, data);
                 toast.success("DATABASE UPDATED");
                 loadData();
@@ -225,8 +234,6 @@ export default function AssetManagerPage() {
 
     return (
         <StudioLayout>
-
-            {/* --- CSS OVERRIDES --- */}
             <style jsx global>{`
                 div[class*="rounded-xl"], div[class*="bg-white"], div[class*="bg-zinc-900"] {
                     border-radius: 0px !important;
@@ -252,16 +259,47 @@ export default function AssetManagerPage() {
                 .action-btn:hover { background-color: #B91C1C !important; }
             `}</style>
 
-            {/* --- STUDIO HEADER --- */}
-            <StudioHeader
-                projectId={projectId}
-                projectTitle={project?.title || "Loading..."}
-                // Try to use the project's default episode ID so "Scenes" tab works
-                activeEpisodeId={project?.default_episode_id || ""}
-                onOpenSettings={() => setIsSettingsOpen(true)}
-            />
+            {/* --- 3. CONDITIONAL HEADER RENDER --- */}
+            {isOnboarding ? (
+                // SCENARIO 1: ONBOARDING HEADER (New Project Flow)
+                <div className="h-20 border-b border-[#222] bg-[#080808] flex items-center justify-between px-8 shrink-0">
+                    <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 bg-red-600/10 border border-red-600/30 flex items-center justify-center rounded-sm">
+                            <Clapperboard className="text-red-500" size={20} />
+                        </div>
+                        <div>
+                            <h1 className="text-lg font-bold text-white uppercase tracking-wider leading-none">
+                                Asset Registration
+                            </h1>
+                            <div className="flex items-center gap-2 text-[10px] font-mono text-[#666] mt-1 uppercase tracking-widest">
+                                Phase 2: Visualization <span className="text-red-600">//</span> {project?.title || "Untitled"}
+                            </div>
+                        </div>
+                    </div>
 
-            {/* --- SETTINGS MODAL --- */}
+                    <div className="flex items-center gap-6">
+                        <div className="text-[10px] font-mono text-[#444] text-right hidden md:block">
+                            <div>PENDING: {assets.characters.filter(c => !c.image_url).length + assets.locations.filter(l => !l.image_url).length}</div>
+                            <div>READY: {assets.characters.filter(c => c.image_url).length + assets.locations.filter(l => l.image_url).length}</div>
+                        </div>
+                        <MotionButton
+                            onClick={handleEnterStudio}
+                            className="w-48 bg-green-600 hover:bg-green-500 border-green-500/30 text-white"
+                        >
+                            ENTER STUDIO <ArrowRight size={14} className="ml-2" />
+                        </MotionButton>
+                    </div>
+                </div>
+            ) : (
+                // SCENARIO 2: STANDARD HEADER (Existing Project Flow)
+                <StudioHeader
+                    projectId={projectId}
+                    projectTitle={project?.title || "Loading..."}
+                    activeEpisodeId={project?.default_episode_id || ""}
+                    onOpenSettings={() => setIsSettingsOpen(true)}
+                />
+            )}
+
             <ProjectSettingsModal
                 isOpen={isSettingsOpen}
                 onClose={() => setIsSettingsOpen(false)}

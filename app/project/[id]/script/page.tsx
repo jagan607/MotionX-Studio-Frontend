@@ -172,6 +172,22 @@ export default function ScriptIngestionPage() {
         setProject(updatedProject);
     };
 
+    // --- SUCCESS HANDLER WITH PARAM INJECTION ---
+    const handleIngestSuccess = (url: string) => {
+        // Check if the redirect is going to the Draft page or Assets page
+        // Usually draft page -> then user commits -> then assets
+        // BUT if your backend redirects directly to assets or draft, we handle it here.
+
+        // If the backend returns a Draft URL (e.g., /project/123/draft/456), 
+        // the Draft page itself handles the next step. 
+
+        // However, if the user flow is meant to go to Assets after Draft Approval, 
+        // then the Draft Page's "Approve" button is responsible for adding ?onboarding=true.
+
+        // If this InputDeck redirects to a Draft Page, we just follow it.
+        router.push(url);
+    };
+
     const activeEpisode = episodes.find(e => e.id === selectedEpisodeId);
     const currentTitle = project?.type === 'movie' ? (project.title) : (activeEpisode?.title || "");
     const currentScript = activeEpisode?.script_preview || "";
@@ -420,7 +436,7 @@ export default function ScriptIngestionPage() {
                                     isModal={false}
                                     className="w-full"
                                     onCancel={() => router.push("/dashboard")}
-                                    onSuccess={(url) => router.push(url)}
+                                    onSuccess={handleIngestSuccess}
                                     onStatusChange={handleIngestStatus}
                                     // PASS CONTEXT
                                     contextReferences={selectedContext}
