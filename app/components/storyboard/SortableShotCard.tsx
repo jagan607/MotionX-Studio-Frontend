@@ -102,12 +102,12 @@ export const SortableShotCard = ({
         onUpdateShot(shot.id, "characters", updated);
     };
 
-    // --- REF IMAGE LOGIC (UPDATED) ---
+    // --- REF IMAGE LOGIC (ENHANCED) ---
     const [refFile, setRefFile] = useState<File | null>(null);
-    const [refPreviewUrl, setRefPreviewUrl] = useState<string | null>(null); // For showing the image
-    const [isHoveringRef, setIsHoveringRef] = useState(false); // For expanding
+    const [refPreviewUrl, setRefPreviewUrl] = useState<string | null>(null);
+    const [isHoveringRef, setIsHoveringRef] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [, setIsCompressing] = useState(false);
+    const [isCompressing, setIsCompressing] = useState(false); // Used for UI feedback
 
     // Create Object URL when file is selected
     useEffect(() => {
@@ -118,7 +118,6 @@ export const SortableShotCard = ({
         const objectUrl = URL.createObjectURL(refFile);
         setRefPreviewUrl(objectUrl);
 
-        // Cleanup memory
         return () => URL.revokeObjectURL(objectUrl);
     }, [refFile]);
 
@@ -128,7 +127,9 @@ export const SortableShotCard = ({
             try {
                 const compressed = await imageCompression(e.target.files[0], { maxSizeMB: 1, maxWidthOrHeight: 1500, useWebWorker: true });
                 setRefFile(compressed);
-            } finally { setIsCompressing(false); }
+            } finally {
+                setIsCompressing(false);
+            }
         }
     };
 
@@ -309,20 +310,20 @@ export const SortableShotCard = ({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', position: 'relative' }}>
                         <input disabled={isMorphedByPrev} type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept="image/*" />
 
-                        {/* REF BUTTON / PREVIEW */}
+                        {/* REF BUTTON CONTAINER */}
                         <div
                             onMouseEnter={() => setIsHoveringRef(true)}
                             onMouseLeave={() => setIsHoveringRef(false)}
-                            style={{ position: 'relative' }} // Container for hover logic
+                            style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '4px' }}
                         >
                             <button
-                                disabled={isMorphedByPrev}
+                                disabled={isMorphedByPrev || isCompressing}
                                 onClick={() => fileInputRef.current?.click()}
                                 style={{
                                     background: 'none',
                                     border: refPreviewUrl ? '1px solid #00FF41' : 'none',
                                     color: (refFile && !isMorphedByPrev) ? '#00FF41' : '#666',
-                                    cursor: isMorphedByPrev ? 'not-allowed' : 'pointer',
+                                    cursor: (isMorphedByPrev || isCompressing) ? 'not-allowed' : 'pointer',
                                     fontSize: '9px',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -333,7 +334,11 @@ export const SortableShotCard = ({
                                     backgroundColor: refPreviewUrl ? 'rgba(0, 255, 65, 0.1)' : 'transparent'
                                 }}
                             >
-                                {refPreviewUrl ? (
+                                {isCompressing ? (
+                                    <>
+                                        <Loader2 size={10} className="animate-spin" /> PROCESSING
+                                    </>
+                                ) : refPreviewUrl ? (
                                     <>
                                         <div style={{
                                             width: '12px', height: '12px',
@@ -350,8 +355,23 @@ export const SortableShotCard = ({
                                 )}
                             </button>
 
-                            {/* HOVER EXPANSION */}
-                            {refPreviewUrl && isHoveringRef && (
+                            {/* PERMANENT CROSS BUTTON (If Ref exists) */}
+                            {refPreviewUrl && !isCompressing && !isMorphedByPrev && (
+                                <button
+                                    onClick={clearRefImage}
+                                    style={{
+                                        background: 'none', border: 'none',
+                                        color: '#666', cursor: 'pointer',
+                                        padding: '2px', display: 'flex', alignItems: 'center'
+                                    }}
+                                    title="Remove Reference"
+                                >
+                                    <XCircle size={12} className="hover:text-red-500 transition-colors" />
+                                </button>
+                            )}
+
+                            {/* HOVER EXPANSION (Clean Preview Only) */}
+                            {refPreviewUrl && isHoveringRef && !isCompressing && (
                                 <div style={{
                                     position: 'absolute',
                                     bottom: '100%',
@@ -364,27 +384,14 @@ export const SortableShotCard = ({
                                     borderRadius: '6px',
                                     overflow: 'hidden',
                                     zIndex: 9999,
-                                    boxShadow: '0 4px 20px rgba(0,0,0,0.8)'
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.8)',
+                                    pointerEvents: 'none' // Let clicks pass through so it doesn't block interactions below if needed
                                 }}>
                                     <img
                                         src={refPreviewUrl}
                                         alt="Ref Preview"
                                         style={{ width: '100%', height: 'auto', display: 'block' }}
                                     />
-                                    <button
-                                        onClick={clearRefImage}
-                                        style={{
-                                            position: 'absolute', top: '4px', right: '4px',
-                                            background: 'rgba(0,0,0,0.7)', border: 'none',
-                                            color: '#FFF', borderRadius: '50%',
-                                            width: '20px', height: '20px',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            cursor: 'pointer'
-                                        }}
-                                        title="Remove Reference"
-                                    >
-                                        <XCircle size={12} />
-                                    </button>
                                 </div>
                             )}
                         </div>
