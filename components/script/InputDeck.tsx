@@ -2,12 +2,13 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import {
-    Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2, Lock, ChevronRight, Database
+    Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2, Lock,
+    ChevronRight, Database, FastForward, ArrowRight
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { api, checkJobStatus } from "@/lib/api";
 import { MotionButton } from "@/components/ui/MotionButton";
-import { ContextReference } from "@/app/components/script/ContextSelectorModal"; // Import Type
+import { ContextReference } from "@/app/components/script/ContextSelectorModal";
 
 interface InputDeckProps {
     projectId: string;
@@ -18,14 +19,20 @@ interface InputDeckProps {
     initialTitle?: string;
     initialScript?: string;
 
+    // NEW: Previous Episode Data for Continuity
+    previousEpisode?: {
+        id: string;
+        episode_number: number;
+        title: string;
+        script_preview: string;
+    } | null;
+
     onSuccess: (redirectUrl: string) => void;
     onCancel: () => void;
     onStatusChange?: (status: string) => void;
 
     isModal?: boolean;
     className?: string;
-
-    // NEW: Context Prop
     contextReferences?: ContextReference[];
 }
 
@@ -36,12 +43,13 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     episodeId,
     initialTitle = "",
     initialScript = "",
+    previousEpisode = null,
     onSuccess,
     onCancel,
     onStatusChange,
     isModal = false,
     className = "",
-    contextReferences = [] // Default empty array
+    contextReferences = []
 }) => {
     const [title, setTitle] = useState("");
     const [synopsisText, setSynopsisText] = useState("");
@@ -49,13 +57,15 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     const [pastedScript, setPastedScript] = useState("");
     const [isUploading, setIsUploading] = useState(false);
 
-    // Log History State
-    const [logs, setLogs] = useState<string[]>([]);
+    // NEW: User Instructions for Continuity
+    const [continuityInstruction, setContinuityInstruction] = useState("");
 
+    const [logs, setLogs] = useState<string[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const logsContainerRef = useRef<HTMLDivElement>(null);
 
     const isMovie = projectType === "movie";
+    const isNewEpisodeMode = !episodeId || episodeId === "new_placeholder";
 
     // --- SCROLL TO BOTTOM OF LOGS ---
     useEffect(() => {
@@ -79,7 +89,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         setSelectedFile(null);
     }, [initialScript, episodeId]);
 
-    const isUpdateMode = !!episodeId && !!initialScript;
+    const isUpdateMode = !!episodeId && !!initialScript && episodeId !== "new_placeholder";
     const isModified =
         (title || "") !== (initialTitle || "") ||
         (synopsisText || "") !== (initialScript || "") ||
@@ -98,44 +108,65 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         if (onStatusChange) onStatusChange(message);
     };
 
-    const executeProtocol = async () => {
+    // --- MAIN PROTOCOL EXECUTION ---
+    const executeProtocol = async (mode: 'standard' | 'continuity' = 'standard') => {
         if (!title && !isMovie) { toast.error("ENTER IDENTIFIER (TITLE)"); return; }
 
         const formData = new FormData();
         formData.append("project_id", projectId);
         formData.append("script_title", title || projectTitle);
-        if (episodeId) formData.append("episode_id", episodeId);
 
-        // --- INJECT CONTEXT (Corrected Logic) ---
-        if (contextReferences && contextReferences.length > 0) {
-            const contextPayload = {
-                references: contextReferences.map(ref => ({
-                    source: ref.sourceLabel || "Context Ref",
-                    header: ref.header || "Unknown Scene",
-                    content: ref.summary || ""
-                }))
-            };
-            // Stringify explicitly for the backend to parse
-            formData.append("smart_context", JSON.stringify(contextPayload));
+        if (episodeId && episodeId !== "new_placeholder") {
+            formData.append("episode_id", episodeId);
         }
 
-        if (synopsisText.trim()) {
-            const content = `[TYPE: SYNOPSIS/TREATMENT]\n\n${synopsisText}`;
-            const blob = new Blob([content], { type: "text/plain" });
-            formData.append("file", new File([blob], "synopsis.txt"));
-        } else if (pastedScript.trim()) {
-            const blob = new Blob([pastedScript], { type: "text/plain" });
-            formData.append("file", new File([blob], "terminal_paste.txt"));
-        } else if (selectedFile) {
-            formData.append("file", selectedFile);
-        } else {
-            toast.error("PROVIDE INPUT VIA ONE METHOD");
-            return;
+        // --- HANDLE CONTINUITY MODE ---
+        if (mode === 'continuity' && previousEpisode) {
+            addLog("INITIALIZING CONTINUITY PROTOCOL...");
+            formData.append("source_type", "continuation");
+            formData.append("previous_episode_id", previousEpisode.id);
+
+            // Pass user instruction as the "synopsis" equivalent for the generator
+            if (continuityInstruction.trim()) {
+                const instructionBlob = new Blob([continuityInstruction], { type: "text/plain" });
+                formData.append("file", new File([instructionBlob], "instruction.txt"));
+            } else {
+                // If empty, pass a default directive
+                const defaultBlob = new Blob(["Continue the story naturally from the previous scene."], { type: "text/plain" });
+                formData.append("file", new File([defaultBlob], "instruction.txt"));
+            }
+        }
+        // --- HANDLE STANDARD MODE ---
+        else {
+            if (contextReferences && contextReferences.length > 0) {
+                const contextPayload = {
+                    references: contextReferences.map(ref => ({
+                        source: ref.sourceLabel || "Context Ref",
+                        header: ref.header || "Unknown Scene",
+                        content: ref.summary || ""
+                    }))
+                };
+                formData.append("smart_context", JSON.stringify(contextPayload));
+            }
+
+            if (synopsisText.trim()) {
+                const content = `[TYPE: SYNOPSIS/TREATMENT]\n\n${synopsisText}`;
+                const blob = new Blob([content], { type: "text/plain" });
+                formData.append("file", new File([blob], "synopsis.txt"));
+            } else if (pastedScript.trim()) {
+                const blob = new Blob([pastedScript], { type: "text/plain" });
+                formData.append("file", new File([blob], "terminal_paste.txt"));
+            } else if (selectedFile) {
+                formData.append("file", selectedFile);
+            } else {
+                toast.error("PROVIDE INPUT VIA ONE METHOD");
+                return;
+            }
         }
 
         setIsUploading(true);
         setLogs([]);
-        addLog("INITIALIZING UPLINK...");
+        if (mode === 'standard') addLog("INITIALIZING UPLINK...");
 
         try {
             const res = await api.post("/api/v1/script/upload-script", formData, {
@@ -223,12 +254,60 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     )}
                 </div>
 
-                {/* PRIMARY: AI GENERATION */}
-                <div className="flex flex-col">
+                {/* --- 1. CONTINUITY CARD (Updated Layout) --- */}
+                {previousEpisode && isNewEpisodeMode && !isUploading && (
+                    <div className="relative group overflow-hidden rounded-lg border border-blue-900/30 bg-blue-950/10 hover:border-blue-600/50 transition-colors">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-blue-600" />
+                        <div className="p-5">
+                            <div className="flex items-center gap-2 mb-2">
+                                <FastForward size={14} className="text-blue-400" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-200">
+                                    Continue from {previousEpisode.title || `Episode ${previousEpisode.episode_number}`}
+                                </span>
+                            </div>
+
+                            <p className="text-[10px] text-blue-200/60 line-clamp-2 font-mono mb-4 pl-1 border-l border-blue-800">
+                                "{previousEpisode.script_preview || "No preview available..."}"
+                            </p>
+
+                            <div className="flex gap-3">
+                                {/* Bigger Input with better hint */}
+                                <input
+                                    type="text"
+                                    className="flex-[2] bg-black/40 border border-blue-900/50 rounded px-4 py-3 text-xs text-white placeholder:text-blue-200/30 focus:outline-none focus:border-blue-500 transition-colors"
+                                    placeholder="Enter direction for the next scene (e.g. 'Jake escapes the warehouse and calls for backup')..."
+                                    value={continuityInstruction}
+                                    onChange={(e) => setContinuityInstruction(e.target.value)}
+                                />
+
+                                {/* Smaller, Less Highlighted CTA */}
+                                <MotionButton
+                                    onClick={() => executeProtocol('continuity')}
+                                    disabled={!title}
+                                    className="flex-1 bg-blue-900/40 hover:bg-blue-800 border-blue-500/20 text-blue-100/80 px-4 py-3 h-auto text-[10px] shadow-none hover:shadow-lg transition-all"
+                                >
+                                    AUTO-GENERATE <ArrowRight size={12} className="ml-2" />
+                                </MotionButton>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- 2. OR DIVIDER --- */}
+                {previousEpisode && isNewEpisodeMode && !isUploading && (
+                    <div className="flex items-center gap-4 shrink-0 opacity-50">
+                        <div className="flex-1 h-px bg-neutral-800"></div>
+                        <span className="text-[9px] font-bold tracking-widest text-neutral-500">OR START FRESH</span>
+                        <div className="flex-1 h-px bg-neutral-800"></div>
+                    </div>
+                )}
+
+                {/* --- 3. STANDARD GENERATION --- */}
+                <div className={`flex flex-col ${previousEpisode && isNewEpisodeMode ? 'opacity-80 hover:opacity-100 transition-opacity' : ''}`}>
                     <div className="flex items-center justify-between mb-2 shrink-0">
                         <div className="flex items-center gap-2">
                             <Sparkles size={14} className="text-motion-red" />
-                            <span className="text-[10px] font-bold tracking-[1px] uppercase text-white">AI Generation</span>
+                            <span className="text-[10px] font-bold tracking-[1px] uppercase text-white">Manual Generation</span>
                             <span className="text-[9px] text-motion-text-muted">PRIMARY</span>
                         </div>
 
@@ -241,7 +320,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                         )}
                     </div>
 
-                    <div className="relative h-[240px]">
+                    <div className="relative h-[200px]">
                         <textarea
                             className="w-full h-full bg-black/40 border border-neutral-700 p-4 font-sans text-sm text-motion-text placeholder:text-neutral-600 focus:outline-none focus:border-motion-red resize-none leading-relaxed rounded-lg"
                             placeholder={contextReferences.length > 0
@@ -255,13 +334,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                             <Cpu size={10} /> STORY_ENGINE_V2
                         </div>
                     </div>
-                </div>
-
-                {/* OR DIVIDER */}
-                <div className="flex items-center gap-4 shrink-0">
-                    <div className="flex-1 h-px bg-neutral-800"></div>
-                    <span className="text-[10px] font-bold tracking-widest text-neutral-500">OR</span>
-                    <div className="flex-1 h-px bg-neutral-800"></div>
                 </div>
 
                 {/* SECONDARY INPUTS */}
@@ -317,7 +389,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     </div>
                 ) : (
                     <MotionButton
-                        onClick={executeProtocol}
+                        onClick={() => executeProtocol('standard')}
                         disabled={!isButtonEnabled()}
                         className="w-full py-3"
                     >

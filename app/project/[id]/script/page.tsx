@@ -63,6 +63,7 @@ export default function ScriptIngestionPage() {
                     const found = eps.find((e: any) => e.id === targetId);
                     setSelectedEpisodeId(found ? found.id : (eps[0]?.id || targetId));
                 } else {
+                    // Sort episodes numerically
                     eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
 
                     // Filter "Initial setup" for active selection logic
@@ -174,23 +175,28 @@ export default function ScriptIngestionPage() {
 
     // --- SUCCESS HANDLER WITH PARAM INJECTION ---
     const handleIngestSuccess = (url: string) => {
-        // Check if the redirect is going to the Draft page or Assets page
-        // Usually draft page -> then user commits -> then assets
-        // BUT if your backend redirects directly to assets or draft, we handle it here.
-
-        // If the backend returns a Draft URL (e.g., /project/123/draft/456), 
-        // the Draft page itself handles the next step. 
-
-        // However, if the user flow is meant to go to Assets after Draft Approval, 
-        // then the Draft Page's "Approve" button is responsible for adding ?onboarding=true.
-
-        // If this InputDeck redirects to a Draft Page, we just follow it.
         router.push(url);
     };
 
     const activeEpisode = episodes.find(e => e.id === selectedEpisodeId);
     const currentTitle = project?.type === 'movie' ? (project.title) : (activeEpisode?.title || "");
     const currentScript = activeEpisode?.script_preview || "";
+
+    // --- NEW: DETERMINE PREVIOUS EPISODE ---
+    // Only relevant if creating a NEW episode (selectedEpisodeId is null) for a Series
+    let previousEpisodeData = null;
+    if (project?.type === 'micro_drama' && selectedEpisodeId === null && episodes.length > 0) {
+        // Since episodes are sorted by number, the last one is the previous
+        const lastEp = episodes[episodes.length - 1];
+        if (lastEp) {
+            previousEpisodeData = {
+                id: lastEp.id,
+                episode_number: lastEp.episode_number,
+                title: lastEp.title || `Episode ${lastEp.episode_number}`,
+                script_preview: lastEp.script_preview || ""
+            };
+        }
+    }
 
     if (loading || !project) {
         return (
@@ -440,6 +446,8 @@ export default function ScriptIngestionPage() {
                                     onStatusChange={handleIngestStatus}
                                     // PASS CONTEXT
                                     contextReferences={selectedContext}
+                                    // NEW: PASS PREVIOUS EPISODE DATA FOR CONTINUITY
+                                    previousEpisode={previousEpisodeData}
                                 />
                             </div>
 
