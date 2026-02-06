@@ -89,8 +89,39 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 toast.error(msg);
                 throw new Error(msg);
             }
+        },
+
+        // Wrap Inpaint Generation
+        handleInpaintShot: async (shotId: string, prompt: string, maskBase64: string, refImages: File[]) => {
+            try {
+                // @ts-ignore - Dynamic key access on hook return
+                return await rawShotMgr.handleInpaintShot(shotId, prompt, maskBase64, refImages);
+            } catch (e: any) {
+                const msg = safeError(e);
+                toast.error(msg);
+                throw new Error(msg);
+            }
         }
     }), [rawShotMgr]);
+
+    // --- STATE FOR INPAINTING ---
+    const [inpaintData, setInpaintData] = React.useState<{ src: string, shotId: string } | null>(null);
+
+    // --- HANDLER FOR APPLYING INPAINT RESULTS ---
+    const handleApplyInpaint = async (newImageUrl: string) => {
+        if (!inpaintData) return;
+        try {
+            // 1. Update the shot manager locally and persist
+            await rawShotMgr.updateShot(inpaintData.shotId, "image_url", newImageUrl);
+
+            // 2. Close modal
+            setInpaintData(null);
+            toast.success("VFX Frame Updated");
+        } catch (e) {
+            console.error("Failed to apply inpaint:", e);
+            toast.error("Failed to save changes");
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -146,12 +177,15 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 onClose={onClose}
                 onDeleteShot={rawShotMgr.handleDeleteShot}
 
+                inpaintData={inpaintData}
+                setInpaintData={setInpaintData}
+                onSaveInpaint={async (prompt: string, maskBase64: string, refImages: File[]) => {
+                    if (!inpaintData) return null;
+                    return await safeShotMgr.handleInpaintShot(inpaintData.shotId, prompt, maskBase64, refImages);
+                }}
+                onApplyInpaint={handleApplyInpaint}
+
                 // --- PLACEHOLDERS ---
-                // (Keep these as props if your StoryboardOverlay requires them)
-                inpaintData={null}
-                setInpaintData={() => { }}
-                onSaveInpaint={async () => { return null; }}
-                onApplyInpaint={() => { }}
                 onZoom={() => { }}
                 onDownload={() => { }}
                 tourStep={0}

@@ -99,6 +99,7 @@ export const useShotManager = (
         // Image
         handleRenderShot: (shot: any, scene: any, refFile?: File | null) => imageGen.handleRenderShot(shot, aspectRatio, refFile),
         handleFinalizeShot: imageGen.handleFinalizeShot,
+        handleInpaintShot: imageGen.handleInpaintShot,
 
         // Video
         handleAnimateShot: (

@@ -121,5 +121,57 @@ export const useShotImageGen = (
         }
     };
 
-    return { handleRenderShot, handleFinalizeShot };
+    const handleInpaintShot = async (
+        shotId: string,
+        prompt: string,
+        maskBase64: string,
+        refImages: File[]
+    ): Promise<string | null> => {
+        if (!sceneId) return null;
+
+        // Optimistic update not needed for modal driven flow usually, but good for consistency
+        const shotRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId, "shots", shotId);
+
+        try {
+            await updateDoc(shotRef, { status: "inpainting" }); // Optional status
+
+            const formData = new FormData();
+            formData.append("project_id", projectId);
+            formData.append("episode_id", episodeId);
+            formData.append("scene_id", sceneId);
+            formData.append("shot_id", shotId);
+            formData.append("prompt", prompt);
+
+            // Convert Base64 Mask to Blob
+            const response = await fetch(maskBase64);
+            const blob = await response.blob();
+            formData.append("mask_image", blob, "mask.png");
+
+            // Append Ref Images
+            refImages.forEach((file, index) => {
+                formData.append(`ref_image_${index}`, file);
+            });
+
+            // Call API
+            // Note: Using a specific endpoint for inpainting. 
+            // If backend is unified, this might need to change to /generate_shot with type="inpaint"
+            const res = await api.post("/api/v1/images/inpaint_shot", formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+
+            // Return the new image URL from response
+            if (res.data.image_url) {
+                return res.data.image_url;
+            }
+            return null;
+
+        } catch (e: any) {
+            console.error(e);
+            toast.error(getErrorMessage(e));
+            await updateDoc(shotRef, { status: "failed" });
+            return null;
+        }
+    };
+
+    return { handleRenderShot, handleFinalizeShot, handleInpaintShot };
 };
