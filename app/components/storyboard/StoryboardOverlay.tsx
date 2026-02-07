@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Zap, Wand2, Plus, Film, Layers, Square, Loader2 } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
@@ -26,6 +26,10 @@ import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 
 // --- CONTEXT IMPORT ---
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
+
+//db
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface StoryboardOverlayProps {
     activeSceneId: string | null;
@@ -87,6 +91,32 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [shotToDelete, setShotToDelete] = useState<string | null>(null);
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [shotToDownload, setShotToDownload] = useState<any>(null);
+
+    // --- FETCH ASPECT RATIO ---
+    useEffect(() => {
+        const fetchProjectSettings = async () => {
+            if (!seriesId) return;
+
+            try {
+                // Assuming seriesId corresponds to the Project ID in the 'projects' collection
+                const projectRef = doc(db, "projects", seriesId);
+                const projectSnap = await getDoc(projectRef);
+
+                if (projectSnap.exists()) {
+                    const data = projectSnap.data();
+                    if (data && data.aspect_ratio) {
+                        console.log("Setting dynamic aspect ratio:", data.aspect_ratio);
+                        // Update the shot manager with the DB value
+                        shotMgr.setAspectRatio(data.aspect_ratio);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching project aspect ratio:", error);
+            }
+        };
+
+        fetchProjectSettings();
+    }, [seriesId]);
 
     if (!activeSceneId) return null;
 
@@ -242,88 +272,162 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         <div style={styles.sbOverlay}>
             <Toaster position="bottom-right" reverseOrder={false} />
 
-            {/* HEADER */}
+            {/* --- HEADER (Fixed) --- */}
             <div style={styles.sbHeader}>
-                <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', fontWeight: 'bold' }}>
-                    <ArrowLeft size={20} /> CLOSE BOARD
-                </button>
-                <div style={{ marginLeft: '20px', fontFamily: 'Anton, sans-serif', fontSize: '24px', letterSpacing: '1px', color: '#fff' }}>
-                    SCENE STORYBOARD
+                {/* LEFT: Navigation & Title */}
+                <div style={styles.headerLeft}>
+                    <button
+                        onClick={onClose}
+                        style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600 }}
+                    >
+                        <ArrowLeft size={16} /> CLOSE BOARD
+                    </button>
+                    <h1 style={styles.headerTitle}>SCENE STORYBOARD</h1>
                 </div>
 
-                <div style={styles.infoBox}>
-                    <Zap size={14} color="#FF0000" />
-                    <div style={{ textAlign: 'right' }}>
-                        <p style={{ fontSize: '9px', color: '#666', fontFamily: 'monospace', margin: 0 }}>CREDITS</p>
-                        <p style={{ fontSize: '10px', color: credits && credits > 0 ? '#FFF' : '#FF0000', fontWeight: 'bold', margin: 0 }}>
-                            {credits !== null ? credits : '...'}
-                        </p>
+                {/* CENTER: Data Cockpit */}
+                <div style={styles.headerStats}>
+                    <div style={styles.statItem}>
+                        <Zap size={16} color="#FF3B30" fill="#FF3B30" />
+                        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+                            <span style={{ fontSize: '9px', color: '#555', fontWeight: 700 }}>CREDITS</span>
+                            <span style={{ fontSize: '14px', color: '#FFF', fontWeight: 700 }}>{credits ?? '--'}</span>
+                        </div>
+                    </div>
+                    <div style={styles.verticalDivider} />
+                    <div style={styles.statItem} id="tour-sb-aspect">
+                        <span style={styles.statLabel}>ASPECT:</span>
+                        <div style={styles.statValueBox}>
+                            {shotMgr.aspectRatio || "16:9"}
+                        </div>
                     </div>
                 </div>
 
-                <div style={{ marginLeft: '40px', display: 'flex', alignItems: 'center', gap: '10px' }} id="tour-sb-aspect">
-                    <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#666' }}>ASPECT:</span>
-                    <select
-                        value={shotMgr.aspectRatio}
-                        onChange={(e) => shotMgr.setAspectRatio(e.target.value)}
-                        style={{ backgroundColor: '#111', color: 'white', border: '1px solid #333', padding: '6px', fontSize: '11px', fontWeight: 'bold' }}
-                    >
-                        <option value="16:9">16:9 (Cinema)</option>
-                        <option value="21:9">21:9 (Wide)</option>
-                        <option value="9:16">9:16 (Vertical)</option>
-                        <option value="4:3">4:3 (TV)</option>
-                    </select>
-                </div>
-
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
+                {/* RIGHT: Actions */}
+                <div style={styles.headerActions}>
                     {shotMgr.shots.length > 0 && (
                         <button
                             onClick={handleSafeGenerateAll}
                             disabled={(shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping}
                             style={{
-                                padding: '10px 20px',
-                                backgroundColor: shotMgr.isGeneratingAll ? '#450a0a' : '#222',
-                                color: shotMgr.isGeneratingAll ? '#f87171' : '#FFF',
-                                fontWeight: 'bold',
-                                border: shotMgr.isGeneratingAll ? '1px solid #7f1d1d' : '1px solid #333',
-                                cursor: (shotMgr.isStopping || (shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting) ? 'not-allowed' : 'pointer',
-                                display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px',
+                                ...styles.btnSecondary,
                                 opacity: ((shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping) ? 0.5 : 1,
-                                transition: 'all 0.2s ease', minWidth: '160px', justifyContent: 'center'
+                                backgroundColor: shotMgr.isGeneratingAll ? '#2a0a0a' : '#1A1A1A',
+                                borderColor: shotMgr.isGeneratingAll ? '#7f1d1d' : '#333',
+                                color: shotMgr.isGeneratingAll ? '#f87171' : '#EEE',
                             }}
                         >
-                            {shotMgr.isStopping ? <><Loader2 size={14} className="animate-spin" /> STOPPING...</> : shotMgr.isGeneratingAll ? <><Square size={14} fill="currentColor" /> STOP</> : <><Layers size={14} /> GENERATE ALL</>}
+                            {shotMgr.isStopping ? <Loader2 size={14} className="animate-spin" /> :
+                                shotMgr.isGeneratingAll ? <Square size={14} fill="currentColor" /> :
+                                    <Layers size={14} />}
+                            {shotMgr.isStopping ? 'STOPPING...' : shotMgr.isGeneratingAll ? 'STOP' : 'GENERATE ALL'}
                         </button>
                     )}
 
                     <button
                         onClick={() => handleSafeAutoDirect()}
                         disabled={shotMgr.isAutoDirecting || shotMgr.isGeneratingAll || shotMgr.isStopping}
-                        style={{ padding: '10px 20px', backgroundColor: '#222', color: '#FFF', fontWeight: 'bold', border: '1px solid #333', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px' }}
+                        style={{ ...styles.btnSecondary, opacity: shotMgr.isAutoDirecting ? 0.5 : 1 }}
                     >
-                        <Wand2 size={14} /> AUTO-DIRECT
+                        <Wand2 size={14} />
+                        {shotMgr.isAutoDirecting ? 'DIRECTING...' : 'AUTO-DIRECT'}
                     </button>
+
                     <button
                         onClick={() => shotMgr.handleAddShot(currentScene)}
-                        style={{ padding: '10px 20px', backgroundColor: '#FFF', color: 'black', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px' }}
+                        style={styles.btnPrimary}
                     >
-                        <Plus size={14} /> ADD SHOT
+                        <Plus size={16} strokeWidth={3} /> ADD SHOT
                     </button>
                 </div>
             </div>
 
-            {/* SCENE CONTEXT STRIP */}
-            <SceneContextStrip
-                seriesName={seriesName}
-                episodeTitle={episodeTitle}
-                sceneNumber={currentScene.scene_number}
-                summary={currentScene.summary || currentScene.description}
-                locationName={sceneLoc}
-                timeOfDay={currentScene.time_of_day || "DAY"}
-                castList={charDisplay}
-                onAutoDirect={(newSummary) => handleSafeAutoDirect(newSummary)}
-                isAutoDirecting={shotMgr.isAutoDirecting}
-            />
+            {/* --- SCROLLABLE CONTENT AREA --- */}
+            <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#050505', display: 'flex', flexDirection: 'column' }}>
+
+                {/* 1. SCENE CONTEXT STRIP (Wrapped with 20px Margin) */}
+                <div style={{ margin: '40px 40px 0 40px' }}>
+                    <SceneContextStrip
+                        seriesName={seriesName}
+                        episodeTitle={episodeTitle}
+                        sceneNumber={currentScene.scene_number}
+                        summary={currentScene.summary || currentScene.description}
+                        locationName={sceneLoc}
+                        timeOfDay={currentScene.time_of_day || "DAY"}
+                        castList={charDisplay}
+                        onAutoDirect={(newSummary) => handleSafeAutoDirect(newSummary)}
+                        isAutoDirecting={shotMgr.isAutoDirecting}
+                    />
+                </div>
+
+                {/* 2. MAIN GRID (Padding creates the gap below the strip) */}
+                <div style={{ padding: '20px', flex: 1 }}>
+                    {shotMgr.shots.length === 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', border: '1px dashed #222', borderRadius: '8px', minHeight: '400px' }}>
+                            <Film size={48} style={{ opacity: 0.2, color: '#FFF', marginBottom: '20px' }} />
+                            <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '24px', color: '#333' }}>EMPTY SEQUENCE</h3>
+                            <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
+                                <button onClick={() => handleSafeAutoDirect()} disabled={shotMgr.isAutoDirecting} style={{ padding: '12px 24px', backgroundColor: '#111', color: 'white', border: '1px solid #333', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <Wand2 size={16} /> AUTO-DIRECT SCENE
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={shotMgr.handleDragEnd}>
+                            <SortableContext items={shotMgr.shots.map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
+                                <div style={styles.sbGrid}>
+                                    {shotMgr.shots.map((shot: any, index: number) => {
+                                        const nextShot = shotMgr.shots[index + 1];
+                                        const nextShotImage = nextShot?.image_url;
+                                        const prevShot = shotMgr.shots[index - 1];
+                                        const isMorphedByPrev = prevShot?.morph_to_next === true;
+
+                                        return (
+                                            <SortableShotCard
+                                                key={shot.id}
+                                                shot={shot}
+                                                index={index}
+                                                styles={styles}
+                                                onDelete={() => setShotToDelete(shot.id)}
+                                                castMembers={castMembers}
+                                                locations={locations}
+                                                onUpdateShot={shotMgr.updateShot}
+                                                onLipSync={() => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url })}
+                                                onRender={(referenceFile, provider) =>
+                                                    shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider)
+                                                }
+                                                onAnimate={(provider, endFrameUrl) =>
+                                                    shotMgr.handleAnimateShot(shot, provider, endFrameUrl)
+                                                }
+                                                isRendering={shotMgr.loadingShots.has(shot.id)}
+                                                onFinalize={() => shotMgr.handleFinalizeShot(shot)}
+                                                onExpand={() => handleOpenViewer(index)}
+                                                nextShotImage={nextShotImage}
+                                                isMorphedByPrev={isMorphedByPrev}
+                                            >
+                                                <div style={styles.shotImageContainer}>
+                                                    <ShotImage
+                                                        src={shot.image_url}
+                                                        videoUrl={shot.video_url}
+                                                        lipsyncUrl={shot.lipsync_url}
+                                                        videoStatus={shot.video_status}
+                                                        shotId={shot.id}
+                                                        isSystemLoading={shotMgr.loadingShots.has(shot.id)}
+                                                        onClickZoom={() => handleOpenViewer(index)}
+                                                        onDownload={() => setShotToDownload(shot)}
+                                                        onStartInpaint={() => setInpaintData({ src: shot.image_url, shotId: shot.id })}
+                                                        onAnimate={() => shotMgr.handleAnimateShot(shot, 'kling')}
+                                                    />
+                                                </div>
+                                            </SortableShotCard>
+                                        );
+                                    })}
+                                </div>
+                            </SortableContext>
+                        </DndContext>
+                    )}
+                </div>
+            </div>
 
             {/* MODALS */}
             {inpaintData && (
@@ -355,82 +459,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 />
             )}
 
-            {/* DOWNLOAD MODAL WITH REAL LOGIC */}
             {shotToDownload && (
                 <DownloadModal
                     shot={shotToDownload}
                     onClose={() => setShotToDownload(null)}
-                    onDownload={handleDownloadSelection} // Pass the handler that calls forceDownload
+                    onDownload={handleDownloadSelection}
                 />
             )}
-
-            {/* MAIN CONTENT */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px', backgroundColor: '#050505' }}>
-                {shotMgr.shots.length === 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', border: '1px dashed #222', borderRadius: '8px', minHeight: '400px' }}>
-                        <Film size={48} style={{ opacity: 0.2, color: '#FFF', marginBottom: '20px' }} />
-                        <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '24px', color: '#333' }}>EMPTY SEQUENCE</h3>
-                        <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-                            <button onClick={() => handleSafeAutoDirect()} disabled={shotMgr.isAutoDirecting} style={{ padding: '12px 24px', backgroundColor: '#FF0000', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <Wand2 size={16} /> AUTO-DIRECT SCENE
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={shotMgr.handleDragEnd}>
-                        <SortableContext items={shotMgr.shots.map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
-                            <div style={styles.sbGrid}>
-                                {shotMgr.shots.map((shot: any, index: number) => {
-                                    const nextShot = shotMgr.shots[index + 1];
-                                    const nextShotImage = nextShot?.image_url;
-                                    const prevShot = shotMgr.shots[index - 1];
-                                    const isMorphedByPrev = prevShot?.morph_to_next === true;
-
-                                    return (
-                                        <SortableShotCard
-                                            key={shot.id}
-                                            shot={shot}
-                                            index={index}
-                                            styles={styles}
-                                            onDelete={() => setShotToDelete(shot.id)}
-                                            castMembers={castMembers}
-                                            locations={locations}
-                                            onUpdateShot={shotMgr.updateShot}
-                                            onLipSync={() => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url })}
-                                            onRender={(referenceFile, provider) =>
-                                                shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider)
-                                            }
-                                            onAnimate={(provider, endFrameUrl) =>
-                                                shotMgr.handleAnimateShot(shot, provider, endFrameUrl)
-                                            }
-                                            isRendering={shotMgr.loadingShots.has(shot.id)}
-                                            onFinalize={() => shotMgr.handleFinalizeShot(shot)}
-                                            onExpand={() => handleOpenViewer(index)}
-                                            nextShotImage={nextShotImage}
-                                            isMorphedByPrev={isMorphedByPrev}
-                                        >
-                                            <div style={styles.shotImageContainer}>
-                                                <ShotImage
-                                                    src={shot.image_url}
-                                                    videoUrl={shot.video_url}
-                                                    lipsyncUrl={shot.lipsync_url}
-                                                    videoStatus={shot.video_status}
-                                                    shotId={shot.id}
-                                                    isSystemLoading={shotMgr.loadingShots.has(shot.id)}
-                                                    onClickZoom={() => handleOpenViewer(index)}
-                                                    onDownload={() => setShotToDownload(shot)} // Trigger Modal State
-                                                    onStartInpaint={() => setInpaintData({ src: shot.image_url, shotId: shot.id })}
-                                                    onAnimate={() => shotMgr.handleAnimateShot(shot, 'kling')}
-                                                />
-                                            </div>
-                                        </SortableShotCard>
-                                    );
-                                })}
-                            </div>
-                        </SortableContext>
-                    </DndContext>
-                )}
-            </div>
 
             {/* TERMINAL OVERLAY */}
             {shotMgr.isAutoDirecting && (
@@ -442,7 +477,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </div>
             )}
 
-            {/* MODALS */}
+            {/* WARNINGS */}
             {showOverwriteWarning && (
                 <DeleteConfirmModal
                     title="OVERWRITE SCENE?"
@@ -473,7 +508,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 />
             )}
 
-            {/* TOUR */}
             <StoryboardTour step={tourStep} onNext={onTourNext} onComplete={onTourComplete} />
         </div>
     );
