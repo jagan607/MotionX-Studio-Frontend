@@ -99,7 +99,7 @@ export const ScriptTimeline: React.FC<ScriptTimelineProps> = ({
                 />
             )}
 
-            <div className="flex-1 flex flex-col bg-[#050505] relative border-r border-[#222]">
+            <div className="flex-1 flex flex-col bg-[#050505] relative border-r border-[#222] h-full"> {/* Ensure h-full */}
 
                 {/* --- TOOLBAR --- */}
                 <div className="h-14 border-b border-[#222] bg-[#080808] flex items-center justify-between px-4 shrink-0">
@@ -141,8 +141,9 @@ export const ScriptTimeline: React.FC<ScriptTimelineProps> = ({
                     </div>
                 </div>
 
-                {/* --- SCENE LIST --- */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-2 pb-20 scrollbar-thin scrollbar-thumb-neutral-800 scrollbar-track-transparent">
+                {/* 2. SCROLLABLE SCENE LIST (Modified) */}
+                {/* Added 'min-h-0' to fix flex scrolling issues */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0 scrollbar-thin scrollbar-thumb-neutral-800 scrollbar-track-transparent">
                     {scenes.length === 0 ? (
                         <div className="h-40 flex flex-col items-center justify-center opacity-30 gap-3 border border-dashed border-[#222] rounded-lg">
                             <Film size={32} className="text-[#333]" />
@@ -165,31 +166,33 @@ export const ScriptTimeline: React.FC<ScriptTimelineProps> = ({
                         </DndContext>
                     )}
 
-                    {/* --- ADD CONTROLS (FOOTER) --- */}
-                    <div className="pt-4">
-                        {customFooter ? (
-                            // Render New Dual-Action Controls
-                            customFooter
-                        ) : (
-                            // Fallback to Old Single Button
-                            onAddScene && (
-                                <button
-                                    onClick={onAddScene}
-                                    className="w-full h-12 border border-dashed border-[#333] rounded-sm flex items-center justify-center gap-2 text-[#555] hover:text-[#CCC] hover:border-[#666] hover:bg-[#111] transition-all group"
-                                >
-                                    <Plus size={16} className="group-hover:scale-110 transition-transform" />
-                                    <span className="text-[10px] font-bold uppercase tracking-widest">Add New Scene</span>
-                                </button>
-                            )
-                        )}
-                    </div>
-
+                    {/* Optional: 'End of Sequence' marker can stay inside the scroll area */}
                     {scenes.length > 0 && (
-                        <div className="h-10 flex items-center justify-center border-t border-dashed border-[#222] mt-4 opacity-30">
-                            <span className="text-[9px] font-mono text-[#333]">END OF SEQUENCE</span>
+                        <div className="h-8 flex items-center justify-center mt-4 opacity-20">
+                            <span className="text-[9px] font-mono text-[#333]">--- END OF SEQUENCE ---</span>
                         </div>
                     )}
                 </div>
+
+                {/* 3. PINNED FOOTER (Moved Outside) */}
+                {/* This section will always stick to the bottom */}
+                <div className="shrink-0 border-t border-[#222] bg-[#080808] p-4 z-10 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+                    {customFooter ? (
+                        customFooter
+                    ) : (
+                        // Fallback Old Button
+                        onAddScene && (
+                            <button
+                                onClick={onAddScene}
+                                className="w-full h-12 border border-dashed border-[#333] rounded-sm flex items-center justify-center gap-2 text-[#555] hover:text-[#CCC] hover:border-[#666] hover:bg-[#111] transition-all group"
+                            >
+                                <Plus size={16} className="group-hover:scale-110 transition-transform" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest">Add New Scene</span>
+                            </button>
+                        )
+                    )}
+                </div>
+
             </div>
         </>
     );
