@@ -14,11 +14,13 @@ import {
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
 import { api, fetchEpisodes } from "@/lib/api";
-import { CheckCircle2, FileText } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { v4 as uuidv4 } from 'uuid';
 
 // --- COMPONENTS ---
 import { ScriptWorkstation, WorkstationScene } from "@/app/components/script/ScriptWorkstation";
 import { MotionButton } from "@/components/ui/MotionButton";
+import { AddSceneControls } from "@/components/script/AddSceneControls"; // <--- IMPORT
 
 export default function DraftPage() {
     const params = useParams();
@@ -28,13 +30,15 @@ export default function DraftPage() {
 
     // Data State
     const [scenes, setScenes] = useState<WorkstationScene[]>([]);
+    const [draftMeta, setDraftMeta] = useState<any>({}); // Store extra draft data (target_episode_id)
 
-    // Context State (Required for Add Reference Modal)
+    // Context State
     const [episodes, setEpisodes] = useState<any[]>([]);
 
     // Loading States
     const [isProcessing, setIsProcessing] = useState(false);
     const [isCommitting, setIsCommitting] = useState(false);
+    const [isExtending, setIsExtending] = useState(false); // <--- NEW STATE
 
     // Refs for safety
     const isCommittingRef = useRef(false);
@@ -46,6 +50,12 @@ export default function DraftPage() {
         const unsub = onSnapshot(doc(db, "projects", projectId, "drafts", draftId), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
+
+                // Save metadata needed for context
+                setDraftMeta({
+                    target_episode_id: data.target_episode_id,
+                    title: data.title
+                });
 
                 if (!isProcessing && !isCommitting) {
                     const stableScenes = (data.scenes || []).map((s: any, i: number) => ({
@@ -72,7 +82,6 @@ export default function DraftPage() {
             try {
                 const epsData = await fetchEpisodes(projectId);
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
-                // Filter out ghost episodes if any, similar to editor page
                 eps = eps.filter((e: any) => !(e.title === "Main Script" && e.synopsis === "Initial setup"));
                 setEpisodes(eps);
             } catch (err) {
@@ -82,7 +91,9 @@ export default function DraftPage() {
         loadContext();
     }, [projectId]);
 
-    // 3. HANDLER: FETCH REMOTE SCENES (Enables Context Modal)
+    // --- HANDLERS ---
+
+    // A. FETCH REMOTE SCENES
     const fetchRemoteScenes = async (targetEpisodeId: string) => {
         try {
             const q = query(
@@ -106,7 +117,7 @@ export default function DraftPage() {
         }
     };
 
-    // 4. HANDLER: REORDER
+    // B. REORDER
     const handleReorder = async (newOrder: WorkstationScene[]) => {
         setScenes(newOrder);
         try {
@@ -119,7 +130,127 @@ export default function DraftPage() {
         }
     };
 
-    // 5. HANDLER: AI REWRITE
+    // C. ADD MANUAL SCENE (Local Array Update)
+    const handleAddScene = async () => {
+        try {
+            const newScene: WorkstationScene = {
+                id: `scene_${uuidv4().slice(0, 8)}`,
+                scene_number: scenes.length + 1,
+                header: "INT. UNTITLED SCENE - DAY",
+                summary: "",
+                cast_ids: [],
+                time: "DAY"
+            };
+
+            const newScenes = [...scenes, newScene];
+            setScenes(newScenes); // Optimistic UI
+
+            await updateDoc(doc(db, "projects", projectId, "drafts", draftId), {
+                scenes: newScenes
+            });
+            toast.success("New Scene Added");
+        } catch (e) {
+            console.error("Add Scene Error:", e);
+            toast.error("Failed to add scene");
+        }
+    };
+
+    // D. AUTO-EXTEND SCENE (API Call)
+    const handleAutoExtend = async () => {
+        if (scenes.length === 0) {
+            toast.error("Need context to extend!");
+            return;
+        }
+
+        setIsExtending(true);
+        try {
+            const lastScene = scenes[scenes.length - 1];
+
+            // Prepare Payload
+            const payload = {
+                project_id: projectId,
+                episode_id: draftMeta.target_episode_id || "main",
+                previous_scene: {
+                    location: lastScene.header,
+                    time_of_day: lastScene.time,
+                    visual_action: lastScene.summary,
+                    characters: lastScene.cast_ids || lastScene.characters
+                }
+            };
+
+            // Call API
+            const res = await api.post("/api/v1/script/extend-scene", payload);
+            const generatedScene = res.data.scene;
+
+            // Create New Scene Object
+            const newScene: WorkstationScene = {
+                id: `scene_${uuidv4().slice(0, 8)}`,
+                scene_number: scenes.length + 1,
+                header: generatedScene.slugline || "EXT. NEW SCENE - DAY",
+                summary: generatedScene.visual_action || generatedScene.synopsis || "",
+                time: generatedScene.time_of_day || "DAY",
+                cast_ids: generatedScene.characters || [],
+                // Mapping legacy fields if needed
+                characters: generatedScene.characters || []
+            };
+
+            // Update List
+            const newScenes = [...scenes, newScene];
+            setScenes(newScenes);
+
+            // Sync to Firestore
+            await updateDoc(doc(db, "projects", projectId, "drafts", draftId), {
+                scenes: newScenes
+            });
+
+            toast.success("Narrative Extended!");
+
+        } catch (e) {
+            console.error("Auto Extend Error:", e);
+            toast.error("Failed to extend narrative");
+        } finally {
+            setIsExtending(false);
+        }
+    };
+
+    // E. DELETE SCENE
+    const handleDeleteScene = async (sceneId: string) => {
+        try {
+            const newScenes = scenes.filter(s => s.id !== sceneId);
+            // Re-index scene numbers
+            const reindexed = newScenes.map((s, idx) => ({ ...s, scene_number: idx + 1 }));
+
+            setScenes(reindexed);
+
+            await updateDoc(doc(db, "projects", projectId, "drafts", draftId), {
+                scenes: reindexed
+            });
+            toast.success("Scene Removed");
+        } catch (e) {
+            console.error("Delete Error:", e);
+            toast.error("Failed to delete scene");
+        }
+    };
+
+    // F. UPDATE CAST
+    const handleUpdateCast = async (sceneId: string, newCast: string[]) => {
+        try {
+            const newScenes = scenes.map(s => {
+                if (s.id === sceneId) {
+                    return { ...s, cast_ids: newCast, characters: newCast };
+                }
+                return s;
+            });
+            setScenes(newScenes);
+            await updateDoc(doc(db, "projects", projectId, "drafts", draftId), {
+                scenes: newScenes
+            });
+        } catch (e) {
+            console.error("Update Cast Error:", e);
+        }
+    };
+
+    // G. AI REWRITE
     const handleRewrite = async (sceneId: string, instruction: string, contextRefs?: any[]) => {
         setIsProcessing(true);
         const sceneIndex = scenes.findIndex(s => s.id === sceneId);
@@ -128,7 +259,6 @@ export default function DraftPage() {
         const targetScene = scenes[sceneIndex];
 
         try {
-            // Build Payload with Context
             const memoryReferences = contextRefs?.map(ref => ({
                 source: ref.sourceLabel,
                 header: ref.header,
@@ -166,7 +296,7 @@ export default function DraftPage() {
         }
     };
 
-    // 6. HANDLER: COMMIT (APPROVE)
+    // H. COMMIT (APPROVE)
     const handleCommit = async () => {
         setIsCommitting(true);
         isCommittingRef.current = true;
@@ -178,8 +308,6 @@ export default function DraftPage() {
             });
 
             toast.success("Sequence Approved");
-
-            // --- FIX: ADD ONBOARDING PARAM ---
             router.push(`/project/${projectId}/assets?onboarding=true`);
 
         } catch (e: any) {
@@ -190,10 +318,9 @@ export default function DraftPage() {
         }
     };
 
-    // --- 7. CUSTOM HEADER ---
+    // --- CUSTOM HEADER ---
     const DraftHeader = (
         <div className="h-20 border-b border-[#222] bg-[#080808] flex items-center justify-between px-8 shrink-0">
-            {/* LEFT: TITLE ONLY (Back Removed) */}
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3 text-[#EEE]">
                     <div>
@@ -202,8 +329,6 @@ export default function DraftPage() {
                     </div>
                 </div>
             </div>
-
-            {/* RIGHT: APPROVE BUTTON */}
             <div className="w-[240px]">
                 <MotionButton
                     onClick={handleCommit}
@@ -226,17 +351,25 @@ export default function DraftPage() {
             customHeader={DraftHeader}
 
             scenes={scenes}
-
-            // Pass episodes for context modal
             contextEpisodes={episodes}
 
             // Actions
             onReorder={handleReorder}
             onRewrite={handleRewrite}
             onCommit={handleCommit}
-
-            // Enable Context Modal by passing this function
             onFetchRemoteScenes={fetchRemoteScenes}
+            onUpdateCast={handleUpdateCast}
+            onDeleteScene={handleDeleteScene}
+
+            // INJECT NEW CONTROLS
+            customFooter={
+                <AddSceneControls
+                    onManualAdd={handleAddScene}
+                    onAutoExtend={handleAutoExtend}
+                    isExtending={isExtending}
+                    disabled={scenes.length === 0}
+                />
+            }
 
             isProcessing={isProcessing}
             isCommitting={isCommitting}
