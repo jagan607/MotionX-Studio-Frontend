@@ -292,22 +292,58 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
             <Toaster position="bottom-right" reverseOrder={false} />
 
             {/* --- HEADER (Fixed) --- */}
-            <div style={styles.sbHeader}>
+            {/* --- HEADER --- */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                height: '80px',
+                padding: '0 32px',
+                backgroundColor: '#050505',
+                borderBottom: '1px solid #1A1A1A',
+                position: 'sticky',
+                top: 0,
+                zIndex: 100,
+                gap: '24px',
+                flexShrink: 0
+            }}>
                 {/* LEFT: Navigation & Title */}
-                <div style={styles.headerLeft}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                     <button
                         onClick={onClose}
-                        style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600 }}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#888',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            letterSpacing: '0.05em'
+                        }}
                     >
                         <ArrowLeft size={16} /> CLOSE BOARD
                     </button>
-                    <h1 style={styles.headerTitle}>SCENE STORYBOARD</h1>
+
+                    <h1 style={{
+                        fontFamily: 'Anton, sans-serif',
+                        fontSize: '28px',
+                        letterSpacing: '1px',
+                        color: '#fff',
+                        textTransform: 'uppercase',
+                        margin: 0,
+                        lineHeight: 1
+                    }}>
+                        SCENE STORYBOARD
+                    </h1>
                 </div>
 
-                {/* RIGHT: Actions, Selector & Credits */}
-                <div style={styles.headerActions}>
+                {/* RIGHT: Actions, Selector, Credits & Top Up */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', height: '100%' }}>
 
-                    {/* 1. SCENE SELECTOR (Moved here, styled like a button) */}
+                    {/* 1. SCENE SELECTOR (Styled like action buttons) */}
                     <div style={{ position: 'relative' }}>
                         <select
                             value={activeSceneId || ""}
@@ -318,20 +354,20 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 }
                             }}
                             style={{
-                                height: '40px', // Matches button height
-                                padding: '0 32px 0 16px', // Extra right padding for the arrow
+                                height: '40px',
+                                padding: '0 32px 0 16px',
                                 backgroundColor: '#1A1A1A', // Matches btnSecondary
                                 color: '#EEE',
                                 border: '1px solid #333',
                                 borderRadius: '4px',
                                 fontSize: '11px',
                                 fontWeight: 600,
-                                minWidth: '200px', // Consistent width
+                                minWidth: '240px',
                                 maxWidth: '300px',
                                 cursor: 'pointer',
                                 outline: 'none',
                                 textTransform: 'uppercase',
-                                appearance: 'none', // Hides default browser arrow
+                                appearance: 'none',
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis'
@@ -343,7 +379,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 </option>
                             ))}
                         </select>
-                        {/* Custom Arrow Indicator since we used appearance: none */}
+                        {/* Custom Arrow Indicator */}
                         <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#666' }}>
                             <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                         </div>
@@ -355,10 +391,19 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             onClick={handleSafeGenerateAll}
                             disabled={(shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping}
                             style={{
-                                ...styles.btnSecondary,
+                                height: '40px',
+                                padding: '0 20px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'all 0.2s ease',
                                 opacity: ((shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping) ? 0.5 : 1,
                                 backgroundColor: shotMgr.isGeneratingAll ? '#2a0a0a' : '#1A1A1A',
-                                borderColor: shotMgr.isGeneratingAll ? '#7f1d1d' : '#333',
+                                border: shotMgr.isGeneratingAll ? '1px solid #7f1d1d' : '1px solid #333',
                                 color: shotMgr.isGeneratingAll ? '#f87171' : '#EEE',
                             }}
                         >
@@ -373,7 +418,22 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     <button
                         onClick={() => handleSafeAutoDirect()}
                         disabled={shotMgr.isAutoDirecting || shotMgr.isGeneratingAll || shotMgr.isStopping}
-                        style={{ ...styles.btnSecondary, opacity: shotMgr.isAutoDirecting ? 0.5 : 1 }}
+                        style={{
+                            height: '40px',
+                            padding: '0 20px',
+                            backgroundColor: '#1A1A1A',
+                            color: '#EEE',
+                            border: '1px solid #333',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'all 0.2s ease',
+                            opacity: shotMgr.isAutoDirecting ? 0.5 : 1
+                        }}
                     >
                         <Wand2 size={14} />
                         {shotMgr.isAutoDirecting ? 'DIRECTING...' : 'AUTO-DIRECT'}
@@ -382,18 +442,70 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     {/* 4. ADD SHOT (Primary) */}
                     <button
                         onClick={() => shotMgr.handleAddShot(currentScene)}
-                        style={styles.btnPrimary}
+                        style={{
+                            height: '40px',
+                            padding: '0 24px',
+                            backgroundColor: '#FFF',
+                            color: '#000',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
                     >
                         <Plus size={16} strokeWidth={3} /> ADD SHOT
                     </button>
 
-                    {/* 5. CREDITS (Moved to far right) */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginLeft: '15px', borderLeft: '1px solid #222', paddingLeft: '20px', height: '30px', justifyContent: 'center' }}>
-                        <span style={{ fontSize: '9px', color: '#666', fontWeight: 700, letterSpacing: '0.5px', lineHeight: '1' }}>CREDITS</span>
-                        <span style={{ fontSize: '12px', color: credits && credits > 0 ? '#FFF' : '#FF0000', fontWeight: 700, lineHeight: '1.2' }}>
-                            {credits ?? '--'}
-                        </span>
+                    {/* DIVIDER */}
+                    <div style={{ width: '1px', height: '32px', backgroundColor: '#222', margin: '0 16px' }} />
+
+                    {/* 5. CREDITS & TOP UP (Copied from StudioHeader) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginBottom: '2px' }}>
+                                <span style={{ display: 'block', fontSize: '8px', color: '#888', fontFamily: 'monospace', textTransform: 'uppercase', lineHeight: 1 }}>CREDITS</span>
+                                {credits !== null && <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#22c55e' }} className="animate-pulse" />}
+                            </div>
+                            <div style={{ fontSize: '13px', color: 'white', fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.05em', lineHeight: 1 }}>
+                                {credits !== null ? credits.toLocaleString() : <span style={{ color: '#333' }}>---</span>}
+                            </div>
+                        </div>
+
+                        {/* TOP UP BUTTON - Ensure you implement the onClick handler to open your modal */}
+                        <button
+                            onClick={() => { /* Trigger TopUp Modal here */ }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                backgroundColor: 'rgba(127, 29, 29, 0.1)', // red-900/10
+                                border: '1px solid rgba(220, 38, 38, 0.3)', // red-600/30
+                                color: 'white',
+                                padding: '8px 16px',
+                                fontSize: '9px',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                borderRadius: '2px'
+                            }}
+                            onMouseOver={(e) => {
+                                e.currentTarget.style.backgroundColor = '#dc2626'; // hover:bg-red-600
+                                e.currentTarget.style.borderColor = '#dc2626';
+                            }}
+                            onMouseOut={(e) => {
+                                e.currentTarget.style.backgroundColor = 'rgba(127, 29, 29, 0.1)';
+                                e.currentTarget.style.borderColor = 'rgba(220, 38, 38, 0.3)';
+                            }}
+                        >
+                            <Plus size={10} strokeWidth={4} /> TOP UP
+                        </button>
                     </div>
+
                 </div>
             </div>
 
