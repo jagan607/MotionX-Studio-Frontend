@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ContextSelectorModal, ContextReference } from "./ContextSelectorModal";
 import { ScriptTimeline } from "./ScriptTimeline";
 import { DirectorConsole } from "./DirectorConsole";
@@ -90,6 +90,11 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
     onFetchRemoteScenes,
     isProcessing
 }) => {
+    // DEBUG: Log locations received
+    useEffect(() => {
+        console.log("🎬 ScriptWorkstation Received Locations:", availableLocations);
+    }, [availableLocations]);
+
     // Internal state fallback (for when parent doesn't control selection)
     const [internalActiveId, setInternalActiveId] = useState<string | null>(null);
     const [isContextModalOpen, setIsContextModalOpen] = useState(false);

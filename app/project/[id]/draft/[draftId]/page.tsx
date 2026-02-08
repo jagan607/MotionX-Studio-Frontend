@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
     doc,
@@ -55,6 +55,36 @@ export default function DraftPage() {
         }
     }, [isLoading, scenes, activeSceneId]);
 
+    // FALLBACK: Extract locations from scene headers when Firestore collection is empty
+    const effectiveLocations = useMemo(() => {
+        // If Firestore locations exist, use them
+        if (locations.length > 0) return locations;
+
+        // Otherwise, extract unique locations from scene headers
+        const uniqueLocNames = new Set<string>();
+        scenes.forEach(scene => {
+            const header = scene.header || scene.slugline || "";
+            // Parse location name (same logic as SortableSceneCard)
+            const cleanLoc = header
+                .toUpperCase()
+                .replace("INT.", "")
+                .replace("EXT.", "")
+                .replace("INT ", "")
+                .replace("EXT ", "")
+                .split("-")[0]
+                .trim();
+            if (cleanLoc && cleanLoc !== "UNKNOWN SCENE") {
+                uniqueLocNames.add(cleanLoc);
+            }
+        });
+
+        // Convert to LocationAsset format
+        return Array.from(uniqueLocNames).map(name => ({
+            id: name.toLowerCase().replace(/[^a-z0-9]/g, "_"),
+            name: name
+        }));
+    }, [locations, scenes]);
+
     // 1. REAL-TIME DATA SYNC (Draft)
     useEffect(() => {
         if (!draftId || !projectId) return;
@@ -69,13 +99,34 @@ export default function DraftPage() {
                 });
 
                 if (!isProcessing && !isCommitting) {
-                    const stableScenes = (data.scenes || []).map((s: any, i: number) => ({
-                        ...s,
-                        id: s.id || `scene_${i}`,
-                        scene_number: i + 1
-                    }));
+                    const stableScenes = (data.scenes || []).map((s: any, i: number) => {
+                        // Robust field handling (matching Scene Manager)
+                        const headerText = s.slugline || s.header || s.scene_header || s.title || "";
+                        const summaryText = s.synopsis || s.summary || s.action || s.description || "";
+
+                        return {
+                            ...s,
+                            id: s.id || `scene_${i}`,
+                            scene_number: i + 1,
+                            header: headerText || "UNKNOWN SCENE",
+                            summary: summaryText,
+                            time: s.time || "",
+                            cast_ids: s.cast_ids || s.characters || [],
+                            location_id: s.location_id || "" // Critical fix for location selector
+                        };
+                    });
                     setScenes(stableScenes);
                     setIsLoading(false); // Mark loading complete for auto-select
+
+                    // Extract locations from draft's detected_locations
+                    if (data.detected_locations && Array.isArray(data.detected_locations)) {
+                        const draftLocations = data.detected_locations.map((loc: any, idx: number) => ({
+                            id: loc.id || loc.name?.toLowerCase().replace(/[^a-z0-9]/g, "_") || `loc_${idx}`,
+                            name: loc.name || loc.location || `Location ${idx + 1}`
+                        }));
+                        console.log("📍 Draft Locations from document:", draftLocations);
+                        setLocations(draftLocations);
+                    }
                 }
             } else {
                 if (!isCommittingRef.current) {
@@ -177,7 +228,8 @@ export default function DraftPage() {
                 header: "INT. UNTITLED SCENE - DAY",
                 summary: "",
                 cast_ids: [],
-                time: "DAY"
+                time: "DAY",
+                location_id: "" // Ensure location selector works
             };
 
             const newScenes = [...scenes, newScene];
@@ -227,7 +279,8 @@ export default function DraftPage() {
                 summary: generatedScene.visual_action || generatedScene.synopsis || "",
                 time: generatedScene.time_of_day || "DAY",
                 cast_ids: generatedScene.characters || [],
-                characters: generatedScene.characters || []
+                characters: generatedScene.characters || [],
+                location_id: "" // Ensure location selector works
             };
 
             const newScenes = [...scenes, newScene];
@@ -409,7 +462,7 @@ export default function DraftPage() {
 
             scenes={scenes}
             contextEpisodes={episodes}
-            availableLocations={locations} // <--- PASS LOCATIONS
+            availableLocations={effectiveLocations} // <--- PASS EFFECTIVE LOCATIONS (with fallback)
 
             // CONTROLLED SCENE SELECTION
             activeSceneId={activeSceneId}
