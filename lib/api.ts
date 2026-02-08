@@ -175,18 +175,65 @@ export const fetchUserDashboardProjects = async (uid: string): Promise<Dashboard
         const projectData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DashboardProject));
 
         const enriched = await Promise.all(projectData.map(async (p) => {
-            let vid = null, img = p.moodboard?.cover_image || null;
+            let vid: string | null = null;
+            let img: string | null = null;
 
             try {
-                const scenesRef = collection(db, "projects", p.id, "episodes", "main", "scenes");
-                const scs = await getDocs(query(scenesRef, limit(1)));
-                if (!scs.empty) {
-                    const shotsRef = collection(scs.docs[0].ref, "shots");
-                    const shs = await getDocs(query(shotsRef, where("status", "==", "rendered"), limit(3)));
+                // 1. Try to get media from Rendered Shots
+                // Get all episodes for this project
+                const episodesRef = collection(db, "projects", p.id, "episodes");
+                const episodesSnap = await getDocs(query(episodesRef, limit(5)));
 
-                    vid = shs.docs.find(d => d.data().video_url)?.data().video_url || null;
-                    if (!img) img = shs.docs.find(d => d.data().image_url)?.data().image_url || null;
+                // Search through episodes -> scenes -> shots
+                episodeLoop: for (const epDoc of episodesSnap.docs) {
+                    const scenesRef = collection(epDoc.ref, "scenes");
+                    const scenesSnap = await getDocs(query(scenesRef, limit(10)));
+
+                    for (const sceneDoc of scenesSnap.docs) {
+                        const shotsRef = collection(sceneDoc.ref, "shots");
+                        const shotsSnap = await getDocs(query(
+                            shotsRef,
+                            where("status", "==", "rendered"),
+                            limit(5)
+                        ));
+
+                        for (const shotDoc of shotsSnap.docs) {
+                            const data = shotDoc.data();
+                            if (!vid && data.video_url) vid = data.video_url;
+                            if (!img && data.image_url) img = data.image_url;
+                            if (vid && img) break episodeLoop; // Found both, stop
+                        }
+
+                        if (vid && img) break; // Found both, stop scene loop
+                    }
                 }
+
+                // 2. Fallback: If no image found in shots, check Assets (characters)
+                if (!img) {
+                    const charsRef = collection(db, "projects", p.id, "characters");
+                    const charsSnap = await getDocs(query(charsRef, limit(3)));
+                    for (const charDoc of charsSnap.docs) {
+                        const charData = charDoc.data();
+                        if (charData.image_url) {
+                            img = charData.image_url;
+                            break;
+                        }
+                    }
+                }
+
+                // 3. Fallback: Check locations
+                if (!img) {
+                    const locsRef = collection(db, "projects", p.id, "locations");
+                    const locsSnap = await getDocs(query(locsRef, limit(3)));
+                    for (const locDoc of locsSnap.docs) {
+                        const locData = locDoc.data();
+                        if (locData.image_url) {
+                            img = locData.image_url;
+                            break;
+                        }
+                    }
+                }
+
             } catch (e) {
                 console.warn(`Preview fetch failed for ${p.id}`, e);
             }
