@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, deleteDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Plus, Film, Radio, Image as ImageIcon, Crosshair, Disc, Maximize, Signal, Play, ChevronLeft, ChevronRight } from "lucide-react";
-import { DashboardProject, fetchUserDashboardProjects, fetchGlobalFeed } from "@/lib/api"; // Updated Imports
+import { Loader2, Plus, Film, Radio, Image as ImageIcon, Crosshair, Disc, Maximize, Signal, Play, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { DashboardProject, fetchUserDashboardProjects, fetchGlobalFeed } from "@/lib/api";
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 
 const DEFAULT_SHOWREEL = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
 
@@ -19,6 +20,8 @@ export default function Dashboard() {
     const [bootState, setBootState] = useState<'booting' | 'ready'>('booting');
     const [filter, setFilter] = useState<'ALL' | 'MOTION' | 'STATIC'>('ALL');
     const [timeCode, setTimeCode] = useState("00:00:00:00");
+    const [projectToDelete, setProjectToDelete] = useState<DashboardProject | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const router = useRouter();
     const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
@@ -106,7 +109,7 @@ export default function Dashboard() {
                 <div className="flex-[3] flex flex-col min-w-0 h-full overflow-hidden gap-6">
 
                     {/* MONITOR */}
-                    <div className="flex-1 relative bg-black border border-[#333] group overflow-hidden shadow-2xl min-h-0 rounded-sm transition-colors hover:border-[#444]">
+                    <div className="flex-[2] relative bg-black border border-[#333] group overflow-hidden shadow-2xl min-h-0 rounded-sm transition-colors hover:border-[#444]">
                         <div className="absolute inset-0 pointer-events-none z-20 p-4">
                             <div className="absolute top-4 left-4 w-8 h-8 border-l border-t border-white/60" />
                             <div className="absolute top-4 right-4 w-8 h-8 border-r border-t border-white/30" />
@@ -156,7 +159,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* FILM STRIP CONTAINER */}
-                    <div className="h-[160px] relative group/strip shrink-0">
+                    <div className="h-[200px] relative group/strip shrink-0">
 
                         {/* LEFT SCROLL BUTTON */}
                         <button
@@ -180,11 +183,27 @@ export default function Dashboard() {
                             {myProjects.map((p, i) => (
                                 <div
                                     key={p.id}
-                                    onClick={() => setActiveProjectIndex(i)}
-                                    className={`shrink-0 aspect-[16/9] h-full bg-black border cursor-pointer relative overflow-hidden transition-all duration-300 ${activeProjectIndex === i ? 'border-[#FF0000] scale-[1.0] z-10 shadow-[0_0_15px_rgba(255,0,0,0.2)] opacity-100' : 'border-[#222] opacity-60 hover:opacity-100 hover:border-[#444]'}`}
+                                    className={`shrink-0 aspect-[16/9] h-full bg-black border cursor-pointer relative overflow-hidden transition-all duration-300 group/card ${activeProjectIndex === i ? 'border-[#FF0000] scale-[1.0] z-10 shadow-[0_0_15px_rgba(255,0,0,0.2)] opacity-100' : 'border-[#222] opacity-60 hover:opacity-100 hover:border-[#444]'}`}
                                 >
+                                    {/* CLICKABLE AREA FOR SELECTION */}
+                                    <div
+                                        className="absolute inset-0 z-0"
+                                        onClick={() => setActiveProjectIndex(i)}
+                                    />
+
+                                    {/* DELETE BUTTON (Stop Propagation to prevent selection) */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setProjectToDelete(p);
+                                        }}
+                                        className="absolute top-2 right-2 z-20 bg-black/80 p-2 rounded-sm text-white opacity-0 group-hover/card:opacity-100 hover:bg-red-600 transition-all duration-200"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+
                                     {p.previewImage ? <img src={p.previewImage} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-[#111]"><Film size={20} className="opacity-20" /></div>}
-                                    <div className="absolute bottom-0 p-2 w-full bg-gradient-to-t from-black to-transparent flex justify-between items-center">
+                                    <div className="absolute bottom-0 p-2 w-full bg-gradient-to-t from-black to-transparent flex justify-between items-center pointer-events-none">
                                         <span className="text-white text-[9px] font-bold uppercase tracking-widest truncate block max-w-[70%]">{p.title}</span>
                                         <span className="text-[8px] font-mono text-[#666] uppercase bg-black/50 px-1 rounded">
                                             {p.type === 'movie' ? 'MOV' : 'SER'}
@@ -255,6 +274,29 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+            {/* DELETE MODAL */}
+            {projectToDelete && (
+                <DeleteConfirmModal
+                    title={`DELETE PROJECT: ${projectToDelete.title}`}
+                    message="Are you sure you want to purge this project data? This action is irreversible."
+                    isDeleting={isDeleting}
+                    onConfirm={async () => {
+                        if (!projectToDelete) return;
+                        setIsDeleting(true);
+                        try {
+                            await deleteDoc(doc(db, "projects", projectToDelete.id));
+                            setMyProjects(prev => prev.filter(p => p.id !== projectToDelete.id));
+                            if (activeProjectIndex >= myProjects.length - 1) setActiveProjectIndex(Math.max(0, myProjects.length - 2));
+                        } catch (e) {
+                            console.error("DELETE FAILED", e);
+                        } finally {
+                            setIsDeleting(false);
+                            setProjectToDelete(null);
+                        }
+                    }}
+                    onCancel={() => setProjectToDelete(null)}
+                />
+            )}
         </main>
     );
 }
