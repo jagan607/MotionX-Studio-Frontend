@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Zap, Wand2, Plus, Film, Layers, Square, Loader2 } from 'lucide-react';
+import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2 } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
 } from '@dnd-kit/core';
@@ -28,7 +28,7 @@ import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
 
 //db
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 interface StoryboardOverlayProps {
@@ -54,8 +54,9 @@ interface StoryboardOverlayProps {
     onApplyInpaint: any;
     onClose: () => void;
     onZoom: any;
-    onDownload: any; // Kept for logging/analytics if needed
+    onDownload: any;
     onDeleteShot: any;
+    onSceneChange?: (scene: any) => void; // New prop for switching scenes
 
     // Tour Props
     tourStep: number;
@@ -70,7 +71,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     seriesName, episodeTitle,
     seriesId, episodeId,
     shotMgr, inpaintData, setInpaintData, onSaveInpaint, onApplyInpaint,
-    onZoom, onDownload, onDeleteShot,
+    onZoom, onDownload, onDeleteShot, onSceneChange,
     tourStep, onTourNext, onTourComplete
 }) => {
 
@@ -91,14 +92,37 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [shotToDelete, setShotToDelete] = useState<string | null>(null);
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [shotToDownload, setShotToDownload] = useState<any>(null);
+    const [sceneList, setSceneList] = useState<any[]>([]); // New state for dropdown
 
-    // --- FETCH ASPECT RATIO ---
+    // --- FETCH SCENE LIST ---
+    useEffect(() => {
+        const fetchScenes = async () => {
+            if (!seriesId || !episodeId) return;
+            try {
+                // Fetch scenes for this episode to populate the dropdown
+                const scenesRef = collection(db, "projects", seriesId, "episodes", episodeId, "scenes");
+                const q = query(scenesRef, orderBy("scene_number", "asc"));
+                const snapshot = await getDocs(q);
+
+                const scenes = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                setSceneList(scenes);
+            } catch (error) {
+                console.error("Error fetching scene list:", error);
+            }
+        };
+
+        fetchScenes();
+    }, [seriesId, episodeId]);
+
+    // --- FETCH ASPECT RATIO (Logic kept, UI removed) ---
     useEffect(() => {
         const fetchProjectSettings = async () => {
             if (!seriesId) return;
 
             try {
-                // Assuming seriesId corresponds to the Project ID in the 'projects' collection
                 const projectRef = doc(db, "projects", seriesId);
                 const projectSnap = await getDoc(projectRef);
 
@@ -106,7 +130,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     const data = projectSnap.data();
                     if (data && data.aspect_ratio) {
                         console.log("Setting dynamic aspect ratio:", data.aspect_ratio);
-                        // Update the shot manager with the DB value
                         shotMgr.setAspectRatio(data.aspect_ratio);
                     }
                 }
@@ -135,14 +158,12 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
             link.click();
             document.body.removeChild(link);
 
-            // Cleanup
             window.URL.revokeObjectURL(blobUrl);
             toast.dismiss(toastId);
             toast.success("Download started");
         } catch (e) {
             console.error("Download failed", e);
             toast.dismiss(toastId);
-            // Fallback: Open in new tab
             window.open(url, '_blank');
         }
     };
@@ -164,7 +185,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
         if (type === 'video' || type === 'both') {
             if (shotToDownload.video_url) {
-                // Add slight delay if downloading both to prevent browser blocking
                 setTimeout(() => {
                     forceDownload(shotToDownload.video_url, `${prefix}_motion.mp4`);
                 }, type === 'both' ? 800 : 0);
@@ -174,7 +194,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         }
 
         setShotToDownload(null);
-        // Optional: Call parent onDownload for analytics logging
         if (onDownload) onDownload(shotToDownload, type);
     };
 
@@ -282,29 +301,54 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     >
                         <ArrowLeft size={16} /> CLOSE BOARD
                     </button>
+                    {/* Replaced Static Title with Dropdown Title if needed, or keep generic */}
                     <h1 style={styles.headerTitle}>SCENE STORYBOARD</h1>
                 </div>
 
-                {/* CENTER: Data Cockpit */}
-                <div style={styles.headerStats}>
-                    <div style={styles.statItem}>
-                        <Zap size={16} color="#FF3B30" fill="#FF3B30" />
-                        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-                            <span style={{ fontSize: '9px', color: '#555', fontWeight: 700 }}>CREDITS</span>
-                            <span style={{ fontSize: '14px', color: '#FFF', fontWeight: 700 }}>{credits ?? '--'}</span>
-                        </div>
-                    </div>
-                    <div style={styles.verticalDivider} />
-                    <div style={styles.statItem} id="tour-sb-aspect">
-                        <span style={styles.statLabel}>ASPECT:</span>
-                        <div style={styles.statValueBox}>
-                            {shotMgr.aspectRatio || "16:9"}
-                        </div>
-                    </div>
+                {/* CENTER: Scene Selector Dropdown */}
+                <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                    <select
+                        value={activeSceneId || ""}
+                        onChange={(e) => {
+                            const selectedScene = sceneList.find(s => s.id === e.target.value);
+                            if (selectedScene && onSceneChange) {
+                                onSceneChange(selectedScene);
+                            }
+                        }}
+                        style={{
+                            backgroundColor: '#111',
+                            color: '#FFF',
+                            border: '1px solid #333',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            minWidth: '240px',
+                            textAlign: 'center',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            textTransform: 'uppercase'
+                        }}
+                    >
+                        {sceneList.map((scene) => (
+                            <option key={scene.id} value={scene.id}>
+                                SCENE {scene.scene_number}: {scene.slugline || "UNTITLED SCENE"}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
-                {/* RIGHT: Actions */}
+                {/* RIGHT: Actions + Credits */}
                 <div style={styles.headerActions}>
+
+                    {/* CREDITS (Moved here, text only) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '15px' }}>
+                        <span style={{ fontSize: '9px', color: '#666', fontWeight: 700, letterSpacing: '0.5px' }}>CREDITS</span>
+                        <span style={{ fontSize: '12px', color: credits && credits > 0 ? '#FFF' : '#FF0000', fontWeight: 700 }}>
+                            {credits ?? '--'}
+                        </span>
+                    </div>
+
                     {shotMgr.shots.length > 0 && (
                         <button
                             onClick={handleSafeGenerateAll}

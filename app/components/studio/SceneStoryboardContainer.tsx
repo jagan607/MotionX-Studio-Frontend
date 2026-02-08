@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Toaster, toast } from "react-hot-toast";
 
 // --- IMPORTS ---
@@ -14,7 +14,7 @@ interface SceneStoryboardContainerProps {
     onClose: () => void;
     projectId: string;
     episodeId: string;
-    scene: SceneData;
+    scene: SceneData; // The initial scene clicked from the grid
     projectAssets: { characters: Asset[], locations: Asset[] };
     seriesTitle: string;
     credits: number;
@@ -43,18 +43,34 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     credits
 }) => {
 
-    // 1. Initialize the Hook
-    // We pass a simple void function for onLowCredits as defined in your useShotManager
+    // 1. Internal State for Scene Switching
+    // We initialize with the prop 'scene', but allow the Overlay to update this
+    const [activeSceneData, setActiveSceneData] = useState<SceneData>(scene);
+
+    // Sync state if the prop changes (e.g. user closes overlay and clicks a different card)
+    useEffect(() => {
+        if (scene) {
+            setActiveSceneData(scene);
+        }
+    }, [scene]);
+
+    // 2. Initialize the Hook with the ACTIVE scene ID
+    // This hook will automatically re-run when activeSceneData.id changes
     const rawShotMgr = useShotManager(
         projectId,
         episodeId,
-        scene.id,
+        activeSceneData?.id || "",
         () => toast.error("Insufficient Credits! Please top up.")
     );
 
-    // 2. Create a "Safe Proxy" of the Manager
-    // This wraps the dangerous async functions. If they fail, we catch the object, 
-    // toast a STRING (preventing the crash), and re-throw a string.
+    // 3. Handler to switch scenes from inside the Overlay
+    const handleSceneSwitch = (newScene: SceneData) => {
+        // This updates the local state, which triggers useShotManager to re-initialize
+        // with the new scene ID, fetching the correct shots.
+        setActiveSceneData(newScene);
+    };
+
+    // 4. Create a "Safe Proxy" of the Manager
     const safeShotMgr = useMemo(() => ({
         ...rawShotMgr,
 
@@ -64,8 +80,8 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 return await rawShotMgr.handleRenderShot(shot, sceneData, refFile);
             } catch (e: any) {
                 const msg = safeError(e);
-                toast.error(msg); // Toast the string
-                throw new Error(msg); // Re-throw string so UI stops loading
+                toast.error(msg);
+                throw new Error(msg);
             }
         },
 
@@ -123,11 +139,11 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
         }
     };
 
-    if (!isOpen) return null;
+    if (!isOpen || !activeSceneData) return null;
 
     return (
         <div className="relative z-[100]">
-            {/* 3. Dark Mode Toaster (Prevents white box in dark UI) */}
+            {/* Dark Mode Toaster */}
             <Toaster
                 position="bottom-right"
                 toastOptions={{
@@ -151,10 +167,10 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 }}
             />
 
-            {/* 4. The Overlay UI */}
+            {/* The Overlay UI */}
             <StoryboardOverlay
-                activeSceneId={scene.id}
-                currentScene={scene}
+                activeSceneId={activeSceneData.id}
+                currentScene={activeSceneData}
                 credits={credits}
                 styles={{}}
 
@@ -176,6 +192,9 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 // --- HANDLERS ---
                 onClose={onClose}
                 onDeleteShot={rawShotMgr.handleDeleteShot}
+
+                // NEW: Pass the Switch Handler
+                onSceneChange={handleSceneSwitch}
 
                 inpaintData={inpaintData}
                 setInpaintData={setInpaintData}
