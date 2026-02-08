@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
     Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2, Lock,
-    ChevronRight, Database, FastForward, ArrowRight
+    ChevronRight, Database, FastForward, ArrowRight, Clock
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { api, checkJobStatus } from "@/lib/api";
@@ -18,8 +18,9 @@ interface InputDeckProps {
 
     initialTitle?: string;
     initialScript?: string;
+    initialRuntime?: string | number; // NEW PROP
 
-    // NEW: Previous Episode Data for Continuity
+    // Previous Episode Data for Continuity
     previousEpisode?: {
         id: string;
         episode_number: number;
@@ -43,6 +44,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     episodeId,
     initialTitle = "",
     initialScript = "",
+    initialRuntime = "",
     previousEpisode = null,
     onSuccess,
     onCancel,
@@ -52,12 +54,13 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     contextReferences = []
 }) => {
     const [title, setTitle] = useState("");
+    const [runtime, setRuntime] = useState<string | number>(""); // NEW STATE
     const [synopsisText, setSynopsisText] = useState("");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pastedScript, setPastedScript] = useState("");
     const [isUploading, setIsUploading] = useState(false);
 
-    // NEW: User Instructions for Continuity
+    // User Instructions for Continuity
     const [continuityInstruction, setContinuityInstruction] = useState("");
 
     const [logs, setLogs] = useState<string[]>([]);
@@ -81,7 +84,9 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     useEffect(() => {
         if (isMovie) setTitle(projectTitle);
         else setTitle(initialTitle || "");
-    }, [isMovie, projectTitle, initialTitle]);
+
+        setRuntime(initialRuntime || ""); // Sync Runtime
+    }, [isMovie, projectTitle, initialTitle, initialRuntime]);
 
     useEffect(() => {
         setSynopsisText(initialScript || "");
@@ -92,6 +97,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     const isUpdateMode = !!episodeId && !!initialScript && episodeId !== "new_placeholder";
     const isModified =
         (title || "") !== (initialTitle || "") ||
+        (runtime || "") !== (initialRuntime || "") ||
         (synopsisText || "") !== (initialScript || "") ||
         !!selectedFile ||
         !!pastedScript;
@@ -115,6 +121,11 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         const formData = new FormData();
         formData.append("project_id", projectId);
         formData.append("script_title", title || projectTitle);
+
+        // NEW: Append Runtime
+        if (runtime) {
+            formData.append("runtime", String(runtime));
+        }
 
         if (episodeId && episodeId !== "new_placeholder") {
             formData.append("episode_id", episodeId);
@@ -228,30 +239,48 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             {/* CONTENT */}
             <div className="flex flex-col p-6 gap-6">
 
-                {/* DYNAMIC SESSION IDENTIFIER */}
-                <div className="shrink-0">
-                    <label className="text-[9px] font-mono text-motion-text-muted uppercase tracking-widest mb-2 block">
-                        {isMovie ? "Project Script Title" : "Episode Identifier"}
-                    </label>
-                    {isMovie ? (
-                        <div className="flex items-center justify-between w-full border-b border-neutral-700 py-2">
-                            <span className="text-xl font-display text-white/50 uppercase select-none">
-                                {projectTitle || "UNTITLED PROJECT"}
-                            </span>
-                            <div className="flex items-center gap-2 text-neutral-600">
-                                <span className="text-[9px] font-mono">LOCKED</span>
-                                <Lock size={14} />
+                {/* DYNAMIC SESSION IDENTIFIER & RUNTIME */}
+                <div className="shrink-0 flex gap-4">
+                    {/* TITLE INPUT */}
+                    <div className="flex-1">
+                        <label className="text-[9px] font-mono text-motion-text-muted uppercase tracking-widest mb-2 block">
+                            {isMovie ? "Project Script Title" : "Episode Identifier"}
+                        </label>
+                        {isMovie ? (
+                            <div className="flex items-center justify-between w-full border-b border-neutral-700 py-2">
+                                <span className="text-xl font-display text-white/50 uppercase select-none">
+                                    {projectTitle || "UNTITLED PROJECT"}
+                                </span>
+                                <div className="flex items-center gap-2 text-neutral-600">
+                                    <span className="text-[9px] font-mono">LOCKED</span>
+                                    <Lock size={14} />
+                                </div>
                             </div>
-                        </div>
-                    ) : (
+                        ) : (
+                            <input
+                                className="w-full bg-transparent border-b border-neutral-700 py-2 text-xl font-display text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors uppercase"
+                                placeholder={`ENTER EPISODE TITLE...`}
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                disabled={isUploading}
+                            />
+                        )}
+                    </div>
+
+                    {/* RUNTIME INPUT */}
+                    <div className="w-[140px]">
+                        <label className="text-[9px] font-mono text-motion-text-muted uppercase tracking-widest mb-2 block flex items-center gap-1">
+                            <Clock size={10} /> Runtime (Mins)
+                        </label>
                         <input
-                            className="w-full bg-transparent border-b border-neutral-700 py-2 text-xl font-display text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors uppercase"
-                            placeholder={`ENTER EPISODE TITLE...`}
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
+                            type="number"
+                            className="w-full bg-transparent border-b border-neutral-700 py-2 text-xl font-mono text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors"
+                            placeholder="e.g 45"
+                            value={runtime}
+                            onChange={(e) => setRuntime(e.target.value)}
                             disabled={isUploading}
                         />
-                    )}
+                    </div>
                 </div>
 
                 {/* --- 1. CONTINUITY CARD (Updated Layout) --- */}

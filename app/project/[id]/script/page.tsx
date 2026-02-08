@@ -58,7 +58,7 @@ export default function ScriptIngestionPage() {
                 const contextReadyEpisodes = eps.filter((e: any) => !(e.title === "Main Script" && e.synopsis === "Initial setup"));
 
                 if (proj.type === 'movie') {
-                    setEpisodes(contextReadyEpisodes); // Use filtered list for context modal too
+                    setEpisodes(contextReadyEpisodes);
                     const targetId = proj.default_episode_id || "main";
                     const found = eps.find((e: any) => e.id === targetId);
                     setSelectedEpisodeId(found ? found.id : (eps[0]?.id || targetId));
@@ -126,7 +126,6 @@ export default function ScriptIngestionPage() {
 
     // --- HANDLERS ---
 
-    // Lazy Loader for Context Modal
     const fetchRemoteScenes = async (targetEpisodeId: string) => {
         try {
             const q = query(
@@ -173,20 +172,19 @@ export default function ScriptIngestionPage() {
         setProject(updatedProject);
     };
 
-    // --- SUCCESS HANDLER WITH PARAM INJECTION ---
     const handleIngestSuccess = (url: string) => {
         router.push(url);
     };
 
+    // --- DATA PREP FOR INPUT DECK ---
     const activeEpisode = episodes.find(e => e.id === selectedEpisodeId);
     const currentTitle = project?.type === 'movie' ? (project.title) : (activeEpisode?.title || "");
     const currentScript = activeEpisode?.script_preview || "";
+    // NEW: Extract runtime from active episode if available
+    const currentRuntime = activeEpisode?.runtime || "";
 
-    // --- NEW: DETERMINE PREVIOUS EPISODE ---
-    // Only relevant if creating a NEW episode (selectedEpisodeId is null) for a Series
     let previousEpisodeData = null;
     if (project?.type === 'micro_drama' && selectedEpisodeId === null && episodes.length > 0) {
-        // Since episodes are sorted by number, the last one is the previous
         const lastEp = episodes[episodes.length - 1];
         if (lastEp) {
             previousEpisodeData = {
@@ -262,7 +260,6 @@ export default function ScriptIngestionPage() {
                 svg { max-width: 48px; max-height: 48px; }
             `}</style>
 
-            {/* --- CONTEXT MODAL --- */}
             <ContextSelectorModal
                 isOpen={isContextModalOpen}
                 onClose={() => setIsContextModalOpen(false)}
@@ -272,7 +269,6 @@ export default function ScriptIngestionPage() {
                 onConfirm={(newSelection) => setSelectedContext(newSelection)}
             />
 
-            {/* --- STUDIO HEADER --- */}
             <StudioHeader
                 projectId={projectId}
                 projectTitle={project.title}
@@ -280,7 +276,6 @@ export default function ScriptIngestionPage() {
                 onOpenSettings={() => setIsSettingsOpen(true)}
             />
 
-            {/* --- SETTINGS MODAL --- */}
             <ProjectSettingsModal
                 isOpen={isSettingsOpen}
                 onClose={() => setIsSettingsOpen(false)}
@@ -288,7 +283,6 @@ export default function ScriptIngestionPage() {
                 onUpdate={handleUpdateProject}
             />
 
-            {/* --- MAIN LAYOUT --- */}
             <div className="flex-1 flex overflow-hidden relative z-40">
                 <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-red-600/5 rounded-full blur-[150px] pointer-events-none" />
                 <div className="absolute bottom-[-20%] right-[-10%] w-[800px] h-[800px] bg-blue-600/5 rounded-full blur-[150px] pointer-events-none" />
@@ -439,14 +433,14 @@ export default function ScriptIngestionPage() {
                                     episodeId={selectedEpisodeId}
                                     initialTitle={currentTitle}
                                     initialScript={currentScript}
+                                    // NEW: Pass runtime prop
+                                    initialRuntime={currentRuntime}
                                     isModal={false}
                                     className="w-full"
                                     onCancel={() => router.push("/dashboard")}
                                     onSuccess={handleIngestSuccess}
                                     onStatusChange={handleIngestStatus}
-                                    // PASS CONTEXT
                                     contextReferences={selectedContext}
-                                    // NEW: PASS PREVIOUS EPISODE DATA FOR CONTINUITY
                                     previousEpisode={previousEpisodeData}
                                 />
                             </div>
