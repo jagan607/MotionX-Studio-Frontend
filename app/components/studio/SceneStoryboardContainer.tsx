@@ -9,6 +9,10 @@ import { useShotManager } from "@/app/hooks/useShotManager";
 import { SceneData } from "@/components/studio/SceneCard";
 import { Asset } from "@/lib/types";
 
+// --- FIREBASE IMPORTS ---
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
 interface SceneStoryboardContainerProps {
     isOpen: boolean;
     onClose: () => void;
@@ -44,18 +48,45 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
 }) => {
 
     // 1. Internal State for Scene Switching
-    // We initialize with the prop 'scene', but allow the Overlay to update this
     const [activeSceneData, setActiveSceneData] = useState<SceneData>(scene);
 
-    // Sync state if the prop changes (e.g. user closes overlay and clicks a different card)
+    // NEW: State for the real Episode Title
+    const [realEpisodeTitle, setRealEpisodeTitle] = useState<string>(
+        episodeId === 'main' ? "FEATURE FILM" : `EPISODE ${episodeId}`
+    );
+
+    // Sync state if the prop changes
     useEffect(() => {
         if (scene) {
             setActiveSceneData(scene);
         }
     }, [scene]);
 
+    // NEW: Fetch Real Episode Title
+    useEffect(() => {
+        const fetchEpisodeTitle = async () => {
+            if (!projectId || !episodeId || episodeId === 'main') return;
+
+            try {
+                const epRef = doc(db, "projects", projectId, "episodes", episodeId);
+                const epSnap = await getDoc(epRef);
+
+                if (epSnap.exists()) {
+                    const data = epSnap.data();
+                    if (data.title) {
+                        setRealEpisodeTitle(data.title.toUpperCase());
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching episode title:", err);
+            }
+        };
+
+        fetchEpisodeTitle();
+    }, [projectId, episodeId]);
+
+
     // 2. Initialize the Hook with the ACTIVE scene ID
-    // This hook will automatically re-run when activeSceneData.id changes
     const rawShotMgr = useShotManager(
         projectId,
         episodeId,
@@ -65,16 +96,12 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
 
     // 3. Handler to switch scenes from inside the Overlay
     const handleSceneSwitch = (newScene: SceneData) => {
-        // This updates the local state, which triggers useShotManager to re-initialize
-        // with the new scene ID, fetching the correct shots.
         setActiveSceneData(newScene);
     };
 
     // 4. Create a "Safe Proxy" of the Manager
     const safeShotMgr = useMemo(() => ({
         ...rawShotMgr,
-
-        // Wrap Image Generation
         handleRenderShot: async (shot: any, sceneData: any, refFile?: File | null) => {
             try {
                 return await rawShotMgr.handleRenderShot(shot, sceneData, refFile);
@@ -84,8 +111,6 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 throw new Error(msg);
             }
         },
-
-        // Wrap Video Generation
         handleAnimateShot: async (shot: any, provider: 'kling' | 'seedance' = 'kling', endFrameUrl?: string | null) => {
             try {
                 return await rawShotMgr.handleAnimateShot(shot, provider, endFrameUrl);
@@ -95,8 +120,6 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 throw new Error(msg);
             }
         },
-
-        // Wrap Audio Generation
         handleGenerateVoiceover: async (shot: any) => {
             try {
                 return await rawShotMgr.handleGenerateVoiceover(shot);
@@ -106,11 +129,9 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 throw new Error(msg);
             }
         },
-
-        // Wrap Inpaint Generation
         handleInpaintShot: async (shotId: string, prompt: string, maskBase64: string, refImages: File[]) => {
             try {
-                // @ts-ignore - Dynamic key access on hook return
+                // @ts-ignore
                 return await rawShotMgr.handleInpaintShot(shotId, prompt, maskBase64, refImages);
             } catch (e: any) {
                 const msg = safeError(e);
@@ -120,17 +141,12 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
         }
     }), [rawShotMgr]);
 
-    // --- STATE FOR INPAINTING ---
     const [inpaintData, setInpaintData] = React.useState<{ src: string, shotId: string } | null>(null);
 
-    // --- HANDLER FOR APPLYING INPAINT RESULTS ---
     const handleApplyInpaint = async (newImageUrl: string) => {
         if (!inpaintData) return;
         try {
-            // 1. Update the shot manager locally and persist
             await rawShotMgr.updateShot(inpaintData.shotId, "image_url", newImageUrl);
-
-            // 2. Close modal
             setInpaintData(null);
             toast.success("VFX Frame Updated");
         } catch (e) {
@@ -143,7 +159,6 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
 
     return (
         <div className="relative z-[100]">
-            {/* Dark Mode Toaster */}
             <Toaster
                 position="bottom-right"
                 toastOptions={{
@@ -167,35 +182,24 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 }}
             />
 
-            {/* The Overlay UI */}
             <StoryboardOverlay
                 activeSceneId={activeSceneData.id}
                 currentScene={activeSceneData}
                 credits={credits}
                 styles={{}}
-
-                // --- NAVIGATION IDS ---
                 seriesId={projectId}
                 episodeId={episodeId}
-
-                // --- ASSET MAPPING ---
                 castMembers={projectAssets?.characters || []}
                 locations={projectAssets?.locations || []}
-
-                // --- CONTEXT ---
                 seriesName={seriesTitle || "UNTITLED PROJECT"}
-                episodeTitle={episodeId === 'main' ? "FEATURE FILM" : `EPISODE ${episodeId}`}
 
-                // --- PASS THE SAFE MANAGER ---
+                // UPDATED: Pass the real fetched title
+                episodeTitle={realEpisodeTitle}
+
                 shotMgr={safeShotMgr}
-
-                // --- HANDLERS ---
                 onClose={onClose}
                 onDeleteShot={rawShotMgr.handleDeleteShot}
-
-                // NEW: Pass the Switch Handler
                 onSceneChange={handleSceneSwitch}
-
                 inpaintData={inpaintData}
                 setInpaintData={setInpaintData}
                 onSaveInpaint={async (prompt: string, maskBase64: string, refImages: File[]) => {
@@ -203,8 +207,6 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                     return await safeShotMgr.handleInpaintShot(inpaintData.shotId, prompt, maskBase64, refImages);
                 }}
                 onApplyInpaint={handleApplyInpaint}
-
-                // --- PLACEHOLDERS ---
                 onZoom={() => { }}
                 onDownload={() => { }}
                 tourStep={0}
