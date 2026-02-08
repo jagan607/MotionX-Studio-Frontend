@@ -284,6 +284,21 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         charDisplay = currentScene.characters;
     }
 
+    // --- HELPER: TERMINAL SPINNER ---
+    const TerminalSpinner = () => {
+        const [frame, setFrame] = useState(0);
+        const frames = ["/", "-", "\\", "|"];
+
+        useEffect(() => {
+            const timer = setInterval(() => {
+                setFrame(f => (f + 1) % frames.length);
+            }, 100);
+            return () => clearInterval(timer);
+        }, []);
+
+        return <span style={{ color: '#00ff41', fontWeight: 'bold', marginLeft: '8px' }}>{frames[frame]}</span>;
+    };
+
     return (
         <div style={styles.sbOverlay}>
             <Toaster position="bottom-right" reverseOrder={false} />
@@ -598,12 +613,86 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 />
             )}
 
-            {/* TERMINAL OVERLAY */}
+            {/* ENHANCED TERMINAL OVERLAY */}
             {shotMgr.isAutoDirecting && (
-                <div style={styles.terminalOverlay}>
-                    <div style={styles.terminalBox}>
-                        {shotMgr.terminalLog.map((log: string, i: number) => (<div key={i} style={styles.terminalLine}>{log}</div>))}
-                        <div style={styles.terminalLine}>_ <span className="animate-pulse">|</span></div>
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: '#000', // Pitch black background
+                    zIndex: 9999,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontFamily: 'monospace'
+                }}>
+                    {/* Background Grid Effect */}
+                    <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)',
+                        backgroundSize: '40px 40px',
+                        opacity: 0.3,
+                        pointerEvents: 'none'
+                    }} />
+
+                    <div style={{ position: 'relative', width: '600px', maxWidth: '90%' }}>
+
+                        {/* HEADER (Loader Removed) */}
+                        <div style={{ marginBottom: '40px', borderBottom: '1px solid #333', paddingBottom: '20px' }}>
+                            <h2 style={{ color: '#FFF', fontSize: '24px', fontWeight: 'bold', letterSpacing: '2px', margin: 0 }}>
+                                AI DIRECTOR ACTIVE
+                            </h2>
+                            <p style={{ color: '#666', fontSize: '12px', margin: '5px 0 0 0', letterSpacing: '1px' }}>
+                                ANALYZING SCENE CONTEXT & GENERATING SHOT LIST
+                            </p>
+                        </div>
+
+                        {/* LIVE LOG STREAM */}
+                        <div style={{
+                            backgroundColor: '#050505',
+                            border: '1px solid #222',
+                            borderRadius: '4px',
+                            padding: '20px',
+                            height: '300px',
+                            overflowY: 'auto',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px', // Tighter spacing for terminal look
+                            boxShadow: '0 0 50px rgba(0,0,0,0.5)',
+                            fontFamily: 'monospace'
+                        }}>
+                            {shotMgr.terminalLog.map((log: string, i: number) => (
+                                <div key={i} style={{
+                                    color: log.includes('ERROR') ? '#ff4444' : '#00ff41',
+                                    fontSize: '12px',
+                                    display: 'flex',
+                                    gap: '12px',
+                                    opacity: 0.8
+                                }}>
+                                    <span style={{ color: '#444', minWidth: '80px' }}>[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
+                                    <span>{`> ${log}`}</span>
+                                </div>
+                            ))}
+
+                            {/* ACTIVE LOADER LINE */}
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: 'auto' }}>
+                                <span style={{ color: '#444', minWidth: '80px' }}>[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
+                                <span style={{ color: '#00ff41', display: 'flex', alignItems: 'center' }}>
+                                    {`> PROCESSING`} <TerminalSpinner />
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* FOOTER STATUS */}
+                        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', color: '#333', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                            <span>System: ONLINE</span>
+                            <span>Model: GEMINI-1.5-PRO</span>
+                            <span>Queue: PROCESSING</span>
+                        </div>
                     </div>
                 </div>
             )}
