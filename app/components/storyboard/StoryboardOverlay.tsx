@@ -301,54 +301,55 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     >
                         <ArrowLeft size={16} /> CLOSE BOARD
                     </button>
-                    {/* Replaced Static Title with Dropdown Title if needed, or keep generic */}
                     <h1 style={styles.headerTitle}>SCENE STORYBOARD</h1>
                 </div>
 
-                {/* CENTER: Scene Selector Dropdown */}
-                <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                    <select
-                        value={activeSceneId || ""}
-                        onChange={(e) => {
-                            const selectedScene = sceneList.find(s => s.id === e.target.value);
-                            if (selectedScene && onSceneChange) {
-                                onSceneChange(selectedScene);
-                            }
-                        }}
-                        style={{
-                            backgroundColor: '#111',
-                            color: '#FFF',
-                            border: '1px solid #333',
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            minWidth: '240px',
-                            textAlign: 'center',
-                            cursor: 'pointer',
-                            outline: 'none',
-                            textTransform: 'uppercase'
-                        }}
-                    >
-                        {sceneList.map((scene) => (
-                            <option key={scene.id} value={scene.id}>
-                                SCENE {scene.scene_number}: {scene.slugline || "UNTITLED SCENE"}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* RIGHT: Actions + Credits */}
+                {/* RIGHT: Actions, Selector & Credits */}
                 <div style={styles.headerActions}>
 
-                    {/* CREDITS (Moved here, text only) */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '15px' }}>
-                        <span style={{ fontSize: '9px', color: '#666', fontWeight: 700, letterSpacing: '0.5px' }}>CREDITS</span>
-                        <span style={{ fontSize: '12px', color: credits && credits > 0 ? '#FFF' : '#FF0000', fontWeight: 700 }}>
-                            {credits ?? '--'}
-                        </span>
+                    {/* 1. SCENE SELECTOR (Moved here, styled like a button) */}
+                    <div style={{ position: 'relative' }}>
+                        <select
+                            value={activeSceneId || ""}
+                            onChange={(e) => {
+                                const selectedScene = sceneList.find(s => s.id === e.target.value);
+                                if (selectedScene && onSceneChange) {
+                                    onSceneChange(selectedScene);
+                                }
+                            }}
+                            style={{
+                                height: '40px', // Matches button height
+                                padding: '0 32px 0 16px', // Extra right padding for the arrow
+                                backgroundColor: '#1A1A1A', // Matches btnSecondary
+                                color: '#EEE',
+                                border: '1px solid #333',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                minWidth: '200px', // Consistent width
+                                maxWidth: '300px',
+                                cursor: 'pointer',
+                                outline: 'none',
+                                textTransform: 'uppercase',
+                                appearance: 'none', // Hides default browser arrow
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                            }}
+                        >
+                            {sceneList.map((scene) => (
+                                <option key={scene.id} value={scene.id}>
+                                    SCENE {scene.scene_number}: {scene.slugline || "UNTITLED SCENE"}
+                                </option>
+                            ))}
+                        </select>
+                        {/* Custom Arrow Indicator since we used appearance: none */}
+                        <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#666' }}>
+                            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </div>
                     </div>
 
+                    {/* 2. GENERATE ALL */}
                     {shotMgr.shots.length > 0 && (
                         <button
                             onClick={handleSafeGenerateAll}
@@ -368,6 +369,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         </button>
                     )}
 
+                    {/* 3. AUTO DIRECT */}
                     <button
                         onClick={() => handleSafeAutoDirect()}
                         disabled={shotMgr.isAutoDirecting || shotMgr.isGeneratingAll || shotMgr.isStopping}
@@ -377,12 +379,21 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         {shotMgr.isAutoDirecting ? 'DIRECTING...' : 'AUTO-DIRECT'}
                     </button>
 
+                    {/* 4. ADD SHOT (Primary) */}
                     <button
                         onClick={() => shotMgr.handleAddShot(currentScene)}
                         style={styles.btnPrimary}
                     >
                         <Plus size={16} strokeWidth={3} /> ADD SHOT
                     </button>
+
+                    {/* 5. CREDITS (Moved to far right) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginLeft: '15px', borderLeft: '1px solid #222', paddingLeft: '20px', height: '30px', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '9px', color: '#666', fontWeight: 700, letterSpacing: '0.5px', lineHeight: '1' }}>CREDITS</span>
+                        <span style={{ fontSize: '12px', color: credits && credits > 0 ? '#FFF' : '#FF0000', fontWeight: 700, lineHeight: '1.2' }}>
+                            {credits ?? '--'}
+                        </span>
+                    </div>
                 </div>
             </div>
 
