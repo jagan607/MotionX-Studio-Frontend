@@ -99,18 +99,6 @@ export default function Dashboard() {
     return (
         <main className="fixed inset-0 bg-[#050505] text-[#EDEDED] font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#FF0000] selection:text-white">
 
-            {/* HUD BAR */}
-            <div className="h-10 border-b border-[#222] bg-black/95 flex items-center justify-between px-6 shrink-0 z-20 font-mono text-[10px]">
-                <div className="flex items-center gap-6">
-                    <span className="flex items-center gap-2 text-[#FF0000] animate-pulse font-bold"><Disc size={8} fill="currentColor" /> REC</span>
-                    <span className="text-[#666]">TC: <span className="text-white tabular-nums">{timeCode}</span></span>
-                </div>
-                <div className="flex items-center gap-6">
-                    <span className="flex items-center gap-2 font-mono"><Signal size={12} className="text-green-500" /> ONLINE</span>
-                    <span className="px-3 py-0.5 border border-[#333] bg-[#111] rounded-sm">CREDITS: <span className="text-[#FF0000] font-bold">{userCredits ?? '...'}</span></span>
-                </div>
-            </div>
-
             {/* MAIN WORKSPACE */}
             <div className="flex-1 flex p-6 gap-6 min-h-0 overflow-hidden">
 
