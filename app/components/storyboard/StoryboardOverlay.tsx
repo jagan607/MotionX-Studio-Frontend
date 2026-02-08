@@ -23,6 +23,7 @@ import { styles } from "./BoardStyles";
 // --- GLOBAL UI IMPORTS ---
 import { StoryboardTour } from "@/components/StoryboardTour";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import CreditModal from "@/app/components/modals/CreditModal"; // <--- 1. IMPORT ADDED
 
 // --- CONTEXT IMPORT ---
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
@@ -56,7 +57,7 @@ interface StoryboardOverlayProps {
     onZoom: any;
     onDownload: any;
     onDeleteShot: any;
-    onSceneChange?: (scene: any) => void; // New prop for switching scenes
+    onSceneChange?: (scene: any) => void;
 
     // Tour Props
     tourStep: number;
@@ -92,14 +93,16 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [shotToDelete, setShotToDelete] = useState<string | null>(null);
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [shotToDownload, setShotToDownload] = useState<any>(null);
-    const [sceneList, setSceneList] = useState<any[]>([]); // New state for dropdown
+    const [sceneList, setSceneList] = useState<any[]>([]);
+
+    // 2. STATE FOR CREDIT MODAL
+    const [showTopUp, setShowTopUp] = useState(false);
 
     // --- FETCH SCENE LIST ---
     useEffect(() => {
         const fetchScenes = async () => {
             if (!seriesId || !episodeId) return;
             try {
-                // Fetch scenes for this episode to populate the dropdown
                 const scenesRef = collection(db, "projects", seriesId, "episodes", episodeId, "scenes");
                 const q = query(scenesRef, orderBy("scene_number", "asc"));
                 const snapshot = await getDocs(q);
@@ -117,11 +120,10 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         fetchScenes();
     }, [seriesId, episodeId]);
 
-    // --- FETCH ASPECT RATIO (Logic kept, UI removed) ---
+    // --- FETCH ASPECT RATIO ---
     useEffect(() => {
         const fetchProjectSettings = async () => {
             if (!seriesId) return;
-
             try {
                 const projectRef = doc(db, "projects", seriesId);
                 const projectSnap = await getDoc(projectRef);
@@ -129,7 +131,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 if (projectSnap.exists()) {
                     const data = projectSnap.data();
                     if (data && data.aspect_ratio) {
-                        console.log("Setting dynamic aspect ratio:", data.aspect_ratio);
                         shotMgr.setAspectRatio(data.aspect_ratio);
                     }
                 }
@@ -137,7 +138,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 console.error("Error fetching project aspect ratio:", error);
             }
         };
-
         fetchProjectSettings();
     }, [seriesId]);
 
@@ -169,10 +169,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     };
 
     // --- HANDLERS ---
-
     const handleDownloadSelection = (type: 'image' | 'video' | 'both') => {
         if (!shotToDownload) return;
-
         const prefix = `shot_${String(shotToDownload.id).slice(-4)}`;
 
         if (type === 'image' || type === 'both') {
@@ -192,7 +190,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 toast.error("No video found for this shot.");
             }
         }
-
         setShotToDownload(null);
         if (onDownload) onDownload(shotToDownload, type);
     };
@@ -291,59 +288,26 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         <div style={styles.sbOverlay}>
             <Toaster position="bottom-right" reverseOrder={false} />
 
-            {/* --- HEADER (Fixed) --- */}
+            {/* 3. CREDIT MODAL RENDER */}
+            <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
+
             {/* --- HEADER --- */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                height: '80px',
-                padding: '0 32px',
-                backgroundColor: '#050505',
-                borderBottom: '1px solid #1A1A1A',
-                position: 'sticky',
-                top: 0,
-                zIndex: 100,
-                gap: '24px',
-                flexShrink: 0
-            }}>
+            <div style={styles.sbHeader}>
                 {/* LEFT: Navigation & Title */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                <div style={styles.headerLeft}>
                     <button
                         onClick={onClose}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#888',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            letterSpacing: '0.05em'
-                        }}
+                        style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600 }}
                     >
                         <ArrowLeft size={16} /> CLOSE BOARD
                     </button>
-
-                    <h1 style={{
-                        fontFamily: 'Anton, sans-serif',
-                        fontSize: '28px',
-                        letterSpacing: '1px',
-                        color: '#fff',
-                        textTransform: 'uppercase',
-                        margin: 0,
-                        lineHeight: 1
-                    }}>
-                        SCENE STORYBOARD
-                    </h1>
+                    <h1 style={styles.headerTitle}>SCENE STORYBOARD</h1>
                 </div>
 
                 {/* RIGHT: Actions, Selector, Credits & Top Up */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', height: '100%' }}>
+                <div style={styles.headerActions}>
 
-                    {/* 1. SCENE SELECTOR (Styled like action buttons) */}
+                    {/* SCENE SELECTOR */}
                     <div style={{ position: 'relative' }}>
                         <select
                             value={activeSceneId || ""}
@@ -356,7 +320,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             style={{
                                 height: '40px',
                                 padding: '0 32px 0 16px',
-                                backgroundColor: '#1A1A1A', // Matches btnSecondary
+                                backgroundColor: '#1A1A1A',
                                 color: '#EEE',
                                 border: '1px solid #333',
                                 borderRadius: '4px',
@@ -379,13 +343,12 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 </option>
                             ))}
                         </select>
-                        {/* Custom Arrow Indicator */}
                         <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#666' }}>
                             <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                         </div>
                     </div>
 
-                    {/* 2. GENERATE ALL */}
+                    {/* GENERATE ALL */}
                     {shotMgr.shots.length > 0 && (
                         <button
                             onClick={handleSafeGenerateAll}
@@ -414,7 +377,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         </button>
                     )}
 
-                    {/* 3. AUTO DIRECT */}
+                    {/* AUTO DIRECT */}
                     <button
                         onClick={() => handleSafeAutoDirect()}
                         disabled={shotMgr.isAutoDirecting || shotMgr.isGeneratingAll || shotMgr.isStopping}
@@ -439,7 +402,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         {shotMgr.isAutoDirecting ? 'DIRECTING...' : 'AUTO-DIRECT'}
                     </button>
 
-                    {/* 4. ADD SHOT (Primary) */}
+                    {/* ADD SHOT */}
                     <button
                         onClick={() => shotMgr.handleAddShot(currentScene)}
                         style={{
@@ -463,7 +426,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     {/* DIVIDER */}
                     <div style={{ width: '1px', height: '32px', backgroundColor: '#222', margin: '0 16px' }} />
 
-                    {/* 5. CREDITS & TOP UP (Copied from StudioHeader) */}
+                    {/* CREDITS & TOP UP */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <div style={{ textAlign: 'right' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginBottom: '2px' }}>
@@ -475,15 +438,15 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             </div>
                         </div>
 
-                        {/* TOP UP BUTTON - Ensure you implement the onClick handler to open your modal */}
+                        {/* 4. TOP UP BUTTON CONNECTED */}
                         <button
-                            onClick={() => { /* Trigger TopUp Modal here */ }}
+                            onClick={() => setShowTopUp(true)}
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '6px',
-                                backgroundColor: 'rgba(127, 29, 29, 0.1)', // red-900/10
-                                border: '1px solid rgba(220, 38, 38, 0.3)', // red-600/30
+                                backgroundColor: 'rgba(127, 29, 29, 0.1)',
+                                border: '1px solid rgba(220, 38, 38, 0.3)',
                                 color: 'white',
                                 padding: '8px 16px',
                                 fontSize: '9px',
@@ -494,7 +457,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 borderRadius: '2px'
                             }}
                             onMouseOver={(e) => {
-                                e.currentTarget.style.backgroundColor = '#dc2626'; // hover:bg-red-600
+                                e.currentTarget.style.backgroundColor = '#dc2626';
                                 e.currentTarget.style.borderColor = '#dc2626';
                             }}
                             onMouseOut={(e) => {
@@ -512,7 +475,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
             {/* --- SCROLLABLE CONTENT AREA --- */}
             <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#050505', display: 'flex', flexDirection: 'column' }}>
 
-                {/* 1. SCENE CONTEXT STRIP (Wrapped with 20px Margin) */}
+                {/* SCENE CONTEXT STRIP */}
                 <div style={{ margin: '40px 40px 0 40px' }}>
                     <SceneContextStrip
                         seriesName={seriesName}
@@ -527,7 +490,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     />
                 </div>
 
-                {/* 2. MAIN GRID (Padding creates the gap below the strip) */}
+                {/* MAIN GRID */}
                 <div style={{ padding: '20px', flex: 1 }}>
                     {shotMgr.shots.length === 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', border: '1px dashed #222', borderRadius: '8px', minHeight: '400px' }}>
