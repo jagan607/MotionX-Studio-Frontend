@@ -36,6 +36,10 @@ export default function DraftPage() {
     const [episodes, setEpisodes] = useState<any[]>([]);
     const [locations, setLocations] = useState<LocationAsset[]>([]);
 
+    // NEW: Active Scene Selection (lifted state)
+    const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
     // Loading States
     const [isProcessing, setIsProcessing] = useState(false);
     const [isCommitting, setIsCommitting] = useState(false);
@@ -43,6 +47,13 @@ export default function DraftPage() {
 
     // Refs for safety
     const isCommittingRef = useRef(false);
+
+    // AUTO-SELECT FIRST SCENE when data syncs
+    useEffect(() => {
+        if (!isLoading && scenes.length > 0 && activeSceneId === null) {
+            setActiveSceneId(scenes[0].id);
+        }
+    }, [isLoading, scenes, activeSceneId]);
 
     // 1. REAL-TIME DATA SYNC (Draft)
     useEffect(() => {
@@ -64,6 +75,7 @@ export default function DraftPage() {
                         scene_number: i + 1
                     }));
                     setScenes(stableScenes);
+                    setIsLoading(false); // Mark loading complete for auto-select
                 }
             } else {
                 if (!isCommittingRef.current) {
@@ -174,6 +186,9 @@ export default function DraftPage() {
             await updateDoc(doc(db, "projects", projectId, "drafts", draftId), {
                 scenes: newScenes
             });
+
+            // AUTO-SELECT the newly added scene
+            setActiveSceneId(newScene.id);
             toast.success("New Scene Added");
         } catch (e) {
             console.error("Add Scene Error:", e);
@@ -222,6 +237,8 @@ export default function DraftPage() {
                 scenes: newScenes
             });
 
+            // AUTO-SELECT the newly extended scene
+            setActiveSceneId(newScene.id);
             toast.success("Narrative Extended!");
 
         } catch (e) {
@@ -257,6 +274,10 @@ export default function DraftPage() {
 
     const handleDeleteScene = async (sceneId: string) => {
         try {
+            // CLEAR SELECTION if deleting the active scene
+            if (activeSceneId === sceneId) {
+                setActiveSceneId(null);
+            }
             const newScenes = scenes.filter(s => s.id !== sceneId);
             const reindexed = newScenes.map((s, idx) => ({ ...s, scene_number: idx + 1 }));
 
@@ -389,6 +410,10 @@ export default function DraftPage() {
             scenes={scenes}
             contextEpisodes={episodes}
             availableLocations={locations} // <--- PASS LOCATIONS
+
+            // CONTROLLED SCENE SELECTION
+            activeSceneId={activeSceneId}
+            onSetActiveScene={setActiveSceneId}
 
             // Actions
             onReorder={handleReorder}

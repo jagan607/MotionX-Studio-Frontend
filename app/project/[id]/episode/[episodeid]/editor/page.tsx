@@ -43,11 +43,21 @@ export default function SceneManagerPage() {
     // NEW: Locations State
     const [locations, setLocations] = useState<LocationAsset[]>([]);
 
+    // NEW: Active Scene Selection (lifted state)
+    const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
+
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     const [isExtending, setIsExtending] = useState(false);
+
+    // AUTO-SELECT FIRST SCENE when loading completes
+    useEffect(() => {
+        if (!isLoading && scenes.length > 0 && activeSceneId === null) {
+            setActiveSceneId(scenes[0].id);
+        }
+    }, [isLoading, scenes, activeSceneId]);
 
     // 1. FETCH CONTEXT (Project Info, Episodes, Characters, Locations)
     useEffect(() => {
@@ -197,6 +207,8 @@ export default function SceneManagerPage() {
                 created_at: serverTimestamp()
             });
 
+            // AUTO-SELECT the newly created scene
+            setActiveSceneId(newSceneId);
             toast.success("New Scene Created");
         } catch (e) {
             console.error("Manual Add Error:", e);
@@ -245,6 +257,8 @@ export default function SceneManagerPage() {
                 created_at: serverTimestamp()
             });
 
+            // AUTO-SELECT the newly extended scene
+            setActiveSceneId(newSceneId);
             toast.success("Scene Auto-Extended!");
 
         } catch (e) {
@@ -283,6 +297,10 @@ export default function SceneManagerPage() {
     // 5. DELETE SCENE
     const handleDeleteScene = async (sceneId: string) => {
         try {
+            // CLEAR SELECTION if deleting the active scene
+            if (activeSceneId === sceneId) {
+                setActiveSceneId(null);
+            }
             const sceneRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
             await deleteDoc(sceneRef);
             toast.success("Scene Deleted");
@@ -435,6 +453,10 @@ export default function SceneManagerPage() {
 
                 contextEpisodes={episodes}
                 scenes={scenes}
+
+                // CONTROLLED SCENE SELECTION
+                activeSceneId={activeSceneId}
+                onSetActiveScene={setActiveSceneId}
 
                 // ASSETS PASSED HERE
                 availableCharacters={characters}

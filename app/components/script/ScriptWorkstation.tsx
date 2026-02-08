@@ -22,7 +22,6 @@ export interface Character {
     name: string;
 }
 
-// NEW: Shared Location Interface
 export interface LocationAsset {
     id: string;
     name: string;
@@ -39,7 +38,6 @@ interface ScriptWorkstationProps {
     backLink: string;
     commitLabel: string;
     customHeader?: React.ReactNode;
-    // Allow injecting custom controls at the bottom of the list
     customFooter?: React.ReactNode;
 
     episodeContext?: EpisodeContext;
@@ -48,7 +46,12 @@ interface ScriptWorkstationProps {
 
     // ASSETS
     availableCharacters?: Character[];
-    availableLocations?: LocationAsset[]; // <--- NEW PROP
+    availableLocations?: LocationAsset[];
+
+    // NEW: Controlled Selection Props (Optional)
+    // If provided, the parent controls selection. If not, this component manages it internally.
+    activeSceneId?: string | null;
+    onSetActiveScene?: (id: string | null) => void;
 
     // Actions
     onReorder: (newOrder: WorkstationScene[]) => void;
@@ -57,8 +60,6 @@ interface ScriptWorkstationProps {
     onAddScene?: () => void;
     onDeleteScene?: (id: string) => void;
     onUpdateCast?: (sceneId: string, newCast: string[]) => void;
-
-    // Handler for manual scene edits (Header/Summary)
     onUpdateScene?: (sceneId: string, updates: Partial<WorkstationScene>) => void;
 
     onFetchRemoteScenes?: (episodeId: string) => Promise<any[]>;
@@ -74,7 +75,12 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
     contextEpisodes,
     scenes,
     availableCharacters = [],
-    availableLocations = [], // <--- Default empty array
+    availableLocations = [],
+
+    // Destructure controlled props
+    activeSceneId: controlledActiveId,
+    onSetActiveScene: setControlledActiveId,
+
     onReorder,
     onRewrite,
     onAddScene,
@@ -84,9 +90,23 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
     onFetchRemoteScenes,
     isProcessing
 }) => {
-    const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
+    // Internal state fallback (for when parent doesn't control selection)
+    const [internalActiveId, setInternalActiveId] = useState<string | null>(null);
     const [isContextModalOpen, setIsContextModalOpen] = useState(false);
     const [selectedContext, setSelectedContext] = useState<ContextReference[]>([]);
+
+    // Determine effective state (Controlled vs Internal)
+    const isControlled = controlledActiveId !== undefined;
+    const activeSceneId = isControlled ? controlledActiveId : internalActiveId;
+
+    // Unified Handler
+    const handleSetActiveScene = (id: string | null) => {
+        if (isControlled && setControlledActiveId) {
+            setControlledActiveId(id);
+        } else {
+            setInternalActiveId(id);
+        }
+    };
 
     const handleExecuteAi = async (instruction: string) => {
         if (!activeSceneId || !instruction.trim()) return;
@@ -126,7 +146,8 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                     scenes={scenes}
                     activeSceneId={activeSceneId}
                     episodeContext={episodeContext}
-                    onSetActiveScene={setActiveSceneId}
+                    // Use unified handler
+                    onSetActiveScene={handleSetActiveScene}
                     onReorder={onReorder}
                     onAddScene={onAddScene}
                     onDeleteScene={onDeleteScene}
@@ -136,7 +157,7 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                 <DirectorConsole
                     activeScene={activeScene}
                     availableCharacters={availableCharacters}
-                    availableLocations={availableLocations} // <--- Pass down to Console
+                    availableLocations={availableLocations}
                     selectedContext={selectedContext}
                     isProcessing={isProcessing}
 
@@ -146,7 +167,7 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                     onExecuteAi={handleExecuteAi}
                     onOpenContextModal={() => setIsContextModalOpen(true)}
                     onRemoveContextRef={removeContextRef}
-                    onCancelSelection={() => setActiveSceneId(null)}
+                    onCancelSelection={() => handleSetActiveScene(null)}
                 />
             </div>
         </div>
