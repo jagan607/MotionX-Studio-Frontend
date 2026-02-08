@@ -33,7 +33,7 @@ interface ScriptWorkstationProps {
     backLink: string;
     commitLabel: string;
     customHeader?: React.ReactNode;
-    // NEW: Allow injecting custom controls at the bottom of the list
+    // Allow injecting custom controls at the bottom of the list
     customFooter?: React.ReactNode;
 
     episodeContext?: EpisodeContext;
@@ -45,9 +45,13 @@ interface ScriptWorkstationProps {
     onReorder: (newOrder: WorkstationScene[]) => void;
     onRewrite: (sceneId: string, instruction: string, contextRefs?: ContextReference[]) => Promise<void>;
     onCommit: () => void;
-    onAddScene?: () => void; // Kept for backward compat
+    onAddScene?: () => void;
     onDeleteScene?: (id: string) => void;
     onUpdateCast?: (sceneId: string, newCast: string[]) => void;
+
+    // NEW: Handler for manual scene edits (Header/Summary)
+    onUpdateScene?: (sceneId: string, updates: Partial<WorkstationScene>) => void;
+
     onFetchRemoteScenes?: (episodeId: string) => Promise<any[]>;
 
     isProcessing: boolean;
@@ -56,7 +60,7 @@ interface ScriptWorkstationProps {
 
 export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
     customHeader,
-    customFooter, // <--- Destructure new prop
+    customFooter,
     episodeContext,
     contextEpisodes,
     scenes,
@@ -66,6 +70,7 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
     onAddScene,
     onDeleteScene,
     onUpdateCast,
+    onUpdateScene, // <--- Destructure new prop
     onFetchRemoteScenes,
     isProcessing
 }) => {
@@ -115,7 +120,6 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                     onReorder={onReorder}
                     onAddScene={onAddScene}
                     onDeleteScene={onDeleteScene}
-                    // Pass the footer down to the timeline list
                     customFooter={customFooter}
                 />
 
@@ -124,7 +128,10 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                     availableCharacters={availableCharacters}
                     selectedContext={selectedContext}
                     isProcessing={isProcessing}
+
+                    // Handlers
                     onUpdateCast={onUpdateCast}
+                    onUpdateScene={onUpdateScene} // <--- Pass down to Console
                     onExecuteAi={handleExecuteAi}
                     onOpenContextModal={() => setIsContextModalOpen(true)}
                     onRemoveContextRef={removeContextRef}

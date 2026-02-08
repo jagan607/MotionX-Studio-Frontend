@@ -25,7 +25,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ScriptWorkstation, WorkstationScene, Character } from "@/app/components/script/ScriptWorkstation";
 import { StudioHeader } from "@/app/components/studio/StudioHeader";
 import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
-import { AddSceneControls } from "@/components/script/AddSceneControls"; // <--- IMPORT
+import { AddSceneControls } from "@/components/script/AddSceneControls";
 
 export default function SceneManagerPage() {
     const params = useParams();
@@ -44,7 +44,7 @@ export default function SceneManagerPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // NEW: Track Auto-Extend State
+    // Track Auto-Extend State
     const [isExtending, setIsExtending] = useState(false);
 
     // 1. FETCH CONTEXT (Project Info & Episode List)
@@ -133,7 +133,6 @@ export default function SceneManagerPage() {
                 });
             });
 
-            // Avoid overwriting local state if we are in the middle of a drag/drop (handled by isProcessing check)
             if (!isProcessing) {
                 setScenes(loadedScenes);
                 setIsLoading(false);
@@ -149,7 +148,6 @@ export default function SceneManagerPage() {
 
     // --- HANDLERS ---
 
-    // 1. MANUAL ADD
     const handleManualAdd = async () => {
         try {
             const maxSceneNum = scenes.length > 0
@@ -177,7 +175,6 @@ export default function SceneManagerPage() {
         }
     };
 
-    // 2. AUTO-EXTEND (NEW LOGIC)
     const handleAutoExtend = async () => {
         if (scenes.length === 0) {
             toast.error("Need at least one scene to extend from!");
@@ -188,7 +185,6 @@ export default function SceneManagerPage() {
         try {
             const lastScene = scenes[scenes.length - 1];
 
-            // Prepare Payload
             const payload = {
                 project_id: projectId,
                 episode_id: episodeId,
@@ -200,11 +196,9 @@ export default function SceneManagerPage() {
                 }
             };
 
-            // Call API
             const res = await api.post("/api/v1/script/extend-scene", payload);
             const generatedScene = res.data.scene;
 
-            // Save to Firestore
             const maxSceneNum = Math.max(...scenes.map(s => s.scene_number));
             const newSceneNum = maxSceneNum + 1;
             const newSceneId = `scene_${uuidv4().slice(0, 8)}`;
@@ -228,6 +222,18 @@ export default function SceneManagerPage() {
             toast.error("Failed to extend narrative");
         } finally {
             setIsExtending(false);
+        }
+    };
+
+    // NEW: Handle Manual Edits from Director Console
+    const handleUpdateScene = async (sceneId: string, updates: Partial<WorkstationScene>) => {
+        try {
+            const sceneRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
+            // The updates object already contains mapped keys from DirectorConsole (header/slugline/summary/synopsis)
+            await updateDoc(sceneRef, updates);
+        } catch (e) {
+            console.error("Update Scene Error:", e);
+            toast.error("Failed to save changes");
         }
     };
 
@@ -405,16 +411,14 @@ export default function SceneManagerPage() {
                 onFetchRemoteScenes={fetchRemoteScenes}
                 onUpdateCast={handleUpdateCast}
                 onDeleteScene={handleDeleteScene}
+                onUpdateScene={handleUpdateScene} // <--- PASSED HERE
 
-                // IMPORTANT: We REMOVED `onAddScene` to hide the default button.
-                // Instead, we pass our new component as the `customFooter` (Assuming ScriptWorkstation supports this prop).
-                // If ScriptWorkstation does NOT support customFooter, you must modify it to render `children` at the bottom.
                 customFooter={
                     <AddSceneControls
                         onManualAdd={handleManualAdd}
                         onAutoExtend={handleAutoExtend}
                         isExtending={isExtending}
-                        disabled={scenes.length === 0} // Auto-extend needs context
+                        disabled={scenes.length === 0}
                     />
                 }
 

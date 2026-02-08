@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 // --- COMPONENTS ---
 import { ScriptWorkstation, WorkstationScene } from "@/app/components/script/ScriptWorkstation";
 import { MotionButton } from "@/components/ui/MotionButton";
-import { AddSceneControls } from "@/components/script/AddSceneControls"; // <--- IMPORT
+import { AddSceneControls } from "@/components/script/AddSceneControls";
 
 export default function DraftPage() {
     const params = useParams();
@@ -30,7 +30,7 @@ export default function DraftPage() {
 
     // Data State
     const [scenes, setScenes] = useState<WorkstationScene[]>([]);
-    const [draftMeta, setDraftMeta] = useState<any>({}); // Store extra draft data (target_episode_id)
+    const [draftMeta, setDraftMeta] = useState<any>({});
 
     // Context State
     const [episodes, setEpisodes] = useState<any[]>([]);
@@ -38,7 +38,7 @@ export default function DraftPage() {
     // Loading States
     const [isProcessing, setIsProcessing] = useState(false);
     const [isCommitting, setIsCommitting] = useState(false);
-    const [isExtending, setIsExtending] = useState(false); // <--- NEW STATE
+    const [isExtending, setIsExtending] = useState(false);
 
     // Refs for safety
     const isCommittingRef = useRef(false);
@@ -51,7 +51,6 @@ export default function DraftPage() {
             if (docSnap.exists()) {
                 const data = docSnap.data();
 
-                // Save metadata needed for context
                 setDraftMeta({
                     target_episode_id: data.target_episode_id,
                     title: data.title
@@ -93,7 +92,6 @@ export default function DraftPage() {
 
     // --- HANDLERS ---
 
-    // A. FETCH REMOTE SCENES
     const fetchRemoteScenes = async (targetEpisodeId: string) => {
         try {
             const q = query(
@@ -117,7 +115,6 @@ export default function DraftPage() {
         }
     };
 
-    // B. REORDER
     const handleReorder = async (newOrder: WorkstationScene[]) => {
         setScenes(newOrder);
         try {
@@ -130,7 +127,6 @@ export default function DraftPage() {
         }
     };
 
-    // C. ADD MANUAL SCENE (Local Array Update)
     const handleAddScene = async () => {
         try {
             const newScene: WorkstationScene = {
@@ -143,7 +139,7 @@ export default function DraftPage() {
             };
 
             const newScenes = [...scenes, newScene];
-            setScenes(newScenes); // Optimistic UI
+            setScenes(newScenes);
 
             await updateDoc(doc(db, "projects", projectId, "drafts", draftId), {
                 scenes: newScenes
@@ -155,7 +151,6 @@ export default function DraftPage() {
         }
     };
 
-    // D. AUTO-EXTEND SCENE (API Call)
     const handleAutoExtend = async () => {
         if (scenes.length === 0) {
             toast.error("Need context to extend!");
@@ -166,7 +161,6 @@ export default function DraftPage() {
         try {
             const lastScene = scenes[scenes.length - 1];
 
-            // Prepare Payload
             const payload = {
                 project_id: projectId,
                 episode_id: draftMeta.target_episode_id || "main",
@@ -178,11 +172,9 @@ export default function DraftPage() {
                 }
             };
 
-            // Call API
             const res = await api.post("/api/v1/script/extend-scene", payload);
             const generatedScene = res.data.scene;
 
-            // Create New Scene Object
             const newScene: WorkstationScene = {
                 id: `scene_${uuidv4().slice(0, 8)}`,
                 scene_number: scenes.length + 1,
@@ -190,15 +182,12 @@ export default function DraftPage() {
                 summary: generatedScene.visual_action || generatedScene.synopsis || "",
                 time: generatedScene.time_of_day || "DAY",
                 cast_ids: generatedScene.characters || [],
-                // Mapping legacy fields if needed
                 characters: generatedScene.characters || []
             };
 
-            // Update List
             const newScenes = [...scenes, newScene];
             setScenes(newScenes);
 
-            // Sync to Firestore
             await updateDoc(doc(db, "projects", projectId, "drafts", draftId), {
                 scenes: newScenes
             });
@@ -213,11 +202,33 @@ export default function DraftPage() {
         }
     };
 
-    // E. DELETE SCENE
+    // NEW: Handle Manual Edits (Director Console)
+    const handleUpdateScene = async (sceneId: string, updates: Partial<WorkstationScene>) => {
+        try {
+            // Update local array first
+            const updatedScenes = scenes.map(s => {
+                if (s.id === sceneId) {
+                    return { ...s, ...updates };
+                }
+                return s;
+            });
+
+            setScenes(updatedScenes);
+
+            // Commit array to Firestore
+            await updateDoc(doc(db, "projects", projectId, "drafts", draftId), {
+                scenes: updatedScenes
+            });
+            toast.success("Scene Updated");
+        } catch (e) {
+            console.error("Update Scene Error:", e);
+            toast.error("Failed to save changes");
+        }
+    };
+
     const handleDeleteScene = async (sceneId: string) => {
         try {
             const newScenes = scenes.filter(s => s.id !== sceneId);
-            // Re-index scene numbers
             const reindexed = newScenes.map((s, idx) => ({ ...s, scene_number: idx + 1 }));
 
             setScenes(reindexed);
@@ -232,7 +243,6 @@ export default function DraftPage() {
         }
     };
 
-    // F. UPDATE CAST
     const handleUpdateCast = async (sceneId: string, newCast: string[]) => {
         try {
             const newScenes = scenes.map(s => {
@@ -250,7 +260,6 @@ export default function DraftPage() {
         }
     };
 
-    // G. AI REWRITE
     const handleRewrite = async (sceneId: string, instruction: string, contextRefs?: any[]) => {
         setIsProcessing(true);
         const sceneIndex = scenes.findIndex(s => s.id === sceneId);
@@ -296,7 +305,6 @@ export default function DraftPage() {
         }
     };
 
-    // H. COMMIT (APPROVE)
     const handleCommit = async () => {
         setIsCommitting(true);
         isCommittingRef.current = true;
@@ -318,7 +326,6 @@ export default function DraftPage() {
         }
     };
 
-    // --- CUSTOM HEADER ---
     const DraftHeader = (
         <div className="h-20 border-b border-[#222] bg-[#080808] flex items-center justify-between px-8 shrink-0">
             <div className="flex items-center gap-4">
@@ -360,8 +367,9 @@ export default function DraftPage() {
             onFetchRemoteScenes={fetchRemoteScenes}
             onUpdateCast={handleUpdateCast}
             onDeleteScene={handleDeleteScene}
+            onUpdateScene={handleUpdateScene} // <--- PASSED HERE
 
-            // INJECT NEW CONTROLS
+            // INJECT CONTROLS
             customFooter={
                 <AddSceneControls
                     onManualAdd={handleAddScene}
