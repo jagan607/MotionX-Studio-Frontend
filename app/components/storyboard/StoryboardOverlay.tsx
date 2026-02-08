@@ -23,14 +23,29 @@ import { styles } from "./BoardStyles";
 // --- GLOBAL UI IMPORTS ---
 import { StoryboardTour } from "@/components/StoryboardTour";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
-import CreditModal from "@/app/components/modals/CreditModal"; // <--- 1. IMPORT ADDED
+import CreditModal from "@/app/components/modals/CreditModal";
 
 // --- CONTEXT IMPORT ---
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
 
 //db
-import { doc, getDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
+import { doc, onSnapshot, getDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+
+// --- HELPER: TERMINAL SPINNER (Defined outside to prevent re-render issues) ---
+const TerminalSpinner = () => {
+    const [frame, setFrame] = useState(0);
+    const frames = ["/", "-", "\\", "|"];
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setFrame(f => (f + 1) % frames.length);
+        }, 100);
+        return () => clearInterval(timer);
+    }, []);
+
+    return <span style={{ color: '#00ff41', fontWeight: 'bold', marginLeft: '8px' }}>{frames[frame]}</span>;
+};
 
 interface StoryboardOverlayProps {
     activeSceneId: string | null;
@@ -41,7 +56,7 @@ interface StoryboardOverlayProps {
     castMembers: any[];
     locations: any[];
     seriesName: string;
-    episodeTitle: string;
+    episodeTitle: string; // Might be an ID initially
 
     // Navigation IDs
     seriesId: string;
@@ -95,10 +110,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [shotToDownload, setShotToDownload] = useState<any>(null);
     const [sceneList, setSceneList] = useState<any[]>([]);
 
-    // 2. STATE FOR CREDIT MODAL
+    // UI State
     const [showTopUp, setShowTopUp] = useState(false);
 
-    // --- FETCH SCENE LIST ---
+    // Data State (Episode Title Correction)
+    const [realEpisodeTitle, setRealEpisodeTitle] = useState(episodeTitle);
+
+    // --- 1. FETCH SCENE LIST ---
     useEffect(() => {
         const fetchScenes = async () => {
             if (!seriesId || !episodeId) return;
@@ -120,7 +138,33 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         fetchScenes();
     }, [seriesId, episodeId]);
 
-    // --- FETCH ASPECT RATIO ---
+    // --- 2. FETCH REAL EPISODE TITLE (Fix for ID display) ---
+    useEffect(() => {
+        const fetchEpisodeData = async () => {
+            if (!seriesId || !episodeId || episodeId === 'main') return;
+
+            // Only fetch if title looks like an ID or wasn't passed correctly
+            if (episodeTitle === episodeId || !episodeTitle || episodeTitle.startsWith("EPISODE")) {
+                try {
+                    const epRef = doc(db, "projects", seriesId, "episodes", episodeId);
+                    const epSnap = await getDoc(epRef);
+                    if (epSnap.exists()) {
+                        const data = epSnap.data();
+                        if (data.title) {
+                            setRealEpisodeTitle(data.title.toUpperCase());
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error fetching episode title:", error);
+                }
+            } else {
+                setRealEpisodeTitle(episodeTitle);
+            }
+        };
+        fetchEpisodeData();
+    }, [seriesId, episodeId, episodeTitle]);
+
+    // --- 3. FETCH ASPECT RATIO ---
     useEffect(() => {
         const fetchProjectSettings = async () => {
             if (!seriesId) return;
@@ -140,6 +184,25 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         };
         fetchProjectSettings();
     }, [seriesId]);
+
+    // --- 4. REAL-TIME TERMINAL LOG LISTENER ---
+    useEffect(() => {
+        if (!shotMgr.isAutoDirecting || !seriesId || !episodeId || !activeSceneId) return;
+
+        const sceneRef = doc(db, "projects", seriesId, "episodes", episodeId, "scenes", activeSceneId);
+
+        const unsubscribe = onSnapshot(sceneRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data?.ai_logs && Array.isArray(data.ai_logs)) {
+                    shotMgr.setTerminalLog(data.ai_logs);
+                }
+            }
+        });
+
+        return () => unsubscribe();
+    }, [shotMgr.isAutoDirecting, seriesId, episodeId, activeSceneId]);
+
 
     if (!activeSceneId) return null;
 
@@ -284,26 +347,11 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         charDisplay = currentScene.characters;
     }
 
-    // --- HELPER: TERMINAL SPINNER ---
-    const TerminalSpinner = () => {
-        const [frame, setFrame] = useState(0);
-        const frames = ["/", "-", "\\", "|"];
-
-        useEffect(() => {
-            const timer = setInterval(() => {
-                setFrame(f => (f + 1) % frames.length);
-            }, 100);
-            return () => clearInterval(timer);
-        }, []);
-
-        return <span style={{ color: '#00ff41', fontWeight: 'bold', marginLeft: '8px' }}>{frames[frame]}</span>;
-    };
-
     return (
         <div style={styles.sbOverlay}>
             <Toaster position="bottom-right" reverseOrder={false} />
 
-            {/* 3. CREDIT MODAL RENDER */}
+            {/* MODALS */}
             <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
 
             {/* --- HEADER --- */}
@@ -453,7 +501,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             </div>
                         </div>
 
-                        {/* 4. TOP UP BUTTON CONNECTED */}
+                        {/* TOP UP BUTTON */}
                         <button
                             onClick={() => setShowTopUp(true)}
                             style={{
@@ -494,13 +542,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 <div style={{ margin: '40px 40px 0 40px' }}>
                     <SceneContextStrip
                         seriesName={seriesName}
-                        episodeTitle={episodeTitle}
+                        episodeTitle={realEpisodeTitle} // Using real fetched title
                         sceneNumber={currentScene.scene_number}
                         summary={currentScene.summary || currentScene.description || currentScene.synopsis}
                         locationName={sceneLoc}
                         timeOfDay={currentScene.time_of_day || "DAY"}
                         castList={charDisplay}
-                        aspectRatio={shotMgr.aspectRatio || "16:9"} // <--- NEW PROP PASSED HERE
+                        aspectRatio={shotMgr.aspectRatio || "16:9"}
                         onAutoDirect={(newSummary) => handleSafeAutoDirect(newSummary)}
                         isAutoDirecting={shotMgr.isAutoDirecting}
                     />

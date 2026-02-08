@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-// Sub-hooks (Relative imports to the folder created in Step 1)
+// Sub-hooks (Relative imports)
 import { useShotCRUD } from "./shot-manager/useShotCRUD";
 import { useShotMedia } from "./shot-manager/useShotMedia";
 import { useShotAI } from "./shot-manager/useShotAI";
@@ -20,7 +20,10 @@ export const useShotManager = (
     // --- SHARED STATE ---
     const [shots, setShots] = useState<any[]>([]);
     const [loadingShots, setLoadingShots] = useState<Set<string>>(new Set());
+
+    // Terminal Log State (Now driven by DB + Local actions)
     const [terminalLog, setTerminalLog] = useState<string[]>([]);
+
     const [aspectRatio, setAspectRatio] = useState("16:9");
 
     // Ref for Batch Operations to access latest state
@@ -31,15 +34,15 @@ export const useShotManager = (
     const addLoadingShot = (id: string) => setLoadingShots(prev => new Set(prev).add(id));
     const removeLoadingShot = (id: string) => setLoadingShots(prev => { const next = new Set(prev); next.delete(id); return next; });
 
-    // --- REAL-TIME SYNC ---
+    // --- 1. REAL-TIME SHOTS SYNC ---
     useEffect(() => {
         if (!projectId || !episodeId || !activeSceneId) return;
 
-        // UNIFIED PROJECT PATH
-        const q = collection(db, "projects", projectId, "episodes", episodeId, "scenes", activeSceneId, "shots");
+        const shotsRef = collection(db, "projects", projectId, "episodes", episodeId, "scenes", activeSceneId, "shots");
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        const unsubscribe = onSnapshot(shotsRef, (snapshot) => {
             const shotData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // Sort by order, then by creation time
             shotData.sort((a: any, b: any) => {
                 const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
                 const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
@@ -50,6 +53,27 @@ export const useShotManager = (
         });
         return () => unsubscribe();
     }, [projectId, episodeId, activeSceneId]);
+
+    // --- 2. REAL-TIME LOGS SYNC (NEW) ---
+    // This listens to the Scene Document for 'ai_logs' updates from the backend
+    useEffect(() => {
+        if (!projectId || !episodeId || !activeSceneId) return;
+
+        const sceneDocRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", activeSceneId);
+
+        const unsubscribe = onSnapshot(sceneDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                // If backend has pushed logs, sync them to local state
+                if (data?.ai_logs && Array.isArray(data.ai_logs)) {
+                    setTerminalLog(data.ai_logs);
+                }
+            }
+        });
+
+        return () => unsubscribe();
+    }, [projectId, episodeId, activeSceneId]);
+
 
     // --- COMPOSITION ---
 
@@ -74,7 +98,8 @@ export const useShotManager = (
         // State
         shots,
         loadingShots,
-        terminalLog,
+        terminalLog, // UI consumes this
+        setTerminalLog, // Exposed in case manual updates needed
         aspectRatio,
         setAspectRatio,
 
@@ -86,9 +111,7 @@ export const useShotManager = (
 
         // Media
         wipeShotImagesOnly: media.wipeShotImagesOnly,
-        // Wrap wipeSceneData to handle UI loading state here if desired, or pass setTerminalLog
         wipeSceneData: async () => {
-            // Optional: You could set isAutoDirecting here if you want the spinner
             await media.wipeSceneData();
         },
 
