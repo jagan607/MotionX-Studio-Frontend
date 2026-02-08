@@ -485,6 +485,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         locationName={sceneLoc}
                         timeOfDay={currentScene.time_of_day || "DAY"}
                         castList={charDisplay}
+                        aspectRatio={shotMgr.aspectRatio || "16:9"} // <--- NEW PROP PASSED HERE
                         onAutoDirect={(newSummary) => handleSafeAutoDirect(newSummary)}
                         isAutoDirecting={shotMgr.isAutoDirecting}
                     />
