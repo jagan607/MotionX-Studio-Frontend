@@ -97,7 +97,7 @@ export default function Dashboard() {
     );
 
     return (
-        <main className="h-screen w-screen bg-[#050505] text-[#EDEDED] font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#FF0000] selection:text-white">
+        <main className="fixed inset-0 bg-[#050505] text-[#EDEDED] font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#FF0000] selection:text-white">
 
             {/* HUD BAR */}
             <div className="h-10 border-b border-[#222] bg-black/95 flex items-center justify-between px-6 shrink-0 z-20 font-mono text-[10px]">
@@ -112,13 +112,13 @@ export default function Dashboard() {
             </div>
 
             {/* MAIN WORKSPACE */}
-            <div className="flex-1 flex overflow-hidden p-6 gap-6 min-h-0">
+            <div className="flex-1 flex p-6 gap-6 min-h-0 overflow-hidden">
 
                 {/* LEFT PRODUCTION UNIT */}
-                <div className="flex-[3] flex flex-col min-w-0 h-full overflow-hidden">
+                <div className="flex-[3] flex flex-col min-w-0 h-full overflow-hidden gap-6">
 
                     {/* MONITOR */}
-                    <div className="flex-1 relative bg-black border border-[#333] group overflow-hidden shadow-2xl min-h-0 mb-6 rounded-sm transition-colors hover:border-[#444]">
+                    <div className="flex-1 relative bg-black border border-[#333] group overflow-hidden shadow-2xl min-h-0 rounded-sm transition-colors hover:border-[#444]">
                         <div className="absolute inset-0 pointer-events-none z-20 p-4">
                             <div className="absolute top-4 left-4 w-8 h-8 border-l border-t border-white/60" />
                             <div className="absolute top-4 right-4 w-8 h-8 border-r border-t border-white/30" />
