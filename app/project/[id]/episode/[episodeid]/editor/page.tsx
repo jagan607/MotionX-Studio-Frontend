@@ -22,7 +22,7 @@ import { Project } from "@/lib/types";
 import { v4 as uuidv4 } from 'uuid';
 
 // --- COMPONENTS ---
-import { ScriptWorkstation, WorkstationScene, Character } from "@/app/components/script/ScriptWorkstation";
+import { ScriptWorkstation, WorkstationScene, Character, LocationAsset } from "@/app/components/script/ScriptWorkstation";
 import { StudioHeader } from "@/app/components/studio/StudioHeader";
 import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
 import { AddSceneControls } from "@/components/script/AddSceneControls";
@@ -40,19 +40,22 @@ export default function SceneManagerPage() {
     const [episodes, setEpisodes] = useState<any[]>([]);
     const [characters, setCharacters] = useState<Character[]>([]);
 
+    // NEW: Locations State
+    const [locations, setLocations] = useState<LocationAsset[]>([]);
+
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Track Auto-Extend State
     const [isExtending, setIsExtending] = useState(false);
 
-    // 1. FETCH CONTEXT (Project Info & Episode List)
+    // 1. FETCH CONTEXT (Project Info, Episodes, Characters, Locations)
     useEffect(() => {
         if (!projectId) return;
 
         const loadContext = async () => {
             try {
+                // A. Project & Episodes
                 const [projData, epsData] = await Promise.all([
                     fetchProject(projectId),
                     fetchEpisodes(projectId)
@@ -60,7 +63,7 @@ export default function SceneManagerPage() {
 
                 setProject(projData);
 
-                // Load Characters
+                // B. Load Characters
                 try {
                     const charQuery = query(collection(db, "projects", projectId, "characters"));
                     const charSnapshot = await getDocs(charQuery);
@@ -73,12 +76,35 @@ export default function SceneManagerPage() {
                     console.error("Failed to load characters", e);
                 }
 
+                // C. Load Locations (FIXED)
+                try {
+                    // Query the specific 'locations' subcollection
+                    // Note: We removed orderBy("name") to prevent Index errors until one is created
+                    const locRef = collection(db, "projects", projectId, "locations");
+                    const locSnapshot = await getDocs(locRef);
+
+                    const loadedLocs = locSnapshot.docs.map(doc => {
+                        const data = doc.data();
+                        return {
+                            id: doc.id,
+                            name: data.name || doc.id
+                        };
+                    });
+
+                    // Debug log to ensure data is flowing
+                    console.log("📍 Context Loaded Locations:", loadedLocs);
+                    setLocations(loadedLocs);
+
+                } catch (e) {
+                    console.error("Failed to load locations", e);
+                    // Non-blocking error, user can still edit
+                }
+
+                // D. Process Episodes
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
                 if (projData.type === 'movie') {
-                    // Filter Ghost Episode
                     eps = eps.filter((e: any) => !(e.title === "Main Script" && e.synopsis === "Initial setup"));
-
                     const mainReelId = projData.default_episode_id || "main";
                     if (eps.length === 0) {
                         eps = [{ id: mainReelId, title: "Main Picture Reel", episode_number: 1 }];
@@ -113,6 +139,7 @@ export default function SceneManagerPage() {
             snapshot.forEach((doc) => {
                 const data = doc.data();
 
+                // Robust Header Parsing
                 const headerText = data.slugline || data.header || data.scene_header || data.title || "";
                 const fallbackHeader = (data.int_ext && data.location)
                     ? `${data.int_ext}. ${data.location} - ${data.time || ''}`
@@ -146,8 +173,10 @@ export default function SceneManagerPage() {
         return () => unsub();
     }, [projectId, episodeId, isProcessing]);
 
+
     // --- HANDLERS ---
 
+    // 1. MANUAL ADD
     const handleManualAdd = async () => {
         try {
             const maxSceneNum = scenes.length > 0
@@ -175,6 +204,7 @@ export default function SceneManagerPage() {
         }
     };
 
+    // 2. AUTO-EXTEND
     const handleAutoExtend = async () => {
         if (scenes.length === 0) {
             toast.error("Need at least one scene to extend from!");
@@ -225,11 +255,10 @@ export default function SceneManagerPage() {
         }
     };
 
-    // NEW: Handle Manual Edits from Director Console
+    // 3. UPDATE SCENE (From Director Console)
     const handleUpdateScene = async (sceneId: string, updates: Partial<WorkstationScene>) => {
         try {
             const sceneRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
-            // The updates object already contains mapped keys from DirectorConsole (header/slugline/summary/synopsis)
             await updateDoc(sceneRef, updates);
         } catch (e) {
             console.error("Update Scene Error:", e);
@@ -237,6 +266,7 @@ export default function SceneManagerPage() {
         }
     };
 
+    // 4. UPDATE CAST
     const handleUpdateCast = async (sceneId: string, newCast: string[]) => {
         try {
             const sceneRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
@@ -250,6 +280,7 @@ export default function SceneManagerPage() {
         }
     };
 
+    // 5. DELETE SCENE
     const handleDeleteScene = async (sceneId: string) => {
         try {
             const sceneRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
@@ -260,6 +291,8 @@ export default function SceneManagerPage() {
             toast.error("Failed to delete scene");
         }
     };
+
+    // --- HELPER FUNCTIONS ---
 
     const fetchRemoteScenes = async (targetEpisodeId: string) => {
         try {
@@ -402,7 +435,10 @@ export default function SceneManagerPage() {
 
                 contextEpisodes={episodes}
                 scenes={scenes}
+
+                // ASSETS PASSED HERE
                 availableCharacters={characters}
+                availableLocations={locations} // <--- PASS LOCATIONS
 
                 // Actions
                 onReorder={handleReorder}
@@ -411,7 +447,7 @@ export default function SceneManagerPage() {
                 onFetchRemoteScenes={fetchRemoteScenes}
                 onUpdateCast={handleUpdateCast}
                 onDeleteScene={handleDeleteScene}
-                onUpdateScene={handleUpdateScene} // <--- PASSED HERE
+                onUpdateScene={handleUpdateScene} // <--- PASS UPDATE HANDLER
 
                 customFooter={
                     <AddSceneControls

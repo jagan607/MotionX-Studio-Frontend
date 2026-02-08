@@ -8,8 +8,8 @@ import {
     updateDoc,
     collection,
     query,
-    orderBy,
     getDocs
+    // Removed orderBy, where to keep imports clean if unused
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
@@ -18,7 +18,7 @@ import { CheckCircle2 } from "lucide-react";
 import { v4 as uuidv4 } from 'uuid';
 
 // --- COMPONENTS ---
-import { ScriptWorkstation, WorkstationScene } from "@/app/components/script/ScriptWorkstation";
+import { ScriptWorkstation, WorkstationScene, LocationAsset } from "@/app/components/script/ScriptWorkstation";
 import { MotionButton } from "@/components/ui/MotionButton";
 import { AddSceneControls } from "@/components/script/AddSceneControls";
 
@@ -34,6 +34,7 @@ export default function DraftPage() {
 
     // Context State
     const [episodes, setEpisodes] = useState<any[]>([]);
+    const [locations, setLocations] = useState<LocationAsset[]>([]);
 
     // Loading States
     const [isProcessing, setIsProcessing] = useState(false);
@@ -74,15 +75,39 @@ export default function DraftPage() {
         return () => unsub();
     }, [draftId, projectId, router, isProcessing, isCommitting]);
 
-    // 2. FETCH EPISODES (For Context Matrix)
+    // 2. FETCH EPISODES & LOCATIONS
     useEffect(() => {
         if (!projectId) return;
         const loadContext = async () => {
             try {
+                // Fetch Episodes
                 const epsData = await fetchEpisodes(projectId);
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
                 eps = eps.filter((e: any) => !(e.title === "Main Script" && e.synopsis === "Initial setup"));
                 setEpisodes(eps);
+
+                // Fetch Locations (CORRECTED & SIMPLIFIED)
+                try {
+                    // Query specific 'locations' collection directly
+                    // Removing orderBy to prevent "Missing Index" errors during dev
+                    const locRef = collection(db, "projects", projectId, "locations");
+                    const locSnapshot = await getDocs(locRef);
+
+                    const loadedLocs = locSnapshot.docs.map(doc => {
+                        const data = doc.data();
+                        return {
+                            id: doc.id,
+                            name: data.name || doc.id
+                        };
+                    });
+
+                    console.log("📍 Draft Page Locations:", loadedLocs);
+                    setLocations(loadedLocs);
+
+                } catch (e) {
+                    console.error("Failed to load locations", e);
+                }
+
             } catch (err) {
                 console.error("Failed to load project context", err);
             }
@@ -94,12 +119,15 @@ export default function DraftPage() {
 
     const fetchRemoteScenes = async (targetEpisodeId: string) => {
         try {
+            // Note: This still uses orderBy("scene_number"), ensure index exists for episodes/{id}/scenes
             const q = query(
                 collection(db, "projects", projectId, "episodes", targetEpisodeId, "scenes"),
-                orderBy("scene_number", "asc")
+                // orderBy("scene_number", "asc") // Uncomment if index exists
             );
             const snapshot = await getDocs(q);
-            return snapshot.docs.map(doc => {
+
+            // Manual sort if index is missing
+            const docs = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
                     id: doc.id,
@@ -108,6 +136,8 @@ export default function DraftPage() {
                     summary: data.synopsis || data.summary || "",
                 };
             });
+            return docs.sort((a, b) => a.scene_number - b.scene_number);
+
         } catch (e) {
             console.error("Context Load Error:", e);
             toast.error("Failed to load context scenes");
@@ -202,7 +232,6 @@ export default function DraftPage() {
         }
     };
 
-    // NEW: Handle Manual Edits (Director Console)
     const handleUpdateScene = async (sceneId: string, updates: Partial<WorkstationScene>) => {
         try {
             // Update local array first
@@ -359,6 +388,7 @@ export default function DraftPage() {
 
             scenes={scenes}
             contextEpisodes={episodes}
+            availableLocations={locations} // <--- PASS LOCATIONS
 
             // Actions
             onReorder={handleReorder}
@@ -367,7 +397,7 @@ export default function DraftPage() {
             onFetchRemoteScenes={fetchRemoteScenes}
             onUpdateCast={handleUpdateCast}
             onDeleteScene={handleDeleteScene}
-            onUpdateScene={handleUpdateScene} // <--- PASSED HERE
+            onUpdateScene={handleUpdateScene} // <--- PASS UPDATE HANDLER
 
             // INJECT CONTROLS
             customFooter={

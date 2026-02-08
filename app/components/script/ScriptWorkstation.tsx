@@ -22,6 +22,12 @@ export interface Character {
     name: string;
 }
 
+// NEW: Shared Location Interface
+export interface LocationAsset {
+    id: string;
+    name: string;
+}
+
 export interface EpisodeContext {
     episodes: any[];
     currentEpisodeId: string;
@@ -39,7 +45,10 @@ interface ScriptWorkstationProps {
     episodeContext?: EpisodeContext;
     contextEpisodes?: any[];
     scenes: WorkstationScene[];
+
+    // ASSETS
     availableCharacters?: Character[];
+    availableLocations?: LocationAsset[]; // <--- NEW PROP
 
     // Actions
     onReorder: (newOrder: WorkstationScene[]) => void;
@@ -49,7 +58,7 @@ interface ScriptWorkstationProps {
     onDeleteScene?: (id: string) => void;
     onUpdateCast?: (sceneId: string, newCast: string[]) => void;
 
-    // NEW: Handler for manual scene edits (Header/Summary)
+    // Handler for manual scene edits (Header/Summary)
     onUpdateScene?: (sceneId: string, updates: Partial<WorkstationScene>) => void;
 
     onFetchRemoteScenes?: (episodeId: string) => Promise<any[]>;
@@ -65,12 +74,13 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
     contextEpisodes,
     scenes,
     availableCharacters = [],
+    availableLocations = [], // <--- Default empty array
     onReorder,
     onRewrite,
     onAddScene,
     onDeleteScene,
     onUpdateCast,
-    onUpdateScene, // <--- Destructure new prop
+    onUpdateScene,
     onFetchRemoteScenes,
     isProcessing
 }) => {
@@ -126,12 +136,13 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                 <DirectorConsole
                     activeScene={activeScene}
                     availableCharacters={availableCharacters}
+                    availableLocations={availableLocations} // <--- Pass down to Console
                     selectedContext={selectedContext}
                     isProcessing={isProcessing}
 
                     // Handlers
                     onUpdateCast={onUpdateCast}
-                    onUpdateScene={onUpdateScene} // <--- Pass down to Console
+                    onUpdateScene={onUpdateScene}
                     onExecuteAi={handleExecuteAi}
                     onOpenContextModal={() => setIsContextModalOpen(true)}
                     onRemoveContextRef={removeContextRef}

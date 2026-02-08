@@ -3,79 +3,140 @@
 import React, { useState, useEffect } from "react";
 import {
     Cpu, MapPin, Users, Terminal, Plus, Loader2, Sparkles, X,
-    PlayCircle, Activity, Save, FileText
+    PlayCircle, Activity, Save, FileText, Clock, AlertTriangle
 } from "lucide-react";
 import { WorkstationScene, Character } from "./ScriptWorkstation";
 import { ContextReference } from "./ContextSelectorModal";
 
+// Shared Location Interface
+export interface LocationAsset {
+    id: string;
+    name: string;
+}
+
 interface DirectorConsoleProps {
     activeScene: WorkstationScene | null;
     availableCharacters: Character[];
+    availableLocations?: LocationAsset[];
     selectedContext: ContextReference[];
     isProcessing: boolean;
 
     // Handlers
     onUpdateCast?: (sceneId: string, newCast: string[]) => void;
-    onUpdateScene?: (sceneId: string, updates: Partial<WorkstationScene>) => void; // NEW: Persistence Handler
+    onUpdateScene?: (sceneId: string, updates: Partial<WorkstationScene>) => void;
     onExecuteAi: (instruction: string) => void;
     onOpenContextModal: () => void;
     onRemoveContextRef: (id: string) => void;
     onCancelSelection: () => void;
 }
 
+// --- HELPER: NORMALIZE STRING FOR MATCHING ---
+// Removes INT/EXT, punctuation, and spaces to find matches like:
+// "INT. ALESSANDRA'S APARTMENT" == "ALESSANDRA'S APARTMENT"
+const normalizeLoc = (str: string) => {
+    if (!str) return "";
+    return str
+        .toUpperCase()
+        .replace(/INT\.|EXT\.|I\/E\.|INT|EXT|I\/E/g, "") // Remove prefixes
+        .replace(/[^A-Z0-9]/g, ""); // Remove non-alphanumeric (spaces, apostrophes)
+};
+
 export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
-    activeScene, availableCharacters, selectedContext, isProcessing,
-    onUpdateCast, onUpdateScene, onExecuteAi, onOpenContextModal, onRemoveContextRef, onCancelSelection
+    activeScene,
+    availableCharacters,
+    availableLocations = [],
+    selectedContext,
+    isProcessing,
+    onUpdateCast,
+    onUpdateScene,
+    onExecuteAi,
+    onOpenContextModal,
+    onRemoveContextRef,
+    onCancelSelection
 }) => {
     const [instruction, setInstruction] = useState("");
 
-    // NEW: Local State for Manual Edits
-    const [header, setHeader] = useState("");
+    // Local State
+    const [locationId, setLocationId] = useState("");
+    const [timeOfDay, setTimeOfDay] = useState("DAY");
     const [summary, setSummary] = useState("");
     const [isDirty, setIsDirty] = useState(false);
 
-    // Sync state when activeScene changes (Reset dirty state)
+    // --- 1. SMART SYNC EFFECT ---
     useEffect(() => {
         if (activeScene) {
-            setHeader(activeScene.header || activeScene.slugline || "");
+            const rawHeader = activeScene.header || activeScene.slugline || "";
+
+            // Extract Time (everything after the last dash)
+            const parts = rawHeader.split("-");
+            let parsedTime = "DAY";
+            let rawLocName = rawHeader;
+
+            if (parts.length > 1) {
+                // Time is usually the last part
+                parsedTime = parts[parts.length - 1].trim();
+                // Location is everything before the time
+                rawLocName = parts.slice(0, -1).join("-").trim();
+            } else if (activeScene.time) {
+                parsedTime = activeScene.time;
+            }
+
+            // --- SMART MATCHING LOGIC ---
+            let foundId = "";
+
+            // A. Direct ID Match (Best)
+            if (activeScene.location_id && availableLocations.some(l => l.id === activeScene.location_id)) {
+                foundId = activeScene.location_id;
+            }
+            // B. Fuzzy Name Match
+            else {
+                const normHeader = normalizeLoc(rawLocName);
+                const match = availableLocations.find(l => normalizeLoc(l.name) === normHeader);
+                if (match) foundId = match.id;
+            }
+
+            setLocationId(foundId); // If "" (empty), dropdown shows placeholder
+            setTimeOfDay(parsedTime);
             setSummary(activeScene.summary || activeScene.synopsis || "");
             setInstruction("");
             setIsDirty(false);
         }
-    }, [activeScene?.id]);
+    }, [activeScene?.id, availableLocations]); // Re-run if locations load late
 
-    // Update Local State Handlers
-    const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setHeader(e.target.value);
+    // --- 2. HANDLE SELECTION ---
+    const handleLocationSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedId = e.target.value;
+        setLocationId(selectedId);
         setIsDirty(true);
     };
 
-    const handleSummaryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setSummary(e.target.value);
-        setIsDirty(true);
-    };
+    // Construct Full Header
+    // If ID selected: Use Asset Name. If not: Keep original header text (or "UNKNOWN")
+    const selectedAsset = availableLocations.find(l => l.id === locationId);
+    const locationDisplayName = selectedAsset ? selectedAsset.name : "UNKNOWN LOCATION";
 
-    // Commit Changes to Parent
+    // Final Slugline Construction
+    const fullHeader = `${locationDisplayName} - ${timeOfDay}`;
+
     const handleSaveChanges = () => {
         if (!activeScene || !onUpdateScene) return;
         onUpdateScene(activeScene.id, {
-            header: header,
-            slugline: header, // Sync both fields just in case
+            header: fullHeader,
+            slugline: fullHeader,
             summary: summary,
-            synopsis: summary
+            synopsis: summary,
+            time: timeOfDay,
+            location_id: locationId
         });
         setIsDirty(false);
     };
 
+    // ... (Cast Handlers - No Changes) ...
     const activeCastList = activeScene?.cast_ids || activeScene?.characters || [];
-
     const handleAddCharacter = (charId: string) => {
         if (!activeScene || !onUpdateCast) return;
-        if (!activeCastList.includes(charId)) {
-            onUpdateCast(activeScene.id, [...activeCastList, charId]);
-        }
+        if (!activeCastList.includes(charId)) onUpdateCast(activeScene.id, [...activeCastList, charId]);
     };
-
     const handleRemoveCharacter = (charId: string) => {
         if (!activeScene || !onUpdateCast) return;
         onUpdateCast(activeScene.id, activeCastList.filter((id: string) => id !== charId));
@@ -97,6 +158,10 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
         );
     }
 
+    // Determine if we should show the warning
+    // Show warning only if NO ID is selected AND the header text isn't empty
+    const showWarning = !locationId && activeScene.header;
+
     return (
         <div className="w-[400px] bg-[#080808] flex flex-col shrink-0 border-l border-[#222] h-full">
             {/* HEADER */}
@@ -114,36 +179,83 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                     {/* 1. SCENE HEADER EDITOR */}
                     <div className="p-4 border border-[#222] bg-[#0C0C0C] rounded-sm relative group transition-colors focus-within:border-[#444]">
                         <div className="absolute top-0 left-0 w-1 h-full bg-red-600" />
-                        <div className="flex items-center justify-between mb-2">
+
+                        <div className="flex items-center justify-between mb-3">
                             <div className="text-[9px] font-mono text-red-500 uppercase">
                                 Target Locked: SCENE {String(activeScene.scene_number).padStart(2, '0')}
                             </div>
-
-                            {/* SAVE BUTTON (Only visible when dirty) */}
                             {isDirty && (
                                 <button
                                     onClick={handleSaveChanges}
                                     className="flex items-center gap-1 text-[9px] font-bold bg-green-900/20 text-green-500 px-2 py-1 rounded-sm border border-green-900/30 hover:bg-green-900/40 transition-all animate-pulse"
                                 >
-                                    <Save size={10} /> SAVE CHANGES
+                                    <Save size={10} /> SAVE
                                 </button>
                             )}
                         </div>
 
-                        {/* Editable Header Input */}
-                        <div className="relative">
-                            <MapPin size={12} className="absolute top-1/2 -translate-y-1/2 left-0 text-[#555]" />
-                            <input
-                                type="text"
-                                value={header}
-                                onChange={handleHeaderChange}
-                                className="w-full bg-transparent text-sm font-bold text-white uppercase tracking-wider pl-5 py-1 border-b border-transparent focus:border-red-600 focus:outline-none placeholder:text-[#333] transition-colors"
-                                placeholder="INT. LOCATION - TIME"
-                            />
+                        {/* Location Selector Controls */}
+                        <div className="flex flex-col gap-2">
+                            {/* STRICT LOCATION SELECTOR (Full Width) */}
+                            <div className="relative">
+                                <MapPin size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#555] pointer-events-none" />
+                                <select
+                                    value={locationId}
+                                    onChange={handleLocationSelect}
+                                    className={`w-full bg-[#111] border text-[10px] font-bold uppercase p-2 pl-6 rounded-sm outline-none focus:border-[#555] appearance-none cursor-pointer hover:border-[#444] transition-colors
+                                        ${locationId ? 'text-white border-[#333]' : 'text-yellow-500 border-yellow-900/30'}
+                                    `}
+                                >
+                                    <option value="" disabled>SELECT LOCATION ASSET...</option>
+
+                                    {availableLocations.map(loc => (
+                                        <option key={loc.id} value={loc.id} className="text-white">
+                                            {loc.name.replace(/_/g, " ")}
+                                        </option>
+                                    ))}
+
+                                    {/* Fallback Display if no match found */}
+                                    {!locationId && (
+                                        <option value="" disabled className="text-yellow-500 bg-[#111]">
+                                            ⚠ UNKNOWN: {activeScene.header?.split("-")[0] || "MISSING"}
+                                        </option>
+                                    )}
+                                </select>
+                            </div>
+
+                            {/* Time Select */}
+                            <div className="flex items-center gap-2 mt-1">
+                                <Clock size={10} className="text-[#555]" />
+                                <select
+                                    value={timeOfDay}
+                                    onChange={(e) => { setTimeOfDay(e.target.value); setIsDirty(true); }}
+                                    className="flex-1 bg-transparent border-b border-[#333] text-[10px] font-mono text-[#888] py-1 outline-none focus:border-[#555] cursor-pointer"
+                                >
+                                    <option value="DAY">DAY</option>
+                                    <option value="NIGHT">NIGHT</option>
+                                    <option value="CONTINUOUS">CONTINUOUS</option>
+                                    <option value="MOMENTS LATER">MOMENTS LATER</option>
+                                    <option value="DAWN">DAWN</option>
+                                    <option value="DUSK">DUSK</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Live Preview of Slugline */}
+                        <div className="mt-3 pt-2 border-t border-[#1A1A1A] flex items-center justify-between">
+                            <span className="text-[10px] font-mono text-[#555] truncate">
+                                {locationId ? fullHeader : activeScene.header || "NO HEADER"}
+                            </span>
+
+                            {showWarning && (
+                                <div title="Location asset not linked. Select an asset to fix." className="cursor-help flex items-center">
+                                    <AlertTriangle size={10} className="text-yellow-600 animate-pulse" />
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* 2. SUMMARY EDITOR (NEW) */}
+                    {/* 2. SUMMARY EDITOR */}
                     <div>
                         <div className="flex items-center justify-between text-[10px] font-bold text-[#888] uppercase mb-2">
                             <div className="flex items-center gap-2">
@@ -153,7 +265,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                         </div>
                         <textarea
                             value={summary}
-                            onChange={handleSummaryChange}
+                            onChange={(e) => { setSummary(e.target.value); setIsDirty(true); }}
                             placeholder="Write scene description..."
                             className="w-full h-32 bg-[#111] border border-[#222] text-xs text-[#CCC] p-3 rounded-sm focus:outline-none focus:border-[#444] resize-none leading-relaxed font-serif placeholder:text-[#333]"
                         />
@@ -188,14 +300,13 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                         </div>
                     </div>
 
-                    {/* 4. AI PROMPT (Moved to bottom) */}
+                    {/* 4. AI PROMPT */}
                     <div className="flex-1 flex flex-col border-t border-[#222] pt-6">
                         <div className="flex items-center justify-between text-[10px] font-bold text-[#888] uppercase mb-2">
                             <span className="flex items-center gap-2"><Terminal size={12} /> Context Aware Rewrite</span>
                             <button onClick={onOpenContextModal} className="text-red-500 hover:text-white flex items-center gap-1 transition-colors"><Plus size={10} /> Add Reference</button>
                         </div>
 
-                        {/* Context Pills */}
                         {selectedContext.length > 0 && (
                             <div className="p-2 bg-[#111] border border-[#222] rounded-sm mb-2 max-h-[80px] overflow-y-auto flex flex-wrap gap-2">
                                 {selectedContext.map(ref => (
@@ -223,7 +334,6 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                 </div>
             </div>
 
-            {/* FOOTER */}
             <div className="p-4 border-t border-[#222] bg-[#050505] shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-[9px] font-mono text-[#444]"><Activity size={10} /> AI_ENGINE_V2: READY</div>
