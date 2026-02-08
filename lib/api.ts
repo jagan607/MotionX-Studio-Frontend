@@ -159,7 +159,20 @@ export interface DashboardProject extends Project {
     previewImage?: string | null;
 }
 
+// --- CACHE SYSTEM ---
+const projectCache: Record<string, { data: DashboardProject[], timestamp: number }> = {};
+const CACHE_TTL = 1000 * 60 * 5; // 5 Minutes
+
+export const invalidateDashboardCache = (uid: string) => {
+    delete projectCache[uid];
+};
+
 export const fetchUserDashboardProjects = async (uid: string): Promise<DashboardProject[]> => {
+    // 1. Check Cache
+    if (projectCache[uid] && (Date.now() - projectCache[uid].timestamp < CACHE_TTL)) {
+        return projectCache[uid].data;
+    }
+
     try {
         const q = query(
             collection(db, "projects"),
@@ -239,6 +252,9 @@ export const fetchUserDashboardProjects = async (uid: string): Promise<Dashboard
             }
             return { ...p, previewVideo: vid, previewImage: img };
         }));
+
+        // 2. Set Cache
+        projectCache[uid] = { data: enriched, timestamp: Date.now() };
 
         return enriched;
     } catch (e) {

@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { api } from "@/lib/api";
+import { db, auth } from "@/lib/firebase";
+import { api, invalidateDashboardCache } from "@/lib/api";
 import {
     ArrowLeft, Film, Tv, Clapperboard, Layers,
     RectangleHorizontal, RectangleVertical, Monitor, Loader2, Aperture, ChevronRight
@@ -142,6 +142,7 @@ export default function NewProjectPage() {
             };
 
             const res = await api.post("/api/v1/project/create", payload);
+            if (auth.currentUser) invalidateDashboardCache(auth.currentUser.uid); // Clear cache
             router.push(`/project/${res.data.id}`);
 
         } catch (e: any) {

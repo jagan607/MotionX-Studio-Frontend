@@ -7,7 +7,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Plus, Film, Radio, Image as ImageIcon, Crosshair, Disc, Maximize, Signal, Play, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
-import { DashboardProject, fetchUserDashboardProjects, fetchGlobalFeed } from "@/lib/api";
+import { DashboardProject, fetchUserDashboardProjects, fetchGlobalFeed, invalidateDashboardCache } from "@/lib/api";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 
 const DEFAULT_SHOWREEL = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
@@ -285,6 +285,7 @@ export default function Dashboard() {
                         setIsDeleting(true);
                         try {
                             await deleteDoc(doc(db, "projects", projectToDelete.id));
+                            if (auth.currentUser) invalidateDashboardCache(auth.currentUser.uid); // Clear cache
                             setMyProjects(prev => prev.filter(p => p.id !== projectToDelete.id));
                             if (activeProjectIndex >= myProjects.length - 1) setActiveProjectIndex(Math.max(0, myProjects.length - 2));
                         } catch (e) {
