@@ -33,6 +33,9 @@ interface ScriptWorkstationProps {
     backLink: string;
     commitLabel: string;
     customHeader?: React.ReactNode;
+    // NEW: Allow injecting custom controls at the bottom of the list
+    customFooter?: React.ReactNode;
+
     episodeContext?: EpisodeContext;
     contextEpisodes?: any[];
     scenes: WorkstationScene[];
@@ -42,8 +45,8 @@ interface ScriptWorkstationProps {
     onReorder: (newOrder: WorkstationScene[]) => void;
     onRewrite: (sceneId: string, instruction: string, contextRefs?: ContextReference[]) => Promise<void>;
     onCommit: () => void;
-    onAddScene?: () => void;
-    onDeleteScene?: (id: string) => void; // New
+    onAddScene?: () => void; // Kept for backward compat
+    onDeleteScene?: (id: string) => void;
     onUpdateCast?: (sceneId: string, newCast: string[]) => void;
     onFetchRemoteScenes?: (episodeId: string) => Promise<any[]>;
 
@@ -53,6 +56,7 @@ interface ScriptWorkstationProps {
 
 export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
     customHeader,
+    customFooter, // <--- Destructure new prop
     episodeContext,
     contextEpisodes,
     scenes,
@@ -111,6 +115,8 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
                     onReorder={onReorder}
                     onAddScene={onAddScene}
                     onDeleteScene={onDeleteScene}
+                    // Pass the footer down to the timeline list
+                    customFooter={customFooter}
                 />
 
                 <DirectorConsole

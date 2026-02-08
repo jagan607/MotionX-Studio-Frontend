@@ -12,7 +12,7 @@ import {
     writeBatch,
     setDoc,
     getDocs,
-    deleteDoc, // Added deleteDoc
+    deleteDoc,
     serverTimestamp
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -25,6 +25,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { ScriptWorkstation, WorkstationScene, Character } from "@/app/components/script/ScriptWorkstation";
 import { StudioHeader } from "@/app/components/studio/StudioHeader";
 import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
+import { AddSceneControls } from "@/components/script/AddSceneControls"; // <--- IMPORT
 
 export default function SceneManagerPage() {
     const params = useParams();
@@ -42,6 +43,9 @@ export default function SceneManagerPage() {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+
+    // NEW: Track Auto-Extend State
+    const [isExtending, setIsExtending] = useState(false);
 
     // 1. FETCH CONTEXT (Project Info & Episode List)
     useEffect(() => {
@@ -129,6 +133,7 @@ export default function SceneManagerPage() {
                 });
             });
 
+            // Avoid overwriting local state if we are in the middle of a drag/drop (handled by isProcessing check)
             if (!isProcessing) {
                 setScenes(loadedScenes);
                 setIsLoading(false);
@@ -144,7 +149,8 @@ export default function SceneManagerPage() {
 
     // --- HANDLERS ---
 
-    const handleAddScene = async () => {
+    // 1. MANUAL ADD
+    const handleManualAdd = async () => {
         try {
             const maxSceneNum = scenes.length > 0
                 ? Math.max(...scenes.map(s => s.scene_number))
@@ -166,8 +172,62 @@ export default function SceneManagerPage() {
 
             toast.success("New Scene Created");
         } catch (e) {
-            console.error("Add Scene Error:", e);
+            console.error("Manual Add Error:", e);
             toast.error("Failed to create scene");
+        }
+    };
+
+    // 2. AUTO-EXTEND (NEW LOGIC)
+    const handleAutoExtend = async () => {
+        if (scenes.length === 0) {
+            toast.error("Need at least one scene to extend from!");
+            return;
+        }
+
+        setIsExtending(true);
+        try {
+            const lastScene = scenes[scenes.length - 1];
+
+            // Prepare Payload
+            const payload = {
+                project_id: projectId,
+                episode_id: episodeId,
+                previous_scene: {
+                    location: lastScene.header,
+                    time_of_day: lastScene.time,
+                    visual_action: lastScene.summary,
+                    characters: lastScene.cast_ids
+                }
+            };
+
+            // Call API
+            const res = await api.post("/api/v1/script/extend-scene", payload);
+            const generatedScene = res.data.scene;
+
+            // Save to Firestore
+            const maxSceneNum = Math.max(...scenes.map(s => s.scene_number));
+            const newSceneNum = maxSceneNum + 1;
+            const newSceneId = `scene_${uuidv4().slice(0, 8)}`;
+            const sceneRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", newSceneId);
+
+            await setDoc(sceneRef, {
+                id: newSceneId,
+                scene_number: newSceneNum,
+                slugline: generatedScene.slugline || "EXT. NEW SCENE - DAY",
+                synopsis: generatedScene.visual_action || generatedScene.synopsis || "",
+                time: generatedScene.time_of_day || "DAY",
+                cast_ids: generatedScene.characters || [],
+                status: "draft",
+                created_at: serverTimestamp()
+            });
+
+            toast.success("Scene Auto-Extended!");
+
+        } catch (e) {
+            console.error("Auto Extend Error:", e);
+            toast.error("Failed to extend narrative");
+        } finally {
+            setIsExtending(false);
         }
     };
 
@@ -343,9 +403,20 @@ export default function SceneManagerPage() {
                 onRewrite={handleRewrite}
                 onCommit={handleExit}
                 onFetchRemoteScenes={fetchRemoteScenes}
-                onAddScene={handleAddScene}
                 onUpdateCast={handleUpdateCast}
-                onDeleteScene={handleDeleteScene} // Pass delete handler
+                onDeleteScene={handleDeleteScene}
+
+                // IMPORTANT: We REMOVED `onAddScene` to hide the default button.
+                // Instead, we pass our new component as the `customFooter` (Assuming ScriptWorkstation supports this prop).
+                // If ScriptWorkstation does NOT support customFooter, you must modify it to render `children` at the bottom.
+                customFooter={
+                    <AddSceneControls
+                        onManualAdd={handleManualAdd}
+                        onAutoExtend={handleAutoExtend}
+                        isExtending={isExtending}
+                        disabled={scenes.length === 0} // Auto-extend needs context
+                    />
+                }
 
                 isProcessing={isProcessing}
                 isCommitting={false}
