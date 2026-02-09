@@ -8,7 +8,8 @@ import { db, auth } from "@/lib/firebase";
 import { api, invalidateDashboardCache } from "@/lib/api";
 import {
     ArrowLeft, Film, Tv, Clapperboard, Layers,
-    RectangleHorizontal, RectangleVertical, Monitor, Loader2, Aperture, ChevronRight
+    RectangleHorizontal, RectangleVertical, Monitor, Loader2, Aperture, ChevronRight,
+    Megaphone // [NEW] Icon for Ad
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -49,13 +50,24 @@ export default function NewProjectPage() {
     const [formData, setFormData] = useState({
         title: "",
         genre: "",
-        type: "movie" as "movie" | "micro_drama",
-        aspect_ratio: "16:9" as "16:9" | "21:9" | "9:16",
+        // [CHANGED] Added 'ad' to type
+        type: "movie" as "movie" | "micro_drama" | "ad",
+        aspect_ratio: "16:9" as "16:9" | "21:9" | "9:16" | "4:5",
         style: "realistic" as "realistic" | "anime",
     });
 
     // 3. Mood Selection State
     const [moodSelection, setMoodSelection] = useState<Record<string, string>>({});
+
+    // --- [NEW] AUTO-ASPECT RATIO LOGIC ---
+    useEffect(() => {
+        if (formData.type === 'ad') {
+            setFormData(prev => ({ ...prev, aspect_ratio: '9:16' }));
+        } else if (formData.type === 'movie') {
+            setFormData(prev => ({ ...prev, aspect_ratio: '16:9' }));
+        }
+        // Micro-drama usually keeps 16:9 or 9:16 depending on platform, leaving as is or defaulting to 9:16 if you prefer vertical series.
+    }, [formData.type]);
 
     // --- FETCH MANIFEST (Dynamic based on Style) ---
     useEffect(() => {
@@ -87,9 +99,7 @@ export default function NewProjectPage() {
                     });
                     setMoodSelection(initialSelection);
                 } else if (isMounted) {
-                    // Fallback or empty state if doc doesn't exist
                     setManifest(null);
-                    // toast.error(`Configuration missing for ${formData.style}`);
                 }
             } catch (e) {
                 console.error("Config Error:", e);
@@ -208,7 +218,8 @@ export default function NewProjectPage() {
                             <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
                                 <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">01</span> FORMAT SELECTION
                             </div>
-                            <div className="flex gap-3">
+                            {/* [CHANGED] Grid of 3 instead of Flex of 2 */}
+                            <div className="grid grid-cols-3 gap-3">
                                 <FormatSelector
                                     active={formData.type === 'movie'}
                                     onClick={() => setFormData({ ...formData, type: 'movie' })}
@@ -223,6 +234,14 @@ export default function NewProjectPage() {
                                     label="Micro Series"
                                     subLabel="Episodic"
                                 />
+                                {/* [NEW] Ad Option */}
+                                <FormatSelector
+                                    active={formData.type === 'ad'}
+                                    onClick={() => setFormData({ ...formData, type: 'ad' })}
+                                    icon={Megaphone}
+                                    label="Commercial"
+                                    subLabel="Short Form"
+                                />
                             </div>
                         </div>
 
@@ -231,7 +250,7 @@ export default function NewProjectPage() {
                             <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
                                 <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">02</span> ASPECT RATIO
                             </div>
-                            <div className="flex gap-2">
+                            <div className="grid grid-cols-3 gap-2">
                                 {[
                                     { id: '16:9', label: '16:9', sub: 'Cinema', icon: RectangleHorizontal },
                                     { id: '21:9', label: '21:9', sub: 'Wide', icon: Monitor },
@@ -252,7 +271,7 @@ export default function NewProjectPage() {
                             </div>
                         </div>
 
-                        {/* 03. METADATA (VISUAL IMPROVEMENTS) */}
+                        {/* 03. METADATA */}
                         <div className="space-y-6 pt-2">
                             <div className="relative group bg-[#111] p-4 border border-[#222] rounded-sm focus-within:border-l-2 focus-within:border-l-red-600 transition-all">
                                 <label className="text-[9px] font-mono text-[#555] uppercase tracking-widest block mb-2 group-focus-within:text-red-500">
@@ -276,7 +295,7 @@ export default function NewProjectPage() {
                                     value={formData.genre}
                                     onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
                                     className="w-full bg-transparent text-sm font-medium text-[#CCC] placeholder-[#333] focus:outline-none resize-none h-20 leading-relaxed"
-                                    placeholder="Describe the story setting, genre, and tone..."
+                                    placeholder={formData.type === 'ad' ? "E.g. High energy sports drink commercial, neon lights..." : "Describe the story setting, genre, and tone..."}
                                 />
                             </div>
                         </div>
@@ -310,8 +329,7 @@ export default function NewProjectPage() {
 
                 {/* --- RIGHT: VISUAL MATRIX (Dynamic) --- */}
                 <div className="w-full lg:w-7/12 bg-[#050505] flex flex-col relative">
-
-                    {/* Header */}
+                    {/* ... (Right side code remains largely same, just context aware) ... */}
                     <div className="h-16 border-b border-[#222] flex items-center justify-between px-8 bg-[#050505]/95 backdrop-blur-sm z-20 sticky top-0">
                         <div className="flex items-center gap-3">
                             <Aperture className="text-red-600 animate-spin-slow" size={16} />
@@ -324,7 +342,6 @@ export default function NewProjectPage() {
                         </div>
                     </div>
 
-                    {/* Content */}
                     <div className="flex-1 overflow-y-auto p-8 space-y-10 dark-scrollbar">
                         {loadingManifest ? (
                             <div className="h-full flex flex-col items-center justify-center opacity-50">
@@ -338,8 +355,6 @@ export default function NewProjectPage() {
                                         <span className="text-sm font-bold uppercase text-white tracking-widest">{axis.label}</span>
                                         <span className="text-[9px] font-mono text-[#444] mb-0.5">// {axis.description}</span>
                                     </div>
-
-                                    {/* SMALLER GRID (3 cols on MD, 4 on XL) */}
                                     <div className="grid grid-cols-3 xl:grid-cols-4 gap-3">
                                         {axis.options.map((option) => {
                                             const isSelected = moodSelection[axis.code_prefix] === option.id;
@@ -354,17 +369,12 @@ export default function NewProjectPage() {
                                                             : 'border-transparent opacity-40 hover:opacity-100 hover:border-[#444]'}
                                                     `}
                                                 >
-                                                    {/* Full Color Image Always (Removed grayscale) */}
                                                     <img
                                                         src={option.image_url}
                                                         alt={option.label}
                                                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                                     />
-
-                                                    {/* Gradient Overlay */}
                                                     <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent transition-opacity ${isSelected ? 'opacity-80' : 'opacity-60 group-hover:opacity-80'}`} />
-
-                                                    {/* Label */}
                                                     <div className="absolute bottom-0 left-0 w-full p-2 flex justify-between items-end">
                                                         <div className="text-left w-full">
                                                             <div className={`text-[7px] font-mono mb-0.5 ${isSelected ? 'text-red-500' : 'text-[#888]'}`}>{option.id}</div>
@@ -381,7 +391,6 @@ export default function NewProjectPage() {
                         )}
                     </div>
 
-                    {/* Bottom Action Bar */}
                     <div className="p-6 border-t border-[#222] bg-[#050505] z-30 flex justify-end">
                         <MotionButton
                             onClick={handleSubmit}
@@ -392,7 +401,6 @@ export default function NewProjectPage() {
                         </MotionButton>
                     </div>
                 </div>
-
             </div>
         </StudioLayout>
     );

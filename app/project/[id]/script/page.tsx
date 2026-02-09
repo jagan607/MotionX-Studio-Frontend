@@ -57,12 +57,17 @@ export default function ScriptIngestionPage() {
                 // Filter out ghost episodes for cleaner context selection
                 const contextReadyEpisodes = eps.filter((e: any) => !(e.title === "Main Script" && e.synopsis === "Initial setup"));
 
-                if (proj.type === 'movie') {
+                // [CHANGED] Treat 'ad' exactly like 'movie' (Single Unit)
+                if (proj.type === 'movie' || proj.type === 'ad') {
                     setEpisodes(contextReadyEpisodes);
+                    // Use default_episode_id if available, otherwise fallback to "main" or first found
                     const targetId = proj.default_episode_id || "main";
                     const found = eps.find((e: any) => e.id === targetId);
+
+                    // Prioritize finding the default ID, otherwise take the first available
                     setSelectedEpisodeId(found ? found.id : (eps[0]?.id || targetId));
                 } else {
+                    // SERIES LOGIC
                     // Sort episodes numerically
                     eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
 
@@ -178,9 +183,12 @@ export default function ScriptIngestionPage() {
 
     // --- DATA PREP FOR INPUT DECK ---
     const activeEpisode = episodes.find(e => e.id === selectedEpisodeId);
-    const currentTitle = project?.type === 'movie' ? (project.title) : (activeEpisode?.title || "");
+
+    // [CHANGED] Handle title display for Ads/Movies vs Series
+    const isSingleUnit = project?.type === 'movie' || project?.type === 'ad';
+    const currentTitle = isSingleUnit ? (project?.title || "") : (activeEpisode?.title || "");
+
     const currentScript = activeEpisode?.script_preview || "";
-    // NEW: Extract runtime from active episode if available
     const currentRuntime = activeEpisode?.runtime || "";
 
     let previousEpisodeData = null;
@@ -302,8 +310,8 @@ export default function ScriptIngestionPage() {
                             </span>
                         </div>
 
-                        {/* EPISODE SELECTOR */}
-                        {project.type !== 'movie' && (
+                        {/* [CHANGED] EPISODE SELECTOR: Hide for Ads and Movies */}
+                        {!isSingleUnit && (
                             <div className="animate-in fade-in slide-in-from-left-4 duration-500">
                                 <div className="text-[10px] font-bold text-neutral-500 uppercase mb-2 flex items-center gap-2 tracking-widest">
                                     <Layers size={14} /> Active Reel
@@ -414,7 +422,8 @@ export default function ScriptIngestionPage() {
                                 <div className="flex justify-between items-end mb-8 pb-4 border-b border-white/5">
                                     <div>
                                         <h2 className="text-xl font-bold text-white uppercase tracking-tight">Data Entry</h2>
-                                        {project?.type !== 'movie' && (
+                                        {/* [CHANGED] Hide target label for single unit */}
+                                        {!isSingleUnit && (
                                             <div className="text-[10px] font-mono text-neutral-500 mt-1 flex items-center gap-1">
                                                 TARGET: <Film size={10} />
                                                 <span className={selectedEpisodeId === null ? "text-red-500 font-bold" : "text-white"}>
@@ -433,7 +442,6 @@ export default function ScriptIngestionPage() {
                                     episodeId={selectedEpisodeId}
                                     initialTitle={currentTitle}
                                     initialScript={currentScript}
-                                    // NEW: Pass runtime prop
                                     initialRuntime={currentRuntime}
                                     isModal={false}
                                     className="w-full"

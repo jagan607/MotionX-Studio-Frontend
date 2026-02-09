@@ -13,7 +13,7 @@ import { ContextReference } from "@/app/components/script/ContextSelectorModal";
 interface InputDeckProps {
     projectId: string;
     projectTitle: string;
-    projectType: "movie" | "micro_drama" | "series";
+    projectType: "movie" | "micro_drama" | "ad";
     episodeId?: string | null;
 
     initialTitle?: string;
