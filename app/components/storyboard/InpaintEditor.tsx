@@ -15,7 +15,7 @@ interface InpaintEditorProps {
 
 export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const imgRef = useRef<HTMLImageElement>(null); // Ref to read image dimensions
+    const imgRef = useRef<HTMLImageElement>(null);
 
     // Dynamic Dimensions State
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -28,6 +28,7 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
 
     // Reference Images
     const [refImages, setRefImages] = useState<File[]>([]);
+    const [hoveredRefIndex, setHoveredRefIndex] = useState<number | null>(null); // NEW: Track hover state
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // --- UNDO / REDO STATE ---
@@ -45,21 +46,19 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) return;
 
-        // Set internal resolution to match Image Natural Size
         canvas.width = dimensions.width;
         canvas.height = dimensions.height;
 
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        // Clear and Save Initial State
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const initialData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         setHistory([initialData]);
         setHistoryStep(0);
     }, [dimensions]);
 
-    // 2. Handle Image Load to get Natural Dimensions
+    // 2. Handle Image Load
     const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
         const { naturalWidth, naturalHeight } = e.currentTarget;
         setDimensions({ width: naturalWidth, height: naturalHeight });
@@ -73,8 +72,6 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
         if (!ctx || !canvas) return;
 
         const rect = canvas.getBoundingClientRect();
-
-        // Critical: Map Screen Coordinates to Image Natural Coordinates
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
 
@@ -84,7 +81,6 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
         ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
         ctx.beginPath();
-        // Scale brush size too so it looks consistent regardless of resolution
         ctx.arc(x, y, (brushSize * scaleX) / 2, 0, Math.PI * 2);
         ctx.fill();
     };
@@ -147,6 +143,7 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
 
     const removeRefImage = (index: number) => {
         setRefImages(prev => prev.filter((_, i) => i !== index));
+        setHoveredRefIndex(null); // Clear hover state on remove
     };
 
     const handleGenerateFix = async () => {
@@ -156,7 +153,6 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
         setIsProcessing(true);
 
         const maskCanvas = document.createElement('canvas');
-        // Use Dynamic Dimensions
         maskCanvas.width = dimensions.width;
         maskCanvas.height = dimensions.height;
         const mCtx = maskCanvas.getContext('2d');
@@ -164,9 +160,7 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
         if (mCtx && canvasRef.current) {
             mCtx.fillStyle = "black";
             mCtx.fillRect(0, 0, dimensions.width, dimensions.height);
-
             mCtx.drawImage(canvasRef.current, 0, 0);
-
             mCtx.globalCompositeOperation = 'source-in';
             mCtx.fillStyle = "white";
             mCtx.fillRect(0, 0, dimensions.width, dimensions.height);
@@ -191,8 +185,6 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
         justifyContent: 'center'
     };
 
-    // Dynamic Container Style
-    // We let the image dictate the size, but constrain it to the panel
     const imageWrapperStyle: React.CSSProperties = {
         position: 'relative',
         width: 'auto',
@@ -229,60 +221,33 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
 
             {/* 2. MAIN WORKSPACE */}
             <div style={{ flex: 1, display: 'flex', padding: '20px', gap: '20px', overflow: 'hidden' }}>
-
-                {/* LEFT: INPUT */}
                 <div style={panelStyle}>
                     <div style={badgeStyle}>SOURCE PLATE</div>
-
-                    {/* The wrapper shrinks to fit the image exactly */}
                     <div style={imageWrapperStyle}>
                         <img
                             ref={imgRef}
                             src={src}
-                            onLoad={handleImageLoad} // <--- MAGIC HAPPENS HERE
-                            style={{
-                                maxWidth: '100%',
-                                maxHeight: '100%',
-                                display: 'block',
-                                objectFit: 'contain'
-                            }}
+                            onLoad={handleImageLoad}
+                            style={{ maxWidth: '100%', maxHeight: '100%', display: 'block', objectFit: 'contain' }}
                             alt="source"
                         />
-                        {/* Canvas sits absolutely on top, matching image dimensions */}
                         <canvas
                             ref={canvasRef}
                             onMouseDown={startDrawing}
                             onMouseUp={stopDrawing}
                             onMouseLeave={stopDrawing}
                             onMouseMove={draw}
-                            style={{
-                                position: 'absolute',
-                                inset: 0,
-                                width: '100%',
-                                height: '100%',
-                                cursor: 'crosshair',
-                                zIndex: 10
-                            }}
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', cursor: 'crosshair', zIndex: 10 }}
                         />
                     </div>
-
-                    {/* CONTROLS */}
                     <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '10px', zIndex: 30, backgroundColor: 'rgba(0,0,0,0.8)', padding: '5px 10px', borderRadius: '20px', border: '1px solid #333' }}>
-                        <button onClick={handleUndo} disabled={historyStep <= 0} style={{ background: 'none', border: 'none', color: historyStep > 0 ? 'white' : '#444', cursor: 'pointer' }}>
-                            <Undo2 size={16} />
-                        </button>
+                        <button onClick={handleUndo} disabled={historyStep <= 0} style={{ background: 'none', border: 'none', color: historyStep > 0 ? 'white' : '#444', cursor: 'pointer' }}><Undo2 size={16} /></button>
                         <div style={{ width: '1px', backgroundColor: '#333' }} />
-                        <button onClick={handleRedo} disabled={historyStep >= history.length - 1} style={{ background: 'none', border: 'none', color: historyStep < history.length - 1 ? 'white' : '#444', cursor: 'pointer' }}>
-                            <Redo2 size={16} />
-                        </button>
+                        <button onClick={handleRedo} disabled={historyStep >= history.length - 1} style={{ background: 'none', border: 'none', color: historyStep < history.length - 1 ? 'white' : '#444', cursor: 'pointer' }}><Redo2 size={16} /></button>
                     </div>
                 </div>
-
-                {/* RIGHT: OUTPUT */}
                 <div style={{ ...panelStyle, borderColor: outputImage ? '#FF0000' : '#222' }}>
-                    <div style={{ ...badgeStyle, color: outputImage ? '#FF0000' : '#666' }}>
-                        {isProcessing ? 'RENDERING...' : outputImage ? 'FINAL RENDER' : 'AWAITING INPUT'}
-                    </div>
+                    <div style={{ ...badgeStyle, color: outputImage ? '#FF0000' : '#666' }}>{isProcessing ? 'RENDERING...' : outputImage ? 'FINAL RENDER' : 'AWAITING INPUT'}</div>
                     {isProcessing ? (
                         <div style={{ textAlign: 'center' }}>
                             <Loader2 className="animate-spin" size={40} color="#FF0000" />
@@ -305,19 +270,79 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                     <input type="range" min="5" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} style={{ width: '100%', accentColor: '#FF0000' }} />
                 </div>
 
+                {/* UPDATED REFERENCE IMAGES SECTION */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '15px', borderRight: '1px solid #333' }}>
                     <input type="file" multiple accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelect} />
                     <button onClick={() => fileInputRef.current?.click()} disabled={refImages.length >= 3} style={{ width: '40px', height: '40px', border: '1px dashed #444', backgroundColor: '#111', color: '#666', cursor: refImages.length >= 3 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}>
                         <ImagePlus size={16} />
                     </button>
-                    {refImages.map((file, i) => (
-                        <div key={i} style={{ position: 'relative', width: '40px', height: '40px', border: '1px solid #333', borderRadius: '4px', overflow: 'hidden' }}>
-                            <img src={URL.createObjectURL(file)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={`Ref ${i}`} />
-                            <button onClick={() => removeRefImage(i)} style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0 }}>
-                                <X size={14} />
-                            </button>
-                        </div>
-                    ))}
+
+                    {refImages.map((file, i) => {
+                        const isHovered = hoveredRefIndex === i;
+                        return (
+                            <div
+                                key={i}
+                                onMouseEnter={() => setHoveredRefIndex(i)}
+                                onMouseLeave={() => setHoveredRefIndex(null)}
+                                style={{
+                                    position: 'relative',
+                                    width: '40px',
+                                    height: '40px',
+                                    // Smooth transition for the pop-out effect
+                                    transition: 'all 0.2s ease-in-out',
+                                    // When hovered: Scale up significantly, push up (Y), and bring to front (Z)
+                                    transform: isHovered ? 'scale(3) translateY(-15px)' : 'scale(1)',
+                                    zIndex: isHovered ? 100 : 1,
+                                    borderRadius: '4px',
+                                    // Add shadow and border on hover to make it pop distinctively
+                                    boxShadow: isHovered ? '0px 10px 20px rgba(0,0,0,0.8)' : 'none',
+                                    border: isHovered ? '1px solid #555' : '1px solid #333',
+                                    backgroundColor: '#000', // Ensure no background bleed
+                                    overflow: 'visible' // Allow the close button to sit on the edge
+                                }}
+                            >
+                                <img
+                                    src={URL.createObjectURL(file)}
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        borderRadius: '4px'
+                                    }}
+                                    alt={`Ref ${i}`}
+                                />
+
+                                {/* Remove Button - Only visible on hover */}
+                                {isHovered && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // Prevent jitter
+                                            removeRefImage(i);
+                                        }}
+                                        style={{
+                                            position: 'absolute',
+                                            top: -3, // Reduced offset
+                                            right: -3, // Reduced offset
+                                            width: '10px', // Reduced from 16px to 10px
+                                            height: '10px', // Reduced from 16px to 10px
+                                            backgroundColor: '#EF4444', // Red
+                                            borderRadius: '50%',
+                                            border: '0.5px solid #fff', // Thinner border
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            zIndex: 101, // Above the image
+                                        }}
+                                        title="Remove Image"
+                                    >
+                                        <X size={6} strokeWidth={3} />
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })}
                     <div style={{ fontSize: '9px', color: '#666', width: '30px', textAlign: 'center' }}>{refImages.length}/3</div>
                 </div>
 
