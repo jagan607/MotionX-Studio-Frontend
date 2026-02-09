@@ -129,10 +129,16 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 throw new Error(msg);
             }
         },
-        handleInpaintShot: async (shotId: string, prompt: string, maskBase64: string, refImages: File[]) => {
+        handleInpaintShot: async (
+            shotId: string,
+            prompt: string,
+            maskBase64: string,
+            originalImageUrl: string,
+            refImages: File[]
+        ) => {
             try {
                 // @ts-ignore
-                return await rawShotMgr.handleInpaintShot(shotId, prompt, maskBase64, refImages);
+                return await rawShotMgr.handleInpaintShot(shotId, prompt, maskBase64, originalImageUrl, refImages);
             } catch (e: any) {
                 const msg = safeError(e);
                 toast.error(msg);
@@ -204,7 +210,14 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 setInpaintData={setInpaintData}
                 onSaveInpaint={async (prompt: string, maskBase64: string, refImages: File[]) => {
                     if (!inpaintData) return null;
-                    return await safeShotMgr.handleInpaintShot(inpaintData.shotId, prompt, maskBase64, refImages);
+
+                    return await safeShotMgr.handleInpaintShot(
+                        inpaintData.shotId,
+                        prompt,
+                        maskBase64,
+                        inpaintData.src,
+                        refImages
+                    );
                 }}
                 onApplyInpaint={handleApplyInpaint}
                 onZoom={() => { }}

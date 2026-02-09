@@ -125,41 +125,33 @@ export const useShotImageGen = (
         shotId: string,
         prompt: string,
         maskBase64: string,
+        originalImageUrl: string,
         refImages: File[]
     ): Promise<string | null> => {
         if (!sceneId) return null;
 
-        // Optimistic update not needed for modal driven flow usually, but good for consistency
         const shotRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId, "shots", shotId);
 
         try {
-            await updateDoc(shotRef, { status: "inpainting" }); // Optional status
+            await updateDoc(shotRef, { status: "inpainting" });
 
             const formData = new FormData();
             formData.append("project_id", projectId);
-            formData.append("episode_id", episodeId);
-            formData.append("scene_id", sceneId);
-            formData.append("shot_id", shotId);
+            formData.append("shot_id", shotId); // Backend validation uses this
             formData.append("prompt", prompt);
 
-            // Convert Base64 Mask to Blob
-            const response = await fetch(maskBase64);
-            const blob = await response.blob();
-            formData.append("mask_image", blob, "mask.png");
+            formData.append("original_image_url", originalImageUrl);
 
-            // Append Ref Images
-            refImages.forEach((file, index) => {
-                formData.append(`ref_image_${index}`, file);
+            formData.append("mask_image_base64", maskBase64);
+
+            refImages.forEach((file) => {
+                formData.append("reference_images", file);
             });
 
-            // Call API
-            // Note: Using a specific endpoint for inpainting. 
-            // If backend is unified, this might need to change to /generate_shot with type="inpaint"
-            const res = await api.post("/api/v1/images/inpaint_shot", formData, {
+            const res = await api.post("/api/v1/shot/inpaint_shot", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
 
-            // Return the new image URL from response
             if (res.data.image_url) {
                 return res.data.image_url;
             }

@@ -15,6 +15,11 @@ interface InpaintEditorProps {
 
 export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const imgRef = useRef<HTMLImageElement>(null); // Ref to read image dimensions
+
+    // Dynamic Dimensions State
+    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
     const [isDrawing, setIsDrawing] = useState(false);
     const [brushSize, setBrushSize] = useState(40);
     const [prompt, setPrompt] = useState("");
@@ -31,26 +36,34 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
 
     const { credits } = useCredits();
 
-    // Setup Canvas & Initial History
+    // 1. Initialize Canvas when Dimensions Change
     useEffect(() => {
+        if (dimensions.width === 0 || dimensions.height === 0) return;
+
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) return;
 
-        canvas.width = 1280;
-        canvas.height = 720;
+        // Set internal resolution to match Image Natural Size
+        canvas.width = dimensions.width;
+        canvas.height = dimensions.height;
+
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        // Clear canvas initially (transparent)
+        // Clear and Save Initial State
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Save initial blank state
         const initialData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         setHistory([initialData]);
         setHistoryStep(0);
-    }, []);
+    }, [dimensions]);
+
+    // 2. Handle Image Load to get Natural Dimensions
+    const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const { naturalWidth, naturalHeight } = e.currentTarget;
+        setDimensions({ width: naturalWidth, height: naturalHeight });
+    };
 
     // Drawing Logic
     const draw = (e: React.MouseEvent) => {
@@ -60,6 +73,8 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
         if (!ctx || !canvas) return;
 
         const rect = canvas.getBoundingClientRect();
+
+        // Critical: Map Screen Coordinates to Image Natural Coordinates
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
 
@@ -67,8 +82,9 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
         const y = (e.clientY - rect.top) * scaleY;
 
         ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = "rgba(255, 0, 0, 0.5)"; // Semi-transparent red
+        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
         ctx.beginPath();
+        // Scale brush size too so it looks consistent regardless of resolution
         ctx.arc(x, y, (brushSize * scaleX) / 2, 0, Math.PI * 2);
         ctx.fill();
     };
@@ -80,7 +96,7 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
     const stopDrawing = () => {
         if (!isDrawing) return;
         setIsDrawing(false);
-        saveHistory(); // Save state on mouse up
+        saveHistory();
     };
 
     // --- HISTORY MANAGEMENT ---
@@ -90,11 +106,8 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
         if (!canvas || !ctx) return;
 
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-        // If we undo and then draw, truncate the future history
         const newHistory = history.slice(0, historyStep + 1);
         newHistory.push(data);
-
         setHistory(newHistory);
         setHistoryStep(newHistory.length - 1);
     };
@@ -138,25 +151,25 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
 
     const handleGenerateFix = async () => {
         if (!prompt) return toastError("MISSING_PROMPT: Please describe the change.");
+        if (dimensions.width === 0) return toastError("Image not loaded yet.");
+
         setIsProcessing(true);
 
         const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = 1280; maskCanvas.height = 720;
+        // Use Dynamic Dimensions
+        maskCanvas.width = dimensions.width;
+        maskCanvas.height = dimensions.height;
         const mCtx = maskCanvas.getContext('2d');
 
         if (mCtx && canvasRef.current) {
-            // Create binary mask for backend (White where red is, Black elsewhere)
             mCtx.fillStyle = "black";
-            mCtx.fillRect(0, 0, 1280, 720);
+            mCtx.fillRect(0, 0, dimensions.width, dimensions.height);
 
-            // Draw the red strokes from main canvas onto this buffer
             mCtx.drawImage(canvasRef.current, 0, 0);
 
-            // Convert non-black pixels to white (the mask)
-            // Note: Since we draw with alpha, we simply enforce the shape
             mCtx.globalCompositeOperation = 'source-in';
             mCtx.fillStyle = "white";
-            mCtx.fillRect(0, 0, 1280, 720);
+            mCtx.fillRect(0, 0, dimensions.width, dimensions.height);
         }
 
         const maskBase64 = maskCanvas.toDataURL('image/png');
@@ -168,9 +181,29 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
 
     // Styles
     const panelStyle: React.CSSProperties = {
-        flex: 1, position: 'relative', backgroundColor: '#000', border: '1px solid #222',
-        overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center'
+        flex: 1,
+        position: 'relative',
+        backgroundColor: '#000',
+        border: '1px solid #222',
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
     };
+
+    // Dynamic Container Style
+    // We let the image dictate the size, but constrain it to the panel
+    const imageWrapperStyle: React.CSSProperties = {
+        position: 'relative',
+        width: 'auto',
+        height: 'auto',
+        maxWidth: '100%',
+        maxHeight: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center'
+    };
+
     const badgeStyle: React.CSSProperties = {
         position: 'absolute', top: 10, left: 10, fontSize: '10px', fontWeight: 'bold',
         backgroundColor: '#000', color: '#FFF', padding: '2px 6px', border: '1px solid #333', zIndex: 20
@@ -196,36 +229,50 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
 
             {/* 2. MAIN WORKSPACE */}
             <div style={{ flex: 1, display: 'flex', padding: '20px', gap: '20px', overflow: 'hidden' }}>
+
                 {/* LEFT: INPUT */}
                 <div style={panelStyle}>
                     <div style={badgeStyle}>SOURCE PLATE</div>
-                    <img src={src} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="source" />
-                    <canvas
-                        ref={canvasRef}
-                        onMouseDown={startDrawing}
-                        onMouseUp={stopDrawing}
-                        onMouseLeave={stopDrawing} // Safety check
-                        onMouseMove={draw}
-                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', cursor: 'crosshair', zIndex: 10 }}
-                    />
 
-                    {/* UNDO / REDO OVERLAY CONTROLS */}
+                    {/* The wrapper shrinks to fit the image exactly */}
+                    <div style={imageWrapperStyle}>
+                        <img
+                            ref={imgRef}
+                            src={src}
+                            onLoad={handleImageLoad} // <--- MAGIC HAPPENS HERE
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                                display: 'block',
+                                objectFit: 'contain'
+                            }}
+                            alt="source"
+                        />
+                        {/* Canvas sits absolutely on top, matching image dimensions */}
+                        <canvas
+                            ref={canvasRef}
+                            onMouseDown={startDrawing}
+                            onMouseUp={stopDrawing}
+                            onMouseLeave={stopDrawing}
+                            onMouseMove={draw}
+                            style={{
+                                position: 'absolute',
+                                inset: 0,
+                                width: '100%',
+                                height: '100%',
+                                cursor: 'crosshair',
+                                zIndex: 10
+                            }}
+                        />
+                    </div>
+
+                    {/* CONTROLS */}
                     <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '10px', zIndex: 30, backgroundColor: 'rgba(0,0,0,0.8)', padding: '5px 10px', borderRadius: '20px', border: '1px solid #333' }}>
-                        <button
-                            onClick={handleUndo}
-                            disabled={historyStep <= 0}
-                            style={{ background: 'none', border: 'none', color: historyStep > 0 ? 'white' : '#444', cursor: historyStep > 0 ? 'pointer' : 'default' }}
-                            title="Undo"
-                        >
+                        <button onClick={handleUndo} disabled={historyStep <= 0} style={{ background: 'none', border: 'none', color: historyStep > 0 ? 'white' : '#444', cursor: 'pointer' }}>
                             <Undo2 size={16} />
                         </button>
                         <div style={{ width: '1px', backgroundColor: '#333' }} />
-                        <button
-                            onClick={handleRedo}
-                            disabled={historyStep >= history.length - 1}
-                            style={{ background: 'none', border: 'none', color: historyStep < history.length - 1 ? 'white' : '#444', cursor: historyStep < history.length - 1 ? 'pointer' : 'default' }}
-                            title="Redo"
-                        >
+                        <button onClick={handleRedo} disabled={historyStep >= history.length - 1} style={{ background: 'none', border: 'none', color: historyStep < history.length - 1 ? 'white' : '#444', cursor: 'pointer' }}>
                             <Redo2 size={16} />
                         </button>
                     </div>
@@ -242,7 +289,7 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                             <div style={{ marginTop: '10px', fontSize: '10px', letterSpacing: '2px' }}>PROCESSING...</div>
                         </div>
                     ) : outputImage ? (
-                        <img src={outputImage} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="output" />
+                        <img src={outputImage} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="output" />
                     ) : (
                         <Activity size={40} color="#222" />
                     )}
@@ -251,8 +298,6 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
 
             {/* 3. CONTROL BAR */}
             <div style={{ height: '80px', borderTop: '1px solid #333', backgroundColor: '#0A0A0A', display: 'flex', alignItems: 'center', padding: '0 20px', gap: '20px' }}>
-
-                {/* Brush Control */}
                 <div style={{ width: '150px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '5px', color: '#888' }}>
                         <span>BRUSH SIZE</span><span>{brushSize}px</span>
@@ -260,16 +305,15 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                     <input type="range" min="5" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} style={{ width: '100%', accentColor: '#FF0000' }} />
                 </div>
 
-                {/* Reference Images */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingRight: '15px', borderRight: '1px solid #333' }}>
                     <input type="file" multiple accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileSelect} />
-                    <button onClick={() => fileInputRef.current?.click()} disabled={refImages.length >= 3} style={{ width: '40px', height: '40px', border: '1px dashed #444', backgroundColor: '#111', color: '#666', cursor: refImages.length >= 3 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }} title="Add Reference Images (Max 3)">
+                    <button onClick={() => fileInputRef.current?.click()} disabled={refImages.length >= 3} style={{ width: '40px', height: '40px', border: '1px dashed #444', backgroundColor: '#111', color: '#666', cursor: refImages.length >= 3 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}>
                         <ImagePlus size={16} />
                     </button>
                     {refImages.map((file, i) => (
                         <div key={i} style={{ position: 'relative', width: '40px', height: '40px', border: '1px solid #333', borderRadius: '4px', overflow: 'hidden' }}>
                             <img src={URL.createObjectURL(file)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={`Ref ${i}`} />
-                            <button onClick={() => removeRefImage(i)} style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.opacity = '1'} onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}>
+                            <button onClick={() => removeRefImage(i)} style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0 }}>
                                 <X size={14} />
                             </button>
                         </div>
@@ -277,18 +321,10 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                     <div style={{ fontSize: '9px', color: '#666', width: '30px', textAlign: 'center' }}>{refImages.length}/3</div>
                 </div>
 
-                {/* Prompt Input */}
                 <div style={{ flex: 1 }}>
-                    <input
-                        type="text"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="Describe change..."
-                        style={{ width: '100%', height: '40px', backgroundColor: '#000', border: '1px solid #333', color: '#FFF', padding: '0 15px', fontSize: '12px', fontFamily: 'monospace', outline: 'none' }}
-                    />
+                    <input type="text" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Describe change..." style={{ width: '100%', height: '40px', backgroundColor: '#000', border: '1px solid #333', color: '#FFF', padding: '0 15px', fontSize: '12px', fontFamily: 'monospace', outline: 'none' }} />
                 </div>
 
-                {/* Actions */}
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <button onClick={handleGenerateFix} disabled={isProcessing} style={{ height: '40px', padding: '0 25px', backgroundColor: '#FF0000', color: '#FFF', border: 'none', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', cursor: isProcessing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: isProcessing ? 0.5 : 1 }}>
                         <Sparkles size={14} /> {isProcessing ? 'WORKING...' : 'GENERATE'}
