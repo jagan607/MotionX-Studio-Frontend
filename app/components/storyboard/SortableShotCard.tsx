@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film, RefreshCw,
     ImagePlus, Mic2, Link2, Plus, CheckCircle2,
-    Wand2, Loader2, Palette, XCircle, ShoppingBag // Added ShoppingBag icon
+    Wand2, Loader2, Palette, XCircle, ShoppingBag // Added ShoppingBag icon, Upload
 } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 
@@ -47,6 +47,7 @@ interface SortableShotCardProps {
     onLipSync: () => void;
     nextShotImage?: string;
     isMorphedByPrev?: boolean;
+    onUploadImage: (file: File) => void;
     children: React.ReactNode;
 }
 
@@ -69,6 +70,7 @@ export const SortableShotCard = ({
     onLipSync,
     nextShotImage,
     isMorphedByPrev = false,
+    onUploadImage,
     children,
 }: SortableShotCardProps) => {
 
@@ -126,6 +128,7 @@ export const SortableShotCard = ({
     const [refPreviewUrl, setRefPreviewUrl] = useState<string | null>(null);
     const [isHoveringRef, setIsHoveringRef] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const mainImageInputRef = useRef<HTMLInputElement>(null);
     const [isCompressing, setIsCompressing] = useState(false);
 
     useEffect(() => {
@@ -146,6 +149,21 @@ export const SortableShotCard = ({
                 setRefFile(compressed);
             } finally {
                 setIsCompressing(false);
+            }
+        }
+    };
+
+    const handleMainImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) {
+            // Optional: Compress before upload if needed, but for now direct upload
+            // or use existing compression if preferred.
+            // Let's compress it gently to save bandwidth/storage, consistent with REF logic
+            try {
+                const compressed = await imageCompression(e.target.files[0], { maxSizeMB: 2, maxWidthOrHeight: 2048, useWebWorker: true });
+                onUploadImage(compressed);
+            } catch (err) {
+                console.error("Compression failed", err);
+                onUploadImage(e.target.files[0]);
             }
         }
     };
@@ -356,7 +374,7 @@ export const SortableShotCard = ({
                     <label style={labelStyle}>IMAGE PROMPT</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', position: 'relative' }}>
                         <input disabled={isMorphedByPrev} type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept="image/*" />
-
+                        <input disabled={isMorphedByPrev || isBusy} type="file" ref={mainImageInputRef} onChange={handleMainImageSelect} style={{ display: 'none' }} accept="image/*" />
                         {/* REF BUTTON CONTAINER */}
                         <div
                             onMouseEnter={() => setIsHoveringRef(true)}
@@ -483,6 +501,32 @@ export const SortableShotCard = ({
                     <button onClick={onFinalize} disabled={!hasImage || isBusy} style={{ padding: '10px', backgroundColor: isFinalized ? 'rgba(245, 11, 11, 0.1)' : '#1a1a1a', border: isFinalized ? '1px solid #FF0000' : '1px solid #333', color: isFinalized ? '#FFF' : (hasImage ? '#FFF' : '#444'), fontSize: '10px', fontWeight: 'bold', cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px' }}>
                         {isFinalized ? <CheckCircle2 size={14} /> : <Wand2 size={14} />}
                         {isFinalized ? "DONE" : "FINALIZE"}
+                    </button>
+                </div>
+
+                {/* MANUAL UPLOAD */}
+                <div style={{ marginBottom: '8px' }}>
+                    <button
+                        onClick={() => mainImageInputRef.current?.click()}
+                        disabled={isBusy}
+                        style={{
+                            width: '100%',
+                            padding: '8px',
+                            backgroundColor: '#111',
+                            border: '1px dashed #333',
+                            color: '#888',
+                            fontSize: '10px',
+                            fontWeight: 'bold',
+                            cursor: isBusy ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            borderRadius: '4px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <Upload size={12} /> UPLOAD IMAGE DIRECTLY
                     </button>
                 </div>
 

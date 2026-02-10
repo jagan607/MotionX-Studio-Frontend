@@ -543,6 +543,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                 onExpand={() => handleOpenViewer(index)}
                                                 nextShotImage={nextShotImage}
                                                 isMorphedByPrev={isMorphedByPrev}
+                                                onUploadImage={(file) => shotMgr.handleShotImageUpload(shot, file)}
                                             >
                                                 <div style={styles.shotImageContainer}>
                                                     <ShotImage

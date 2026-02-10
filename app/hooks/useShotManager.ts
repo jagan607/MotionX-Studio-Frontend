@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { collection, doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, doc, onSnapshot, setDoc } from "firebase/firestore";
+import { db, storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 // Sub-hooks (Relative imports)
 import { useShotCRUD } from "./shot-manager/useShotCRUD";
@@ -93,6 +95,35 @@ export const useShotManager = (
     // Batch depends on ImageGen logic
     const batch = useShotBatch(shotsRef, (shot, ar) => imageGen.handleRenderShot(shot, ar));
 
+    // --- MANUAL IMAGE UPLOAD (Integrated directly for now) ---
+    const handleShotImageUpload = async (shot: any, file: File) => {
+        if (!activeSceneId) return;
+        addLoadingShot(shot.id);
+
+        try {
+            // storage path: projects/{projectId}/episodes/{episodeId}/scenes/{sceneId}/shots/{shotId}_{timestamp}
+            const storagePath = `projects/${projectId}/episodes/${episodeId}/scenes/${activeSceneId}/shots/${shot.id}_${Date.now()}`;
+            const storageRef = ref(storage, storagePath);
+
+            await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(storageRef);
+
+            // Update Firestore with new image URL
+            const shotRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", activeSceneId, "shots", shot.id);
+            await setDoc(shotRef, {
+                image_url: downloadURL,
+                status: "finalized"
+            }, { merge: true });
+
+            toastSuccess("Image uploaded successfully");
+        } catch (error) {
+            console.error("Upload failed", error);
+            toastError("Failed to upload image");
+        } finally {
+            removeLoadingShot(shot.id);
+        }
+    };
+
     // --- PUBLIC API (Aggregated) ---
     return {
         // State
@@ -123,6 +154,7 @@ export const useShotManager = (
         handleRenderShot: (shot: any, scene: any, refFile?: File | null) => imageGen.handleRenderShot(shot, aspectRatio, refFile),
         handleFinalizeShot: imageGen.handleFinalizeShot,
         handleInpaintShot: imageGen.handleInpaintShot,
+        handleShotImageUpload, // <--- EXPOSED HERE
 
         // Video
         handleAnimateShot: (
