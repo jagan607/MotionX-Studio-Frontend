@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
-import { X, Loader2, Mic, Upload, Volume2, Wand2, Play, Pause, Search, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { X, Loader2, Mic, Upload, Volume2, Wand2, Play, Pause, Search, ChevronDown, Scissors, RotateCcw } from "lucide-react";
 import { toastError } from "@/lib/toast";
 import { API_BASE_URL } from "@/lib/config";
 import { auth } from "@/lib/firebase";
+
+// WaveSurfer Imports
+import WaveSurfer from 'wavesurfer.js';
+import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js';
 
 interface LipSyncModalProps {
     videoUrl: string;
@@ -69,6 +73,15 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
 
     const [page, setPage] = useState(0);
 
+    // --- AUDIO TRIMMING STATE ---
+    const waveformContainerRef = useRef<HTMLDivElement>(null);
+    const wavesurferRef = useRef<WaveSurfer | null>(null);
+    const regionsRef = useRef<any>(null); // Regions plugin instance
+    const [isPlayingRegion, setIsPlayingRegion] = useState(false);
+    const [trimRange, setTrimRange] = useState<{ start: number, end: number } | null>(null);
+    const [audioDuration, setAudioDuration] = useState(0);
+    const [isTrimming, setIsTrimming] = useState(false); // Toggle view to show trimmer
+
     const audioRef = useRef<HTMLAudioElement>(null);
     const voicePreviewRef = useRef<HTMLAudioElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,8 +130,6 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
                 });
 
                 // --- CURSOR FALLBACK LOGIC ---
-                // If API returns explicit cursor, use it. 
-                // If not, fallback to using the ID of the last item in the list.
                 const explicitCursor = data.last_sort_id;
                 const fallbackCursor = newVoices.length > 0 ? newVoices[newVoices.length - 1].voice_id : null;
                 const resolvedCursor = explicitCursor || fallbackCursor;
@@ -126,7 +137,6 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
                 console.log(`Setting Next Cursor: ${resolvedCursor}`);
                 setNextCursor(resolvedCursor);
 
-                // If we got fewer items than requested (30), we've likely hit the end.
                 const likelyHasMore = newVoices.length >= 30;
                 setHasMoreVoices(!!data.has_more && likelyHasMore);
 
@@ -146,6 +156,92 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
     };
 
     useEffect(() => { fetchVoices(null); }, []);
+
+    // --- WAVESURFER INIT ---
+    useEffect(() => {
+        if (!uploadedFile || mode !== 'upload' || !waveformContainerRef.current) return;
+
+        // Cleanup previous instance
+        if (wavesurferRef.current) {
+            wavesurferRef.current.destroy();
+            wavesurferRef.current = null;
+        }
+
+        const ws = WaveSurfer.create({
+            container: waveformContainerRef.current,
+            waveColor: '#444',
+            progressColor: '#FF0000',
+            cursorColor: '#FFF',
+            barWidth: 2,
+            barGap: 1,
+            height: 80,
+            url: URL.createObjectURL(uploadedFile),
+        });
+
+        // Initialize Regions Plugin
+        const wsRegions = ws.registerPlugin(RegionsPlugin.create());
+        regionsRef.current = wsRegions;
+
+        ws.on('ready', () => {
+            const duration = ws.getDuration();
+            setAudioDuration(duration);
+
+            // Add initial region covering entire file
+            wsRegions.addRegion({
+                start: 0,
+                end: duration,
+                color: 'rgba(255, 0, 0, 0.2)',
+                drag: true,
+                resize: true,
+            });
+            setTrimRange({ start: 0, end: duration });
+            setIsTrimming(true);
+        });
+
+        wsRegions.on('region-updated', (region: any) => {
+            setTrimRange({ start: region.start, end: region.end });
+        });
+
+        wsRegions.on('region-clicked', (region: any, e: any) => {
+            e.stopPropagation();
+            region.play();
+            setIsPlayingRegion(true);
+        });
+
+        ws.on('finish', () => setIsPlayingRegion(false));
+        ws.on('pause', () => setIsPlayingRegion(false));
+
+        wavesurferRef.current = ws;
+
+        return () => {
+            ws.destroy();
+        };
+    }, [uploadedFile, mode]);
+
+    const handlePlayPauseRegion = () => {
+        if (!wavesurferRef.current || !regionsRef.current) return;
+
+        const regions = regionsRef.current.getRegions();
+        if (regions.length > 0) {
+            const region = regions[0];
+            if (isPlayingRegion) {
+                wavesurferRef.current.pause();
+            } else {
+                region.play();
+                setIsPlayingRegion(true);
+            }
+        } else {
+            wavesurferRef.current.playPause();
+            setIsPlayingRegion(!isPlayingRegion);
+        }
+    };
+
+    const handleResetUpload = () => {
+        setUploadedFile(null);
+        setTrimRange(null);
+        setIsTrimming(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
 
     const filteredVoices = useMemo(() => {
         return allVoices.filter(voice => {
@@ -198,14 +294,120 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
         setIsSynthesizing(false);
     };
 
+    // --- AUDIO SLICING LOGIC ---
+    const sliceAudio = async (file: File, start: number, end: number): Promise<File> => {
+        const arrayBuffer = await file.arrayBuffer();
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+        const sampleRate = audioBuffer.sampleRate;
+        const startSample = Math.floor(start * sampleRate);
+        const endSample = Math.floor(end * sampleRate);
+        const frameCount = endSample - startSample;
+
+        if (frameCount <= 0) return file; // Should not happen if validation is correct
+
+        const newBuffer = audioContext.createBuffer(
+            audioBuffer.numberOfChannels,
+            frameCount,
+            sampleRate
+        );
+
+        for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
+            const channelData = audioBuffer.getChannelData(i);
+            const newChannelData = newBuffer.getChannelData(i);
+            // Copy slice
+            for (let j = 0; j < frameCount; j++) {
+                newChannelData[j] = channelData[startSample + j];
+            }
+        }
+
+        // Convert AudioBuffer to WAV Blob
+        const wavBlob = await bufferToWave(newBuffer, frameCount);
+        return new File([wavBlob], `trimmed_${file.name.replace('.mp3', '')}.wav`, { type: 'audio/wav' });
+    };
+
+    // Helper: AudioBuffer to WAV
+    const bufferToWave = (abuffer: AudioBuffer, len: number) => {
+        let numOfChan = abuffer.numberOfChannels,
+            length = len * numOfChan * 2 + 44,
+            buffer = new ArrayBuffer(length),
+            view = new DataView(buffer),
+            channels = [], i, sample,
+            offset = 0,
+            pos = 0;
+
+        // write WAVE header
+        setUint32(0x46464952);                         // "RIFF"
+        setUint32(length - 8);                         // file length - 8
+        setUint32(0x45564157);                         // "WAVE"
+
+        setUint32(0x20746d66);                         // "fmt " chunk
+        setUint32(16);                                 // length = 16
+        setUint16(1);                                  // PCM (uncompressed)
+        setUint16(numOfChan);
+        setUint32(abuffer.sampleRate);
+        setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+        setUint16(numOfChan * 2);                      // block-align
+        setUint16(16);                                 // 16-bit (hardcoded in this example)
+
+        setUint32(0x61746164);                         // "data" - chunk
+        setUint32(length - pos - 4);                   // chunk length
+
+        // write interleaved data
+        for (i = 0; i < abuffer.numberOfChannels; i++)
+            channels.push(abuffer.getChannelData(i));
+
+        while (pos < length) {
+            for (i = 0; i < numOfChan; i++) {             // interleave channels
+                sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0; // scale to 16-bit signed int
+                view.setInt16(pos, sample, true);          // write 16-bit sample
+                pos += 2;
+            }
+            offset++;                                     // next source sample
+        }
+
+        return new Blob([buffer], { type: "audio/wav" });
+
+        function setUint16(data: any) {
+            view.setUint16(pos, data, true);
+            pos += 2;
+        }
+
+        function setUint32(data: any) {
+            view.setUint32(pos, data, true);
+            pos += 4;
+        }
+    };
+
     const handleExecuteSync = async () => {
         if (mode === 'tts' && !generatedAudioUrl) return toastError("Generate audio first");
         if (mode === 'upload' && !uploadedFile) return toastError("Upload audio first");
 
         setIsSyncing(true);
-        await onStartSync(mode === 'tts' ? generatedAudioUrl : null, mode === 'upload' ? uploadedFile : null);
-        setIsSyncing(false);
-        onClose();
+
+        try {
+            let fileToSync = uploadedFile;
+
+            // Apply Trim if needed
+            if (mode === 'upload' && uploadedFile && trimRange) {
+                // Check if significantly trimmed (> 0.1s difference)
+                if (Math.abs(trimRange.end - trimRange.start - audioDuration) > 0.1 || trimRange.start > 0.1) {
+                    console.log("Trimming audio...", trimRange);
+                    fileToSync = await sliceAudio(uploadedFile, trimRange.start, trimRange.end);
+                    console.log("Trimmed file created:", fileToSync.name, fileToSync.size);
+                }
+            }
+
+            await onStartSync(mode === 'tts' ? generatedAudioUrl : null, mode === 'upload' ? fileToSync : null);
+            onClose();
+        } catch (error) {
+            console.error("Sync failed", error);
+            toastError("Failed to start sync");
+        } finally {
+            setIsSyncing(false);
+        }
     };
 
     return (
@@ -309,12 +511,40 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
                                 </div>
                             </>
                         ) : (
-                            <div onClick={() => fileInputRef.current?.click()} style={{ flex: 1, minHeight: '200px', border: '1px dashed #333', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#444', cursor: 'pointer' }}>
-                                <Upload size={32} />
-                                <span style={{ fontSize: '10px', marginTop: '10px' }}>UPLOAD AUDIO FILE</span>
-                                <input type="file" ref={fileInputRef} accept="audio/*" onChange={(e) => { if (e.target.files?.[0]) { setUploadedFile(e.target.files[0]); setGeneratedAudioUrl(null); } }} style={{ display: 'none' }} />
-                                {uploadedFile && <div style={{ marginTop: '10px', color: '#FFF', fontSize: '11px' }}>{uploadedFile.name}</div>}
-                            </div>
+                            <>
+                                {uploadedFile ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, minHeight: '300px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>{uploadedFile.name}</span>
+                                            <button onClick={handleResetUpload} style={{ color: '#666', background: 'none', border: 'none', cursor: 'pointer' }}><RotateCcw size={14} /></button>
+                                        </div>
+
+                                        <div
+                                            ref={waveformContainerRef}
+                                            style={{ width: '100%', minHeight: '100px', backgroundColor: '#000', borderRadius: '4px', border: '1px solid #333' }}
+                                        />
+
+                                        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px', gap: '10px' }}>
+                                            <button onClick={handlePlayPauseRegion} style={{ backgroundColor: '#222', border: '1px solid #444', color: 'white', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                                {isPlayingRegion ? <Pause size={16} fill="white" /> : <Play size={16} fill="white" />}
+                                            </button>
+                                        </div>
+
+                                        <div style={{ textAlign: 'center', color: '#666', fontSize: '10px', marginTop: '-10px' }}>
+                                            {trimRange ? (
+                                                <span>TRIM: {trimRange.start.toFixed(2)}s - {trimRange.end.toFixed(2)}s (Duration: {(trimRange.end - trimRange.start).toFixed(2)}s)</span>
+                                            ) : <span>Drag region handles to trim</span>}
+                                        </div>
+
+                                    </div>
+                                ) : (
+                                    <div onClick={() => fileInputRef.current?.click()} style={{ flex: 1, minHeight: '200px', border: '1px dashed #333', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#444', cursor: 'pointer' }}>
+                                        <Upload size={32} />
+                                        <span style={{ fontSize: '10px', marginTop: '10px' }}>UPLOAD AUDIO FILE</span>
+                                        <input type="file" ref={fileInputRef} accept="audio/*" onChange={(e) => { if (e.target.files?.[0]) { setUploadedFile(e.target.files[0]); setGeneratedAudioUrl(null); } }} style={{ display: 'none' }} />
+                                    </div>
+                                )}
+                            </>
                         )}
 
                         {generatedAudioUrl && mode === 'tts' && (
@@ -325,8 +555,9 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
                     </div>
 
                     <div style={{ padding: '20px', borderTop: '1px solid #222', backgroundColor: '#080808' }}>
-                        <button onClick={handleExecuteSync} disabled={isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile)} style={{ width: '100%', padding: '15px', backgroundColor: '#FF0000', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', display: 'flex', justifyContent: 'center', gap: '10px', opacity: (isSyncing || (!generatedAudioUrl && !uploadedFile)) ? 0.5 : 1 }}>
-                            {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />} EXECUTE SYNC
+                        <button onClick={handleExecuteSync} disabled={isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile)} style={{ width: '100%', padding: '15px', backgroundColor: '#FF0000', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', display: 'flex', justifyContent: 'center', gap: '10px', opacity: (isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile)) ? 0.5 : 1 }}>
+                            {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                            {mode === 'upload' && trimRange && (Math.abs(trimRange.end - trimRange.start - audioDuration) > 0.1) ? 'TRIM & SYNC' : 'EXECUTE SYNC'}
                         </button>
                     </div>
                 </div>
