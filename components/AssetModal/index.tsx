@@ -20,7 +20,7 @@ interface AssetModalProps {
     projectId: string;
     assetId: string;
     assetName: string;
-    assetType: 'character' | 'location';
+    assetType: 'character' | 'location' | 'product';
     currentData: Asset;
 
     mode: 'upload' | 'generate';
