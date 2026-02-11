@@ -18,8 +18,13 @@ interface SceneStoryboardContainerProps {
     onClose: () => void;
     projectId: string;
     episodeId: string;
-    scene: SceneData; // The initial scene clicked from the grid
-    projectAssets: { characters: Asset[], locations: Asset[] };
+    scene: SceneData;
+    // [FIXED] Added products to the type definition
+    projectAssets: {
+        characters: Asset[],
+        locations: Asset[],
+        products: Asset[]
+    };
     seriesTitle: string;
     credits: number;
 }
@@ -27,9 +32,8 @@ interface SceneStoryboardContainerProps {
 // Helper to sanitize errors so React doesn't crash
 const safeError = (e: any) => {
     console.error("Safe Error Catch:", e);
-    // Handle Pydantic/FastAPI error objects
     if (typeof e === 'object' && e !== null) {
-        if (e.detail && Array.isArray(e.detail)) return e.detail[0].msg; // FastAPI standard
+        if (e.detail && Array.isArray(e.detail)) return e.detail[0].msg;
         if (e.message) return e.message;
         if (e.msg) return e.msg;
     }
@@ -50,7 +54,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     // 1. Internal State for Scene Switching
     const [activeSceneData, setActiveSceneData] = useState<SceneData>(scene);
 
-    // NEW: State for the real Episode Title
+    // State for the real Episode Title
     const [realEpisodeTitle, setRealEpisodeTitle] = useState<string>(
         episodeId === 'main' ? "FEATURE FILM" : `EPISODE ${episodeId}`
     );
@@ -62,7 +66,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
         }
     }, [scene]);
 
-    // NEW: Fetch Real Episode Title
+    // Fetch Real Episode Title
     useEffect(() => {
         const fetchEpisodeTitle = async () => {
             if (!projectId || !episodeId || episodeId === 'main') return;
@@ -197,9 +201,11 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 episodeId={episodeId}
                 castMembers={projectAssets?.characters || []}
                 locations={projectAssets?.locations || []}
-                seriesName={seriesTitle || "UNTITLED PROJECT"}
 
-                // UPDATED: Pass the real fetched title
+                // [FIXED] Pass products down to the overlay
+                products={projectAssets?.products || []}
+
+                seriesName={seriesTitle || "UNTITLED PROJECT"}
                 episodeTitle={realEpisodeTitle}
 
                 shotMgr={safeShotMgr}

@@ -100,7 +100,6 @@ export interface ProductProfile {
     status?: "pending" | "processing" | "generating" | "active" | "failed";
     created_at?: any;
 
-    // *** FIX: This was missing ***
     prompt?: string;
 }
 
@@ -151,13 +150,19 @@ export interface Shot {
     video_prompt?: string;
 
     location_id?: string;
+    location?: string; // Added for UI convenience
+
     characters: string[];
-    products?: string[];
+    products?: string[]; // Ensure this exists
 
     image_url?: string;
     video_url?: string;
+    lipsync_url?: string; // Added for UI
+
     video_status?: 'queued' | 'processing' | 'completed' | 'failed' | null;
-    status?: 'draft' | 'rendered' | 'animating' | 'completed';
+    status?: 'draft' | 'rendered' | 'animating' | 'completed' | 'finalized';
+
+    morph_to_next?: boolean; // Added for UI logic
 
     created_at?: string;
 }
