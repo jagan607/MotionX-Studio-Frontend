@@ -363,22 +363,8 @@ export default function AssetManagerPage() {
                             Asset Categories
                         </div>
                         <div className="space-y-1">
-                            <TabButton
-                                active={activeTab === 'cast'}
-                                onClick={() => setActiveTab('cast')}
-                                icon={<Users size={14} />}
-                                label="CAST LIST"
-                                count={assets.characters.length}
-                            />
-                            <TabButton
-                                active={activeTab === 'locations'}
-                                onClick={() => setActiveTab('locations')}
-                                icon={<MapPin size={14} />}
-                                label="LOCATIONS"
-                                count={assets.locations.length}
-                            />
 
-                            {/* [NEW] Conditionally Render Products Tab */}
+                            {/* [CHANGED] Products Tab First (If Ad) */}
                             {project?.type === 'ad' && (
                                 <TabButton
                                     active={activeTab === 'products'}
@@ -388,25 +374,28 @@ export default function AssetManagerPage() {
                                     count={assets.products.length}
                                 />
                             )}
+
+                            {/* Cast List */}
+                            <TabButton
+                                active={activeTab === 'cast'}
+                                onClick={() => setActiveTab('cast')}
+                                icon={<Users size={14} />}
+                                label="CAST LIST"
+                                count={assets.characters.length}
+                            />
+
+                            {/* Locations */}
+                            <TabButton
+                                active={activeTab === 'locations'}
+                                onClick={() => setActiveTab('locations')}
+                                icon={<MapPin size={14} />}
+                                label="LOCATIONS"
+                                count={assets.locations.length}
+                            />
                         </div>
                     </div>
 
-                    <div className="p-6">
-                        <div className="text-[10px] font-bold text-[#444] uppercase tracking-widest mb-4">
-                            Operations
-                        </div>
-                        <div className="space-y-3">
-                            <button
-                                onClick={handleGenerateAll}
-                                className="w-full py-3 bg-[#0A0A0A] border border-[#222] hover:border-red-600/50 text-[10px] font-bold text-[#888] hover:text-white uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                            >
-                                <Sparkles size={12} className="text-red-600" /> Batch Generate
-                            </button>
-                            <div className="text-[9px] font-mono text-[#333] text-center">
-                                *Auto-generates missing visuals
-                            </div>
-                        </div>
-                    </div>
+                    {/* Operations Section... */}
                 </div>
 
                 {/* GRID VIEW */}

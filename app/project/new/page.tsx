@@ -153,7 +153,7 @@ export default function NewProjectPage() {
 
             const res = await api.post("/api/v1/project/create", payload);
             if (auth.currentUser) invalidateDashboardCache(auth.currentUser.uid); // Clear cache
-            router.push(`/project/${res.data.id}`);
+            router.push(`/project/${res.data.id}/script`);
 
         } catch (e: any) {
             console.error("Creation failed", e);

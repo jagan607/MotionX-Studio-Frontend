@@ -59,6 +59,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pastedScript, setPastedScript] = useState("");
     const [isUploading, setIsUploading] = useState(false);
+    const [runtimeError, setRuntimeError] = useState(false);
 
     // User Instructions for Continuity
     const [continuityInstruction, setContinuityInstruction] = useState("");
@@ -121,6 +122,11 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     const executeProtocol = async (mode: 'standard' | 'continuity' = 'standard') => {
         // [CHANGED] Validation uses isSingleUnit
         if (!title && !isSingleUnit) { toast.error("ENTER IDENTIFIER (TITLE)"); return; }
+        if (!runtime) {
+            setRuntimeError(true);
+            toast.error("ENTER RUNTIME");
+            return;
+        }
 
         const formData = new FormData();
         formData.append("project_id", projectId);
@@ -273,14 +279,17 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     {/* RUNTIME INPUT */}
                     <div className="w-[140px]">
                         <label className="text-[9px] font-mono text-motion-text-muted uppercase tracking-widest mb-2 block flex items-center gap-1">
-                            <Clock size={10} /> Runtime (Mins)
+                            <Clock size={10} /> Runtime (Mins) <span className="text-motion-red">*</span>
                         </label>
                         <input
                             type="number"
-                            className="w-full bg-transparent border-b border-neutral-700 py-2 text-xl font-mono text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors"
+                            className={`w-full bg-transparent border-b py-2 text-xl font-mono text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors ${runtimeError ? 'border-red-500' : 'border-neutral-700'}`}
                             placeholder="e.g 45"
                             value={runtime}
-                            onChange={(e) => setRuntime(e.target.value)}
+                            onChange={(e) => {
+                                setRuntime(e.target.value);
+                                if (e.target.value) setRuntimeError(false);
+                            }}
                             disabled={isUploading}
                         />
                     </div>
