@@ -50,8 +50,9 @@ export default function StudioPage() {
     // Asset DB
     const [assets, setAssets] = useState<{
         characters: Asset[],
-        locations: Asset[]
-    }>({ characters: [], locations: [] });
+        locations: Asset[],
+        products: Asset[]
+    }>({ characters: [], locations: [], products: [] });
 
     // --- 1. INITIAL LOAD ---
     useEffect(() => {

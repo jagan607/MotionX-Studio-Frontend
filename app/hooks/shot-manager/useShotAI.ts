@@ -1,8 +1,11 @@
 import { doc, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { api } from "@/lib/api"; // Correct import
+import { api } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { useState } from "react";
+
+// Helper to match backend CAPS_CAPS format
+const simpleSanitize = (text: string) => text.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
 
 export const useShotAI = (
     projectId: string,
@@ -18,20 +21,29 @@ export const useShotAI = (
         setTerminalLog(prev => [...prev, "> INITIALIZING AI DIRECTOR..."]);
 
         const sceneAction = overrideSummary || currentScene.summary || currentScene.synopsis || "";
-        const sceneLocation = currentScene.location || "Unknown";
+
+        // Extract Strict Location Data
+        const sceneLocationName = currentScene.location_name || currentScene.location || "Unknown";
+        const sceneLocationId = currentScene.location_id || "";
+
+        // Extract Products context
+        const sceneProductsArray = currentScene.products || [];
+        const sceneProductsString = Array.isArray(sceneProductsArray) ? sceneProductsArray.join(", ") : "";
+
         let sceneChars = Array.isArray(currentScene.characters) ? currentScene.characters.join(", ") : (currentScene.characters || "");
 
+        // Prepare payload for AI
         const payload = {
             project_id: projectId,
             episode_id: episodeId,
             scene_id: sceneId,
             scene_action: sceneAction,
             characters: sceneChars,
-            location: sceneLocation
+            location: sceneLocationName,
+            products: sceneProductsString // [NEW] Send product context to Gemini
         };
 
         try {
-            // Updated to use api.post (no manual headers needed)
             const res = await api.post("/api/v1/shot/suggest_shots", payload);
 
             if (res.data && res.data.shots) {
@@ -42,11 +54,20 @@ export const useShotAI = (
                     const newShotId = `shot_${String(index + 1).padStart(2, '0')}`;
                     const shotRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId, "shots", newShotId);
 
+                    // 1. Sanitize Character IDs
                     let charArray: string[] = [];
-                    if (typeof shot.characters === 'string') {
-                        charArray = shot.characters.split(',').map((c: string) => c.trim()).filter((c: string) => c);
-                    } else if (Array.isArray(shot.characters)) {
-                        charArray = shot.characters;
+                    if (Array.isArray(shot.characters)) {
+                        charArray = shot.characters.map((c: string) => simpleSanitize(c));
+                    }
+
+                    // 2. [NEW] Sanitize Product IDs from AI response
+                    // If Gemini didn't pick any, we fallback to scene products for safety in Ad mode
+                    let productArray: string[] = [];
+                    if (Array.isArray(shot.products) && shot.products.length > 0) {
+                        productArray = shot.products.map((p: string) => simpleSanitize(p));
+                    } else {
+                        // Fallback: Inherit all scene products if AI returned empty list
+                        productArray = sceneProductsArray.map((p: string) => simpleSanitize(p));
                     }
 
                     batch.set(shotRef, {
@@ -55,7 +76,12 @@ export const useShotAI = (
                         visual_action: shot.image_prompt || shot.description || "",
                         video_prompt: shot.video_prompt || "",
                         characters: charArray,
-                        location: sceneLocation,
+                        products: productArray, // [NEW] Individual shot product assignment
+
+                        // Strict Inheritance: Force Scene Location
+                        location: sceneLocationName,
+                        location_id: sceneLocationId,
+
                         status: "draft",
                         order: index,
                         created_at: new Date().toISOString()
@@ -63,10 +89,13 @@ export const useShotAI = (
                 });
 
                 await batch.commit();
+                setTerminalLog(prev => [...prev, "> SHOT LIST GENERATED SUCCESSFULLY."]);
             }
         } catch (e: any) {
             console.error(e);
-            toast.error(e.response?.data?.detail || "Auto-Direct failed");
+            const errorMsg = e.response?.data?.detail || "Auto-Direct failed";
+            setTerminalLog(prev => [...prev, `> ERROR: ${errorMsg.toUpperCase()}`]);
+            toast.error(errorMsg);
         } finally {
             setIsAutoDirecting(false);
         }
