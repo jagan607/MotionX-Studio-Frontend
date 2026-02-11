@@ -32,10 +32,14 @@ import { StudioLayout } from "@/app/components/studio/StudioLayout";
 import { StudioHeader } from "@/app/components/studio/StudioHeader";
 import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
 
+// --- CONTEXT ---
+import { useMediaViewer, MediaItem } from "@/app/context/MediaViewerContext";
+
 export default function AssetManagerPage() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { openViewer } = useMediaViewer();
 
     const projectId = params.id as string;
     const isOnboarding = searchParams.get("onboarding") === "true";
@@ -289,6 +293,28 @@ export default function AssetManagerPage() {
         return 'Product Inventory';
     };
 
+    // [NEW] Handle View Asset
+    const handleViewAsset = (asset: Asset) => {
+        // 1. Find index of clicked asset
+        const index = displayedAssets.findIndex(a => a.id === asset.id);
+        if (index === -1) return;
+
+        // 2. Map assets to MediaItems
+        const mediaItems: MediaItem[] = displayedAssets.map(a => ({
+            id: a.id,
+            type: 'image', // Default to image for now
+            imageUrl: a.image_url, // Main image
+            title: a.name,
+            description: a.prompt || (a as any).base_prompt,
+            // Future compatibility:
+            // videoUrl: a.video_url
+            // lipsyncUrl: a.voice_config?.sample
+        }));
+
+        // 3. Open Viewer
+        openViewer(mediaItems, index);
+    };
+
     return (
         <StudioLayout>
             <style jsx global>{`
@@ -450,6 +476,7 @@ export default function AssetManagerPage() {
                                             setGenPrompt(a.prompt || "");
                                         }}
                                         onDelete={handleDelete}
+                                        onView={handleViewAsset}
                                     />
                                     <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-red-600/0 group-hover:border-red-600 transition-colors pointer-events-none" />
                                 </div>
