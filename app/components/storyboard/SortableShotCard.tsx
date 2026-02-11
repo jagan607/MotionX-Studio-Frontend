@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film, RefreshCw,
     ImagePlus, Mic2, Link2, Plus, CheckCircle2,
-    Wand2, Loader2, Palette, XCircle, ShoppingBag // Added ShoppingBag icon, Upload
+    Wand2, Loader2, Palette, XCircle, Upload, ShoppingBag // Added ShoppingBag icon
 } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 
