@@ -7,7 +7,7 @@ import { Asset } from "@/lib/types";
 
 export interface SceneData {
     id: string;
-    number: number;
+    scene_number: number;
     slugline: string;
     synopsis: string;
     time: string;
@@ -58,8 +58,8 @@ export const SceneCard: React.FC<SceneCardProps> = ({
     };
 
     // [Display Logic] Handle 0 or undefined scene numbers
-    const displaySceneNumber = scene.number !== undefined
-        ? String(scene.number).padStart(2, '0')
+    const displaySceneNumber = scene.scene_number !== undefined
+        ? String(scene.scene_number).padStart(2, '0')
         : "--";
 
     return (
