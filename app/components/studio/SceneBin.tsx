@@ -17,6 +17,7 @@ interface SceneBinProps {
     projectType?: 'movie' | 'ad' | 'music_video';
     onOpenStoryboard: (scene: SceneData) => void;
     className?: string;
+    episodeId: string; // [NEW]
 }
 
 export const SceneBin: React.FC<SceneBinProps> = ({
@@ -26,7 +27,8 @@ export const SceneBin: React.FC<SceneBinProps> = ({
     projectAssets,
     projectType = 'movie',
     onOpenStoryboard,
-    className = ""
+    className = "",
+    episodeId // [NEW]
 }) => {
     const router = useRouter();
 
@@ -79,6 +81,8 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                                     projectAssets={projectAssets}
                                     projectType={projectType}
                                     onOpenStoryboard={onOpenStoryboard}
+                                    episodeId={episodeId} // [NEW]
+                                    projectId={projectId} // [NEW]
                                 />
                             </div>
                         ))}

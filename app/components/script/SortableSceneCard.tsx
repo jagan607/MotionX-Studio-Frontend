@@ -12,10 +12,11 @@ interface SortableSceneCardProps {
     isActive: boolean;
     onEdit: () => void;
     onDelete: (id: string) => void;
+    domId?: string; // [NEW] For auto-scroll targeting
 }
 
 export const SortableSceneCard: React.FC<SortableSceneCardProps> = ({
-    scene, index, isActive, onEdit, onDelete
+    scene, index, isActive, onEdit, onDelete, domId
 }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: scene.id });
     const style = { transform: CSS.Transform.toString(transform), transition };
@@ -40,6 +41,7 @@ export const SortableSceneCard: React.FC<SortableSceneCardProps> = ({
 
     return (
         <div
+            id={domId} // [NEW] Custom ID
             ref={setNodeRef}
             style={style}
             onClick={onEdit}

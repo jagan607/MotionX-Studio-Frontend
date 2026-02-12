@@ -215,6 +215,7 @@ export default function StudioPage() {
                     projectAssets={assets}
                     projectType={project.type as 'movie' | 'ad' | 'music_video'}
                     onOpenStoryboard={setSelectedScene}
+                    episodeId={activeEpisodeId} // [NEW]
                 />
             </div>
 

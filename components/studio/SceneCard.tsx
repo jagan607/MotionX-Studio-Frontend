@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { Film, Clock } from "lucide-react";
+import { Film, Clock, Pencil } from "lucide-react";
 import { EntityStatusChip } from "./EntityStatusChip";
 import { Asset } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 export interface SceneData {
     id: string;
@@ -26,14 +27,19 @@ interface SceneCardProps {
     };
     projectType?: 'movie' | 'ad' | 'music_video'; // [NEW] To toggle display
     onOpenStoryboard: (scene: SceneData) => void;
+    episodeId?: string; // [NEW]
+    projectId?: string; // [NEW]
 }
 
 export const SceneCard: React.FC<SceneCardProps> = ({
     scene,
     projectAssets,
     projectType = 'movie', // Default to movie
-    onOpenStoryboard
+    onOpenStoryboard,
+    episodeId,
+    projectId
 }) => {
+    const router = useRouter(); // [NEW]
 
     console.log("scene.products", scene.products);
 
@@ -81,6 +87,20 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                         {scene.time || "N/A"}
                     </div>
                 </div>
+
+                {/* [NEW] EDIT BUTTON */}
+                {(episodeId && projectId) && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation(); // Prevent opening storyboard
+                            router.push(`/project/${projectId}/episode/${episodeId}/editor?scene_id=${scene.id}`);
+                        }}
+                        className="absolute top-4 right-4 p-1.5 rounded-sm bg-[#111] border border-[#333] text-[#666] hover:text-white hover:border-[#666] hover:bg-[#222] transition-colors z-30"
+                        title="Edit Scene in Script"
+                    >
+                        <Pencil size={12} />
+                    </button>
+                )}
 
                 {/* SYNOPSIS BODY */}
                 <div className="flex-1 mb-5">
