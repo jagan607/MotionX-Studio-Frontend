@@ -124,6 +124,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
             summary: summary,
             synopsis: summary,
             time: timeOfDay,
+            location: locationDisplayName,
             location_id: locationId
         });
         setIsDirty(false);

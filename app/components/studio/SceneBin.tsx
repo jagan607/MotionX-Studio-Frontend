@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { LayoutGrid, Clapperboard, ArrowRight, Plus, Wand2, Loader2 } from "lucide-react";
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { useRouter } from "next/navigation";
 import {
     DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent
@@ -49,6 +50,25 @@ export const SceneBin: React.FC<SceneBinProps> = ({
     episodeId
 }) => {
     const router = useRouter();
+
+    // --- DELETE CONFIRMATION STATE ---
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteClick = (sceneId: string) => {
+        setPendingDeleteId(sceneId);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!pendingDeleteId) return;
+        setIsDeleting(true);
+        try {
+            await onDeleteScene(pendingDeleteId);
+        } finally {
+            setIsDeleting(false);
+            setPendingDeleteId(null);
+        }
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -163,7 +183,7 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                                             projectType={projectType}
                                             onOpenStoryboard={onOpenStoryboard}
                                             onEdit={onEditScene}
-                                            onDelete={onDeleteScene}
+                                            onDelete={handleDeleteClick}
                                             episodeId={episodeId}
                                             projectId={projectId}
                                         />
@@ -196,6 +216,17 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                     </DndContext>
                 )}
             </div>
+
+            {/* DELETE CONFIRMATION MODAL */}
+            {pendingDeleteId && (
+                <DeleteConfirmModal
+                    title="Delete Scene"
+                    message="Are you sure you want to delete this scene? This action cannot be undone."
+                    isDeleting={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setPendingDeleteId(null)}
+                />
+            )}
         </div>
     );
 };

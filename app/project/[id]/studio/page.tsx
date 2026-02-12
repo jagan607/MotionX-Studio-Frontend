@@ -158,7 +158,7 @@ export default function StudioPage() {
                     slugline,
                     synopsis,
                     time: data.time || "N/A",
-                    characters: data.characters || [],
+                    characters: data.characters || data.cast_ids || [],
                     products: data.products || [],
                     location: data.location || data.location_name || "",
                     status: data.status || 'draft',
@@ -225,6 +225,8 @@ export default function StudioPage() {
                 slugline: "INT. UNTITLED SCENE - DAY",
                 synopsis: "",
                 cast_ids: [],
+                characters: [],
+                location: "",
                 status: "draft",
                 created_at: serverTimestamp()
             });
@@ -261,6 +263,27 @@ export default function StudioPage() {
             const res = await api.post("/api/v1/script/extend-scene", payload);
             const generatedScene = res.data.scene;
 
+            // [FIX] Try to resolve to an existing Project Asset (Location)
+            // AI might return "ART STUDIO", but asset is "INT. ART STUDIO"
+            let finalLocationName = generatedScene.location || "";
+            let finalLocationId = "";
+
+            if (finalLocationName) {
+                const cleanName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+                const searchVal = cleanName(finalLocationName);
+
+                const foundLoc = assets.locations.find(loc => {
+                    const lName = cleanName(loc.name || "");
+                    const lId = cleanName(loc.id || "");
+                    return lName.includes(searchVal) || searchVal.includes(lName) || lId === searchVal;
+                });
+
+                if (foundLoc) {
+                    finalLocationName = foundLoc.name; // Use canonical name (e.g. "INT. ART STUDIO")
+                    finalLocationId = foundLoc.id;
+                }
+            }
+
             const maxSceneNum = Math.max(...scenes.map(s => s.scene_number));
             const newSceneNum = maxSceneNum + 1;
             const newSceneId = `scene_${uuidv4().slice(0, 8)}`;
@@ -273,6 +296,10 @@ export default function StudioPage() {
                 synopsis: generatedScene.visual_action || generatedScene.synopsis || "",
                 time: generatedScene.time_of_day || "DAY",
                 cast_ids: generatedScene.characters || [],
+                characters: generatedScene.characters || [],
+                location: finalLocationName,
+                location_id: finalLocationId,
+                products: generatedScene.products || [],
                 status: "draft",
                 created_at: serverTimestamp()
             });
