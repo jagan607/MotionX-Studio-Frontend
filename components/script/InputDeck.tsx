@@ -13,12 +13,12 @@ import { ContextReference } from "@/app/components/script/ContextSelectorModal";
 interface InputDeckProps {
     projectId: string;
     projectTitle: string;
-    projectType: "movie" | "micro_drama" | "series";
+    projectType: "movie" | "micro_drama" | "ad";
     episodeId?: string | null;
 
     initialTitle?: string;
     initialScript?: string;
-    initialRuntime?: string | number; // NEW PROP
+    initialRuntime?: string | number;
 
     // Previous Episode Data for Continuity
     previousEpisode?: {
@@ -54,11 +54,12 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     contextReferences = []
 }) => {
     const [title, setTitle] = useState("");
-    const [runtime, setRuntime] = useState<string | number>(""); // NEW STATE
+    const [runtime, setRuntime] = useState<string | number>("");
     const [synopsisText, setSynopsisText] = useState("");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pastedScript, setPastedScript] = useState("");
     const [isUploading, setIsUploading] = useState(false);
+    const [runtimeError, setRuntimeError] = useState(false);
 
     // User Instructions for Continuity
     const [continuityInstruction, setContinuityInstruction] = useState("");
@@ -67,7 +68,8 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const logsContainerRef = useRef<HTMLDivElement>(null);
 
-    const isMovie = projectType === "movie";
+    // [CHANGED] Group 'ad' and 'movie' as single-unit types
+    const isSingleUnit = projectType === "movie" || projectType === "ad";
     const isNewEpisodeMode = !episodeId || episodeId === "new_placeholder";
 
     // --- SCROLL TO BOTTOM OF LOGS ---
@@ -82,11 +84,12 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
     // --- STATE SYNC ---
     useEffect(() => {
-        if (isMovie) setTitle(projectTitle);
+        // [CHANGED] Use isSingleUnit instead of isMovie
+        if (isSingleUnit) setTitle(projectTitle);
         else setTitle(initialTitle || "");
 
-        setRuntime(initialRuntime || ""); // Sync Runtime
-    }, [isMovie, projectTitle, initialTitle, initialRuntime]);
+        setRuntime(initialRuntime || "");
+    }, [isSingleUnit, projectTitle, initialTitle, initialRuntime]);
 
     useEffect(() => {
         setSynopsisText(initialScript || "");
@@ -95,6 +98,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     }, [initialScript, episodeId]);
 
     const isUpdateMode = !!episodeId && !!initialScript && episodeId !== "new_placeholder";
+
     const isModified =
         (title || "") !== (initialTitle || "") ||
         (runtime || "") !== (initialRuntime || "") ||
@@ -116,13 +120,18 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
     // --- MAIN PROTOCOL EXECUTION ---
     const executeProtocol = async (mode: 'standard' | 'continuity' = 'standard') => {
-        if (!title && !isMovie) { toast.error("ENTER IDENTIFIER (TITLE)"); return; }
+        // [CHANGED] Validation uses isSingleUnit
+        if (!title && !isSingleUnit) { toast.error("ENTER IDENTIFIER (TITLE)"); return; }
+        if (!runtime) {
+            setRuntimeError(true);
+            toast.error("ENTER RUNTIME");
+            return;
+        }
 
         const formData = new FormData();
         formData.append("project_id", projectId);
         formData.append("script_title", title || projectTitle);
 
-        // NEW: Append Runtime
         if (runtime) {
             formData.append("runtime", String(runtime));
         }
@@ -137,12 +146,10 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             formData.append("source_type", "continuation");
             formData.append("previous_episode_id", previousEpisode.id);
 
-            // Pass user instruction as the "synopsis" equivalent for the generator
             if (continuityInstruction.trim()) {
                 const instructionBlob = new Blob([continuityInstruction], { type: "text/plain" });
                 formData.append("file", new File([instructionBlob], "instruction.txt"));
             } else {
-                // If empty, pass a default directive
                 const defaultBlob = new Blob(["Continue the story naturally from the previous scene."], { type: "text/plain" });
                 formData.append("file", new File([defaultBlob], "instruction.txt"));
             }
@@ -229,14 +236,14 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
     const isButtonEnabled = () => {
         if (isUpdateMode) return isModified;
-        if (!title && !isMovie) return false;
+        // [CHANGED] Validation uses isSingleUnit
+        if (!title && !isSingleUnit) return false;
         return !!(synopsisText.trim() || pastedScript.trim() || selectedFile);
     };
 
     return (
         <div className={`flex flex-col bg-neutral-900/30 border border-neutral-800 rounded-xl shadow-2xl ${className}`}>
 
-            {/* CONTENT */}
             <div className="flex flex-col p-6 gap-6">
 
                 {/* DYNAMIC SESSION IDENTIFIER & RUNTIME */}
@@ -244,9 +251,11 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     {/* TITLE INPUT */}
                     <div className="flex-1">
                         <label className="text-[9px] font-mono text-motion-text-muted uppercase tracking-widest mb-2 block">
-                            {isMovie ? "Project Script Title" : "Episode Identifier"}
+                            {/* [CHANGED] Label logic */}
+                            {isSingleUnit ? "Project Script Title" : "Episode Identifier"}
                         </label>
-                        {isMovie ? (
+                        {/* [CHANGED] Render logic uses isSingleUnit */}
+                        {isSingleUnit ? (
                             <div className="flex items-center justify-between w-full border-b border-neutral-700 py-2">
                                 <span className="text-xl font-display text-white/50 uppercase select-none">
                                     {projectTitle || "UNTITLED PROJECT"}
@@ -270,20 +279,23 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     {/* RUNTIME INPUT */}
                     <div className="w-[140px]">
                         <label className="text-[9px] font-mono text-motion-text-muted uppercase tracking-widest mb-2 block flex items-center gap-1">
-                            <Clock size={10} /> Runtime (Mins)
+                            <Clock size={10} /> Runtime (Mins) <span className="text-motion-red">*</span>
                         </label>
                         <input
                             type="number"
-                            className="w-full bg-transparent border-b border-neutral-700 py-2 text-xl font-mono text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors"
+                            className={`w-full bg-transparent border-b py-2 text-xl font-mono text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors ${runtimeError ? 'border-red-500' : 'border-neutral-700'}`}
                             placeholder="e.g 45"
                             value={runtime}
-                            onChange={(e) => setRuntime(e.target.value)}
+                            onChange={(e) => {
+                                setRuntime(e.target.value);
+                                if (e.target.value) setRuntimeError(false);
+                            }}
                             disabled={isUploading}
                         />
                     </div>
                 </div>
 
-                {/* --- 1. CONTINUITY CARD (Updated Layout) --- */}
+                {/* --- 1. CONTINUITY CARD --- */}
                 {previousEpisode && isNewEpisodeMode && !isUploading && (
                     <div className="relative group overflow-hidden rounded-lg border border-blue-900/30 bg-blue-950/10 hover:border-blue-600/50 transition-colors">
                         <div className="absolute top-0 left-0 w-1 h-full bg-blue-600" />
@@ -300,16 +312,14 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                             </p>
 
                             <div className="flex gap-3">
-                                {/* Bigger Input with better hint */}
                                 <input
                                     type="text"
                                     className="flex-[2] bg-black/40 border border-blue-900/50 rounded px-4 py-3 text-xs text-white placeholder:text-blue-200/30 focus:outline-none focus:border-blue-500 transition-colors"
-                                    placeholder="Enter direction for the next scene (e.g. 'Jake escapes the warehouse and calls for backup')..."
+                                    placeholder="Enter direction for the next scene..."
                                     value={continuityInstruction}
                                     onChange={(e) => setContinuityInstruction(e.target.value)}
                                 />
 
-                                {/* Smaller, Less Highlighted CTA */}
                                 <MotionButton
                                     onClick={() => executeProtocol('continuity')}
                                     disabled={!title}
@@ -340,7 +350,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                             <span className="text-[9px] text-motion-text-muted">PRIMARY</span>
                         </div>
 
-                        {/* CONTEXT BADGE */}
                         {contextReferences.length > 0 && (
                             <div className="flex items-center gap-1 text-[9px] font-bold text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded border border-blue-900/50">
                                 <Database size={10} />
@@ -367,7 +376,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
                 {/* SECONDARY INPUTS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 shrink-0">
-                    {/* Upload */}
                     <div onClick={() => !isUploading && fileInputRef.current?.click()} className={`h-16 border border-dashed border-neutral-700 flex flex-col items-center justify-center gap-2 group rounded-lg transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:border-neutral-500 cursor-pointer hover:bg-white/5'}`}>
                         <input type="file" ref={fileInputRef} hidden onChange={handleFileSelect} accept=".pdf,.docx,.txt" disabled={isUploading} />
                         {selectedFile ? (
@@ -378,7 +386,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                             </div>
                         )}
                     </div>
-                    {/* Paste */}
                     <textarea
                         className="w-full h-16 bg-black/30 border border-neutral-700 p-3 font-mono text-[10px] text-green-500 placeholder:text-green-900/50 focus:outline-none focus:border-green-600 resize-none leading-relaxed rounded-lg"
                         placeholder="// PASTE..."
@@ -397,7 +404,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 )}
             </div>
 
-            {/* FOOTER: TERMINAL OR BUTTON */}
+            {/* FOOTER */}
             <div className="shrink-0 p-4 border-t border-neutral-800 bg-black/30 min-h-[5.5rem] flex flex-col justify-center">
                 {isUploading ? (
                     <div className="w-full h-32 bg-black border border-neutral-800 rounded p-3 font-mono text-[10px] overflow-hidden flex flex-col">

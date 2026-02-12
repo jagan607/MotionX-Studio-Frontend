@@ -6,16 +6,20 @@ import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film, RefreshCw,
     ImagePlus, Mic2, Link2, Plus, CheckCircle2,
+    Wand2, Loader2, Palette, XCircle, Upload, ShoppingBag // Added ShoppingBag icon
     Wand2, Loader2, Palette, XCircle, Upload
 } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 
 interface CastMember { id: string; name: string; }
 interface Location { id: string; name: string; }
+interface Product { id: string; name: string; } // [NEW] Simple Product Interface
+
 interface Shot {
     id: string;
     shot_type: string;
     characters: string[];
+    products?: string[]; // [NEW] Added products array
     visual_action: string;
     video_prompt?: string;
     location?: string;
@@ -34,6 +38,7 @@ interface SortableShotCardProps {
     onDelete: (id: string) => void;
     castMembers: CastMember[];
     locations: Location[];
+    products?: Product[]; // [NEW] Added products prop
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
     onRender: (referenceFile?: File | null, provider?: 'gemini' | 'seedream') => void;
     onAnimate: (provider: 'kling' | 'seedance', endFrameUrl?: string | null) => void;
@@ -56,6 +61,7 @@ export const SortableShotCard = ({
     onDelete,
     castMembers,
     locations,
+    products = [], // Default to empty array
     onUpdateShot,
     onRender,
     onAnimate,
@@ -104,15 +110,29 @@ export const SortableShotCard = ({
         onUpdateShot(shot.id, "characters", updated);
     };
 
-    // --- REF IMAGE LOGIC (ENHANCED) ---
+    // --- [NEW] PRODUCT TOGGLE LOGIC ---
+    const handleProductToggle = (prodId: string) => {
+        if (isMorphedByPrev) return;
+        const current = Array.isArray(shot.products) ? shot.products : [];
+        const isPresent = current.includes(prodId);
+        let updated;
+        if (isPresent) {
+            updated = current.filter((p) => p !== prodId);
+        } else {
+            updated = [...current, prodId];
+        }
+        onUpdateShot(shot.id, "products", updated);
+    };
+
+    // --- REF IMAGE LOGIC ---
     const [refFile, setRefFile] = useState<File | null>(null);
     const [refPreviewUrl, setRefPreviewUrl] = useState<string | null>(null);
     const [isHoveringRef, setIsHoveringRef] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const mainImageInputRef = useRef<HTMLInputElement>(null);
+    const [isCompressing, setIsCompressing] = useState(false);
     const [isCompressing, setIsCompressing] = useState(false); // Used for UI feedback
 
-    // Create Object URL when file is selected
     useEffect(() => {
         if (!refFile) {
             setRefPreviewUrl(null);
@@ -120,7 +140,6 @@ export const SortableShotCard = ({
         }
         const objectUrl = URL.createObjectURL(refFile);
         setRefPreviewUrl(objectUrl);
-
         return () => URL.revokeObjectURL(objectUrl);
     }, [refFile]);
 
@@ -290,6 +309,36 @@ export const SortableShotCard = ({
                 </div>
             </div>
 
+            {/* [NEW] PRODUCTS SECTION */}
+            {products && products.length > 0 && (
+                <div style={{ marginBottom: '12px' }}>
+                    <label style={labelStyle}>PRODUCTS</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {products.map((prod) => {
+                            const isActive = Array.isArray(shot.products) && shot.products.includes(prod.id);
+
+                            return (
+                                <button
+                                    disabled={isMorphedByPrev}
+                                    key={prod.id}
+                                    onClick={() => handleProductToggle(prod.id)}
+                                    style={{
+                                        fontSize: '10px', padding: '4px 10px', borderRadius: '4px', opacity: isMorphedByPrev ? 0.5 : 1,
+                                        border: '1px solid #333',
+                                        backgroundColor: isActive ? '#FF0000' : 'transparent',
+                                        color: isActive ? 'white' : '#666',
+                                        cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', gap: '4px'
+                                    }}
+                                >
+                                    {prod.name}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* CASTING */}
             <div style={{ marginBottom: '12px' }}>
                 <label style={labelStyle}>CASTING</label>
@@ -403,7 +452,7 @@ export const SortableShotCard = ({
                                     overflow: 'hidden',
                                     zIndex: 9999,
                                     boxShadow: '0 4px 20px rgba(0,0,0,0.8)',
-                                    pointerEvents: 'none' // Let clicks pass through so it doesn't block interactions below if needed
+                                    pointerEvents: 'none'
                                 }}>
                                     <img
                                         src={refPreviewUrl}

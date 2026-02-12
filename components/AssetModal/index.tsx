@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, User, MapPin, ArrowLeft, Sparkles } from 'lucide-react';
+import { X, User, MapPin, ArrowLeft, Sparkles, ShoppingBag } from 'lucide-react';
 import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
 import { uploadAssetReference, uploadAssetMain } from '@/lib/api';
-import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils';
+import { constructLocationPrompt, constructCharacterPrompt, constructProductPrompt } from '@/lib/promptUtils';
 import { toast } from 'react-hot-toast';
 import { Asset } from '@/lib/types';
 
 // --- SUB-COMPONENTS ---
 import { TraitsTab } from './TraitsTab';
+import { ProductTab } from './ProductTab'; // [NEW]
 import { VoiceTab } from './VoiceTab';
 import { VisualsSection } from './VisualsSection';
 import { VoicePreviewBar } from './VoicePreviewBar';
@@ -20,7 +21,7 @@ interface AssetModalProps {
     projectId: string;
     assetId: string;
     assetName: string;
-    assetType: 'character' | 'location';
+    assetType: 'character' | 'location' | 'product';
     currentData: Asset;
 
     mode: 'upload' | 'generate';
@@ -35,7 +36,7 @@ interface AssetModalProps {
     onUpload: (f: File) => void;
     onGenerate: (prompt: string, useRef: boolean) => Promise<string | void | undefined>;
     onCreateAndGenerate?: (data: any) => Promise<void>;
-    onUpdateTraits: (data: any) => Promise<any>; // Update type to allow returning Asset
+    onUpdateTraits: (data: any) => Promise<any>;
     onLinkVoice: (v: { voice_id: string; voice_name: string }) => Promise<void>;
 
     styles?: any;
@@ -122,7 +123,22 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 lighting: rawData.lighting || vt?.lighting || "",
                 terrain: rawData.terrain || vt?.terrain || "",
             };
+        } else if (assetType === 'product') {
+            // [NEW] Parsing for Product Metadata
+            // We map the Nested DB structure -> Flat UI State
+            const meta = rawData.product_metadata || {};
+            const dna = meta.visual_dna || {};
+            const mkt = meta.marketing || {};
+
+            initialData = {
+                brandName: meta.brand_name || "",
+                category: meta.category || "",
+                materials: Array.isArray(dna.materials) ? dna.materials.join(', ') : "",
+                colors: Array.isArray(dna.brand_colors) ? dna.brand_colors.join(', ') : "",
+                features: Array.isArray(mkt.key_features) ? mkt.key_features.join(', ') : ""
+            };
         } else {
+            // Character
             const charTraits = (vt && !Array.isArray(vt)) ? vt : {};
             initialData = {
                 age: charTraits.age || "",
@@ -148,16 +164,24 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
         const existingPrompt = rawData.prompt || rawData.base_prompt;
         if (!existingPrompt) {
-            updatePrompt(rawData.name || (assetType === 'location' ? "Location" : "Character"), initialData);
+            updatePrompt(rawData.name || "Untitled", initialData);
         } else {
             setGenPrompt(existingPrompt);
         }
     };
 
     const updatePrompt = (name: string, traits: any) => {
-        const constructed = assetType === 'location'
-            ? constructLocationPrompt(name || "Location", traits.visual_traits, traits, genre, style)
-            : constructCharacterPrompt(name || "Character", traits, traits, genre, style);
+        let constructed = "";
+
+        if (assetType === 'location') {
+            constructed = constructLocationPrompt(name || "Location", traits.visual_traits, traits, genre, style);
+        } else if (assetType === 'product') {
+            // Use local helper
+            constructed = constructProductPrompt(name || "Product", traits, genre, style);
+        } else {
+            constructed = constructCharacterPrompt(name || "Character", traits, traits, genre, style);
+        }
+
         setGenPrompt(constructed);
     };
 
@@ -237,12 +261,14 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     };
 
     const constructPayload = () => {
+        // Helper to turn CSV strings back to arrays
+        const split = (s: string) => (s ? s.split(',').map(i => i.trim()).filter(i => i) : []);
+
         let payload: any = {};
+
         if (assetType === 'location') {
             const kws = editableTraits.visual_traits || "";
-            const keywordsArray = typeof kws === 'string'
-                ? kws.split(',').map((s: string) => s.trim()).filter((s: string) => s)
-                : kws;
+            const keywordsArray = typeof kws === 'string' ? split(kws) : kws;
             payload = {
                 name: editableName,
                 visual_traits: keywordsArray,
@@ -251,7 +277,26 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 terrain: editableTraits.terrain,
                 prompt: genPrompt
             };
+        } else if (assetType === 'product') {
+            // [NEW] Construct nested product metadata for backend
+            payload = {
+                name: editableName,
+                type: 'product',
+                prompt: genPrompt,
+                product_metadata: {
+                    brand_name: editableTraits.brandName,
+                    category: editableTraits.category,
+                    visual_dna: {
+                        materials: split(editableTraits.materials),
+                        brand_colors: split(editableTraits.colors)
+                    },
+                    marketing: {
+                        key_features: split(editableTraits.features)
+                    }
+                }
+            };
         } else {
+            // Character Payload
             payload = {
                 name: editableName,
                 visual_traits: {
@@ -275,7 +320,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             if (!isNameValid) { toast.error("Enter a name first"); return; }
             const toastId = toast.loading("Creating asset before upload...");
             try {
-                // Wait for parent to create and return the new asset
                 const newAsset = await onUpdateTraits(constructPayload());
                 if (!newAsset || !newAsset.id) throw new Error("Creation failed");
 
@@ -289,7 +333,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             }
         }
 
-        // Proceed to upload with real ID
         const toastId = toast.loading("Uploading reference...");
         try {
             const res = await uploadAssetReference(props.projectId, assetType, targetId, file);
@@ -349,7 +392,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             setInitialTraits(editableTraits);
             setInitialName(editableName);
             toast.success("Configuration Saved");
-            // Do not close, allow user to continue
         } catch (e) {
             console.error(e);
             toast.error("Failed to save");
@@ -403,6 +445,13 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const voiceConfig = currentData.type === 'character' ? currentData.voice_config : null;
     const isSaveDisabled = isSavingTraits || isGenerating || (isCreationMode && !isNameValid);
 
+    // [NEW] Helper to determine icon
+    const getHeaderIcon = () => {
+        if (assetType === 'location') return <MapPin size={20} className="text-motion-red" />;
+        if (assetType === 'product') return <ShoppingBag size={20} className="text-motion-red" />;
+        return <User size={20} className="text-motion-red" />;
+    };
+
     return (
         <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center backdrop-blur-sm">
             <style>{`.modal-scroll::-webkit-scrollbar { width: 6px; } .modal-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }`}</style>
@@ -413,7 +462,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 <div className="p-5 border-b border-[#222] flex justify-between items-center bg-[#0a0a0a] shrink-0">
                     <div className="flex items-center gap-3">
                         {isVoiceMode && <ArrowLeft size={20} className="cursor-pointer hover:text-motion-red" onClick={() => setIsVoiceMode(false)} />}
-                        {assetType === 'location' ? <MapPin size={20} className="text-motion-red" /> : <User size={20} className="text-motion-red" />}
+                        {getHeaderIcon()}
                         <div>
                             <h2 className="text-lg font-display uppercase text-white leading-none">
                                 {editableName || (isCreationMode ? "New Asset" : "Untitled")}
@@ -451,13 +500,28 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         <>
                             <div className="animate-in fade-in duration-300">
                                 <div className="text-[10px] font-bold text-neutral-500 mb-3 tracking-widest uppercase">Asset Definition</div>
-                                <TraitsTab
-                                    assetType={assetType!}
-                                    editableName={editableName}
-                                    onNameChange={handleNameChange}
-                                    editableTraits={editableTraits}
-                                    handleTraitChange={handleTraitChange}
-                                />
+
+                                {/* [NEW] Conditional Rendering of ProductTab vs TraitsTab */}
+                                {assetType === 'product' ? (
+                                    <ProductTab
+                                        editableName={editableName}
+                                        onNameChange={handleNameChange}
+                                        brandName={editableTraits.brandName || ""}
+                                        category={editableTraits.category || ""}
+                                        materials={editableTraits.materials || ""}
+                                        colors={editableTraits.colors || ""}
+                                        features={editableTraits.features || ""}
+                                        onChange={handleTraitChange}
+                                    />
+                                ) : (
+                                    <TraitsTab
+                                        assetType={assetType!}
+                                        editableName={editableName}
+                                        onNameChange={handleNameChange}
+                                        editableTraits={editableTraits}
+                                        handleTraitChange={handleTraitChange}
+                                    />
+                                )}
                             </div>
 
                             <VisualsSection

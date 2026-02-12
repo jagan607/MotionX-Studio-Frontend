@@ -30,8 +30,11 @@ export const useShotCRUD = (
         // 2. Calculate Order
         const currentMaxOrder = shots.length > 0 ? Math.max(...shots.map(s => s.order || 0)) : -1;
 
+        // 3. Inherit Scene Context
+        // We prefer 'location_name' if injected by UI (resolved asset name), otherwise fallback to 'location' (header)
         const fallbackAction = currentScene?.description || currentScene?.summary || "";
-        const fallbackLoc = currentScene?.location_name || currentScene?.location || "";
+        const sceneLocationName = currentScene?.location_name || currentScene?.location || "";
+        const sceneLocationId = currentScene?.location_id || "";
 
         const shotRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId, "shots", newShotId);
 
@@ -41,7 +44,11 @@ export const useShotCRUD = (
             visual_action: fallbackAction,
             video_prompt: "",
             characters: [],
-            location: fallbackLoc,
+            // [FIXED] Explicitly inherit products array if present in scene
+            products: currentScene?.products || [],
+            // [FIXED] Explicitly map scene location to shot
+            location: sceneLocationName,
+            location_id: sceneLocationId,
             status: "draft",
             order: currentMaxOrder + 1,
             created_at: new Date().toISOString()

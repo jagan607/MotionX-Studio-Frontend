@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface TraitsTabProps {
-    assetType: 'character' | 'location';
+    assetType: 'character' | 'location' | 'product';
     editableName: string;                     // <--- NEW
     onNameChange: (val: string) => void;      // <--- NEW
     editableTraits: any;

@@ -58,7 +58,18 @@ export const useShotImageGen = (
         const actionPrompt = `${shot.visual_action || shot.action} ${style}`.trim();
         formData.append("scene_action", actionPrompt);
 
+        // [EXISTING] Characters
         formData.append("characters", Array.isArray(shot.characters) ? shot.characters.join(",") : (shot.characters || ""));
+
+        // [NEW] Products & Location ID
+        // Send comma-separated list of product IDs
+        formData.append("products", Array.isArray(shot.products) ? shot.products.join(",") : (shot.products || ""));
+
+        // Send specific location ID if available (more precise than name)
+        if (shot.location_id) {
+            formData.append("location_id", shot.location_id);
+        }
+
         formData.append("location", shot.location || "");
         formData.append("shot_type", shot.shot_type || "Wide Shot");
         formData.append("aspect_ratio", aspectRatio);
@@ -73,7 +84,6 @@ export const useShotImageGen = (
 
         try {
             // FIX: Explicitly set Content-Type to multipart/form-data
-            // This overrides the 'application/json' default in your lib/api.ts
             const res = await api.post("/api/v1/images/generate_shot", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
@@ -108,7 +118,6 @@ export const useShotImageGen = (
             formData.append("shot_id", shot.id);
             formData.append("image_url", shot.image_url);
 
-            // Same fix here for consistency, although finalize usually doesn't send files
             await api.post("/api/v1/shot/finalize_shot", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
@@ -137,7 +146,7 @@ export const useShotImageGen = (
 
             const formData = new FormData();
             formData.append("project_id", projectId);
-            formData.append("shot_id", shotId); // Backend validation uses this
+            formData.append("shot_id", shotId);
             formData.append("prompt", prompt);
 
             formData.append("original_image_url", originalImageUrl);

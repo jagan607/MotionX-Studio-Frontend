@@ -32,7 +32,7 @@ import { useMediaViewer } from "@/app/context/MediaViewerContext";
 import { doc, onSnapshot, getDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-// --- HELPER: TERMINAL SPINNER (Defined outside to prevent re-render issues) ---
+// --- HELPER: TERMINAL SPINNER ---
 const TerminalSpinner = () => {
     const [frame, setFrame] = useState(0);
     const frames = ["/", "-", "\\", "|"];
@@ -55,8 +55,10 @@ interface StoryboardOverlayProps {
     // Data Props
     castMembers: any[];
     locations: any[];
+    products: any[]; // [NEW] Added products prop
+
     seriesName: string;
-    episodeTitle: string; // Might be an ID initially
+    episodeTitle: string;
 
     // Navigation IDs
     seriesId: string;
@@ -83,7 +85,7 @@ interface StoryboardOverlayProps {
 }
 
 export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
-    activeSceneId, currentScene, onClose, credits, castMembers, locations,
+    activeSceneId, currentScene, onClose, credits, castMembers, locations, products,
     seriesName, episodeTitle,
     seriesId, episodeId,
     shotMgr, inpaintData, setInpaintData, onSaveInpaint, onApplyInpaint,
@@ -138,12 +140,11 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         fetchScenes();
     }, [seriesId, episodeId]);
 
-    // --- 2. FETCH REAL EPISODE TITLE (Fix for ID display) ---
+    // --- 2. FETCH REAL EPISODE TITLE ---
     useEffect(() => {
         const fetchEpisodeData = async () => {
             if (!seriesId || !episodeId || episodeId === 'main') return;
 
-            // Only fetch if title looks like an ID or wasn't passed correctly
             if (episodeTitle === episodeId || !episodeTitle || episodeTitle.startsWith("EPISODE")) {
                 try {
                     const epRef = doc(db, "projects", seriesId, "episodes", episodeId);
@@ -356,7 +357,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
             {/* --- HEADER --- */}
             <div style={styles.sbHeader}>
-                {/* LEFT: Navigation & Title */}
+                {/* LEFT */}
                 <div style={styles.headerLeft}>
                     <button
                         onClick={onClose}
@@ -367,7 +368,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     <h1 style={styles.headerTitle}>SCENE STORYBOARD</h1>
                 </div>
 
-                {/* RIGHT: Actions, Selector, Credits & Top Up */}
+                {/* RIGHT */}
                 <div style={styles.headerActions}>
 
                     {/* SCENE SELECTOR */}
@@ -381,23 +382,10 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 }
                             }}
                             style={{
-                                height: '40px',
-                                padding: '0 32px 0 16px',
-                                backgroundColor: '#1A1A1A',
-                                color: '#EEE',
-                                border: '1px solid #333',
-                                borderRadius: '4px',
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                minWidth: '240px',
-                                maxWidth: '300px',
-                                cursor: 'pointer',
-                                outline: 'none',
-                                textTransform: 'uppercase',
-                                appearance: 'none',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
+                                height: '40px', padding: '0 32px 0 16px', backgroundColor: '#1A1A1A', color: '#EEE',
+                                border: '1px solid #333', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
+                                minWidth: '240px', maxWidth: '300px', cursor: 'pointer', outline: 'none',
+                                textTransform: 'uppercase', appearance: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                             }}
                         >
                             {sceneList.map((scene) => (
@@ -417,16 +405,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             onClick={handleSafeGenerateAll}
                             disabled={(shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping}
                             style={{
-                                height: '40px',
-                                padding: '0 20px',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                transition: 'all 0.2s ease',
+                                height: '40px', padding: '0 20px', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease',
                                 opacity: ((shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping) ? 0.5 : 1,
                                 backgroundColor: shotMgr.isGeneratingAll ? '#2a0a0a' : '#1A1A1A',
                                 border: shotMgr.isGeneratingAll ? '1px solid #7f1d1d' : '1px solid #333',
@@ -445,19 +425,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         onClick={() => handleSafeAutoDirect()}
                         disabled={shotMgr.isAutoDirecting || shotMgr.isGeneratingAll || shotMgr.isStopping}
                         style={{
-                            height: '40px',
-                            padding: '0 20px',
-                            backgroundColor: '#1A1A1A',
-                            color: '#EEE',
-                            border: '1px solid #333',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            transition: 'all 0.2s ease',
+                            height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
+                            border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease',
                             opacity: shotMgr.isAutoDirecting ? 0.5 : 1
                         }}
                     >
@@ -469,18 +439,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     <button
                         onClick={() => shotMgr.handleAddShot(currentScene)}
                         style={{
-                            height: '40px',
-                            padding: '0 24px',
-                            backgroundColor: '#FFF',
-                            color: '#000',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
+                            height: '40px', padding: '0 24px', backgroundColor: '#FFF', color: '#000',
+                            border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 700,
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
                         }}
                     >
                         <Plus size={16} strokeWidth={3} /> ADD SHOT
@@ -489,7 +450,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     {/* DIVIDER */}
                     <div style={{ width: '1px', height: '32px', backgroundColor: '#222', margin: '0 16px' }} />
 
-                    {/* CREDITS & TOP UP */}
+                    {/* CREDITS */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <div style={{ textAlign: 'right' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginBottom: '2px' }}>
@@ -501,32 +462,15 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             </div>
                         </div>
 
-                        {/* TOP UP BUTTON */}
                         <button
                             onClick={() => setShowTopUp(true)}
                             style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                backgroundColor: 'rgba(127, 29, 29, 0.1)',
-                                border: '1px solid rgba(220, 38, 38, 0.3)',
-                                color: 'white',
-                                padding: '8px 16px',
-                                fontSize: '9px',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                borderRadius: '2px'
+                                display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(127, 29, 29, 0.1)',
+                                border: '1px solid rgba(220, 38, 38, 0.3)', color: 'white', padding: '8px 16px', fontSize: '9px', fontWeight: 700,
+                                textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '2px'
                             }}
-                            onMouseOver={(e) => {
-                                e.currentTarget.style.backgroundColor = '#dc2626';
-                                e.currentTarget.style.borderColor = '#dc2626';
-                            }}
-                            onMouseOut={(e) => {
-                                e.currentTarget.style.backgroundColor = 'rgba(127, 29, 29, 0.1)';
-                                e.currentTarget.style.borderColor = 'rgba(220, 38, 38, 0.3)';
-                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#dc2626'; e.currentTarget.style.borderColor = '#dc2626'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(127, 29, 29, 0.1)'; e.currentTarget.style.borderColor = 'rgba(220, 38, 38, 0.3)'; }}
                         >
                             <Plus size={10} strokeWidth={4} /> TOP UP
                         </button>
@@ -535,14 +479,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </div>
             </div>
 
-            {/* --- SCROLLABLE CONTENT AREA --- */}
+            {/* --- CONTENT --- */}
             <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#050505', display: 'flex', flexDirection: 'column' }}>
 
-                {/* SCENE CONTEXT STRIP */}
                 <div style={{ margin: '40px 40px 0 40px' }}>
                     <SceneContextStrip
                         seriesName={seriesName}
-                        episodeTitle={realEpisodeTitle} // Using real fetched title
+                        episodeTitle={realEpisodeTitle}
                         sceneNumber={currentScene.scene_number}
                         summary={currentScene.summary || currentScene.description || currentScene.synopsis}
                         locationName={sceneLoc}
@@ -554,7 +497,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     />
                 </div>
 
-                {/* MAIN GRID */}
                 <div style={{ padding: '20px', flex: 1 }}>
                     {shotMgr.shots.length === 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', border: '1px dashed #222', borderRadius: '8px', minHeight: '400px' }}>
@@ -585,6 +527,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                 onDelete={() => setShotToDelete(shot.id)}
                                                 castMembers={castMembers}
                                                 locations={locations}
+                                                // [NEW] Pass products list
+                                                products={products}
+
                                                 onUpdateShot={shotMgr.updateShot}
                                                 onLipSync={() => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url })}
                                                 onRender={(referenceFile, provider) =>
@@ -662,95 +607,42 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 />
             )}
 
-            {/* ENHANCED TERMINAL OVERLAY */}
+            {/* TERMINAL OVERLAY */}
             {shotMgr.isAutoDirecting && (
                 <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: '#000', // Pitch black background
-                    zIndex: 9999,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontFamily: 'monospace'
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 9999,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'monospace'
                 }}>
-                    {/* Background Grid Effect */}
-                    <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)',
-                        backgroundSize: '40px 40px',
-                        opacity: 0.3,
-                        pointerEvents: 'none'
-                    }} />
-
+                    <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.3, pointerEvents: 'none' }} />
                     <div style={{ position: 'relative', width: '600px', maxWidth: '90%' }}>
-
-                        {/* HEADER (Loader Removed) */}
                         <div style={{ marginBottom: '40px', borderBottom: '1px solid #333', paddingBottom: '20px' }}>
-                            <h2 style={{ color: '#FFF', fontSize: '24px', fontWeight: 'bold', letterSpacing: '2px', margin: 0 }}>
-                                AI DIRECTOR ACTIVE
-                            </h2>
-                            <p style={{ color: '#666', fontSize: '12px', margin: '5px 0 0 0', letterSpacing: '1px' }}>
-                                ANALYZING SCENE CONTEXT & GENERATING SHOT LIST
-                            </p>
+                            <h2 style={{ color: '#FFF', fontSize: '24px', fontWeight: 'bold', letterSpacing: '2px', margin: 0 }}>AI DIRECTOR ACTIVE</h2>
+                            <p style={{ color: '#666', fontSize: '12px', margin: '5px 0 0 0', letterSpacing: '1px' }}>ANALYZING SCENE CONTEXT & GENERATING SHOT LIST</p>
                         </div>
-
-                        {/* LIVE LOG STREAM */}
-                        <div style={{
-                            backgroundColor: '#050505',
-                            border: '1px solid #222',
-                            borderRadius: '4px',
-                            padding: '20px',
-                            height: '300px',
-                            overflowY: 'auto',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '6px', // Tighter spacing for terminal look
-                            boxShadow: '0 0 50px rgba(0,0,0,0.5)',
-                            fontFamily: 'monospace'
-                        }}>
+                        <div style={{ backgroundColor: '#050505', border: '1px solid #222', borderRadius: '4px', padding: '20px', height: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', boxShadow: '0 0 50px rgba(0,0,0,0.5)', fontFamily: 'monospace' }}>
                             {shotMgr.terminalLog.map((log: string, i: number) => (
-                                <div key={i} style={{
-                                    color: log.includes('ERROR') ? '#ff4444' : '#00ff41',
-                                    fontSize: '12px',
-                                    display: 'flex',
-                                    gap: '12px',
-                                    opacity: 0.8
-                                }}>
+                                <div key={i} style={{ color: log.includes('ERROR') ? '#ff4444' : '#00ff41', fontSize: '12px', display: 'flex', gap: '12px', opacity: 0.8 }}>
                                     <span style={{ color: '#444', minWidth: '80px' }}>[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
                                     <span>{`> ${log}`}</span>
                                 </div>
                             ))}
-
-                            {/* ACTIVE LOADER LINE */}
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: 'auto' }}>
                                 <span style={{ color: '#444', minWidth: '80px' }}>[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
-                                <span style={{ color: '#00ff41', display: 'flex', alignItems: 'center' }}>
-                                    {`> PROCESSING`} <TerminalSpinner />
-                                </span>
+                                <span style={{ color: '#00ff41', display: 'flex', alignItems: 'center' }}>{`> PROCESSING`} <TerminalSpinner /></span>
                             </div>
                         </div>
-
-                        {/* FOOTER STATUS */}
                         <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', color: '#333', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                            <span>System: ONLINE</span>
-                            <span>Model: GEMINI-1.5-PRO</span>
-                            <span>Queue: PROCESSING</span>
+                            <span>System: ONLINE</span><span>Model: GEMINI-1.5-PRO</span><span>Queue: PROCESSING</span>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* WARNINGS */}
+            {/* WARNINGS & DELETE MODALS */}
             {showOverwriteWarning && (
                 <DeleteConfirmModal
                     title="OVERWRITE SCENE?"
-                    message="Running Auto-Director will PERMANENTLY DELETE all existing shots. This action cannot be undone."
+                    message="Running Auto-Director will PERMANENTLY DELETE all existing shots."
                     isDeleting={isWiping}
                     onConfirm={confirmOverwrite}
                     onCancel={() => { setShowOverwriteWarning(false); setPendingSummary(undefined); }}

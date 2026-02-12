@@ -67,6 +67,19 @@ export const ScriptTimeline: React.FC<ScriptTimelineProps> = ({
         }
     };
 
+    // --- AUTO-SCROLL TO ACTIVE SCENE ---
+    React.useEffect(() => {
+        if (activeSceneId && scenes.length > 0) {
+            // Using setTimeout to ensure DOM is painted
+            setTimeout(() => {
+                const element = document.getElementById(`scene-card-${activeSceneId}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+    }, [activeSceneId, scenes.length]); // Re-run when scene list loads or selection changes
+
     // --- HANDLER: CONFIRM DELETE ---
     const confirmDelete = async () => {
         if (!sceneToDelete || !onDeleteScene) return;
@@ -160,6 +173,7 @@ export const ScriptTimeline: React.FC<ScriptTimelineProps> = ({
                                         isActive={activeSceneId === scene.id}
                                         onEdit={() => onSetActiveScene(scene.id)}
                                         onDelete={(id) => onDeleteScene && setSceneToDelete(id)}
+                                        domId={`scene-card-${scene.id}`} // [NEW] Link for auto-scroll
                                     />
                                 ))}
                             </SortableContext>

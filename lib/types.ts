@@ -8,15 +8,23 @@ export interface CharacterVisualTraits {
 }
 
 export interface LocationVisualTraits {
-    terrain: string;      // e.g. "indoor", "outdoor"
-    atmosphere: string;   // e.g. "tense", "cozy"
-    lighting: string;     // e.g. "dim flickering light"
-    keywords: string;     // Comma-separated string (e.g. "messy, neon, cramped")
+    terrain: string;
+    atmosphere: string;
+    lighting: string;
+    keywords: string;
+}
+
+// [NEW] Product Traits for Ads
+export interface ProductVisualTraits {
+    category: string;
+    material: string;
+    lighting_style: string;
+    brand_colors: string;
 }
 
 // --- 2. MOODBOARD ---
 export interface Moodboard {
-    [key: string]: any; // Allows dynamic keys (color, lighting, texture, etc.)
+    [key: string]: any;
 }
 
 // --- 3. ASSET PROFILES ---
@@ -27,7 +35,7 @@ export interface CharacterProfile {
     project_id: string;
 
     image_url?: string;
-    ref_image_url?: string; // <--- NEW: Reference Image URL
+    ref_image_url?: string;
 
     visual_traits: CharacterVisualTraits;
     voice_sample?: string;
@@ -54,7 +62,7 @@ export interface LocationProfile {
     project_id: string;
 
     image_url?: string;
-    ref_image_url?: string; // <--- NEW: Reference Image URL
+    ref_image_url?: string;
 
     visual_traits: LocationVisualTraits;
     status?: "pending" | "processing" | "generating" | "active" | "failed";
@@ -63,14 +71,47 @@ export interface LocationProfile {
     created_at?: any;
 }
 
+// [FIXED] Product Profile - Added 'prompt' and 'product_metadata'
+export interface ProductProfile {
+    id: string;
+    name: string;
+    type: "product";
+    project_id: string;
+
+    description?: string;
+    brand_guidelines?: string;
+
+    image_url?: string;
+    ref_image_url?: string;
+
+    // Metadata container
+    product_metadata?: {
+        brand_name?: string;
+        category?: string;
+        visual_dna?: {
+            materials?: string[];
+            brand_colors?: string[];
+        };
+        marketing?: {
+            key_features?: string[];
+        };
+    };
+
+    status?: "pending" | "processing" | "generating" | "active" | "failed";
+    created_at?: any;
+
+    prompt?: string;
+}
+
 // --- 4. THE UNIFIED ASSET TYPE ---
-export type Asset = CharacterProfile | LocationProfile;
+export type Asset = CharacterProfile | LocationProfile | ProductProfile;
 
 // --- 5. PROJECT INTERFACE ---
 export interface Project {
     id: string;
     title: string;
-    type: 'movie' | 'micro_drama';
+    type: 'movie' | 'micro_drama' | 'ad';
+
     default_episode_id?: string;
     aspect_ratio?: string;
     genre?: string;
@@ -78,6 +119,10 @@ export interface Project {
     created_at?: any;
     updated_at?: any;
     user_id?: string;
+
+    episode_count?: number;
+    product_count?: number;
+    script_status?: string;
 }
 
 // --- 6. SCENE & SHOT INTERFACES ---
@@ -86,11 +131,14 @@ export interface Scene {
     scene_number: number;
     header: string;
     summary: string;
-    location_id: string; // Links to LocationProfile ID
-    characters: string[]; // List of Character Names or IDs
+
+    location_id: string;
+    characters: string[];
+    products?: string[];
+
     time: string;
     visual_prompt: string;
-    dialogue?: Record<string, string>; // JSON Object: { "MAYA": "Hello" }
+    dialogue?: Record<string, string>;
     status: "draft" | "approved";
 }
 
@@ -98,19 +146,23 @@ export interface Shot {
     id: string;
     shot_type: string;
 
-    // Prompts
     visual_action: string;
     video_prompt?: string;
 
-    // Context
     location_id?: string;
-    characters: string[];
+    location?: string; // Added for UI convenience
 
-    // Media & Status
+    characters: string[];
+    products?: string[]; // Ensure this exists
+
     image_url?: string;
     video_url?: string;
+    lipsync_url?: string; // Added for UI
+
     video_status?: 'queued' | 'processing' | 'completed' | 'failed' | null;
-    status?: 'draft' | 'rendered' | 'animating' | 'completed';
+    status?: 'draft' | 'rendered' | 'animating' | 'completed' | 'finalized';
+
+    morph_to_next?: boolean; // Added for UI logic
 
     created_at?: string;
 }

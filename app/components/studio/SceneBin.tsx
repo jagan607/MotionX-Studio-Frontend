@@ -1,8 +1,15 @@
 "use client";
 
-import React from "react";
-import { LayoutGrid, Clapperboard, ArrowRight } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { LayoutGrid, Clapperboard, ArrowRight, Plus, Wand2, Loader2 } from "lucide-react";
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { useRouter } from "next/navigation";
+import {
+    DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent
+} from '@dnd-kit/core';
+import {
+    SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arrayMove
+} from '@dnd-kit/sortable';
 import { SceneCard, SceneData } from "@/components/studio/SceneCard";
 import { Asset } from "@/lib/types";
 
@@ -14,8 +21,16 @@ interface SceneBinProps {
         characters: Asset[];
         locations: Asset[];
     };
+    projectType?: 'movie' | 'ad' | 'music_video';
     onOpenStoryboard: (scene: SceneData) => void;
+    onReorder: (newScenes: SceneData[]) => void;
+    onEditScene: (scene: SceneData) => void;
+    onDeleteScene: (sceneId: string) => void;
+    onManualAdd: () => void;
+    onAutoExtend: () => void;
+    isExtending: boolean;
     className?: string;
+    episodeId: string;
 }
 
 export const SceneBin: React.FC<SceneBinProps> = ({
@@ -23,10 +38,86 @@ export const SceneBin: React.FC<SceneBinProps> = ({
     activeReelTitle,
     projectId,
     projectAssets,
+    projectType = 'movie',
     onOpenStoryboard,
-    className = ""
+    onReorder,
+    onEditScene,
+    onDeleteScene,
+    onManualAdd,
+    onAutoExtend,
+    isExtending,
+    className = "",
+    episodeId
 }) => {
     const router = useRouter();
+
+    // --- DELETE CONFIRMATION STATE ---
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteClick = (sceneId: string) => {
+        setPendingDeleteId(sceneId);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!pendingDeleteId) return;
+        setIsDeleting(true);
+        try {
+            await onDeleteScene(pendingDeleteId);
+        } finally {
+            setIsDeleting(false);
+            setPendingDeleteId(null);
+        }
+    };
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    // --- AUTO-SCROLL LOGIC ---
+    const bottomRef = useRef<HTMLDivElement>(null);
+    const shouldScroll = useRef(false);
+
+    // Only scroll when the flag is set (by Add/Extend clicks)
+    useEffect(() => {
+        if (shouldScroll.current) {
+            shouldScroll.current = false;
+            setTimeout(() => {
+                bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, 100);
+        }
+    }, [scenes.length]);
+
+    // Scroll when Auto-Extend starts (to show loading skeleton)
+    useEffect(() => {
+        if (isExtending) {
+            setTimeout(() => {
+                bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, 100);
+        }
+    }, [isExtending]);
+
+    const handleAddClick = () => {
+        shouldScroll.current = true;
+        onManualAdd();
+    };
+
+    const handleExtendClick = () => {
+        shouldScroll.current = true;
+        onAutoExtend();
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const oldIndex = scenes.findIndex((s) => s.id === active.id);
+            const newIndex = scenes.findIndex((s) => s.id === over.id);
+            const newOrder = arrayMove(scenes, oldIndex, newIndex);
+            const reindexed = newOrder.map((s, idx) => ({ ...s, scene_number: idx + 1 }));
+            onReorder(reindexed);
+        }
+    };
 
     return (
         <div className={`flex-1 bg-[#020202] flex flex-col relative ${className}`}>
@@ -38,10 +129,23 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                     <span className="text-[#888]">{activeReelTitle}</span> <span className="text-[#333]">/</span> SCENE BIN
                 </div>
 
-                <div className="flex gap-2">
-                    <div className="text-[9px] font-mono text-[#333]">
-                        MODE: BOARD_VIEW
-                    </div>
+                {/* ADD SCENE CONTROLS */}
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleAddClick}
+                        disabled={isExtending}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-[#555] text-[9px] font-bold text-[#888] hover:text-white uppercase tracking-wider transition-colors rounded disabled:opacity-50"
+                    >
+                        <Plus size={11} /> Add Scene
+                    </button>
+                    <button
+                        onClick={handleExtendClick}
+                        disabled={isExtending || scenes.length === 0}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/10 border border-red-900/30 hover:border-red-500/50 text-[9px] font-bold text-red-400 hover:text-red-300 uppercase tracking-wider transition-colors rounded disabled:opacity-50"
+                    >
+                        {isExtending ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+                        {isExtending ? "Extending..." : "Auto-Extend"}
+                    </button>
                 </div>
             </div>
 
@@ -53,35 +157,85 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                         <Clapperboard size={32} className="text-[#333] mb-4" />
                         <div className="text-xs font-bold text-[#666] tracking-widest uppercase mb-2">Reel is Empty</div>
                         <p className="text-[10px] font-mono text-[#444] max-w-xs text-center mb-6">
-                            No scenes found in this sequence. Please return to the Script Editor to generate breakdown.
+                            No scenes found in this sequence. Add a scene manually or use Auto-Extend.
                         </p>
-                        <button
-                            onClick={() => router.push(`/project/${projectId}/script`)}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold text-[#888] hover:text-white uppercase transition-colors"
-                        >
-                            <ArrowRight size={12} /> GO TO SCRIPT EDITOR
-                        </button>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={onManualAdd}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold text-[#888] hover:text-white uppercase transition-colors"
+                            >
+                                <Plus size={12} /> Add First Scene
+                            </button>
+                            <button
+                                onClick={() => router.push(`/project/${projectId}/script`)}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold text-[#888] hover:text-white uppercase transition-colors"
+                            >
+                                <ArrowRight size={12} /> Script Editor
+                            </button>
+                        </div>
                     </div>
                 ) : (
-                    // MASONRY GRID LAYOUT
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 pb-20">
-                        {scenes.map((scene) => (
-                            <div key={scene.id} className="scene-card-wrapper group relative">
-                                {/* Tech Accents */}
-                                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#333] z-10 pointer-events-none" />
-                                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#333] z-10 pointer-events-none" />
+                    // SORTABLE GRID LAYOUT
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <SortableContext items={scenes.map(s => s.id)} strategy={rectSortingStrategy}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 pb-20">
+                                {scenes.map((scene) => (
+                                    <div key={scene.id} className="scene-card-wrapper group relative">
+                                        {/* Tech Accents */}
+                                        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#333] z-10 pointer-events-none" />
+                                        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#333] z-10 pointer-events-none" />
 
-                                {/* The Card Component */}
-                                <SceneCard
-                                    scene={scene}
-                                    projectAssets={projectAssets}
-                                    onOpenStoryboard={onOpenStoryboard}
-                                />
+                                        {/* The Card Component */}
+                                        <SceneCard
+                                            scene={scene}
+                                            projectAssets={projectAssets}
+                                            projectType={projectType}
+                                            onOpenStoryboard={onOpenStoryboard}
+                                            onEdit={onEditScene}
+                                            onDelete={handleDeleteClick}
+                                            episodeId={episodeId}
+                                            projectId={projectId}
+                                        />
+                                    </div>
+                                ))}
+
+                                {/* LOADING SKELETON (Auto-Extend) */}
+                                {isExtending && (
+                                    <div className="relative aspect-video bg-[#050505] border border-[#222] rounded-lg overflow-hidden flex flex-col animate-pulse">
+                                        <div className="h-8 border-b border-[#222] bg-[#0A0A0A] flex items-center justify-between px-3">
+                                            <div className="w-16 h-3 bg-[#111] rounded" />
+                                            <div className="w-12 h-3 bg-[#111] rounded" />
+                                        </div>
+                                        <div className="flex-1 p-4 space-y-3">
+                                            <div className="w-3/4 h-3 bg-[#111] rounded" />
+                                            <div className="w-full h-3 bg-[#111] rounded" />
+                                            <div className="w-5/6 h-3 bg-[#111] rounded" />
+                                        </div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="flex flex-col items-center gap-2 text-[#444]">
+                                                <Loader2 size={24} className="animate-spin" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">Generating Scene...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                <div ref={bottomRef} className="w-full h-1" />
                             </div>
-                        ))}
-                    </div>
+                        </SortableContext>
+                    </DndContext>
                 )}
             </div>
+
+            {/* DELETE CONFIRMATION MODAL */}
+            {pendingDeleteId && (
+                <DeleteConfirmModal
+                    title="Delete Scene"
+                    message="Are you sure you want to delete this scene? This action cannot be undone."
+                    isDeleting={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setPendingDeleteId(null)}
+                />
+            )}
         </div>
     );
 };

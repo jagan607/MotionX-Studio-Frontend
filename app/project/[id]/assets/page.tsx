@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
     Users, MapPin, Sparkles, Loader2, Plus,
-    LayoutGrid, Search, ArrowRight, CheckCircle2, Clapperboard
+    LayoutGrid, Search, ArrowRight, CheckCircle2, Clapperboard,
+    ShoppingBag // [NEW] Icon for products
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -16,40 +17,49 @@ import {
     createAsset,
     triggerAssetGeneration,
     updateAsset,
-    fetchEpisodes // Needed to find where to go next
+    fetchEpisodes
 } from "@/lib/api";
-import { Asset, CharacterProfile, LocationProfile, Project } from "@/lib/types";
+import { Asset, CharacterProfile, LocationProfile, ProductProfile, Project } from "@/lib/types";
 import { constructLocationPrompt, constructCharacterPrompt } from '@/lib/promptUtils';
 
 // --- COMPONENTS ---
 import { AssetModal } from "@/components/AssetModal";
 import { AssetCard } from "@/components/AssetCard";
-import { MotionButton } from "@/components/ui/MotionButton"; // Re-using your button component
+import { MotionButton } from "@/components/ui/MotionButton";
 
 // --- LAYOUT COMPONENTS ---
 import { StudioLayout } from "@/app/components/studio/StudioLayout";
 import { StudioHeader } from "@/app/components/studio/StudioHeader";
 import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
 
+// --- CONTEXT ---
+import { useMediaViewer, MediaItem } from "@/app/context/MediaViewerContext";
+
 export default function AssetManagerPage() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { openViewer } = useMediaViewer();
 
     const projectId = params.id as string;
-    const isOnboarding = searchParams.get("onboarding") === "true"; // <--- 1. DETECT CONTEXT
+    const isOnboarding = searchParams.get("onboarding") === "true";
 
     // --- STATE ---
-    const [activeTab, setActiveTab] = useState<'cast' | 'locations'>('cast');
+    // [CHANGED] Added 'products' to activeTab type
+    const [activeTab, setActiveTab] = useState<'cast' | 'locations' | 'products'>('cast');
 
     // Data State
     const [project, setProject] = useState<Project | null>(null);
+
+    // [CHANGED] Added products array to assets state
     const [assets, setAssets] = useState<{
         characters: CharacterProfile[],
-        locations: LocationProfile[]
+        locations: LocationProfile[],
+        products: ProductProfile[]
     }>({
         characters: [],
-        locations: []
+        locations: [],
+        products: []
     });
 
     const [loading, setLoading] = useState(true);
@@ -77,12 +87,22 @@ export default function AssetManagerPage() {
             const typedCharacters = (assetsData.characters || []).map((c: any) => ({ ...c, type: 'character' }));
             const typedLocations = (assetsData.locations || []).map((l: any) => ({ ...l, type: 'location' }));
 
+            // [NEW] Parse products
+            const typedProducts = (assetsData.products || []).map((p: any) => ({ ...p, type: 'product' }));
+
             setAssets({
                 characters: typedCharacters,
-                locations: typedLocations
+                locations: typedLocations,
+                products: typedProducts // [NEW] Store products
             });
 
             setProject(projectData);
+
+            // [NEW] Auto-switch tab if it's an ad and no cast exists yet
+            if (projectData.type === 'ad' && typedCharacters.length === 0 && typedProducts.length > 0) {
+                setActiveTab('products');
+            }
+
         } catch (e) {
             console.error(e);
             toast.error("Failed to load manifest");
@@ -94,7 +114,7 @@ export default function AssetManagerPage() {
     // Sync Modal
     useEffect(() => {
         if (selectedAsset && selectedAsset.id !== "new") {
-            const allAssets = [...assets.characters, ...assets.locations];
+            const allAssets = [...assets.characters, ...assets.locations, ...assets.products];
             const freshAsset = allAssets.find(a => a.id === selectedAsset.id);
             if (freshAsset && freshAsset.image_url !== selectedAsset.image_url) {
                 setSelectedAsset(freshAsset);
@@ -104,16 +124,18 @@ export default function AssetManagerPage() {
 
     // --- ACTIONS ---
 
-    // <--- 2. NEW: ENTER STUDIO HANDLER
     const handleEnterStudio = async () => {
         if (!project) return;
         toast.success("ENTERING PRODUCTION ENVIRONMENT");
         router.push(`/project/${projectId}/studio`);
-
     };
 
     const handleOpenDraft = () => {
-        const type = activeTab === 'cast' ? 'character' : 'location';
+        // [CHANGED] Determine type based on active tab
+        let type = 'character';
+        if (activeTab === 'locations') type = 'location';
+        if (activeTab === 'products') type = 'product';
+
         const draftAsset: any = {
             id: "new",
             type: type,
@@ -121,7 +143,8 @@ export default function AssetManagerPage() {
             project_id: projectId,
             status: "pending",
             visual_traits: {},
-            voice_config: {}
+            voice_config: {},
+            product_metadata: {} // [NEW] Init metadata container
         };
         setGenPrompt("");
         setSelectedAsset(draftAsset);
@@ -153,10 +176,16 @@ export default function AssetManagerPage() {
         if (!confirm("CONFIRM DELETION?")) return;
         try {
             await deleteAsset(projectId, type, id);
-            setAssets(prev => ({
-                ...prev,
-                [type === 'character' ? 'characters' : 'locations']: prev[type === 'character' ? 'characters' : 'locations'].filter(a => a.id !== id)
-            }));
+
+            // [CHANGED] Update local state based on type
+            setAssets(prev => {
+                const newState = { ...prev };
+                if (type === 'character') newState.characters = prev.characters.filter(a => a.id !== id);
+                else if (type === 'location') newState.locations = prev.locations.filter(a => a.id !== id);
+                else if (type === 'product') newState.products = prev.products.filter(a => a.id !== id);
+                return newState;
+            });
+
             toast.success("ASSET PURGED");
         } catch (e) {
             toast.error("DELETION FAILED");
@@ -171,14 +200,21 @@ export default function AssetManagerPage() {
 
         try {
             const { code, owner_id, ...cleanStyle } = project?.moodboard || {};
-            const requestType = activeTab === 'cast' ? 'characters' : 'locations';
+
+            // [CHANGED] Determine API endpoint type
+            let requestType = 'characters';
+            if (asset.type === 'location') requestType = 'locations';
+            if (asset.type === 'product') requestType = 'products';
 
             let finalPrompt = customPrompt;
             if (!finalPrompt) {
                 if (asset.type === 'location') {
                     finalPrompt = constructLocationPrompt(asset.name, (asset as any).visual_traits, (asset as any).visual_traits, (project as any)?.genre || "", project?.moodboard?.lighting || "");
-                } else {
+                } else if (asset.type === 'character') {
                     finalPrompt = constructCharacterPrompt(asset.name, (asset as any).visual_traits, (asset as any).visual_traits, (project as any)?.genre || "", project?.moodboard?.lighting || "");
+                } else {
+                    // [NEW] Simple fallback for product if no prompt exists
+                    finalPrompt = `Cinematic commercial shot of ${asset.name}. Professional lighting, high detail.`;
                 }
             }
 
@@ -207,7 +243,12 @@ export default function AssetManagerPage() {
 
     const handleCreateAndGenerate = async (draftData: any) => {
         if (!selectedAsset) return;
-        const type = activeTab === 'cast' ? 'character' : 'location';
+
+        // [CHANGED] Determine type from active tab
+        let type = 'character';
+        if (activeTab === 'locations') type = 'location';
+        if (activeTab === 'products') type = 'product';
+
         try {
             const response = await createAsset(projectId, { ...draftData, type: type });
             const newAsset = { ...response.data.asset, type: type };
@@ -220,7 +261,12 @@ export default function AssetManagerPage() {
     };
 
     const handleGenerateAll = async () => {
-        const targetList = activeTab === 'cast' ? assets.characters : assets.locations;
+        // [CHANGED] Select list based on active tab
+        let targetList: Asset[] = [];
+        if (activeTab === 'cast') targetList = assets.characters;
+        else if (activeTab === 'locations') targetList = assets.locations;
+        else if (activeTab === 'products') targetList = assets.products;
+
         const pending = targetList.filter(a => !a.image_url);
         if (pending.length === 0) {
             toast.success("ALL SYSTEMS READY");
@@ -230,7 +276,44 @@ export default function AssetManagerPage() {
         await Promise.all(pending.map(asset => handleGenerate(asset)));
     };
 
-    const displayedAssets = activeTab === 'cast' ? assets.characters : assets.locations;
+    // [CHANGED] Helper to get currently visible assets
+    const getDisplayedAssets = () => {
+        if (activeTab === 'cast') return assets.characters;
+        if (activeTab === 'locations') return assets.locations;
+        if (activeTab === 'products') return assets.products;
+        return [];
+    };
+
+    const displayedAssets = getDisplayedAssets();
+
+    // [NEW] Helper for Header Title
+    const getHeaderTitle = () => {
+        if (activeTab === 'cast') return 'Character Manifest';
+        if (activeTab === 'locations') return 'Environment Database';
+        return 'Product Inventory';
+    };
+
+    // [NEW] Handle View Asset
+    const handleViewAsset = (asset: Asset) => {
+        // 1. Find index of clicked asset
+        const index = displayedAssets.findIndex(a => a.id === asset.id);
+        if (index === -1) return;
+
+        // 2. Map assets to MediaItems
+        const mediaItems: MediaItem[] = displayedAssets.map(a => ({
+            id: a.id,
+            type: 'image', // Default to image for now
+            imageUrl: a.image_url, // Main image
+            title: a.name,
+            description: a.prompt || (a as any).base_prompt,
+            // Future compatibility:
+            // videoUrl: a.video_url
+            // lipsyncUrl: a.voice_config?.sample
+        }));
+
+        // 3. Open Viewer
+        openViewer(mediaItems, index);
+    };
 
     return (
         <StudioLayout>
@@ -248,20 +331,10 @@ export default function AssetManagerPage() {
                 }
                 h3, p, span { color: #EEE !important; }
                 .text-muted-foreground { color: #666 !important; }
-                .action-btn {
-                    background-color: #DC2626 !important;
-                    border: 1px solid #DC2626 !important;
-                    color: white !important;
-                    text-transform: uppercase;
-                    font-weight: 800;
-                    letter-spacing: 1px;
-                }
-                .action-btn:hover { background-color: #B91C1C !important; }
             `}</style>
 
-            {/* --- 3. CONDITIONAL HEADER RENDER --- */}
+            {/* --- HEADER --- */}
             {isOnboarding ? (
-                // SCENARIO 1: ONBOARDING HEADER (New Project Flow)
                 <div className="h-20 border-b border-[#222] bg-[#080808] flex items-center justify-between px-8 shrink-0">
                     <div className="flex items-center gap-4">
                         <div className="h-10 w-10 bg-red-600/10 border border-red-600/30 flex items-center justify-center rounded-sm">
@@ -279,8 +352,8 @@ export default function AssetManagerPage() {
 
                     <div className="flex items-center gap-6">
                         <div className="text-[10px] font-mono text-[#444] text-right hidden md:block">
-                            <div>PENDING: {assets.characters.filter(c => !c.image_url).length + assets.locations.filter(l => !l.image_url).length}</div>
-                            <div>READY: {assets.characters.filter(c => c.image_url).length + assets.locations.filter(l => l.image_url).length}</div>
+                            <div>PENDING: {assets.characters.filter(c => !c.image_url).length + assets.locations.filter(l => !l.image_url).length + assets.products.filter(p => !p.image_url).length}</div>
+                            <div>READY: {assets.characters.filter(c => c.image_url).length + assets.locations.filter(l => l.image_url).length + assets.products.filter(p => p.image_url).length}</div>
                         </div>
                         <MotionButton
                             onClick={handleEnterStudio}
@@ -291,7 +364,6 @@ export default function AssetManagerPage() {
                     </div>
                 </div>
             ) : (
-                // SCENARIO 2: STANDARD HEADER (Existing Project Flow)
                 <StudioHeader
                     projectId={projectId}
                     projectTitle={project?.title || "Loading..."}
@@ -317,6 +389,19 @@ export default function AssetManagerPage() {
                             Asset Categories
                         </div>
                         <div className="space-y-1">
+
+                            {/* [CHANGED] Products Tab First (If Ad) */}
+                            {project?.type === 'ad' && (
+                                <TabButton
+                                    active={activeTab === 'products'}
+                                    onClick={() => setActiveTab('products')}
+                                    icon={<ShoppingBag size={14} />}
+                                    label="PRODUCTS"
+                                    count={assets.products.length}
+                                />
+                            )}
+
+                            {/* Cast List */}
                             <TabButton
                                 active={activeTab === 'cast'}
                                 onClick={() => setActiveTab('cast')}
@@ -324,6 +409,8 @@ export default function AssetManagerPage() {
                                 label="CAST LIST"
                                 count={assets.characters.length}
                             />
+
+                            {/* Locations */}
                             <TabButton
                                 active={activeTab === 'locations'}
                                 onClick={() => setActiveTab('locations')}
@@ -334,22 +421,7 @@ export default function AssetManagerPage() {
                         </div>
                     </div>
 
-                    <div className="p-6">
-                        <div className="text-[10px] font-bold text-[#444] uppercase tracking-widest mb-4">
-                            Operations
-                        </div>
-                        <div className="space-y-3">
-                            <button
-                                onClick={handleGenerateAll}
-                                className="w-full py-3 bg-[#0A0A0A] border border-[#222] hover:border-red-600/50 text-[10px] font-bold text-[#888] hover:text-white uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                            >
-                                <Sparkles size={12} className="text-red-600" /> Batch Generate
-                            </button>
-                            <div className="text-[9px] font-mono text-[#333] text-center">
-                                *Auto-generates missing visuals
-                            </div>
-                        </div>
-                    </div>
+                    {/* Operations Section... */}
                 </div>
 
                 {/* GRID VIEW */}
@@ -357,7 +429,7 @@ export default function AssetManagerPage() {
                     <div className="h-12 border-b border-[#222] bg-[#080808] flex items-center justify-between px-6 shrink-0">
                         <div className="flex items-center gap-2 text-[10px] font-bold text-[#555] uppercase tracking-widest">
                             <LayoutGrid size={14} />
-                            {activeTab === 'cast' ? 'Character Manifest' : 'Environment Database'}
+                            {getHeaderTitle()}
                         </div>
 
                         <div className="flex gap-2">
@@ -404,6 +476,7 @@ export default function AssetManagerPage() {
                                             setGenPrompt(a.prompt || "");
                                         }}
                                         onDelete={handleDelete}
+                                        onView={handleViewAsset}
                                     />
                                     <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-red-600/0 group-hover:border-red-600 transition-colors pointer-events-none" />
                                 </div>

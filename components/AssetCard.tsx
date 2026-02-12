@@ -11,6 +11,7 @@ interface AssetCardProps {
     onConfig?: (asset: Asset) => void;
     onDelete?: (id: string, type: string) => void;
     onCreate?: () => void; // <--- Handler for Create Mode
+    onView?: (asset: Asset) => void; // <--- Handler for View Mode
     label?: string;        // <--- Label for Create Mode (e.g., "New Character")
 }
 
@@ -22,6 +23,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     onConfig,
     onDelete,
     onCreate,
+    onView,
     label
 }) => {
 
@@ -49,7 +51,10 @@ export const AssetCard: React.FC<AssetCardProps> = ({
         <div className="group relative aspect-[3/4] bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden hover:border-neutral-600 transition-all">
 
             {/* --- 1. VISUAL LAYER --- */}
-            <div className="w-full h-full relative">
+            <div
+                onClick={() => onView && asset && onView(asset)}
+                className="w-full h-full relative cursor-pointer"
+            >
 
                 {/* A. LOADING OVERLAY */}
                 {isGenerating && (
@@ -108,7 +113,10 @@ export const AssetCard: React.FC<AssetCardProps> = ({
 
                 <div className="grid grid-cols-2 gap-2">
                     <button
-                        onClick={() => onGenerate && onGenerate(asset)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onGenerate && onGenerate(asset);
+                        }}
                         disabled={isGenerating}
                         className="flex items-center justify-center gap-1.5 py-2 bg-white/10 hover:bg-motion-red text-white rounded text-[9px] font-bold tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -116,7 +124,10 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                     </button>
 
                     <button
-                        onClick={() => onConfig && onConfig(asset)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onConfig && onConfig(asset);
+                        }}
                         disabled={isGenerating}
                         className="flex items-center justify-center gap-1.5 py-2 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white rounded text-[9px] font-bold tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >

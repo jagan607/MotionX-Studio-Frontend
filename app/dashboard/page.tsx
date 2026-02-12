@@ -7,7 +7,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Plus, Film, Radio, Image as ImageIcon, Crosshair, Disc, Maximize, Signal, Play, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
-import { DashboardProject, fetchUserDashboardProjects, fetchGlobalFeed, invalidateDashboardCache } from "@/lib/api";
+import { DashboardProject, fetchUserDashboardProjects, fetchGlobalFeed, invalidateDashboardCache, fetchUserProjectsBasic, enrichProjectPreview } from "@/lib/api";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 
 const DEFAULT_SHOWREEL = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
@@ -49,18 +49,28 @@ export default function Dashboard() {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Real-time Credits listener (Kept separate as it needs to be live)
+                // Real-time Credits listener
                 onSnapshot(doc(db, "users", user.uid), (d) => setUserCredits(d.data()?.credits || 0));
 
-                // Fetch Data using API Helpers
-                const [projects, feed] = await Promise.all([
-                    fetchUserDashboardProjects(user.uid),
-                    fetchGlobalFeed()
-                ]);
+                // 1. FAST LOAD: Metadata
+                const feedPromise = fetchGlobalFeed();
+                const basicsPromise = fetchUserProjectsBasic(user.uid);
 
-                setMyProjects(projects);
+                const [basics, feed] = await Promise.all([basicsPromise, feedPromise]);
+
+                setMyProjects(basics);
                 setGlobalShots(feed);
                 setBootState('ready');
+
+                // 2. SLOW LOAD: Hydrate media one by one
+                // We create a local working copy to avoid too many re-renders, or just update state per project
+                for (const p of basics) {
+                    enrichProjectPreview(p).then(enriched => {
+                        setMyProjects(prev => prev.map(item =>
+                            item.id === enriched.id ? enriched : item
+                        ));
+                    });
+                }
             } else {
                 router.replace("/login");
             }

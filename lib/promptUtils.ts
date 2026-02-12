@@ -1,8 +1,8 @@
 // --- LOCATION PROMPT BUILDER ---
 export const constructLocationPrompt = (
     locationName: string,
-    visualTraits: string | string[] | any, // Expanded to handle String (UI), Array (DB), or Object (Legacy/Type)
-    allTraits: any, // The full flat object containing atmosphere, lighting, terrain
+    visualTraits: string | string[] | any, // Handle String (UI), Array (DB), or Object (Legacy)
+    allTraits: any,
     genre: string,
     style: string
 ): string => {
@@ -19,31 +19,26 @@ export const constructLocationPrompt = (
         context = "cinematic exterior wide shot";
     }
 
-    // 2. Base Identity (Force "Empty")
+    // 2. Base Identity
     let prompt = `${context} of an empty ${subject}`;
 
-    // 3. Terrain/Setting (Grounding)
+    // 3. Terrain/Setting
     if (allTraits.terrain) prompt += `, situated in ${allTraits.terrain}`;
 
-    prompt += "."; // End subject clause
+    prompt += ".";
 
-    // 4. Specific Visual Details (The "Ingredients")
+    // 4. Specific Visual Details
     let details: string[] = [];
 
     if (typeof visualTraits === 'string') {
-        // Handle live string input from UI (e.g. "mist, dark")
         details = visualTraits.split(',').map(s => s.trim()).filter(s => s.length > 0);
     }
     else if (Array.isArray(visualTraits)) {
-        // Handle DB Array (e.g. ["mist", "dark"])
         details = visualTraits;
     }
     else if (visualTraits && typeof visualTraits === 'object') {
-        // Handle Legacy or Typed Objects
         if (visualTraits.environment) details.push(visualTraits.environment);
         if (visualTraits.architectural_style) details.push(visualTraits.architectural_style);
-
-        // Handle 'LocationVisualTraits' interface (keywords property)
         if (visualTraits.keywords) {
             const kw = Array.isArray(visualTraits.keywords)
                 ? visualTraits.keywords
@@ -54,15 +49,15 @@ export const constructLocationPrompt = (
 
     if (details.length > 0) prompt += ` Visual Details: ${details.join(', ')}.`;
 
-    // 5. Atmosphere & Lighting (The "Vibe")
+    // 5. Atmosphere & Lighting
     if (allTraits.atmosphere) prompt += ` Atmosphere: ${allTraits.atmosphere}.`;
     if (allTraits.lighting) prompt += ` Lighting: ${allTraits.lighting}.`;
 
-    // 6. Style & Genre (Aesthetic wrapper)
+    // 6. Style & Genre
     if (genre) prompt += ` Genre: ${genre}.`;
     if (style) prompt += ` Style: ${style}.`;
 
-    // 7. FINAL SAFETY LOCK (Negative constraints as positive text for DALL-E)
+    // 7. Safety Lock
     prompt += " Scene must be completely empty, devoid of people, no characters, architectural photography.";
 
     return prompt;
@@ -72,12 +67,11 @@ export const constructLocationPrompt = (
 // --- CHARACTER PROMPT BUILDER ---
 export const constructCharacterPrompt = (
     charName: string,
-    traits: any, // The specific visual_traits object (age, hair, etc.)
-    allTraits: any, // The full object (in case we need top-level fields like physical_description)
+    traits: any,
+    allTraits: any,
     genre: string,
     style: string
 ): string => {
-    // 1. Base Identity & Demographics
     let prompt = `Cinematic portrait of ${charName.toUpperCase()}`;
 
     const demographics = [];
@@ -90,21 +84,51 @@ export const constructCharacterPrompt = (
         prompt += `.`;
     }
 
-    // 2. Physical Appearance
     if (traits.clothing) prompt += ` Wearing ${traits.clothing}.`;
     if (traits.hair) prompt += ` Hair: ${traits.hair}.`;
-
-    // 3. Character Vibe/Aura
     if (traits.vibe) prompt += ` Vibe: ${traits.vibe}.`;
 
-    // 4. Fallback for "Physical Description" (if used in ingestion)
     if (allTraits.physical_description) {
         prompt += ` Description: ${allTraits.physical_description}.`;
     }
 
-    // 5. Genre & Style (Passed dynamically from Project Config)
     if (genre) prompt += ` Genre: ${genre}.`;
     if (style) prompt += ` Style: ${style}.`;
+
+    return prompt;
+};
+
+
+// --- [NEW] PRODUCT PROMPT BUILDER ---
+export const constructProductPrompt = (
+    productName: string,
+    traits: any, // Expects flattened object: { brandName, category, materials, colors, features }
+    genre: string,
+    style: string
+): string => {
+    // 1. Base Subject & Brand
+    let prompt = `Cinematic commercial product shot of ${productName}`;
+
+    if (traits.brandName && traits.brandName.trim()) {
+        prompt += ` by ${traits.brandName}`;
+    }
+    prompt += ".";
+
+    // 2. Core Identity
+    if (traits.category) prompt += ` Category: ${traits.category}.`;
+
+    // 3. Visual DNA
+    if (traits.materials) prompt += ` Materials: ${traits.materials}.`;
+    if (traits.colors) prompt += ` Brand Colors: ${traits.colors}.`;
+
+    // 4. Key Selling Points
+    if (traits.features) prompt += ` Key Features visible: ${traits.features}.`;
+
+    // 5. Aesthetic Wrapper
+    if (style) prompt += ` Style: ${style}.`;
+
+    // 6. Technical Spec
+    prompt += " High-end advertising photography, 8k resolution, hero lighting, sharp focus.";
 
     return prompt;
 };

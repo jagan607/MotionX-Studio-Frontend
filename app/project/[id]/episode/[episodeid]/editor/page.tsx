@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
     collection,
     onSnapshot,
@@ -52,12 +52,25 @@ export default function SceneManagerPage() {
 
     const [isExtending, setIsExtending] = useState(false);
 
-    // AUTO-SELECT FIRST SCENE when loading completes
+    // NEW: Read search params for deep linking
+    const searchParams = useSearchParams();
+    const targetSceneId = searchParams.get('scene_id');
+
+    // AUTO-SELECT LOGIC
     useEffect(() => {
-        if (!isLoading && scenes.length > 0 && activeSceneId === null) {
-            setActiveSceneId(scenes[0].id);
+        if (!isLoading && scenes.length > 0) {
+            // 1. If we have a targetSceneId from URL and it exists in loaded scenes, select it
+            if (targetSceneId && scenes.some(s => s.id === targetSceneId)) {
+                if (activeSceneId !== targetSceneId) {
+                    setActiveSceneId(targetSceneId);
+                }
+            }
+            // 2. Fallback: Select first scene if nothing selected yet
+            else if (activeSceneId === null) {
+                setActiveSceneId(scenes[0].id);
+            }
         }
-    }, [isLoading, scenes, activeSceneId]);
+    }, [isLoading, scenes, activeSceneId, targetSceneId]);
 
     // 1. FETCH CONTEXT (Project Info, Episodes, Characters, Locations)
     useEffect(() => {

@@ -167,8 +167,9 @@ export const invalidateDashboardCache = (uid: string) => {
     delete projectCache[uid];
 };
 
-export const fetchUserDashboardProjects = async (uid: string): Promise<DashboardProject[]> => {
-    // 1. Check Cache
+// [NEW] 1. Fast Load: Just the metadata
+export const fetchUserProjectsBasic = async (uid: string): Promise<DashboardProject[]> => {
+    // Check Cache
     if (projectCache[uid] && (Date.now() - projectCache[uid].timestamp < CACHE_TTL)) {
         return projectCache[uid].data;
     }
@@ -185,82 +186,82 @@ export const fetchUserDashboardProjects = async (uid: string): Promise<Dashboard
             return getDocs(query(collection(db, "projects"), where("owner_id", "==", uid)));
         });
 
-        const projectData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DashboardProject));
+        const projects = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DashboardProject));
 
-        const enriched = await Promise.all(projectData.map(async (p) => {
-            let vid: string | null = null;
-            let img: string | null = null;
+        // Update Cache with basic data
+        projectCache[uid] = { data: projects, timestamp: Date.now() };
 
-            try {
-                // 1. Try to get media from Rendered Shots
-                // Get all episodes for this project
-                const episodesRef = collection(db, "projects", p.id, "episodes");
-                const episodesSnap = await getDocs(query(episodesRef, limit(5)));
-
-                // Search through episodes -> scenes -> shots
-                episodeLoop: for (const epDoc of episodesSnap.docs) {
-                    const scenesRef = collection(epDoc.ref, "scenes");
-                    const scenesSnap = await getDocs(query(scenesRef, limit(10)));
-
-                    for (const sceneDoc of scenesSnap.docs) {
-                        const shotsRef = collection(sceneDoc.ref, "shots");
-                        const shotsSnap = await getDocs(query(
-                            shotsRef,
-                            where("status", "==", "rendered"),
-                            limit(5)
-                        ));
-
-                        for (const shotDoc of shotsSnap.docs) {
-                            const data = shotDoc.data();
-                            if (!vid && data.video_url) vid = data.video_url;
-                            if (!img && data.image_url) img = data.image_url;
-                            if (vid && img) break episodeLoop; // Found both, stop
-                        }
-
-                        if (vid && img) break; // Found both, stop scene loop
-                    }
-                }
-
-                // 2. Fallback: If no image found in shots, check Assets (characters)
-                if (!img) {
-                    const charsRef = collection(db, "projects", p.id, "characters");
-                    const charsSnap = await getDocs(query(charsRef, limit(3)));
-                    for (const charDoc of charsSnap.docs) {
-                        const charData = charDoc.data();
-                        if (charData.image_url) {
-                            img = charData.image_url;
-                            break;
-                        }
-                    }
-                }
-
-                // 3. Fallback: Check locations
-                if (!img) {
-                    const locsRef = collection(db, "projects", p.id, "locations");
-                    const locsSnap = await getDocs(query(locsRef, limit(3)));
-                    for (const locDoc of locsSnap.docs) {
-                        const locData = locDoc.data();
-                        if (locData.image_url) {
-                            img = locData.image_url;
-                            break;
-                        }
-                    }
-                }
-
-            } catch (e) {
-                console.warn(`Preview fetch failed for ${p.id}`, e);
-            }
-            return { ...p, previewVideo: vid, previewImage: img };
-        }));
-
-        // 2. Set Cache
-        projectCache[uid] = { data: enriched, timestamp: Date.now() };
-
-        return enriched;
+        return projects;
     } catch (e) {
-        console.error("Dashboard Load Error", e);
+        console.error("Basic Project Fetch Error", e);
         return [];
     }
+}
+
+// [NEW] 2. Slow Load: Hydrate a single project with media
+export const enrichProjectPreview = async (p: DashboardProject): Promise<DashboardProject> => {
+    let vid: string | null = null;
+    let img: string | null = null;
+
+    try {
+        // 1. Try to get media from Rendered Shots
+        const episodesRef = collection(db, "projects", p.id, "episodes");
+        const episodesSnap = await getDocs(query(episodesRef, limit(5)));
+
+        episodeLoop: for (const epDoc of episodesSnap.docs) {
+            const scenesRef = collection(epDoc.ref, "scenes");
+            const scenesSnap = await getDocs(query(scenesRef, limit(5))); // Reduced limit for speed
+
+            for (const sceneDoc of scenesSnap.docs) {
+                const shotsRef = collection(sceneDoc.ref, "shots");
+                const shotsSnap = await getDocs(query(
+                    shotsRef,
+                    where("status", "==", "rendered"),
+                    limit(3) // Reduced limit
+                ));
+
+                for (const shotDoc of shotsSnap.docs) {
+                    const data = shotDoc.data();
+                    if (!vid && data.video_url) vid = data.video_url;
+                    if (!img && data.image_url) img = data.image_url;
+                    if (vid && img) break episodeLoop;
+                }
+                if (vid && img) break;
+            }
+        }
+
+        // 2. Fallback: Assets
+        if (!img) {
+            const charsRef = collection(db, "projects", p.id, "characters");
+            const charsSnap = await getDocs(query(charsRef, limit(3)));
+            for (const charDoc of charsSnap.docs) {
+                const charData = charDoc.data();
+                if (charData.image_url) { img = charData.image_url; break; }
+            }
+        }
+
+        if (!img) {
+            const locsRef = collection(db, "projects", p.id, "locations");
+            const locsSnap = await getDocs(query(locsRef, limit(3)));
+            for (const locDoc of locsSnap.docs) {
+                const locData = locDoc.data();
+                if (locData.image_url) { img = locData.image_url; break; }
+            }
+        }
+
+    } catch (e) {
+        console.warn(`Preview fetch failed for ${p.id}`, e);
+    }
+
+    return { ...p, previewVideo: vid, previewImage: img };
+};
+
+// [DEPRECATED] - Kept for backward compatibility if needed, but redirects to new logic
+export const fetchUserDashboardProjects = async (uid: string): Promise<DashboardProject[]> => {
+    const basics = await fetchUserProjectsBasic(uid);
+    // Resolve all sequentially or parallel depending on need, current usage was blocking.
+    // For legacy support, we await all.
+    return await Promise.all(basics.map(enrichProjectPreview));
 };
 
 export const fetchUserCredits = async (userId: string): Promise<number> => {
