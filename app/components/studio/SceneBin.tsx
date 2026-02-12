@@ -243,30 +243,41 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                                         : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
                                     }`}
                                 >
-                                    {scenes.map((scene) => (
-                                        <div
-                                            key={scene.id}
-                                            className="scene-card-wrapper group relative"
-                                            ref={editingScene?.id === scene.id ? editingCardRef : undefined}
-                                        >
-                                            {/* Tech Accents */}
-                                            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#333] z-10 pointer-events-none" />
-                                            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#333] z-10 pointer-events-none" />
+                                    {scenes.map((scene) => {
+                                        const isActive = editingScene?.id === scene.id;
+                                        return (
+                                            <div
+                                                key={scene.id}
+                                                className="scene-card-wrapper group relative"
+                                                ref={isActive ? editingCardRef : undefined}
+                                                style={isActive ? {
+                                                    outline: '2px solid rgba(239, 68, 68, 0.5)',
+                                                    outlineOffset: '-1px',
+                                                    boxShadow: '0 0 15px rgba(220, 38, 38, 0.2), 0 0 40px rgba(220, 38, 38, 0.08)',
+                                                    borderRadius: '12px',
+                                                    position: 'relative',
+                                                    zIndex: 5,
+                                                } : undefined}
+                                            >
+                                                {/* Tech Accents */}
+                                                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#333] z-10 pointer-events-none" />
+                                                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#333] z-10 pointer-events-none" />
 
-                                            {/* The Card Component */}
-                                            <SceneCard
-                                                scene={scene}
-                                                projectAssets={projectAssets}
-                                                projectType={projectType}
-                                                onOpenStoryboard={onOpenStoryboard}
-                                                onEdit={onEditScene}
-                                                onDelete={handleDeleteClick}
-                                                episodeId={episodeId}
-                                                projectId={projectId}
-                                                isEditing={editingScene?.id === scene.id}
-                                            />
-                                        </div>
-                                    ))}
+                                                {/* The Card Component */}
+                                                <SceneCard
+                                                    scene={scene}
+                                                    projectAssets={projectAssets}
+                                                    projectType={projectType}
+                                                    onOpenStoryboard={onOpenStoryboard}
+                                                    onEdit={onEditScene}
+                                                    onDelete={handleDeleteClick}
+                                                    episodeId={episodeId}
+                                                    projectId={projectId}
+                                                    isEditing={isActive}
+                                                />
+                                            </div>
+                                        );
+                                    })}
 
                                     {/* LOADING SKELETON (Auto-Extend) */}
                                     {isExtending && (

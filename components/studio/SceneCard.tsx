@@ -88,9 +88,11 @@ export const SceneCard: React.FC<SceneCardProps> = ({
         : "--";
 
     // Highlight style for editing state
+    // Highlight style for editing state
     const editingStyle = isEditing ? {
-        border: '2px solid rgba(239, 68, 68, 0.6)',
-        boxShadow: '0 0 25px rgba(220, 38, 38, 0.2), 0 0 60px rgba(220, 38, 38, 0.08)',
+        border: '2px solid rgba(239, 68, 68, 1)',
+        boxShadow: '0 0 20px rgba(220, 38, 38, 0.4), 0 0 60px rgba(220, 38, 38, 0.1)',
+        backgroundColor: 'rgba(239, 68, 68, 0.05)',
         transform: dragStyle.transform || undefined,
         transition: dragStyle.transition || 'all 0.3s ease',
         opacity: isDragging ? 0.5 : 1,
