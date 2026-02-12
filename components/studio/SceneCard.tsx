@@ -135,7 +135,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                                 e.stopPropagation();
                                 onDelete(scene.id);
                             }}
-                            className="p-1.5 rounded bg-[#111] border border-[#222] text-[#666] hover:text-red-500 hover:border-red-900/50 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                            className="p-1.5 rounded bg-[#111] border border-[#222] text-[#666] hover:text-red-500 hover:border-red-900/50 hover:bg-red-500/10 transition-colors"
                             title="Delete Scene"
                         >
                             <Trash2 size={12} />
