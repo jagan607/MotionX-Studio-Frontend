@@ -29,7 +29,6 @@ import { ReelSidebar } from "@/app/components/studio/ReelSidebar";
 import { SceneBin } from "@/app/components/studio/SceneBin";
 import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
 import { SceneStoryboardContainer } from "@/app/components/studio/SceneStoryboardContainer";
-import { SceneEditorDrawer } from "@/app/components/studio/SceneEditorDrawer";
 
 export default function StudioPage() {
     const params = useParams();
@@ -494,6 +493,16 @@ export default function StudioPage() {
                     onAutoExtend={handleAutoExtend}
                     isExtending={isExtending}
                     episodeId={activeEpisodeId}
+                    editingScene={editingScene}
+                    onCloseEdit={() => setEditingScene(null)}
+                    availableCharacters={characters}
+                    availableLocations={locations}
+                    episodes={episodes}
+                    isProcessing={isProcessing}
+                    onUpdateScene={handleUpdateScene}
+                    onUpdateCast={handleUpdateCast}
+                    onRewrite={handleRewrite}
+                    onFetchRemoteScenes={fetchRemoteScenes}
                 />
             </div>
 
@@ -518,20 +527,7 @@ export default function StudioPage() {
                 />
             )}
 
-            {/* SCENE EDITOR DRAWER */}
-            <SceneEditorDrawer
-                isOpen={!!editingScene}
-                onClose={() => setEditingScene(null)}
-                scene={editingScene}
-                availableCharacters={characters}
-                availableLocations={locations}
-                episodes={episodes}
-                isProcessing={isProcessing}
-                onUpdateScene={handleUpdateScene}
-                onUpdateCast={handleUpdateCast}
-                onRewrite={handleRewrite}
-                onFetchRemoteScenes={fetchRemoteScenes}
-            />
+
         </StudioLayout>
     );
 }

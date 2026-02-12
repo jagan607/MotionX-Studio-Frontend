@@ -39,6 +39,7 @@ interface SceneCardProps {
     onDelete: (sceneId: string) => void;
     episodeId?: string;
     projectId?: string;
+    isEditing?: boolean;
 }
 
 export const SceneCard: React.FC<SceneCardProps> = ({
@@ -49,7 +50,8 @@ export const SceneCard: React.FC<SceneCardProps> = ({
     onEdit,
     onDelete,
     episodeId,
-    projectId
+    projectId,
+    isEditing = false
 }) => {
     // --- DRAG & DROP ---
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: scene.id });
@@ -85,13 +87,26 @@ export const SceneCard: React.FC<SceneCardProps> = ({
         ? String(scene.scene_number).padStart(2, '0')
         : "--";
 
+    // Highlight style for editing state
+    const editingStyle = isEditing ? {
+        border: '2px solid rgba(239, 68, 68, 0.6)',
+        boxShadow: '0 0 25px rgba(220, 38, 38, 0.2), 0 0 60px rgba(220, 38, 38, 0.08)',
+        transform: dragStyle.transform || undefined,
+        transition: dragStyle.transition || 'all 0.3s ease',
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 50 : 2,
+    } : dragStyle;
+
     return (
         <div
             ref={setNodeRef}
-            style={dragStyle}
-            className="group relative bg-[#090909] border border-[#222] rounded-xl flex flex-col justify-between 
-            hover:border-neutral-500 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] 
-            transition-all duration-300 cursor-default h-full"
+            style={editingStyle}
+            className={`group relative bg-[#090909] border rounded-xl flex flex-col justify-between 
+            transition-all duration-300 cursor-default h-full
+            ${isEditing
+                    ? ''
+                    : 'border-[#222] hover:border-neutral-500 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)]'
+                }`}
         >
             {/* CARD CONTENT (Padded) */}
             <div className="p-4 flex-1 flex flex-col">

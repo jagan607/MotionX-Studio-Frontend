@@ -162,25 +162,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
     return (
         <div className="flex flex-col h-full bg-[#050505] text-[#EEE] font-sans">
 
-            {/* HEADER */}
-            <div className="h-16 px-6 border-b border-[#222] flex items-center justify-between shrink-0 bg-[#080808]">
-                <div>
-                    <div className="text-[10px] font-bold text-[#444] uppercase tracking-widest mb-0.5">Editing Scene</div>
-                    <div className="text-xl font-bold tracking-tight text-white/90">
-                        {String(activeScene.scene_number).padStart(2, '0')}
-                    </div>
-                </div>
 
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-[#111] border border-[#222] rounded text-[10px] font-bold text-[#444] uppercase tracking-wider cursor-default mr-12">
-                    {isDirty ? (
-                        <span className="text-yellow-600 animate-pulse">Unsaved</span>
-                    ) : (
-                        <>
-                            <Check size={12} className="text-green-500" /> Saved
-                        </>
-                    )}
-                </div>
-            </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-8">
 
