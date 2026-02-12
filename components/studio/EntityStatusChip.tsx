@@ -1,5 +1,5 @@
 import React from "react";
-import { User, MapPin, AlertCircle, CheckCircle2 } from "lucide-react";
+import { User, MapPin, AlertCircle, CheckCircle2, Package } from "lucide-react";
 
 // --- FIX HERE: Use relative path to step out of 'studio' and into 'ui' ---
 import {
@@ -11,7 +11,7 @@ import {
 
 interface EntityStatusChipProps {
     name: string;
-    type: 'character' | 'location';
+    type: 'character' | 'location' | 'product';
     status: 'linked' | 'missing';
     imageUrl?: string;
     onClick?: () => void;
@@ -25,7 +25,7 @@ export const EntityStatusChip: React.FC<EntityStatusChipProps> = ({
     onClick
 }) => {
     const isLinked = status === 'linked';
-    const Icon = type === 'character' ? User : MapPin;
+    const Icon = type === 'character' ? User : type === 'product' ? Package : MapPin;
 
     const baseStyles = "flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-bold tracking-wider uppercase border transition-all cursor-pointer select-none";
     const variantStyles = isLinked

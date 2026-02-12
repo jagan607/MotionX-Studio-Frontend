@@ -191,6 +191,7 @@ export default function StudioPage() {
                     activeReelTitle={activeReelTitle}
                     projectId={projectId}
                     projectAssets={assets}
+                    projectType={project.type as 'movie' | 'ad' | 'music_video'}
                     onOpenStoryboard={setSelectedScene}
                 />
             </div>
