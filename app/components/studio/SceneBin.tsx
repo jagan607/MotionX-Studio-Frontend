@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LayoutGrid, Clapperboard, ArrowRight } from "lucide-react";
+import { LayoutGrid, Clapperboard, ArrowRight, Plus, Wand2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
     DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent
@@ -23,6 +23,11 @@ interface SceneBinProps {
     projectType?: 'movie' | 'ad' | 'music_video';
     onOpenStoryboard: (scene: SceneData) => void;
     onReorder: (newScenes: SceneData[]) => void;
+    onEditScene: (scene: SceneData) => void;
+    onDeleteScene: (sceneId: string) => void;
+    onManualAdd: () => void;
+    onAutoExtend: () => void;
+    isExtending: boolean;
     className?: string;
     episodeId: string;
 }
@@ -35,6 +40,11 @@ export const SceneBin: React.FC<SceneBinProps> = ({
     projectType = 'movie',
     onOpenStoryboard,
     onReorder,
+    onEditScene,
+    onDeleteScene,
+    onManualAdd,
+    onAutoExtend,
+    isExtending,
     className = "",
     episodeId
 }) => {
@@ -51,7 +61,6 @@ export const SceneBin: React.FC<SceneBinProps> = ({
             const oldIndex = scenes.findIndex((s) => s.id === active.id);
             const newIndex = scenes.findIndex((s) => s.id === over.id);
             const newOrder = arrayMove(scenes, oldIndex, newIndex);
-            // Re-index scene numbers starting from 1
             const reindexed = newOrder.map((s, idx) => ({ ...s, scene_number: idx + 1 }));
             onReorder(reindexed);
         }
@@ -67,10 +76,23 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                     <span className="text-[#888]">{activeReelTitle}</span> <span className="text-[#333]">/</span> SCENE BIN
                 </div>
 
-                <div className="flex gap-2">
-                    <div className="text-[9px] font-mono text-[#333]">
-                        MODE: BOARD_VIEW
-                    </div>
+                {/* ADD SCENE CONTROLS */}
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={onManualAdd}
+                        disabled={isExtending}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-[#555] text-[9px] font-bold text-[#888] hover:text-white uppercase tracking-wider transition-colors rounded disabled:opacity-50"
+                    >
+                        <Plus size={11} /> Add Scene
+                    </button>
+                    <button
+                        onClick={onAutoExtend}
+                        disabled={isExtending || scenes.length === 0}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/10 border border-red-900/30 hover:border-red-500/50 text-[9px] font-bold text-red-400 hover:text-red-300 uppercase tracking-wider transition-colors rounded disabled:opacity-50"
+                    >
+                        {isExtending ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+                        {isExtending ? "Extending..." : "Auto-Extend"}
+                    </button>
                 </div>
             </div>
 
@@ -82,14 +104,22 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                         <Clapperboard size={32} className="text-[#333] mb-4" />
                         <div className="text-xs font-bold text-[#666] tracking-widest uppercase mb-2">Reel is Empty</div>
                         <p className="text-[10px] font-mono text-[#444] max-w-xs text-center mb-6">
-                            No scenes found in this sequence. Please return to the Script Editor to generate breakdown.
+                            No scenes found in this sequence. Add a scene manually or use Auto-Extend.
                         </p>
-                        <button
-                            onClick={() => router.push(`/project/${projectId}/script`)}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold text-[#888] hover:text-white uppercase transition-colors"
-                        >
-                            <ArrowRight size={12} /> GO TO SCRIPT EDITOR
-                        </button>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={onManualAdd}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold text-[#888] hover:text-white uppercase transition-colors"
+                            >
+                                <Plus size={12} /> Add First Scene
+                            </button>
+                            <button
+                                onClick={() => router.push(`/project/${projectId}/script`)}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold text-[#888] hover:text-white uppercase transition-colors"
+                            >
+                                <ArrowRight size={12} /> Script Editor
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     // SORTABLE GRID LAYOUT
@@ -108,6 +138,8 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                                             projectAssets={projectAssets}
                                             projectType={projectType}
                                             onOpenStoryboard={onOpenStoryboard}
+                                            onEdit={onEditScene}
+                                            onDelete={onDeleteScene}
                                             episodeId={episodeId}
                                             projectId={projectId}
                                         />

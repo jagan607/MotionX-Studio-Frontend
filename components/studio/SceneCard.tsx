@@ -1,12 +1,11 @@
 "use client";
 
 import React from "react";
-import { Film, Clock, Pencil, GripVertical } from "lucide-react";
+import { Film, Clock, Pencil, GripVertical, Trash2 } from "lucide-react";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { EntityStatusChip } from "./EntityStatusChip";
 import { Asset } from "@/lib/types";
-import { useRouter } from "next/navigation";
 
 export interface SceneData {
     id: string;
@@ -15,9 +14,16 @@ export interface SceneData {
     synopsis: string;
     time: string;
     characters: string[];
-    products?: string[]; // [NEW] Added products array
+    products?: string[];
     location: string;
     status?: 'draft' | 'approved';
+
+    // DirectorConsole-compatible fields
+    header: string;        // Full slugline text (e.g., "INT. OFFICE - DAY")
+    summary: string;       // Scene description / visual action
+    cast_ids: string[];    // Character IDs for cast management
+    location_id: string;   // Location asset ID for linking
+    [key: string]: any;    // Allow extra Firestore fields
 }
 
 interface SceneCardProps {
@@ -25,24 +31,26 @@ interface SceneCardProps {
     projectAssets: {
         characters: Asset[];
         locations: Asset[];
-        products?: Asset[]; // [NEW] Added products asset list
+        products?: Asset[];
     };
-    projectType?: 'movie' | 'ad' | 'music_video'; // [NEW] To toggle display
+    projectType?: 'movie' | 'ad' | 'music_video';
     onOpenStoryboard: (scene: SceneData) => void;
-    episodeId?: string; // [NEW]
-    projectId?: string; // [NEW]
+    onEdit: (scene: SceneData) => void;
+    onDelete: (sceneId: string) => void;
+    episodeId?: string;
+    projectId?: string;
 }
 
 export const SceneCard: React.FC<SceneCardProps> = ({
     scene,
     projectAssets,
-    projectType = 'movie', // Default to movie
+    projectType = 'movie',
     onOpenStoryboard,
+    onEdit,
+    onDelete,
     episodeId,
     projectId
 }) => {
-    const router = useRouter();
-
     // --- DRAG & DROP ---
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: scene.id });
     const dragStyle = {
@@ -109,19 +117,29 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                             {scene.time || "N/A"}
                         </div>
 
-                        {/* [NEW] EDIT BUTTON - Integrated in Header */}
-                        {(episodeId && projectId) && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation(); // Prevent opening storyboard
-                                    router.push(`/project/${projectId}/episode/${episodeId}/editor?scene_id=${scene.id}`);
-                                }}
-                                className="p-1.5 rounded bg-[#111] border border-[#222] text-[#666] hover:text-white hover:border-[#444] hover:bg-[#222] transition-colors"
-                                title="Edit Scene in Script"
-                            >
-                                <Pencil size={12} />
-                            </button>
-                        )}
+                        {/* EDIT BUTTON */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(scene);
+                            }}
+                            className="p-1.5 rounded bg-[#111] border border-[#222] text-[#666] hover:text-white hover:border-[#444] hover:bg-[#222] transition-colors"
+                            title="Edit Scene"
+                        >
+                            <Pencil size={12} />
+                        </button>
+
+                        {/* DELETE BUTTON */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(scene.id);
+                            }}
+                            className="p-1.5 rounded bg-[#111] border border-[#222] text-[#666] hover:text-red-500 hover:border-red-900/50 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Delete Scene"
+                        >
+                            <Trash2 size={12} />
+                        </button>
                     </div>
                 </div>
 
