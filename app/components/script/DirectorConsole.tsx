@@ -18,6 +18,8 @@ interface DirectorConsoleProps {
     activeScene: Partial<SceneData> & { id: string; scene_number: number; header: string; summary: string;[key: string]: any } | null;
     availableCharacters: { id: string; name: string }[];
     availableLocations?: LocationAsset[];
+    availableProducts?: { id: string; name: string }[];
+    projectType?: 'movie' | 'ad' | 'music_video';
     selectedContext: ContextReference[];
     isProcessing: boolean;
 
@@ -43,6 +45,8 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
     activeScene,
     availableCharacters,
     availableLocations = [],
+    availableProducts = [],
+    projectType = 'movie',
     selectedContext,
     isProcessing,
     onUpdateCast,
@@ -91,6 +95,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                 const normHeader = normalizeLoc(rawLocName);
                 const match = availableLocations.find(l => normalizeLoc(l.name) === normHeader);
                 if (match) foundId = match.id;
+                else if (rawLocName) foundId = `__raw__${rawLocName.trim()}`; // Keep raw text as fallback
             }
 
             setLocationId(foundId); // If "" (empty), dropdown shows placeholder
@@ -111,7 +116,11 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
     // Construct Full Header
     // If ID selected: Use Asset Name. If not: Keep original header text (or "UNKNOWN")
     const selectedAsset = availableLocations.find(l => l.id === locationId);
-    const locationDisplayName = selectedAsset ? selectedAsset.name : "UNKNOWN LOCATION";
+    const locationDisplayName = selectedAsset
+        ? selectedAsset.name
+        : locationId.startsWith('__raw__')
+            ? locationId.replace('__raw__', '')
+            : "UNKNOWN LOCATION";
 
     // Final Slugline Construction
     const fullHeader = `${locationDisplayName} - ${timeOfDay}`;
@@ -128,6 +137,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
             location_id: locationId
         });
         setIsDirty(false);
+        onCancelSelection(); // Close panel on save
     };
 
     // ... (Cast Handlers - No Changes) ...
@@ -139,6 +149,19 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
     const handleRemoveCharacter = (charId: string) => {
         if (!activeScene || !onUpdateCast) return;
         onUpdateCast(activeScene.id, activeCastList.filter((id: string) => id !== charId));
+    };
+
+    // --- Products Handlers (Ad only) ---
+    const activeProductList = activeScene?.products || [];
+    const handleAddProduct = (prodId: string) => {
+        if (!activeScene || !onUpdateScene) return;
+        if (!activeProductList.includes(prodId)) {
+            onUpdateScene(activeScene.id, { products: [...activeProductList, prodId] });
+        }
+    };
+    const handleRemoveProduct = (prodId: string) => {
+        if (!activeScene || !onUpdateScene) return;
+        onUpdateScene(activeScene.id, { products: activeProductList.filter((id: string) => id !== prodId) });
     };
 
     if (!activeScene) {
@@ -164,7 +187,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
 
 
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+            <div className="flex-1 overflow-y-auto p-4 space-y-5">
 
                 {/* 1. SCENE DETAILS (Slugline) */}
                 <div className="space-y-3">
@@ -179,8 +202,8 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                             <select
                                 value={locationId}
                                 onChange={handleLocationSelect}
-                                className={`w-full bg-[#111] border border-[#222] text-xs font-bold uppercase rounded-md py-3 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer
-                                    ${!locationId ? 'text-yellow-600 border-yellow-900/30' : 'text-white'}
+                                className={`w-full bg-[#111] border border-[#222] text-xs font-bold uppercase rounded-md py-2.5 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer
+                                    ${!locationId || locationId.startsWith('__raw__') ? 'text-yellow-600 border-yellow-900/30' : 'text-white'}
                                 `}
                             >
                                 <option value="" disabled>Select Location...</option>
@@ -189,8 +212,8 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                                         {loc.name.replace(/_/g, " ")}
                                     </option>
                                 ))}
-                                {!locationId && (
-                                    <option value="" disabled>⚠ UNKNOWN: {activeScene.header?.split("-")[0] || "MISSING"}</option>
+                                {locationId.startsWith('__raw__') && (
+                                    <option value={locationId}>⚠ {locationId.replace('__raw__', '')}</option>
                                 )}
                             </select>
                             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#444] pointer-events-none group-focus-within:text-white transition-colors">
@@ -206,7 +229,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                             <select
                                 value={timeOfDay}
                                 onChange={(e) => { setTimeOfDay(e.target.value); setIsDirty(true); }}
-                                className="w-full bg-[#111] border border-[#222] text-xs font-mono text-[#CCC] rounded-md py-3 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer"
+                                className="w-full bg-[#111] border border-[#222] text-xs font-mono text-[#CCC] rounded-md py-2.5 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer"
                             >
                                 <option value="DAY">DAY</option>
                                 <option value="NIGHT">NIGHT</option>
@@ -221,17 +244,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                         </div>
                     </div>
 
-                    {/* Preview */}
-                    <div className="px-3 py-2 border-l-2 border-[#222] bg-[#0A0A0A] flex items-center justify-between">
-                        <span className="text-[10px] font-mono text-[#666] truncate uppercase tracking-wider">
-                            {locationId ? fullHeader : activeScene.header || "NO HEADER"}
-                        </span>
-                        {showWarning && (
-                            <div title="Location asset not linked" className="cursor-help">
-                                <AlertTriangle size={12} className="text-yellow-600/50" />
-                            </div>
-                        )}
-                    </div>
+
                 </div>
 
                 {/* 2. DESCRIPTION */}
@@ -243,7 +256,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                         value={summary}
                         onChange={(e) => { setSummary(e.target.value); setIsDirty(true); }}
                         placeholder="Describe the visual action..."
-                        className="w-full h-40 bg-[#111] border border-[#222] text-sm text-[#DDD] p-4 rounded-md focus:outline-none focus:border-[#444] focus:bg-[#161616] resize-none leading-relaxed font-serif placeholder:text-[#333] transition-all"
+                        className="w-full h-28 bg-[#111] border border-[#222] text-sm text-[#DDD] p-3 rounded-md focus:outline-none focus:border-[#444] focus:bg-[#161616] resize-none leading-relaxed font-serif placeholder:text-[#333] transition-all"
                     />
                 </div>
 
@@ -283,6 +296,44 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                     </div>
                 </div>
 
+                {/* 4. PRODUCTS (Ad Only) */}
+                {projectType === 'ad' && (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-bold text-[#666] uppercase tracking-widest block">Products</label>
+                            <span className="text-[9px] font-mono text-[#444]">{activeProductList.length} Active</span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 min-h-[40px] items-start">
+                            {activeProductList.map((prodId: string) => (
+                                <div key={prodId} className="flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-[#1A1A1A] border border-[#333] text-white text-[10px] font-bold uppercase rounded-full group hover:border-[#555] transition-colors">
+                                    <span>{prodId.replace(/_/g, " ")}</span>
+                                    <button
+                                        onClick={() => handleRemoveProduct(prodId)}
+                                        className="p-0.5 rounded-full hover:bg-white/20 text-[#666] hover:text-white transition-colors"
+                                    >
+                                        <X size={10} />
+                                    </button>
+                                </div>
+                            ))}
+
+                            {onUpdateScene && (
+                                <div className="relative">
+                                    <select
+                                        className="appearance-none pl-3 pr-8 py-1.5 bg-[#111] border border-[#222] text-[#666] hover:text-[#888] hover:border-[#333] text-[10px] font-bold uppercase rounded-full outline-none cursor-pointer transition-colors focus:border-[#444] focus:text-white"
+                                        onChange={(e) => { if (e.target.value) { handleAddProduct(e.target.value); e.target.value = ""; } }}
+                                        value=""
+                                    >
+                                        <option value="" disabled>+ Add Product</option>
+                                        {availableProducts.map(prod => <option key={prod.id} value={prod.id}>{prod.name}</option>)}
+                                    </select>
+                                    <Plus size={10} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#444] pointer-events-none" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* 4. AI ASSISTANT */}
                 <div className="pt-6 border-t border-[#111] space-y-4">
                     <div className="flex items-center justify-between">
@@ -313,7 +364,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                             value={instruction}
                             onChange={(e) => setInstruction(e.target.value)}
                             placeholder="Ask AI to rewrite, expand, or adjust tone..."
-                            className="w-full p-4 pr-12 text-xs rounded-md bg-[#0A0A0A] border border-[#222] text-[#DDD] font-mono focus:outline-none focus:border-red-900/50 focus:bg-[#111] transition-all resize-none h-24 placeholder:text-[#333]"
+                            className="w-full p-3 pr-12 text-xs rounded-md bg-[#0A0A0A] border border-[#222] text-[#DDD] font-mono focus:outline-none focus:border-red-900/50 focus:bg-[#111] transition-all resize-none h-20 placeholder:text-[#333]"
                         />
                         <button
                             onClick={() => onExecuteAi(instruction)}

@@ -67,6 +67,7 @@ export default function StudioPage() {
     // Characters & Locations (for DirectorConsole)
     const [characters, setCharacters] = useState<{ id: string; name: string }[]>([]);
     const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
+    const [products, setProducts] = useState<{ id: string; name: string }[]>([]);
 
     // --- 1. INITIAL LOAD ---
     useEffect(() => {
@@ -95,8 +96,20 @@ export default function StudioPage() {
             try {
                 const locRef = collection(db, "projects", projectId, "locations");
                 const locSnapshot = await getDocs(locRef);
-                setLocations(locSnapshot.docs.map(d => ({ id: d.id, name: d.data().name || d.id })));
+                const locList = locSnapshot.docs.map(d => ({ id: d.id, name: d.data().name || d.id }));
+                // Fallback: if subcollection is empty, use API-fetched assets
+                if (locList.length > 0) {
+                    setLocations(locList);
+                } else if (assetData?.locations?.length > 0) {
+                    setLocations(assetData.locations.map((a: any) => ({ id: a.id, name: a.name || a.id })));
+                }
             } catch (e) { console.error("Failed to load locations", e); }
+
+            try {
+                const prodRef = collection(db, "projects", projectId, "products");
+                const prodSnapshot = await getDocs(prodRef);
+                setProducts(prodSnapshot.docs.map(d => ({ id: d.id, name: d.data().name || d.id })));
+            } catch (e) { console.error("Failed to load products", e); }
 
             // Handle Movie vs. Series Logic
             if (projData.type === 'micro_drama') {
@@ -497,6 +510,7 @@ export default function StudioPage() {
                     onCloseEdit={() => setEditingScene(null)}
                     availableCharacters={characters}
                     availableLocations={locations}
+                    availableProducts={products}
                     episodes={episodes}
                     isProcessing={isProcessing}
                     onUpdateScene={handleUpdateScene}

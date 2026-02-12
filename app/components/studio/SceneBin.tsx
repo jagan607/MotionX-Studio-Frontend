@@ -39,6 +39,7 @@ interface SceneBinProps {
     onCloseEdit: () => void;
     availableCharacters: { id: string; name: string }[];
     availableLocations: { id: string; name: string }[];
+    availableProducts?: { id: string; name: string }[];
     episodes: any[];
     isProcessing: boolean;
     onUpdateScene: (sceneId: string, updates: Partial<SceneData>) => void;
@@ -67,6 +68,7 @@ export const SceneBin: React.FC<SceneBinProps> = ({
     onCloseEdit,
     availableCharacters,
     availableLocations,
+    availableProducts = [],
     episodes,
     isProcessing,
     onUpdateScene,
@@ -299,7 +301,7 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                         ${isEditing ? 'w-[380px] opacity-100' : 'w-0 opacity-0 border-l-0'}`}
                 >
                     {/* Panel inner content (always rendered for smooth transitions) */}
-                    <div className="w-[380px] h-full flex flex-col overflow-y-auto">
+                    <div className="w-[380px] h-full flex flex-col overflow-hidden">
                         {/* PANEL HEADER */}
                         <div className="h-12 border-b border-[#222] bg-[#0A0A0A] flex items-center justify-between px-4 shrink-0">
                             <div className="flex items-center gap-2">
@@ -322,6 +324,8 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                                 activeScene={editingScene}
                                 availableCharacters={availableCharacters}
                                 availableLocations={availableLocations}
+                                availableProducts={availableProducts}
+                                projectType={projectType}
                                 selectedContext={selectedContext}
                                 isProcessing={isProcessing}
                                 onUpdateCast={onUpdateCast}
