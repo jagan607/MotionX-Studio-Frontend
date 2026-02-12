@@ -14,7 +14,7 @@ import {
 } from "@/lib/api";
 import { Project, Asset } from "@/lib/types";
 import { SceneData } from "@/components/studio/SceneCard";
-import { collection, query, orderBy, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, getDocs, writeBatch, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 // --- STUDIO COMPONENTS ---
@@ -174,6 +174,21 @@ export default function StudioPage() {
         setProject(updatedProject);
     };
 
+    const handleSceneReorder = async (newOrder: SceneData[]) => {
+        setScenes(newOrder); // Optimistic UI update
+        try {
+            const batch = writeBatch(db);
+            newOrder.forEach((scene, index) => {
+                const ref = doc(db, "projects", projectId, "episodes", activeEpisodeId, "scenes", scene.id);
+                batch.update(ref, { scene_number: index + 1 });
+            });
+            await batch.commit();
+        } catch (e) {
+            console.error("Failed to save scene order", e);
+            toast.error("Failed to save order");
+        }
+    };
+
     if (loading || !project) {
         return (
             <div className="fixed inset-0 bg-[#050505] flex flex-col items-center justify-center gap-4 text-red-600">
@@ -218,7 +233,8 @@ export default function StudioPage() {
                     projectAssets={assets}
                     projectType={project.type as 'movie' | 'ad' | 'music_video'}
                     onOpenStoryboard={setSelectedScene}
-                    episodeId={activeEpisodeId} // [NEW]
+                    onReorder={handleSceneReorder}
+                    episodeId={activeEpisodeId}
                 />
             </div>
 

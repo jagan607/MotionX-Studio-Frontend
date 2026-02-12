@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
-import { Film, Clock, Pencil } from "lucide-react";
+import { Film, Clock, Pencil, GripVertical } from "lucide-react";
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { EntityStatusChip } from "./EntityStatusChip";
 import { Asset } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -39,9 +41,16 @@ export const SceneCard: React.FC<SceneCardProps> = ({
     episodeId,
     projectId
 }) => {
-    const router = useRouter(); // [NEW]
+    const router = useRouter();
 
-    console.log("scene.products", scene.products);
+    // --- DRAG & DROP ---
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: scene.id });
+    const dragStyle = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 50 : 1,
+    };
 
     // Helper to find the full asset object
     const resolveAsset = (storedValue: string, type: 'character' | 'location' | 'product') => {
@@ -70,6 +79,8 @@ export const SceneCard: React.FC<SceneCardProps> = ({
 
     return (
         <div
+            ref={setNodeRef}
+            style={dragStyle}
             className="group relative bg-[#090909] border border-[#222] rounded-xl flex flex-col justify-between 
             hover:border-neutral-500 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] 
             transition-all duration-300 cursor-default h-full"
@@ -79,9 +90,19 @@ export const SceneCard: React.FC<SceneCardProps> = ({
 
                 {/* HEADER */}
                 <div className="flex justify-between items-center mb-4 border-b border-[#1a1a1a] pb-3">
-                    <span className="text-[11px] font-mono text-red-500 font-bold tracking-widest bg-red-500/10 px-2 py-1 rounded">
-                        SCENE {displaySceneNumber}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <div
+                            {...attributes}
+                            {...listeners}
+                            className="cursor-grab active:cursor-grabbing text-[#444] hover:text-[#888] transition-colors p-0.5"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <GripVertical size={14} />
+                        </div>
+                        <span className="text-[11px] font-mono text-red-500 font-bold tracking-widest bg-red-500/10 px-2 py-1 rounded">
+                            SCENE {displaySceneNumber}
+                        </span>
+                    </div>
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1.5 text-[9px] text-neutral-400 font-mono bg-[#111] px-2 py-1 rounded border border-[#222]">
                             <Clock size={10} />

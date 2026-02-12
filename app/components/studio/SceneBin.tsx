@@ -3,6 +3,12 @@
 import React from "react";
 import { LayoutGrid, Clapperboard, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import {
+    DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, DragEndEvent
+} from '@dnd-kit/core';
+import {
+    SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, arrayMove
+} from '@dnd-kit/sortable';
 import { SceneCard, SceneData } from "@/components/studio/SceneCard";
 import { Asset } from "@/lib/types";
 
@@ -16,8 +22,9 @@ interface SceneBinProps {
     };
     projectType?: 'movie' | 'ad' | 'music_video';
     onOpenStoryboard: (scene: SceneData) => void;
+    onReorder: (newScenes: SceneData[]) => void;
     className?: string;
-    episodeId: string; // [NEW]
+    episodeId: string;
 }
 
 export const SceneBin: React.FC<SceneBinProps> = ({
@@ -27,10 +34,28 @@ export const SceneBin: React.FC<SceneBinProps> = ({
     projectAssets,
     projectType = 'movie',
     onOpenStoryboard,
+    onReorder,
     className = "",
-    episodeId // [NEW]
+    episodeId
 }) => {
     const router = useRouter();
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const oldIndex = scenes.findIndex((s) => s.id === active.id);
+            const newIndex = scenes.findIndex((s) => s.id === over.id);
+            const newOrder = arrayMove(scenes, oldIndex, newIndex);
+            // Re-index scene numbers starting from 1
+            const reindexed = newOrder.map((s, idx) => ({ ...s, scene_number: idx + 1 }));
+            onReorder(reindexed);
+        }
+    };
 
     return (
         <div className={`flex-1 bg-[#020202] flex flex-col relative ${className}`}>
@@ -67,26 +92,30 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                         </button>
                     </div>
                 ) : (
-                    // MASONRY GRID LAYOUT
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 pb-20">
-                        {scenes.map((scene) => (
-                            <div key={scene.id} className="scene-card-wrapper group relative">
-                                {/* Tech Accents */}
-                                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#333] z-10 pointer-events-none" />
-                                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#333] z-10 pointer-events-none" />
+                    // SORTABLE GRID LAYOUT
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <SortableContext items={scenes.map(s => s.id)} strategy={rectSortingStrategy}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 pb-20">
+                                {scenes.map((scene) => (
+                                    <div key={scene.id} className="scene-card-wrapper group relative">
+                                        {/* Tech Accents */}
+                                        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#333] z-10 pointer-events-none" />
+                                        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#333] z-10 pointer-events-none" />
 
-                                {/* The Card Component */}
-                                <SceneCard
-                                    scene={scene}
-                                    projectAssets={projectAssets}
-                                    projectType={projectType}
-                                    onOpenStoryboard={onOpenStoryboard}
-                                    episodeId={episodeId} // [NEW]
-                                    projectId={projectId} // [NEW]
-                                />
+                                        {/* The Card Component */}
+                                        <SceneCard
+                                            scene={scene}
+                                            projectAssets={projectAssets}
+                                            projectType={projectType}
+                                            onOpenStoryboard={onOpenStoryboard}
+                                            episodeId={episodeId}
+                                            projectId={projectId}
+                                        />
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
+                        </SortableContext>
+                    </DndContext>
                 )}
             </div>
         </div>
