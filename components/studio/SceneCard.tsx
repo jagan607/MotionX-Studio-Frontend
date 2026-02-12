@@ -97,7 +97,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                         const asset = resolveAsset(scene.location, 'location');
                         return (
                             <div className="flex flex-col gap-1.5">
-                                <span className="text-[9px] text-neutral-600 font-bold uppercase tracking-wider">
+                                <span className="text-[8px] text-neutral-600 font-bold uppercase tracking-wider">
                                     LOCATION
                                 </span>
                                 <div className="flex justify-start">
@@ -117,7 +117,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                     {/* CAST ROW */}
                     {scene.characters && scene.characters.length > 0 && (
                         <div className="flex flex-col gap-1.5">
-                            <span className="text-[9px] text-neutral-600 font-bold uppercase tracking-wider">
+                            <span className="text-[8px] text-neutral-600 font-bold uppercase tracking-wider">
                                 CAST
                             </span>
                             <div className="flex flex-wrap gap-1.5">
@@ -143,7 +143,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                     {/* [NEW] PRODUCTS ROW (Only for Ads) */}
                     {projectType === 'ad' && scene.products && scene.products.length > 0 && (
                         <div className="flex flex-col gap-1.5">
-                            <span className="text-[9px] text-neutral-600 font-bold uppercase tracking-wider">
+                            <span className="text-[8px] text-neutral-600 font-bold uppercase tracking-wider">
                                 PRODUCTS
                             </span>
                             <div className="flex flex-wrap gap-1.5">

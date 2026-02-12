@@ -27,7 +27,7 @@ export const EntityStatusChip: React.FC<EntityStatusChipProps> = ({
     const isLinked = status === 'linked';
     const Icon = type === 'character' ? User : type === 'product' ? Package : MapPin;
 
-    const baseStyles = "flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-bold tracking-wider uppercase border transition-all cursor-pointer select-none";
+    const baseStyles = "flex items-center gap-1.5 px-2 py-1 rounded text-[8px] font-bold tracking-wider uppercase border transition-all cursor-pointer select-none";
     const variantStyles = isLinked
         ? "bg-green-900/20 border-green-800 text-green-400 hover:bg-green-900/40 hover:border-green-600"
         : "bg-red-900/20 border-red-800 text-red-400 hover:bg-red-900/40 hover:border-red-600";
