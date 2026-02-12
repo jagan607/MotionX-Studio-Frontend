@@ -8,7 +8,8 @@ import { db } from "@/lib/firebase";
 import { api } from "@/lib/api";
 import {
     ArrowLeft, Film, Tv, Clapperboard, Layers,
-    RectangleHorizontal, RectangleVertical, Monitor, Loader2, Aperture, ChevronRight
+    RectangleHorizontal, RectangleVertical, Monitor, Loader2, Aperture, ChevronRight,
+    BrainCircuit, UploadCloud, FileVideo
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -37,6 +38,9 @@ type Manifest = {
     axes: MoodAxis[];
 };
 
+// [NEW] Added 'adaptation' type
+type ProjectType = "movie" | "micro_drama" | "adaptation";
+
 export default function NewProjectPage() {
     const router = useRouter();
 
@@ -49,10 +53,13 @@ export default function NewProjectPage() {
     const [formData, setFormData] = useState({
         title: "",
         genre: "",
-        type: "movie" as "movie" | "micro_drama",
+        type: "movie" as ProjectType,
         aspect_ratio: "16:9" as "16:9" | "21:9" | "9:16",
         style: "realistic" as "realistic" | "anime",
     });
+
+    // [NEW] Adaptation File State
+    const [adaptationFile, setAdaptationFile] = useState<File | null>(null);
 
     // 3. Mood Selection State
     const [moodSelection, setMoodSelection] = useState<Record<string, string>>({});
@@ -62,34 +69,30 @@ export default function NewProjectPage() {
         let isMounted = true;
 
         async function fetchConfig() {
+            // Skip manifest load for Adaptation (not needed)
+            if (formData.type === 'adaptation') {
+                setLoadingManifest(false);
+                return;
+            }
+
             setLoadingManifest(true);
-            setMoodSelection({}); // Reset previous selection
+            setMoodSelection({});
 
             try {
-                // DYNAMIC SWITCH: Choose collection based on style
-                const configId = formData.style === 'anime'
-                    ? "moodboard_manifest_anime"
-                    : "moodboard_manifest";
-
+                const configId = formData.style === 'anime' ? "moodboard_manifest_anime" : "moodboard_manifest";
                 const docRef = doc(db, "configs", configId);
                 const snap = await getDoc(docRef);
 
                 if (isMounted && snap.exists()) {
                     const data = snap.data() as Manifest;
                     setManifest(data);
-
-                    // Pre-select first option for each axis
                     const initialSelection: Record<string, string> = {};
                     data.axes.forEach((axis) => {
-                        if (axis.options.length > 0) {
-                            initialSelection[axis.code_prefix] = axis.options[0].id;
-                        }
+                        if (axis.options.length > 0) initialSelection[axis.code_prefix] = axis.options[0].id;
                     });
                     setMoodSelection(initialSelection);
                 } else if (isMounted) {
-                    // Fallback or empty state if doc doesn't exist
                     setManifest(null);
-                    // toast.error(`Configuration missing for ${formData.style}`);
                 }
             } catch (e) {
                 console.error("Config Error:", e);
@@ -100,9 +103,8 @@ export default function NewProjectPage() {
         }
 
         fetchConfig();
-
         return () => { isMounted = false; };
-    }, [formData.style]);
+    }, [formData.style, formData.type]); // Added type dependency
 
     // --- HANDLERS ---
     const handleMoodSelect = (prefix: string, option: MoodOption) => {
@@ -110,25 +112,47 @@ export default function NewProjectPage() {
     };
 
     const handleSubmit = async () => {
-        if (!formData.title || !formData.genre) {
-            toast.error("Please fill in Title and Genre");
-            return;
+        if (!formData.title) {
+            return toast.error("Please enter a Project Title");
         }
 
         setCreating(true);
 
         try {
-            const moodboardList: { title: string; option: string }[] = [];
+            // --- BRANCH 1: ADAPTATION FLOW ---
+            if (formData.type === 'adaptation') {
+                if (!adaptationFile) {
+                    setCreating(false);
+                    return toast.error("Please upload a source video");
+                }
 
+                // Use FormData for file upload
+                const uploadData = new FormData();
+                uploadData.append("title", formData.title);
+                uploadData.append("file", adaptationFile);
+
+                // Call the new endpoint we created
+                const res = await api.post("/api/v1/adaptation/create_adaptation", uploadData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                    timeout: 120000 // 2 min timeout
+                });
+
+                router.push(`/project/${res.data.project_id}/adaptation`);
+                return;
+            }
+
+            // --- BRANCH 2: STANDARD FLOW ---
+            if (!formData.genre) {
+                setCreating(false);
+                return toast.error("Please fill in Genre/Logline");
+            }
+
+            const moodboardList: { title: string; option: string }[] = [];
             manifest?.axes.forEach(axis => {
                 const selectedId = moodSelection[axis.code_prefix];
                 const option = axis.options.find(o => o.id === selectedId);
-
                 if (option) {
-                    moodboardList.push({
-                        title: axis.label,
-                        option: option.label
-                    });
+                    moodboardList.push({ title: axis.label, option: option.label });
                 }
             });
 
@@ -174,6 +198,8 @@ export default function NewProjectPage() {
         </button>
     );
 
+    const isAdaptation = formData.type === 'adaptation';
+
     return (
         <StudioLayout>
             <style jsx global>{`
@@ -186,7 +212,7 @@ export default function NewProjectPage() {
             <div className="h-screen bg-[#050505] text-[#EEE] font-sans flex flex-col lg:flex-row overflow-hidden">
 
                 {/* --- LEFT: CONTROL TERMINAL --- */}
-                <div className="w-full lg:w-5/12 flex flex-col border-r border-[#222] bg-[#080808] relative z-10">
+                <div className={`flex flex-col border-r border-[#222] bg-[#080808] relative z-10 transition-all duration-500 ${isAdaptation ? 'w-full lg:w-full max-w-4xl mx-auto border-r-0' : 'w-full lg:w-5/12'}`}>
 
                     {/* Header */}
                     <div className="p-8 pb-4 border-b border-[#222]">
@@ -222,175 +248,240 @@ export default function NewProjectPage() {
                                     label="Micro Series"
                                     subLabel="Episodic"
                                 />
+                                {/* [NEW] Adaptation Button */}
+                                <FormatSelector
+                                    active={formData.type === 'adaptation'}
+                                    onClick={() => setFormData({ ...formData, type: 'adaptation' })}
+                                    icon={BrainCircuit}
+                                    label="Adaptation"
+                                    subLabel="AI Remix"
+                                />
                             </div>
                         </div>
 
-                        {/* 02. ASPECT */}
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
-                                <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">02</span> ASPECT RATIO
-                            </div>
-                            <div className="flex gap-2">
-                                {[
-                                    { id: '16:9', label: '16:9', sub: 'Cinema', icon: RectangleHorizontal },
-                                    { id: '21:9', label: '21:9', sub: 'Wide', icon: Monitor },
-                                    { id: '9:16', label: '9:16', sub: 'Social', icon: RectangleVertical },
-                                ].map((opt) => (
-                                    <button
-                                        key={opt.id}
-                                        onClick={() => setFormData({ ...formData, aspect_ratio: opt.id as any })}
-                                        className={`flex-1 py-3 border rounded-sm flex flex-col items-center justify-center gap-1 transition-all ${formData.aspect_ratio === opt.id
-                                            ? 'border-white bg-[#222] text-white'
-                                            : 'border-[#222] bg-[#0E0E0E] text-[#555] hover:border-[#444]'
-                                            }`}
-                                    >
-                                        <opt.icon size={14} />
-                                        <span className="text-[10px] font-bold tracking-wider">{opt.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* 03. METADATA (VISUAL IMPROVEMENTS) */}
+                        {/* 03. TITLE (Always Visible) */}
                         <div className="space-y-6 pt-2">
                             <div className="relative group bg-[#111] p-4 border border-[#222] rounded-sm focus-within:border-l-2 focus-within:border-l-red-600 transition-all">
                                 <label className="text-[9px] font-mono text-[#555] uppercase tracking-widest block mb-2 group-focus-within:text-red-500">
-                                    03 // Project Title
+                                    {isAdaptation ? "02" : "03"} // Project Title
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                     className="w-full bg-transparent text-lg font-bold uppercase tracking-wide text-white placeholder-[#333] focus:outline-none"
-                                    placeholder="ENTER TITLE..."
+                                    placeholder={isAdaptation ? "EX: THE MATRIX REMIX" : "ENTER TITLE..."}
                                     autoComplete="off"
                                 />
                             </div>
 
-                            <div className="relative group bg-[#111] p-4 border border-[#222] rounded-sm focus-within:border-l-2 focus-within:border-l-red-600 transition-all">
-                                <label className="text-[9px] font-mono text-[#555] uppercase tracking-widest block mb-2 group-focus-within:text-red-500">
-                                    04 // Logline & Genre
-                                </label>
-                                <textarea
-                                    value={formData.genre}
-                                    onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-                                    className="w-full bg-transparent text-sm font-medium text-[#CCC] placeholder-[#333] focus:outline-none resize-none h-20 leading-relaxed"
-                                    placeholder="Describe the story setting, genre, and tone..."
-                                />
-                            </div>
-                        </div>
-
-                        {/* 05. STYLE */}
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
-                                <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">05</span> RENDER ENGINE
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                {[
-                                    { id: 'realistic', label: 'REALISM', icon: Clapperboard },
-                                    { id: 'anime', label: 'ANIME', icon: Layers }
-                                ].map((s) => (
-                                    <button
-                                        key={s.id}
-                                        onClick={() => setFormData({ ...formData, style: s.id as any })}
-                                        className={`py-4 border rounded-sm flex items-center justify-center gap-3 transition-all ${formData.style === s.id
-                                            ? 'border-red-600 text-red-500 bg-[#1A0505]'
-                                            : 'border-[#222] text-[#555] hover:text-[#888] bg-[#0E0E0E]'
-                                            }`}
-                                    >
-                                        <s.icon size={16} />
-                                        <span className="text-xs font-bold tracking-widest">{s.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* --- RIGHT: VISUAL MATRIX (Dynamic) --- */}
-                <div className="w-full lg:w-7/12 bg-[#050505] flex flex-col relative">
-
-                    {/* Header */}
-                    <div className="h-16 border-b border-[#222] flex items-center justify-between px-8 bg-[#050505]/95 backdrop-blur-sm z-20 sticky top-0">
-                        <div className="flex items-center gap-3">
-                            <Aperture className="text-red-600 animate-spin-slow" size={16} />
-                            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white">Visual Matrix</span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="text-[9px] font-mono text-[#444]">
-                                VECTOR: <span className="text-red-500">{moodSelection["A"] || "--"}-{moodSelection["B"] || "--"}-{moodSelection["C"] || "--"}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-8 space-y-10 dark-scrollbar">
-                        {loadingManifest ? (
-                            <div className="h-full flex flex-col items-center justify-center opacity-50">
-                                <Loader2 className="animate-spin text-red-600 mb-4" size={24} />
-                                <span className="text-[10px] font-mono tracking-widest text-[#666]">ACCESSING DATABASE...</span>
-                            </div>
-                        ) : (
-                            manifest?.axes.map((axis) => (
-                                <div key={axis.id} className="space-y-3">
-                                    <div className="flex items-end gap-3 border-b border-[#1A1A1A] pb-2">
-                                        <span className="text-sm font-bold uppercase text-white tracking-widest">{axis.label}</span>
-                                        <span className="text-[9px] font-mono text-[#444] mb-0.5">// {axis.description}</span>
+                            {/* CONDITIONAL: STANDARD vs ADAPTATION */}
+                            {!isAdaptation ? (
+                                <>
+                                    {/* 02. ASPECT (Only for Standard) */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
+                                            <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">02</span> ASPECT RATIO
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {[
+                                                { id: '16:9', label: '16:9', sub: 'Cinema', icon: RectangleHorizontal },
+                                                { id: '21:9', label: '21:9', sub: 'Wide', icon: Monitor },
+                                                { id: '9:16', label: '9:16', sub: 'Social', icon: RectangleVertical },
+                                            ].map((opt) => (
+                                                <button
+                                                    key={opt.id}
+                                                    onClick={() => setFormData({ ...formData, aspect_ratio: opt.id as any })}
+                                                    className={`flex-1 py-3 border rounded-sm flex flex-col items-center justify-center gap-1 transition-all ${formData.aspect_ratio === opt.id
+                                                        ? 'border-white bg-[#222] text-white'
+                                                        : 'border-[#222] bg-[#0E0E0E] text-[#555] hover:border-[#444]'
+                                                        }`}
+                                                >
+                                                    <opt.icon size={14} />
+                                                    <span className="text-[10px] font-bold tracking-wider">{opt.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
 
-                                    {/* SMALLER GRID (3 cols on MD, 4 on XL) */}
-                                    <div className="grid grid-cols-3 xl:grid-cols-4 gap-3">
-                                        {axis.options.map((option) => {
-                                            const isSelected = moodSelection[axis.code_prefix] === option.id;
-                                            return (
+                                    {/* 04. LOGLINE */}
+                                    <div className="relative group bg-[#111] p-4 border border-[#222] rounded-sm focus-within:border-l-2 focus-within:border-l-red-600 transition-all">
+                                        <label className="text-[9px] font-mono text-[#555] uppercase tracking-widest block mb-2 group-focus-within:text-red-500">
+                                            04 // Logline & Genre
+                                        </label>
+                                        <textarea
+                                            value={formData.genre}
+                                            onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
+                                            className="w-full bg-transparent text-sm font-medium text-[#CCC] placeholder-[#333] focus:outline-none resize-none h-20 leading-relaxed"
+                                            placeholder="Describe the story setting, genre, and tone..."
+                                        />
+                                    </div>
+
+                                    {/* 05. STYLE */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
+                                            <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">05</span> RENDER ENGINE
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[
+                                                { id: 'realistic', label: 'REALISM', icon: Clapperboard },
+                                                { id: 'anime', label: 'ANIME', icon: Layers }
+                                            ].map((s) => (
                                                 <button
-                                                    key={option.id}
-                                                    onClick={() => handleMoodSelect(axis.code_prefix, option)}
-                                                    className={`
-                                                        relative aspect-[16/10] group overflow-hidden transition-all duration-300 rounded-sm border
-                                                        ${isSelected
-                                                            ? 'border-red-600 z-10 opacity-100 ring-1 ring-red-600'
-                                                            : 'border-transparent opacity-40 hover:opacity-100 hover:border-[#444]'}
-                                                    `}
+                                                    key={s.id}
+                                                    onClick={() => setFormData({ ...formData, style: s.id as any })}
+                                                    className={`py-4 border rounded-sm flex items-center justify-center gap-3 transition-all ${formData.style === s.id
+                                                        ? 'border-red-600 text-red-500 bg-[#1A0505]'
+                                                        : 'border-[#222] text-[#555] hover:text-[#888] bg-[#0E0E0E]'
+                                                        }`}
                                                 >
-                                                    {/* Full Color Image Always (Removed grayscale) */}
-                                                    <img
-                                                        src={option.image_url}
-                                                        alt={option.label}
-                                                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                                    />
-
-                                                    {/* Gradient Overlay */}
-                                                    <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent transition-opacity ${isSelected ? 'opacity-80' : 'opacity-60 group-hover:opacity-80'}`} />
-
-                                                    {/* Label */}
-                                                    <div className="absolute bottom-0 left-0 w-full p-2 flex justify-between items-end">
-                                                        <div className="text-left w-full">
-                                                            <div className={`text-[7px] font-mono mb-0.5 ${isSelected ? 'text-red-500' : 'text-[#888]'}`}>{option.id}</div>
-                                                            <div className="text-[9px] font-bold uppercase text-white tracking-wider truncate">{option.label}</div>
-                                                        </div>
-                                                        {isSelected && <div className="h-1 w-1 bg-red-600 rounded-full shadow-[0_0_5px_#EF4444] mb-1 mr-1" />}
-                                                    </div>
+                                                    <s.icon size={16} />
+                                                    <span className="text-xs font-bold tracking-widest">{s.label}</span>
                                                 </button>
-                                            );
-                                        })}
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                /* ADAPTATION SPECIFIC UI */
+                                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
+                                        <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">03</span> SOURCE MATERIAL
+                                    </div>
+
+                                    <div className={`
+                                        border border-dashed p-10 flex flex-col items-center justify-center text-center relative transition-all duration-300
+                                        ${adaptationFile ? 'border-red-600 bg-[#1A0505]' : 'border-[#333] bg-[#0E0E0E] hover:border-[#666] hover:text-white'}
+                                    `}>
+                                        <input
+                                            type="file"
+                                            accept="video/mp4,video/mov"
+                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                            onChange={(e) => setAdaptationFile(e.target.files?.[0] || null)}
+                                        />
+
+                                        {adaptationFile ? (
+                                            <>
+                                                <FileVideo size={48} className="text-red-500 mb-4" />
+                                                <span className="text-white font-bold font-mono">{adaptationFile.name}</span>
+                                                <span className="text-[10px] text-red-400 mt-2 uppercase tracking-widest">Ready for Analysis</span>
+                                                <span className="text-[10px] text-[#666] mt-1">{(adaptationFile.size / (1024 * 1024)).toFixed(1)} MB</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <UploadCloud size={48} className="mb-4 text-[#333]" />
+                                                <h3 className="text-sm font-bold uppercase tracking-wider text-[#888] mb-1">Upload Source Video</h3>
+                                                <p className="text-[10px] text-[#555] font-mono">MP4 / MOV • Max 200MB (Beta)</p>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    <div className="p-4 bg-[#111] border border-[#222] rounded-sm text-[10px] text-[#666] font-mono leading-relaxed">
+                                        <strong className="text-white block mb-1">HOW ADAPTATION WORKS:</strong>
+                                        1. Upload an existing video clip.<br />
+                                        2. Our engine detects cuts and clusters characters.<br />
+                                        3. You assign new actors to detected clusters.<br />
+                                        4. We render a frame-perfect adaptation.
                                     </div>
                                 </div>
-                            ))
+                            )}
+                        </div>
+
+                        {/* Submit Button (Only visible here for Adaptation Layout) */}
+                        {isAdaptation && (
+                            <div className="pt-4">
+                                <MotionButton
+                                    onClick={handleSubmit}
+                                    loading={creating}
+                                    className="w-full py-5 text-sm tracking-[0.2em] font-bold bg-red-600 hover:bg-red-700 text-white rounded-sm"
+                                >
+                                    START ADAPTATION ENGINE <BrainCircuit size={16} className="ml-2" />
+                                </MotionButton>
+                            </div>
                         )}
                     </div>
-
-                    {/* Bottom Action Bar */}
-                    <div className="p-6 border-t border-[#222] bg-[#050505] z-30 flex justify-end">
-                        <MotionButton
-                            onClick={handleSubmit}
-                            loading={creating}
-                            className="w-full md:w-auto px-10 py-4 text-xs tracking-[0.2em] font-bold bg-red-600 hover:bg-red-700 text-white rounded-sm"
-                        >
-                            INITIALIZE SYSTEM <ChevronRight size={12} className="ml-2" />
-                        </MotionButton>
-                    </div>
                 </div>
+
+                {/* --- RIGHT: VISUAL MATRIX (Hidden for Adaptation) --- */}
+                {!isAdaptation && (
+                    <div className="w-full lg:w-7/12 bg-[#050505] flex flex-col relative animate-in fade-in duration-500">
+                        {/* Header */}
+                        <div className="h-16 border-b border-[#222] flex items-center justify-between px-8 bg-[#050505]/95 backdrop-blur-sm z-20 sticky top-0">
+                            <div className="flex items-center gap-3">
+                                <Aperture className="text-red-600 animate-spin-slow" size={16} />
+                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white">Visual Matrix</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="text-[9px] font-mono text-[#444]">
+                                    VECTOR: <span className="text-red-500">{moodSelection["A"] || "--"}-{moodSelection["B"] || "--"}-{moodSelection["C"] || "--"}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-8 space-y-10 dark-scrollbar">
+                            {loadingManifest ? (
+                                <div className="h-full flex flex-col items-center justify-center opacity-50">
+                                    <Loader2 className="animate-spin text-red-600 mb-4" size={24} />
+                                    <span className="text-[10px] font-mono tracking-widest text-[#666]">ACCESSING DATABASE...</span>
+                                </div>
+                            ) : (
+                                manifest?.axes.map((axis) => (
+                                    <div key={axis.id} className="space-y-3">
+                                        <div className="flex items-end gap-3 border-b border-[#1A1A1A] pb-2">
+                                            <span className="text-sm font-bold uppercase text-white tracking-widest">{axis.label}</span>
+                                            <span className="text-[9px] font-mono text-[#444] mb-0.5">// {axis.description}</span>
+                                        </div>
+
+                                        {/* Grid */}
+                                        <div className="grid grid-cols-3 xl:grid-cols-4 gap-3">
+                                            {axis.options.map((option) => {
+                                                const isSelected = moodSelection[axis.code_prefix] === option.id;
+                                                return (
+                                                    <button
+                                                        key={option.id}
+                                                        onClick={() => handleMoodSelect(axis.code_prefix, option)}
+                                                        className={`
+                                                            relative aspect-[16/10] group overflow-hidden transition-all duration-300 rounded-sm border
+                                                            ${isSelected
+                                                                ? 'border-red-600 z-10 opacity-100 ring-1 ring-red-600'
+                                                                : 'border-transparent opacity-40 hover:opacity-100 hover:border-[#444]'}
+                                                        `}
+                                                    >
+                                                        <img
+                                                            src={option.image_url}
+                                                            alt={option.label}
+                                                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                                        />
+                                                        <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent transition-opacity ${isSelected ? 'opacity-80' : 'opacity-60 group-hover:opacity-80'}`} />
+                                                        <div className="absolute bottom-0 left-0 w-full p-2 flex justify-between items-end">
+                                                            <div className="text-left w-full">
+                                                                <div className={`text-[7px] font-mono mb-0.5 ${isSelected ? 'text-red-500' : 'text-[#888]'}`}>{option.id}</div>
+                                                                <div className="text-[9px] font-bold uppercase text-white tracking-wider truncate">{option.label}</div>
+                                                            </div>
+                                                            {isSelected && <div className="h-1 w-1 bg-red-600 rounded-full shadow-[0_0_5px_#EF4444] mb-1 mr-1" />}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Bottom Action Bar */}
+                        <div className="p-6 border-t border-[#222] bg-[#050505] z-30 flex justify-end">
+                            <MotionButton
+                                onClick={handleSubmit}
+                                loading={creating}
+                                className="w-full md:w-auto px-10 py-4 text-xs tracking-[0.2em] font-bold bg-red-600 hover:bg-red-700 text-white rounded-sm"
+                            >
+                                INITIALIZE SYSTEM <ChevronRight size={12} className="ml-2" />
+                            </MotionButton>
+                        </div>
+                    </div>
+                )}
 
             </div>
         </StudioLayout>

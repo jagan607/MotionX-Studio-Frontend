@@ -153,7 +153,6 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
             mCtx.drawImage(canvasRef.current, 0, 0);
 
             // Convert non-black pixels to white (the mask)
-            // Note: Since we draw with alpha, we simply enforce the shape
             mCtx.globalCompositeOperation = 'source-in';
             mCtx.fillStyle = "white";
             mCtx.fillRect(0, 0, 1280, 720);
@@ -177,7 +176,7 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
     };
 
     return (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: '#050505', display: 'flex', flexDirection: 'column', fontFamily: 'monospace', color: '#EDEDED' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: '#050505', display: 'flex', flexDirection: 'column', fontFamily: 'monospace', color: '#EDEDED', marginTop: '80px' }}>
 
             {/* 1. HEADER */}
             <div style={{ height: '50px', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', backgroundColor: '#0A0A0A' }}>
@@ -190,7 +189,10 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                         <Zap size={12} color="#FF0000" />
                         <span style={{ fontSize: '12px' }}>{credits ?? 0} TOKENS</span>
                     </div>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}><X size={20} /></button>
+                    {/* CLOSE BUTTON */}
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666', padding: '5px' }} title="Close Editor">
+                        <X size={24} />
+                    </button>
                 </div>
             </div>
 
@@ -204,12 +206,12 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                         ref={canvasRef}
                         onMouseDown={startDrawing}
                         onMouseUp={stopDrawing}
-                        onMouseLeave={stopDrawing} // Safety check
+                        onMouseLeave={stopDrawing}
                         onMouseMove={draw}
                         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', cursor: 'crosshair', zIndex: 10 }}
                     />
 
-                    {/* UNDO / REDO OVERLAY CONTROLS */}
+                    {/* UNDO / REDO OVERLAY */}
                     <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '10px', zIndex: 30, backgroundColor: 'rgba(0,0,0,0.8)', padding: '5px 10px', borderRadius: '20px', border: '1px solid #333' }}>
                         <button
                             onClick={handleUndo}
@@ -283,7 +285,7 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                         type="text"
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="Describe change..."
+                        placeholder="Describe change (e.g. 'remove glasses', 'make hair red')..."
                         style={{ width: '100%', height: '40px', backgroundColor: '#000', border: '1px solid #333', color: '#FFF', padding: '0 15px', fontSize: '12px', fontFamily: 'monospace', outline: 'none' }}
                     />
                 </div>
@@ -293,8 +295,14 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                     <button onClick={handleGenerateFix} disabled={isProcessing} style={{ height: '40px', padding: '0 25px', backgroundColor: '#FF0000', color: '#FFF', border: 'none', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', cursor: isProcessing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: isProcessing ? 0.5 : 1 }}>
                         <Sparkles size={14} /> {isProcessing ? 'WORKING...' : 'GENERATE'}
                     </button>
-                    <button onClick={() => outputImage && onApply && onApply(outputImage)} disabled={!outputImage || isProcessing} style={{ height: '40px', padding: '0 25px', backgroundColor: '#FFF', color: '#000', border: 'none', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', cursor: (!outputImage || isProcessing) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: (!outputImage || isProcessing) ? 0.3 : 1 }}>
-                        <Check size={14} /> APPLY
+
+                    {/* APPLY BUTTON - Calls onApply with the result url */}
+                    <button
+                        onClick={() => { if (outputImage) onApply(outputImage); }}
+                        disabled={!outputImage || isProcessing}
+                        style={{ height: '40px', padding: '0 25px', backgroundColor: '#FFF', color: '#000', border: 'none', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', cursor: (!outputImage || isProcessing) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: (!outputImage || isProcessing) ? 0.3 : 1 }}
+                    >
+                        <Check size={14} /> APPLY & CLOSE
                     </button>
                 </div>
             </div>

@@ -83,6 +83,18 @@ export default function Dashboard() {
     };
 
     const activeProject = myProjects[activeProjectIndex];
+    const [projectType, setProjectType] = useState("");
+
+    useEffect(() => {
+        if (activeProject) {
+            //retrieve project type from firebase project/projectId/type
+            const projectType = doc(db, "projects", activeProject.id);
+            console.log(projectType);
+            onSnapshot(projectType, (doc) => {
+                setProjectType(doc.data()?.type);
+            });
+        }
+    }, [activeProject]);
     const filteredGlobal = globalShots.filter(s => {
         if (filter === 'MOTION') return !!s.video_url;
         if (filter === 'STATIC') return !s.video_url;
@@ -150,7 +162,7 @@ export default function Dashboard() {
                                             </div>
 
                                             {activeProject && (
-                                                <Link href={`/project/${activeProject.id}/studio`}>
+                                                <Link href={projectType === 'adaptation' ? `/project/${activeProject.id}/adaptation` : `/project/${activeProject.id}/studio`}>
                                                     <button className="bg-white text-black px-8 py-3 font-bold text-xs uppercase tracking-[2px] hover:bg-[#FF0000] hover:text-white transition-colors duration-300 flex items-center gap-3 cursor-pointer">
                                                         ENTER PRODUCTION <Maximize size={14} />
                                                     </button>
