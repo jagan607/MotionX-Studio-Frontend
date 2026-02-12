@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import {
     MapPin, Users, Loader2, Sparkles, X,
-    Save, Clock, AlertTriangle, Plus, Check
+    Save, Clock, AlertTriangle, Plus, Check, ChevronDown
 } from "lucide-react";
 import { SceneData } from "@/components/studio/SceneCard"; // Use unified type
 import { ContextReference } from "./ContextSelectorModal";
@@ -170,7 +170,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-[#111] border border-[#222] rounded text-[10px] font-bold text-[#444] uppercase tracking-wider cursor-default">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-[#111] border border-[#222] rounded text-[10px] font-bold text-[#444] uppercase tracking-wider cursor-default mr-12">
                     {isDirty ? (
                         <span className="text-yellow-600 animate-pulse">Unsaved</span>
                     ) : (
@@ -210,6 +210,9 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                                     <option value="" disabled>⚠ UNKNOWN: {activeScene.header?.split("-")[0] || "MISSING"}</option>
                                 )}
                             </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#444] pointer-events-none group-focus-within:text-white transition-colors">
+                                <ChevronDown size={14} />
+                            </div>
                         </div>
 
                         {/* Time Select */}
@@ -229,6 +232,9 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                                 <option value="DAWN">DAWN</option>
                                 <option value="DUSK">DUSK</option>
                             </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#444] pointer-events-none group-focus-within:text-white transition-colors">
+                                <ChevronDown size={14} />
+                            </div>
                         </div>
                     </div>
 
