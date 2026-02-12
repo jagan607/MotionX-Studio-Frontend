@@ -40,7 +40,7 @@ export const useShotAI = (
             scene_action: sceneAction,
             characters: sceneChars,
             location: sceneLocationName,
-            products: sceneProductsString // [NEW] Send product context to Gemini
+            products: sceneProductsString // Send product context to Gemini
         };
 
         try {
@@ -60,14 +60,20 @@ export const useShotAI = (
                         charArray = shot.characters.map((c: string) => simpleSanitize(c));
                     }
 
-                    // 2. [NEW] Sanitize Product IDs from AI response
-                    // If Gemini didn't pick any, we fallback to scene products for safety in Ad mode
+                    // 2. [FIXED] Strict Product Handling
                     let productArray: string[] = [];
-                    if (Array.isArray(shot.products) && shot.products.length > 0) {
+
+                    // IF the AI returns an array (even empty), we use it.
+                    // This respects shots that have NO products (e.g. atmospheric shots).
+                    if (Array.isArray(shot.products)) {
                         productArray = shot.products.map((p: string) => simpleSanitize(p));
-                    } else {
-                        // Fallback: Inherit all scene products if AI returned empty list
-                        productArray = sceneProductsArray.map((p: string) => simpleSanitize(p));
+                    }
+                    // ONLY fallback if the key is completely missing (undefined/null)
+                    // This prevents accidentally wiping products if an older AI model is used.
+                    else if (sceneProductsArray.length > 0) {
+                        // Optional: You could fallback to inherit, or default to empty.
+                        // For Ads, safer to default to empty so users manually add products rather than polluting every shot.
+                        productArray = [];
                     }
 
                     batch.set(shotRef, {
@@ -76,7 +82,7 @@ export const useShotAI = (
                         visual_action: shot.image_prompt || shot.description || "",
                         video_prompt: shot.video_prompt || "",
                         characters: charArray,
-                        products: productArray, // [NEW] Individual shot product assignment
+                        products: productArray, // Accurate assignment
 
                         // Strict Inheritance: Force Scene Location
                         location: sceneLocationName,
