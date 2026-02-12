@@ -82,25 +82,29 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                     <span className="text-[11px] font-mono text-red-500 font-bold tracking-widest bg-red-500/10 px-2 py-1 rounded">
                         SCENE {displaySceneNumber}
                     </span>
-                    <div className="flex items-center gap-1.5 text-[9px] text-neutral-400 font-mono bg-[#111] px-2 py-1 rounded border border-[#222]">
-                        <Clock size={10} />
-                        {scene.time || "N/A"}
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 text-[9px] text-neutral-400 font-mono bg-[#111] px-2 py-1 rounded border border-[#222]">
+                            <Clock size={10} />
+                            {scene.time || "N/A"}
+                        </div>
+
+                        {/* [NEW] EDIT BUTTON - Integrated in Header */}
+                        {(episodeId && projectId) && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent opening storyboard
+                                    router.push(`/project/${projectId}/episode/${episodeId}/editor?scene_id=${scene.id}`);
+                                }}
+                                className="p-1.5 rounded bg-[#111] border border-[#222] text-[#666] hover:text-white hover:border-[#444] hover:bg-[#222] transition-colors"
+                                title="Edit Scene in Script"
+                            >
+                                <Pencil size={12} />
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                {/* [NEW] EDIT BUTTON */}
-                {(episodeId && projectId) && (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation(); // Prevent opening storyboard
-                            router.push(`/project/${projectId}/episode/${episodeId}/editor?scene_id=${scene.id}`);
-                        }}
-                        className="absolute top-4 right-4 p-1.5 rounded-sm bg-[#111] border border-[#333] text-[#666] hover:text-white hover:border-[#666] hover:bg-[#222] transition-colors z-30"
-                        title="Edit Scene in Script"
-                    >
-                        <Pencil size={12} />
-                    </button>
-                )}
+
 
                 {/* SYNOPSIS BODY */}
                 <div className="flex-1 mb-5">
