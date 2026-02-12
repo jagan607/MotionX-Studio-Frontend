@@ -77,20 +77,19 @@ export const SceneBin: React.FC<SceneBinProps> = ({
 
     // --- AUTO-SCROLL LOGIC ---
     const bottomRef = useRef<HTMLDivElement>(null);
-    const prevSceneCount = useRef(scenes.length);
+    const shouldScroll = useRef(false);
 
-    // 1. Scroll when scene count increases (Manual Add / Auto-Extend Complete)
+    // Only scroll when the flag is set (by Add/Extend clicks)
     useEffect(() => {
-        if (scenes.length > prevSceneCount.current) {
-            // Short timeout to ensure DOM update
+        if (shouldScroll.current) {
+            shouldScroll.current = false;
             setTimeout(() => {
                 bottomRef.current?.scrollIntoView({ behavior: "smooth" });
             }, 100);
         }
-        prevSceneCount.current = scenes.length;
     }, [scenes.length]);
 
-    // 2. Scroll when Auto-Extend starts (to show loading skeleton)
+    // Scroll when Auto-Extend starts (to show loading skeleton)
     useEffect(() => {
         if (isExtending) {
             setTimeout(() => {
@@ -98,6 +97,16 @@ export const SceneBin: React.FC<SceneBinProps> = ({
             }, 100);
         }
     }, [isExtending]);
+
+    const handleAddClick = () => {
+        shouldScroll.current = true;
+        onManualAdd();
+    };
+
+    const handleExtendClick = () => {
+        shouldScroll.current = true;
+        onAutoExtend();
+    };
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -123,14 +132,14 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                 {/* ADD SCENE CONTROLS */}
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={onManualAdd}
+                        onClick={handleAddClick}
                         disabled={isExtending}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-[#555] text-[9px] font-bold text-[#888] hover:text-white uppercase tracking-wider transition-colors rounded disabled:opacity-50"
                     >
                         <Plus size={11} /> Add Scene
                     </button>
                     <button
-                        onClick={onAutoExtend}
+                        onClick={handleExtendClick}
                         disabled={isExtending || scenes.length === 0}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/10 border border-red-900/30 hover:border-red-500/50 text-[9px] font-bold text-red-400 hover:text-red-300 uppercase tracking-wider transition-colors rounded disabled:opacity-50"
                     >
