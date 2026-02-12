@@ -132,7 +132,7 @@ export default function StudioPage() {
                 const data = doc.data();
                 return {
                     id: doc.id,
-                    scene_number: data.scene_number || 0,
+                    scene_number: Number(data.scene_number) || 0, // Force Number
                     slugline: data.slugline || data.header || "UNKNOWN SCENE",
                     synopsis: data.synopsis || data.summary || "",
                     time: data.time || "N/A",
@@ -142,6 +142,9 @@ export default function StudioPage() {
                     status: data.status || 'draft'
                 };
             });
+
+            // Client-side sort to be safe against mixed types in DB
+            sceneList.sort((a, b) => a.scene_number - b.scene_number);
 
             setScenes(sceneList);
         } catch (e) {
