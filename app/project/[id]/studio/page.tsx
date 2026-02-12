@@ -9,12 +9,13 @@ import { toast } from "react-hot-toast";
 import {
     fetchProject,
     fetchProjectAssets,
-    fetchScenes,
     fetchEpisodes,
     fetchUserCredits
 } from "@/lib/api";
 import { Project, Asset } from "@/lib/types";
 import { SceneData } from "@/components/studio/SceneCard";
+import { collection, query, orderBy, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 // --- STUDIO COMPONENTS ---
 import { StudioLayout } from "@/app/components/studio/StudioLayout";
@@ -111,7 +112,7 @@ export default function StudioPage() {
         }
     };
 
-    // --- 2. FETCH SCENES ---
+    // --- 2. FETCH SCENES (Direct Firestore) ---
     useEffect(() => {
         if (!activeEpisodeId || activeEpisodeId === "empty") return;
         loadScenes(activeEpisodeId);
@@ -119,11 +120,32 @@ export default function StudioPage() {
 
     const loadScenes = async (epId: string) => {
         try {
-            const data = await fetchScenes(projectId, epId);
-            const sceneList = data.scenes || (Array.isArray(data) ? data : []);
+            // [CHANGED] Direct Firestore Query for reliability
+            const q = query(
+                collection(db, "projects", projectId, "episodes", epId, "scenes"),
+                orderBy("scene_number", "asc")
+            );
+
+            const snapshot = await getDocs(q);
+
+            const sceneList: SceneData[] = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    scene_number: data.scene_number || 0,
+                    slugline: data.slugline || data.header || "UNKNOWN SCENE",
+                    synopsis: data.synopsis || data.summary || "",
+                    time: data.time || "N/A",
+                    characters: data.characters || [],
+                    products: data.products || [],
+                    location: data.location || data.location_name || "",
+                    status: data.status || 'draft'
+                };
+            });
+
             setScenes(sceneList);
         } catch (e) {
-            console.error("Failed to load scenes", e);
+            console.error("Failed to load scenes from Firestore", e);
             toast.error("Could not fetch scenes");
         }
     };
