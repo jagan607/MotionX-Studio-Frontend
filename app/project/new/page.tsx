@@ -9,7 +9,7 @@ import { api } from "@/lib/api";
 import {
     ArrowLeft, Film, Tv, Clapperboard, Layers,
     RectangleHorizontal, RectangleVertical, Monitor, Loader2, Aperture, ChevronRight,
-    BrainCircuit, UploadCloud, FileVideo
+    BrainCircuit, UploadCloud, FileVideo, AlertTriangle
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -38,7 +38,6 @@ type Manifest = {
     axes: MoodAxis[];
 };
 
-// [NEW] Added 'adaptation' type
 type ProjectType = "movie" | "micro_drama" | "adaptation";
 
 export default function NewProjectPage() {
@@ -58,8 +57,9 @@ export default function NewProjectPage() {
         style: "realistic" as "realistic" | "anime",
     });
 
-    // [NEW] Adaptation File State
+    // [NEW] Adaptation File State & Error State
     const [adaptationFile, setAdaptationFile] = useState<File | null>(null);
+    const [isSizeError, setIsSizeError] = useState(false);
 
     // 3. Mood Selection State
     const [moodSelection, setMoodSelection] = useState<Record<string, string>>({});
@@ -69,7 +69,6 @@ export default function NewProjectPage() {
         let isMounted = true;
 
         async function fetchConfig() {
-            // Skip manifest load for Adaptation (not needed)
             if (formData.type === 'adaptation') {
                 setLoadingManifest(false);
                 return;
@@ -104,7 +103,7 @@ export default function NewProjectPage() {
 
         fetchConfig();
         return () => { isMounted = false; };
-    }, [formData.style, formData.type]); // Added type dependency
+    }, [formData.style, formData.type]);
 
     // --- HANDLERS ---
     const handleMoodSelect = (prefix: string, option: MoodOption) => {
@@ -119,29 +118,25 @@ export default function NewProjectPage() {
         setCreating(true);
 
         try {
-            // --- BRANCH 1: ADAPTATION FLOW ---
             if (formData.type === 'adaptation') {
                 if (!adaptationFile) {
                     setCreating(false);
                     return toast.error("Please upload a source video");
                 }
 
-                // Use FormData for file upload
                 const uploadData = new FormData();
                 uploadData.append("title", formData.title);
                 uploadData.append("file", adaptationFile);
 
-                // Call the new endpoint we created
                 const res = await api.post("/api/v1/adaptation/create_adaptation", uploadData, {
                     headers: { "Content-Type": "multipart/form-data" },
-                    timeout: 120000 // 2 min timeout
+                    timeout: 120000
                 });
 
                 router.push(`/project/${res.data.project_id}/adaptation`);
                 return;
             }
 
-            // --- BRANCH 2: STANDARD FLOW ---
             if (!formData.genre) {
                 setCreating(false);
                 return toast.error("Please fill in Genre/Logline");
@@ -175,7 +170,6 @@ export default function NewProjectPage() {
         }
     };
 
-    // --- COMPONENT: SELECTOR ---
     const FormatSelector = ({ active, onClick, icon: Icon, label, subLabel }: any) => (
         <button
             onClick={onClick}
@@ -203,6 +197,12 @@ export default function NewProjectPage() {
     return (
         <StudioLayout>
             <style jsx global>{`
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-5px); }
+                    75% { transform: translateX(5px); }
+                }
+                .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
                 .dark-scrollbar::-webkit-scrollbar { width: 4px; }
                 .dark-scrollbar::-webkit-scrollbar-track { background: #050505; }
                 .dark-scrollbar::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
@@ -214,7 +214,6 @@ export default function NewProjectPage() {
                 {/* --- LEFT: CONTROL TERMINAL --- */}
                 <div className={`flex flex-col border-r border-[#222] bg-[#080808] relative z-10 transition-all duration-500 ${isAdaptation ? 'w-full lg:w-full max-w-4xl mx-auto border-r-0' : 'w-full lg:w-5/12'}`}>
 
-                    {/* Header */}
                     <div className="p-8 pb-4 border-b border-[#222]">
                         <Link href="/dashboard" className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] text-[#555] hover:text-white mb-6 transition-colors group">
                             <ArrowLeft size={10} className="group-hover:-translate-x-1 transition-transform" /> BACK TO STUDIO
@@ -225,7 +224,6 @@ export default function NewProjectPage() {
                         <p className="text-[10px] font-mono text-[#444] tracking-widest">SESSION_ID: {new Date().getTime().toString().slice(-6)}</p>
                     </div>
 
-                    {/* Scrollable Form */}
                     <div className="flex-1 overflow-y-auto p-8 space-y-8 dark-scrollbar pb-32">
 
                         {/* 01. TYPE */}
@@ -248,7 +246,6 @@ export default function NewProjectPage() {
                                     label="Micro Series"
                                     subLabel="Episodic"
                                 />
-                                {/* [NEW] Adaptation Button */}
                                 <FormatSelector
                                     active={formData.type === 'adaptation'}
                                     onClick={() => setFormData({ ...formData, type: 'adaptation' })}
@@ -259,7 +256,7 @@ export default function NewProjectPage() {
                             </div>
                         </div>
 
-                        {/* 03. TITLE (Always Visible) */}
+                        {/* 03. TITLE */}
                         <div className="space-y-6 pt-2">
                             <div className="relative group bg-[#111] p-4 border border-[#222] rounded-sm focus-within:border-l-2 focus-within:border-l-red-600 transition-all">
                                 <label className="text-[9px] font-mono text-[#555] uppercase tracking-widest block mb-2 group-focus-within:text-red-500">
@@ -275,10 +272,8 @@ export default function NewProjectPage() {
                                 />
                             </div>
 
-                            {/* CONDITIONAL: STANDARD vs ADAPTATION */}
                             {!isAdaptation ? (
                                 <>
-                                    {/* 02. ASPECT (Only for Standard) */}
                                     <div className="space-y-3">
                                         <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
                                             <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">02</span> ASPECT RATIO
@@ -304,7 +299,6 @@ export default function NewProjectPage() {
                                         </div>
                                     </div>
 
-                                    {/* 04. LOGLINE */}
                                     <div className="relative group bg-[#111] p-4 border border-[#222] rounded-sm focus-within:border-l-2 focus-within:border-l-red-600 transition-all">
                                         <label className="text-[9px] font-mono text-[#555] uppercase tracking-widest block mb-2 group-focus-within:text-red-500">
                                             04 // Logline & Genre
@@ -317,7 +311,6 @@ export default function NewProjectPage() {
                                         />
                                     </div>
 
-                                    {/* 05. STYLE */}
                                     <div className="space-y-3">
                                         <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
                                             <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">05</span> RENDER ENGINE
@@ -343,21 +336,33 @@ export default function NewProjectPage() {
                                     </div>
                                 </>
                             ) : (
-                                /* ADAPTATION SPECIFIC UI */
                                 <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
-                                        <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">03</span> SOURCE MATERIAL
+                                    <div className="flex items-center justify-between text-[10px] font-mono text-[#666]">
+                                        <div className="flex items-center gap-3">
+                                            <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">03</span> SOURCE MATERIAL
+                                        </div>
+                                        {isSizeError && <span className="text-red-500 font-bold flex items-center gap-1 animate-pulse"><AlertTriangle size={10} /> TOO LARGE</span>}
                                     </div>
 
                                     <div className={`
                                         border border-dashed p-10 flex flex-col items-center justify-center text-center relative transition-all duration-300
-                                        ${adaptationFile ? 'border-red-600 bg-[#1A0505]' : 'border-[#333] bg-[#0E0E0E] hover:border-[#666] hover:text-white'}
+                                        ${isSizeError ? 'border-red-600 bg-red-950/20 animate-shake' : adaptationFile ? 'border-red-600 bg-[#1A0505]' : 'border-[#333] bg-[#0E0E0E] hover:border-[#666] hover:text-white'}
                                     `}>
                                         <input
                                             type="file"
                                             accept="video/mp4,video/mov"
                                             className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                            onChange={(e) => setAdaptationFile(e.target.files?.[0] || null)}
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0] || null;
+                                                if (file && file.size > 350 * 1024 * 1024) {
+                                                    setIsSizeError(true);
+                                                    setAdaptationFile(null);
+                                                    toast.error("File exceeds 350MB limit");
+                                                } else {
+                                                    setIsSizeError(false);
+                                                    setAdaptationFile(file);
+                                                }
+                                            }}
                                         />
 
                                         {adaptationFile ? (
@@ -369,9 +374,11 @@ export default function NewProjectPage() {
                                             </>
                                         ) : (
                                             <>
-                                                <UploadCloud size={48} className="mb-4 text-[#333]" />
-                                                <h3 className="text-sm font-bold uppercase tracking-wider text-[#888] mb-1">Upload Source Video</h3>
-                                                <p className="text-[10px] text-[#555] font-mono">MP4 / MOV • Max 200MB (Beta)</p>
+                                                <UploadCloud size={48} className={`mb-4 ${isSizeError ? 'text-red-600' : 'text-[#333]'}`} />
+                                                <h3 className={`text-sm font-bold uppercase tracking-wider mb-1 ${isSizeError ? 'text-red-500' : 'text-[#888]'}`}>
+                                                    {isSizeError ? "Video Too Heavy" : "Upload Source Video"}
+                                                </h3>
+                                                <p className="text-[10px] text-[#555] font-mono">MP4 / MOV • Max 350MB</p>
                                             </>
                                         )}
                                     </div>
@@ -387,25 +394,24 @@ export default function NewProjectPage() {
                             )}
                         </div>
 
-                        {/* Submit Button (Only visible here for Adaptation Layout) */}
                         {isAdaptation && (
                             <div className="pt-4">
                                 <MotionButton
                                     onClick={handleSubmit}
                                     loading={creating}
-                                    className="w-full py-5 text-sm tracking-[0.2em] font-bold bg-red-600 hover:bg-red-700 text-white rounded-sm"
+                                    disabled={isSizeError || !adaptationFile}
+                                    className={`w-full py-5 text-sm tracking-[0.2em] font-bold rounded-sm ${isSizeError ? 'bg-[#222] text-[#444] cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
                                 >
-                                    START ADAPTATION ENGINE <BrainCircuit size={16} className="ml-2" />
+                                    {isSizeError ? "REDUCE FILE SIZE TO CONTINUE" : "START ADAPTATION ENGINE"} <BrainCircuit size={16} className="ml-2" />
                                 </MotionButton>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* --- RIGHT: VISUAL MATRIX (Hidden for Adaptation) --- */}
+                {/* --- RIGHT: VISUAL MATRIX --- */}
                 {!isAdaptation && (
                     <div className="w-full lg:w-7/12 bg-[#050505] flex flex-col relative animate-in fade-in duration-500">
-                        {/* Header */}
                         <div className="h-16 border-b border-[#222] flex items-center justify-between px-8 bg-[#050505]/95 backdrop-blur-sm z-20 sticky top-0">
                             <div className="flex items-center gap-3">
                                 <Aperture className="text-red-600 animate-spin-slow" size={16} />
@@ -418,7 +424,6 @@ export default function NewProjectPage() {
                             </div>
                         </div>
 
-                        {/* Content */}
                         <div className="flex-1 overflow-y-auto p-8 space-y-10 dark-scrollbar">
                             {loadingManifest ? (
                                 <div className="h-full flex flex-col items-center justify-center opacity-50">
@@ -433,7 +438,6 @@ export default function NewProjectPage() {
                                             <span className="text-[9px] font-mono text-[#444] mb-0.5">// {axis.description}</span>
                                         </div>
 
-                                        {/* Grid */}
                                         <div className="grid grid-cols-3 xl:grid-cols-4 gap-3">
                                             {axis.options.map((option) => {
                                                 const isSelected = moodSelection[axis.code_prefix] === option.id;
@@ -470,7 +474,6 @@ export default function NewProjectPage() {
                             )}
                         </div>
 
-                        {/* Bottom Action Bar */}
                         <div className="p-6 border-t border-[#222] bg-[#050505] z-30 flex justify-end">
                             <MotionButton
                                 onClick={handleSubmit}
@@ -482,7 +485,6 @@ export default function NewProjectPage() {
                         </div>
                     </div>
                 )}
-
             </div>
         </StudioLayout>
     );
