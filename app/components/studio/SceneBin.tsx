@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { LayoutGrid, Clapperboard, ArrowRight, Plus, Wand2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -54,6 +54,30 @@ export const SceneBin: React.FC<SceneBinProps> = ({
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
+
+    // --- AUTO-SCROLL LOGIC ---
+    const bottomRef = useRef<HTMLDivElement>(null);
+    const prevSceneCount = useRef(scenes.length);
+
+    // 1. Scroll when scene count increases (Manual Add / Auto-Extend Complete)
+    useEffect(() => {
+        if (scenes.length > prevSceneCount.current) {
+            // Short timeout to ensure DOM update
+            setTimeout(() => {
+                bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, 100);
+        }
+        prevSceneCount.current = scenes.length;
+    }, [scenes.length]);
+
+    // 2. Scroll when Auto-Extend starts (to show loading skeleton)
+    useEffect(() => {
+        if (isExtending) {
+            setTimeout(() => {
+                bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, 100);
+        }
+    }, [isExtending]);
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
@@ -145,6 +169,28 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                                         />
                                     </div>
                                 ))}
+
+                                {/* LOADING SKELETON (Auto-Extend) */}
+                                {isExtending && (
+                                    <div className="relative aspect-video bg-[#050505] border border-[#222] rounded-lg overflow-hidden flex flex-col animate-pulse">
+                                        <div className="h-8 border-b border-[#222] bg-[#0A0A0A] flex items-center justify-between px-3">
+                                            <div className="w-16 h-3 bg-[#111] rounded" />
+                                            <div className="w-12 h-3 bg-[#111] rounded" />
+                                        </div>
+                                        <div className="flex-1 p-4 space-y-3">
+                                            <div className="w-3/4 h-3 bg-[#111] rounded" />
+                                            <div className="w-full h-3 bg-[#111] rounded" />
+                                            <div className="w-5/6 h-3 bg-[#111] rounded" />
+                                        </div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="flex flex-col items-center gap-2 text-[#444]">
+                                                <Loader2 size={24} className="animate-spin" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">Generating Scene...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                <div ref={bottomRef} className="w-full h-1" />
                             </div>
                         </SortableContext>
                     </DndContext>
