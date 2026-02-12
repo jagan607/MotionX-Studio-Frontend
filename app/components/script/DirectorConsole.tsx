@@ -15,7 +15,7 @@ export interface LocationAsset {
 }
 
 interface DirectorConsoleProps {
-    activeScene: SceneData | null;
+    activeScene: Partial<SceneData> & { id: string; scene_number: number; header: string; summary: string;[key: string]: any } | null;
     availableCharacters: { id: string; name: string }[];
     availableLocations?: LocationAsset[];
     selectedContext: ContextReference[];

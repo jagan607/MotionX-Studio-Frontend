@@ -6,8 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film, RefreshCw,
     ImagePlus, Mic2, Link2, Plus, CheckCircle2,
-    Wand2, Loader2, Palette, XCircle, Upload, ShoppingBag // Added ShoppingBag icon
-    Wand2, Loader2, Palette, XCircle, Upload
+    Wand2, Loader2, Palette, XCircle, Upload, ShoppingBag
 } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 
@@ -131,7 +130,7 @@ export const SortableShotCard = ({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const mainImageInputRef = useRef<HTMLInputElement>(null);
     const [isCompressing, setIsCompressing] = useState(false);
-    const [isCompressing, setIsCompressing] = useState(false); // Used for UI feedback
+
 
     useEffect(() => {
         if (!refFile) {
