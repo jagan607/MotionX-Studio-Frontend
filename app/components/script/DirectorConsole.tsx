@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import {
-    Cpu, MapPin, Users, Terminal, Plus, Loader2, Sparkles, X,
-    PlayCircle, Activity, Save, FileText, Clock, AlertTriangle
+    MapPin, Users, Loader2, Sparkles, X,
+    Save, Clock, AlertTriangle, Plus, Check
 } from "lucide-react";
-import { WorkstationScene, Character } from "./ScriptWorkstation";
+import { SceneData } from "@/components/studio/SceneCard"; // Use unified type
 import { ContextReference } from "./ContextSelectorModal";
 
 // Shared Location Interface
@@ -15,15 +15,15 @@ export interface LocationAsset {
 }
 
 interface DirectorConsoleProps {
-    activeScene: WorkstationScene | null;
-    availableCharacters: Character[];
+    activeScene: SceneData | null;
+    availableCharacters: { id: string; name: string }[];
     availableLocations?: LocationAsset[];
     selectedContext: ContextReference[];
     isProcessing: boolean;
 
     // Handlers
     onUpdateCast?: (sceneId: string, newCast: string[]) => void;
-    onUpdateScene?: (sceneId: string, updates: Partial<WorkstationScene>) => void;
+    onUpdateScene?: (sceneId: string, updates: Partial<SceneData>) => void;
     onExecuteAi: (instruction: string) => void;
     onOpenContextModal: () => void;
     onRemoveContextRef: (id: string) => void;
@@ -31,8 +31,6 @@ interface DirectorConsoleProps {
 }
 
 // --- HELPER: NORMALIZE STRING FOR MATCHING ---
-// Removes INT/EXT, punctuation, and spaces to find matches like:
-// "INT. ALESSANDRA'S APARTMENT" == "ALESSANDRA'S APARTMENT"
 const normalizeLoc = (str: string) => {
     if (!str) return "";
     return str
@@ -144,15 +142,13 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
 
     if (!activeScene) {
         return (
-            <div className="w-[400px] bg-[#080808] flex flex-col shrink-0 border-l border-[#222] h-full">
-                <div className="h-full flex flex-col items-center justify-center text-center opacity-40 gap-4">
-                    <div className="w-16 h-16 rounded-full border border-[#333] flex items-center justify-center bg-[#0A0A0A]">
-                        <PlayCircle size={24} className="text-[#666]" />
-                    </div>
-                    <div>
-                        <div className="text-xs font-bold text-[#666] uppercase tracking-widest mb-1">System Idle</div>
-                        <div className="text-[10px] font-mono text-[#444]">SELECT A SCENE TO MODIFY</div>
-                    </div>
+            <div className="w-full h-full flex flex-col items-center justify-center text-center opacity-40 gap-4 bg-[#080808]">
+                <div className="w-16 h-16 rounded-full border border-[#333] flex items-center justify-center bg-[#0A0A0A]">
+                    <Save size={24} className="text-[#666]" />
+                </div>
+                <div>
+                    <div className="text-xs font-bold text-[#666] uppercase tracking-widest mb-1">Editor Idle</div>
+                    <div className="text-[10px] font-mono text-[#444]">Select a scene to begin editing</div>
                 </div>
             </div>
         );
@@ -163,182 +159,195 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
     const showWarning = !locationId && activeScene.header;
 
     return (
-        <div className="w-[400px] bg-[#080808] flex flex-col shrink-0 border-l border-[#222] h-full">
+        <div className="flex flex-col h-full bg-[#050505] text-[#EEE] font-sans">
+
             {/* HEADER */}
-            <div className="h-14 border-b border-[#222] bg-[#080808] flex items-center justify-between px-6 shrink-0">
-                <div className="text-[10px] font-bold text-[#555] uppercase tracking-widest flex items-center gap-2">
-                    <Cpu size={12} /> Director Console
+            <div className="h-16 px-6 border-b border-[#222] flex items-center justify-between shrink-0 bg-[#080808]">
+                <div>
+                    <div className="text-[10px] font-bold text-[#444] uppercase tracking-widest mb-0.5">Editing Scene</div>
+                    <div className="text-xl font-bold tracking-tight text-white/90">
+                        {String(activeScene.scene_number).padStart(2, '0')}
+                    </div>
                 </div>
-                <div className={`w-2 h-2 rounded-full ${isProcessing ? 'bg-yellow-500 animate-pulse' : 'bg-green-900'}`} />
+
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-[#111] border border-[#222] rounded text-[10px] font-bold text-[#444] uppercase tracking-wider cursor-default">
+                    {isDirty ? (
+                        <span className="text-yellow-600 animate-pulse">Unsaved</span>
+                    ) : (
+                        <>
+                            <Check size={12} className="text-green-500" /> Saved
+                        </>
+                    )}
+                </div>
             </div>
 
-            <div className="flex-1 p-6 flex flex-col overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-[#222] scrollbar-track-transparent">
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
 
-                <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                {/* 1. SCENE DETAILS (Slugline) */}
+                <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-[#666] uppercase tracking-widest block">Location</label>
 
-                    {/* 1. SCENE HEADER EDITOR */}
-                    <div className="p-4 border border-[#222] bg-[#0C0C0C] rounded-sm relative group transition-colors focus-within:border-[#444]">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-red-600" />
-
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="text-[9px] font-mono text-red-500 uppercase">
-                                Target Locked: SCENE {String(activeScene.scene_number).padStart(2, '0')}
+                    <div className="grid grid-cols-[2fr_1fr] gap-3">
+                        {/* Location Select */}
+                        <div className="relative group">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#444] pointer-events-none group-focus-within:text-white transition-colors">
+                                <MapPin size={14} />
                             </div>
-                            {isDirty && (
-                                <button
-                                    onClick={handleSaveChanges}
-                                    className="flex items-center gap-1 text-[9px] font-bold bg-green-900/20 text-green-500 px-2 py-1 rounded-sm border border-green-900/30 hover:bg-green-900/40 transition-all animate-pulse"
-                                >
-                                    <Save size={10} /> SAVE
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Location Selector Controls */}
-                        <div className="flex flex-col gap-2">
-                            {/* STRICT LOCATION SELECTOR (Full Width) */}
-                            <div className="relative">
-                                <MapPin size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#555] pointer-events-none" />
-                                <select
-                                    value={locationId}
-                                    onChange={handleLocationSelect}
-                                    className={`w-full bg-[#111] border text-[10px] font-bold uppercase p-2 pl-6 rounded-sm outline-none focus:border-[#555] appearance-none cursor-pointer hover:border-[#444] transition-colors
-                                        ${locationId ? 'text-white border-[#333]' : 'text-yellow-500 border-yellow-900/30'}
-                                    `}
-                                >
-                                    <option value="" disabled>SELECT LOCATION ASSET...</option>
-
-                                    {availableLocations.map(loc => (
-                                        <option key={loc.id} value={loc.id} className="text-white">
-                                            {loc.name.replace(/_/g, " ")}
-                                        </option>
-                                    ))}
-
-                                    {/* Fallback Display if no match found */}
-                                    {!locationId && (
-                                        <option value="" disabled className="text-yellow-500 bg-[#111]">
-                                            ⚠ UNKNOWN: {activeScene.header?.split("-")[0] || "MISSING"}
-                                        </option>
-                                    )}
-                                </select>
-                            </div>
-
-                            {/* Time Select */}
-                            <div className="flex items-center gap-2 mt-1">
-                                <Clock size={10} className="text-[#555]" />
-                                <select
-                                    value={timeOfDay}
-                                    onChange={(e) => { setTimeOfDay(e.target.value); setIsDirty(true); }}
-                                    className="flex-1 bg-transparent border-b border-[#333] text-[10px] font-mono text-[#888] py-1 outline-none focus:border-[#555] cursor-pointer"
-                                >
-                                    <option value="DAY">DAY</option>
-                                    <option value="NIGHT">NIGHT</option>
-                                    <option value="CONTINUOUS">CONTINUOUS</option>
-                                    <option value="MOMENTS LATER">MOMENTS LATER</option>
-                                    <option value="DAWN">DAWN</option>
-                                    <option value="DUSK">DUSK</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* Live Preview of Slugline */}
-                        <div className="mt-3 pt-2 border-t border-[#1A1A1A] flex items-center justify-between">
-                            <span className="text-[10px] font-mono text-[#555] truncate">
-                                {locationId ? fullHeader : activeScene.header || "NO HEADER"}
-                            </span>
-
-                            {showWarning && (
-                                <div title="Location asset not linked. Select an asset to fix." className="cursor-help flex items-center">
-                                    <AlertTriangle size={10} className="text-yellow-600 animate-pulse" />
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* 2. SUMMARY EDITOR */}
-                    <div>
-                        <div className="flex items-center justify-between text-[10px] font-bold text-[#888] uppercase mb-2">
-                            <div className="flex items-center gap-2">
-                                <FileText size={12} /> Scene Description
-                            </div>
-                            {isDirty && <span className="text-[8px] text-yellow-600 font-mono">* Unsaved</span>}
-                        </div>
-                        <textarea
-                            value={summary}
-                            onChange={(e) => { setSummary(e.target.value); setIsDirty(true); }}
-                            placeholder="Write scene description..."
-                            className="w-full h-32 bg-[#111] border border-[#222] text-xs text-[#CCC] p-3 rounded-sm focus:outline-none focus:border-[#444] resize-none leading-relaxed font-serif placeholder:text-[#333]"
-                        />
-                    </div>
-
-                    {/* 3. CAST MANAGER */}
-                    <div>
-                        <div className="flex items-center justify-between text-[10px] font-bold text-[#888] uppercase mb-2">
-                            <span className="flex items-center gap-2"><Users size={12} /> Scene Cast</span>
-                            <span className="text-[9px] text-[#444]">{activeCastList.length} Active</span>
-                        </div>
-                        <div className="p-3 bg-[#111] border border-[#222] rounded-sm flex flex-col gap-2">
-                            <div className="flex flex-wrap gap-2">
-                                {activeCastList.map((charId: string) => (
-                                    <div key={charId} className="flex items-center gap-1.5 px-2 py-1 bg-green-900/10 border border-green-900/30 text-green-500 text-[10px] font-bold uppercase rounded-sm group">
-                                        <span>{charId.replace(/_/g, " ")}</span>
-                                        <button onClick={() => handleRemoveCharacter(charId)} className="hover:text-white transition-colors"><X size={10} /></button>
-                                    </div>
+                            <select
+                                value={locationId}
+                                onChange={handleLocationSelect}
+                                className={`w-full bg-[#111] border border-[#222] text-xs font-bold uppercase rounded-md py-3 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer
+                                    ${!locationId ? 'text-yellow-600 border-yellow-900/30' : 'text-white'}
+                                `}
+                            >
+                                <option value="" disabled>Select Location...</option>
+                                {availableLocations.map(loc => (
+                                    <option key={loc.id} value={loc.id}>
+                                        {loc.name.replace(/_/g, " ")}
+                                    </option>
                                 ))}
-                                {activeCastList.length === 0 && <span className="text-[10px] text-[#444] italic py-1">No characters assigned.</span>}
+                                {!locationId && (
+                                    <option value="" disabled>⚠ UNKNOWN: {activeScene.header?.split("-")[0] || "MISSING"}</option>
+                                )}
+                            </select>
+                        </div>
+
+                        {/* Time Select */}
+                        <div className="relative group">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#444] pointer-events-none group-focus-within:text-white transition-colors">
+                                <Clock size={14} />
                             </div>
-                            {onUpdateCast && (
+                            <select
+                                value={timeOfDay}
+                                onChange={(e) => { setTimeOfDay(e.target.value); setIsDirty(true); }}
+                                className="w-full bg-[#111] border border-[#222] text-xs font-mono text-[#CCC] rounded-md py-3 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer"
+                            >
+                                <option value="DAY">DAY</option>
+                                <option value="NIGHT">NIGHT</option>
+                                <option value="CONTINUOUS">CONTINUOUS</option>
+                                <option value="MOMENTS LATER">MOMENTS LATER</option>
+                                <option value="DAWN">DAWN</option>
+                                <option value="DUSK">DUSK</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Preview */}
+                    <div className="px-3 py-2 border-l-2 border-[#222] bg-[#0A0A0A] flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-[#666] truncate uppercase tracking-wider">
+                            {locationId ? fullHeader : activeScene.header || "NO HEADER"}
+                        </span>
+                        {showWarning && (
+                            <div title="Location asset not linked" className="cursor-help">
+                                <AlertTriangle size={12} className="text-yellow-600/50" />
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* 2. DESCRIPTION */}
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold text-[#666] uppercase tracking-widest block">Action</label>
+                    </div>
+                    <textarea
+                        value={summary}
+                        onChange={(e) => { setSummary(e.target.value); setIsDirty(true); }}
+                        placeholder="Describe the visual action..."
+                        className="w-full h-40 bg-[#111] border border-[#222] text-sm text-[#DDD] p-4 rounded-md focus:outline-none focus:border-[#444] focus:bg-[#161616] resize-none leading-relaxed font-serif placeholder:text-[#333] transition-all"
+                    />
+                </div>
+
+                {/* 3. CAST */}
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold text-[#666] uppercase tracking-widest block">Characters</label>
+                        <span className="text-[9px] font-mono text-[#444]">{activeCastList.length} Active</span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 min-h-[40px] items-start">
+                        {activeCastList.map((charId: string) => (
+                            <div key={charId} className="flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-[#1A1A1A] border border-[#333] text-white text-[10px] font-bold uppercase rounded-full group hover:border-[#555] transition-colors">
+                                <span>{charId.replace(/_/g, " ")}</span>
+                                <button
+                                    onClick={() => handleRemoveCharacter(charId)}
+                                    className="p-0.5 rounded-full hover:bg-white/20 text-[#666] hover:text-white transition-colors"
+                                >
+                                    <X size={10} />
+                                </button>
+                            </div>
+                        ))}
+
+                        {onUpdateCast && (
+                            <div className="relative">
                                 <select
-                                    className="w-full bg-[#080808] border border-[#333] text-[#888] text-[10px] p-2 rounded-sm outline-none focus:border-[#555] cursor-pointer uppercase"
+                                    className="appearance-none pl-3 pr-8 py-1.5 bg-[#111] border border-[#222] text-[#666] hover:text-[#888] hover:border-[#333] text-[10px] font-bold uppercase rounded-full outline-none cursor-pointer transition-colors focus:border-[#444] focus:text-white"
                                     onChange={(e) => { if (e.target.value) { handleAddCharacter(e.target.value); e.target.value = ""; } }}
                                     value=""
                                 >
-                                    <option value="" disabled>+ Add Character...</option>
+                                    <option value="" disabled>+ Add</option>
                                     {availableCharacters.map(char => <option key={char.id} value={char.id}>{char.name}</option>)}
                                 </select>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* 4. AI PROMPT */}
-                    <div className="flex-1 flex flex-col border-t border-[#222] pt-6">
-                        <div className="flex items-center justify-between text-[10px] font-bold text-[#888] uppercase mb-2">
-                            <span className="flex items-center gap-2"><Terminal size={12} /> Context Aware Rewrite</span>
-                            <button onClick={onOpenContextModal} className="text-red-500 hover:text-white flex items-center gap-1 transition-colors"><Plus size={10} /> Add Reference</button>
-                        </div>
-
-                        {selectedContext.length > 0 && (
-                            <div className="p-2 bg-[#111] border border-[#222] rounded-sm mb-2 max-h-[80px] overflow-y-auto flex flex-wrap gap-2">
-                                {selectedContext.map(ref => (
-                                    <div key={ref.id} className="flex items-center gap-1 px-2 py-1 bg-[#1A1A1A] border border-[#333] text-[#AAA] text-[9px] rounded-sm group hover:border-[#555]">
-                                        <span>{ref.sourceLabel}</span>
-                                        <button onClick={() => onRemoveContextRef(ref.id)} className="hover:text-red-500"><X size={8} /></button>
-                                    </div>
-                                ))}
+                                <Plus size={10} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#444] pointer-events-none" />
                             </div>
                         )}
+                    </div>
+                </div>
 
+                {/* 4. AI ASSISTANT */}
+                <div className="pt-6 border-t border-[#111] space-y-4">
+                    <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold text-[#666] uppercase tracking-widest flex items-center gap-2">
+                            <Sparkles size={12} className="text-red-500" /> AI Assistant
+                        </label>
+                        <button
+                            onClick={onOpenContextModal}
+                            className="text-[9px] font-bold text-red-500 hover:text-red-400 uppercase tracking-wider transition-colors"
+                        >
+                            + Context
+                        </button>
+                    </div>
+
+                    {selectedContext.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {selectedContext.map(ref => (
+                                <div key={ref.id} className="flex items-center gap-1 px-2 py-1 bg-red-900/10 border border-red-900/30 text-red-400 text-[9px] font-mono rounded-sm">
+                                    <span className="truncate max-w-[100px]">{ref.sourceLabel}</span>
+                                    <button onClick={() => onRemoveContextRef(ref.id)} className="hover:text-white"><X size={8} /></button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="relative group">
                         <textarea
                             value={instruction}
                             onChange={(e) => setInstruction(e.target.value)}
-                            placeholder="// Enter AI commands to rewrite..."
-                            className="w-full flex-1 p-4 text-xs resize-none rounded-sm placeholder:text-[#444] min-h-[100px] bg-[rgba(10,10,10,0.5)] border border-[#333] text-[#EEE] font-mono focus:outline-none focus:border-red-600 focus:bg-[rgba(20,20,20,0.8)]"
+                            placeholder="Ask AI to rewrite, expand, or adjust tone..."
+                            className="w-full p-4 pr-12 text-xs rounded-md bg-[#0A0A0A] border border-[#222] text-[#DDD] font-mono focus:outline-none focus:border-red-900/50 focus:bg-[#111] transition-all resize-none h-24 placeholder:text-[#333]"
                         />
-                        <div className="flex gap-2 pt-4">
-                            <button onClick={() => onExecuteAi(instruction)} disabled={isProcessing || !instruction.trim()} className="flex-1 py-3 bg-red-600 text-white uppercase font-bold text-[10px] tracking-widest hover:bg-red-700 transition-all flex items-center justify-center gap-2 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed border border-red-500">
-                                {isProcessing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                                EXECUTE REWRITE
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => onExecuteAi(instruction)}
+                            disabled={isProcessing || !instruction.trim()}
+                            className="absolute bottom-3 right-3 p-2 bg-red-600 text-white rounded hover:bg-red-500 disabled:opacity-0 disabled:pointer-events-none transition-all shadow-lg shadow-red-900/20"
+                            title="Execute Rewrite"
+                        >
+                            {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                        </button>
                     </div>
                 </div>
+
             </div>
 
-            <div className="p-4 border-t border-[#222] bg-[#050505] shrink-0">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[9px] font-mono text-[#444]"><Activity size={10} /> AI_ENGINE_V2: READY</div>
-                    {isDirty && <span className="text-[9px] font-bold text-yellow-600 animate-pulse">UNSAVED CHANGES</span>}
-                </div>
+            {/* FOOTER */}
+            <div className="p-4 bg-[#050505] border-t border-[#111] shrink-0">
+                <button
+                    onClick={handleSaveChanges}
+                    disabled={!isDirty}
+                    className="w-full py-3 bg-white text-black text-xs font-bold uppercase tracking-wider rounded hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[#222] disabled:text-[#666]"
+                >
+                    {isDirty ? "Save Changes" : "No Changes"}
+                </button>
             </div>
         </div>
     );
