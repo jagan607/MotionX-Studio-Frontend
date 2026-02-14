@@ -4,16 +4,33 @@ import { auth, googleProvider, db } from "@/lib/firebase";
 import { signInWithPopup } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArrowRight, Activity, Disc, Globe, ArrowLeft } from "lucide-react"; // Import ArrowLeft
-import Link from "next/link"; // Import Link
+import { useState, useEffect } from "react";
+import { ArrowRight, Activity, Disc, Globe, ArrowLeft, AlertTriangle, ExternalLink } from "lucide-react";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isRestrictedBrowser, setIsRestrictedBrowser] = useState(false);
+
+  // 1. DETECT IN-APP BROWSERS (LINKEDIN, INSTAGRAM, ETC)
+  useEffect(() => {
+    // Safety check for server-side rendering
+    if (typeof window === 'undefined') return;
+
+    const ua = window.navigator.userAgent || window.navigator.vendor;
+
+    // Regex to detect common In-App Browsers (IAB) that block Google Auth
+    // FBAN/FBAV = Facebook, Instagram = Instagram, LinkedInApp = LinkedIn, Line = Line
+    const isInApp = /(LinkedInApp|FBAV|FBAN|Instagram|Line|Twitter|Snapchat)/i.test(ua);
+
+    setIsRestrictedBrowser(isInApp);
+  }, []);
 
   const handleGoogleLogin = async () => {
+    if (isRestrictedBrowser) return; // Prevent click if restricted
+
     setIsLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -57,10 +74,15 @@ export default function LoginPage() {
     cardInner: { border: '1px solid #222', padding: '30px', backgroundColor: '#080808' },
     statusRow: { display: 'flex', gap: '15px', marginBottom: '25px', fontSize: '9px', fontFamily: 'monospace', color: '#555', textTransform: 'uppercase' as const },
     dot: { width: '6px', height: '6px', backgroundColor: '#00FF41', borderRadius: '50%', display: 'inline-block', marginRight: '6px' },
-    btn: { width: '100%', padding: '18px', backgroundColor: isHovered ? '#FF0000' : '#FFF', color: isHovered ? '#FFF' : '#000', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: 'all 0.2s ease', boxShadow: isHovered ? '0 0 20px rgba(255,0,0,0.4)' : 'none' },
-    footer: { marginTop: '30px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontFamily: 'monospace', color: '#444', textTransform: 'uppercase' as const },
+    // ERROR DOT STYLE
+    errorDot: { width: '6px', height: '6px', backgroundColor: '#FF0000', borderRadius: '50%', display: 'inline-block', marginRight: '6px' },
 
-    // BACK BUTTON STYLE
+    btn: { width: '100%', padding: '18px', backgroundColor: isHovered ? '#FF0000' : '#FFF', color: isHovered ? '#FFF' : '#000', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: 'all 0.2s ease', boxShadow: isHovered ? '0 0 20px rgba(255,0,0,0.4)' : 'none' },
+
+    // ERROR BOX STYLE
+    errorBox: { width: '100%', padding: '20px', backgroundColor: '#1a0505', border: '1px solid #FF0000', color: '#FF0000', fontFamily: 'monospace', fontSize: '10px', lineHeight: '1.6', letterSpacing: '1px', textTransform: 'uppercase' as const, display: 'flex', flexDirection: 'column' as const, gap: '10px', alignItems: 'center', textAlign: 'center' as const },
+
+    footer: { marginTop: '30px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontFamily: 'monospace', color: '#444', textTransform: 'uppercase' as const },
     backBtn: {
       position: 'absolute' as const, top: '30px', left: '30px', zIndex: 50,
       display: 'flex', alignItems: 'center', gap: '8px',
@@ -74,7 +96,6 @@ export default function LoginPage() {
 
       {/* LEFT PANEL */}
       <div style={styles.leftPanel}>
-        {/* NEW BACK BUTTON */}
         <Link href="/" style={styles.backBtn}>
           <ArrowLeft size={14} /> ABORT / BACK TO HOME
         </Link>
@@ -106,10 +127,42 @@ export default function LoginPage() {
           </div>
           <div style={styles.card}>
             <div style={styles.cardInner}>
-              <div style={styles.statusRow}><span style={{ display: 'flex', alignItems: 'center' }}><span style={styles.dot} /> SYSTEM ONLINE</span><span style={{ display: 'flex', alignItems: 'center' }}><span style={styles.dot} /> ENCRYPTED</span></div>
-              <button onClick={handleGoogleLogin} disabled={isLoading} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} style={{ ...styles.btn, opacity: isLoading ? 0.7 : 1 }}>
-                {isLoading ? <> <Activity size={16} className="animate-spin" /> AUTHENTICATING... </> : <> INITIALIZE SESSION <ArrowRight size={16} strokeWidth={3} /> </>}
-              </button>
+
+              {/* DYNAMIC STATUS ROW */}
+              <div style={styles.statusRow}>
+                {isRestrictedBrowser ? (
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#FF0000' }}><span style={styles.errorDot} /> SECURITY ALERT</span>
+                ) : (
+                  <span style={{ display: 'flex', alignItems: 'center' }}><span style={styles.dot} /> SYSTEM ONLINE</span>
+                )}
+                <span style={{ display: 'flex', alignItems: 'center' }}><span style={styles.dot} /> ENCRYPTED</span>
+              </div>
+
+              {/* TOGGLE BETWEEN BUTTON AND ERROR MESSAGE */}
+              {isRestrictedBrowser ? (
+                <div style={styles.errorBox}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 'bold' }}>
+                    <AlertTriangle size={16} /> ACCESS RESTRICTED
+                  </div>
+                  <div>EMBEDDED VIEWER DETECTED.</div>
+                  <div>PROTOCOL: TAP <strong>...</strong> AND SELECT <strong>OPEN IN SYSTEM BROWSER</strong>.</div>
+                </div>
+              ) : (
+                <button
+                  onClick={handleGoogleLogin}
+                  disabled={isLoading}
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                  style={{ ...styles.btn, opacity: isLoading ? 0.7 : 1 }}
+                >
+                  {isLoading ?
+                    <> <Activity size={16} className="animate-spin" /> AUTHENTICATING... </>
+                    :
+                    <> INITIALIZE SESSION <ArrowRight size={16} strokeWidth={3} /> </>
+                  }
+                </button>
+              )}
+
               <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '9px', fontFamily: 'monospace', color: '#444' }}>SECURED BY GOOGLE IDENTITY</div>
             </div>
           </div>
