@@ -225,7 +225,7 @@ export default function NewProjectPage() {
             <div className="h-screen bg-[#050505] text-[#EEE] font-sans flex flex-col lg:flex-row overflow-hidden">
 
                 {/* --- LEFT: CONTROL TERMINAL --- */}
-                <div className={`flex flex-col border-r border-[#222] bg-[#080808] relative z-10 transition-all duration-500 ${isAdaptation ? 'w-full lg:w-full max-w-4xl mx-auto border-r-0' : 'w-full lg:w-5/12'}`}>
+                <div className={`flex flex-col border-r border-[#222] bg-[#080808] relative z-10 transition-all duration-500 ${isAdaptation ? 'w-full lg:w-full max-w-4xl mx-auto border-r-0' : 'w-full lg:w-7/12'}`}>
 
                     <div className="p-8 pb-4 border-b border-[#222]">
                         <Link href="/dashboard" className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] text-[#555] hover:text-white mb-6 transition-colors group">
@@ -436,7 +436,7 @@ export default function NewProjectPage() {
                             onClick={handleSubmit}
                             loading={creating}
                             disabled={isAdaptation && (isSizeError || !adaptationFile)}
-                            className={`w-full md:w-auto px-10 py-4 text-xs tracking-[0.2em] font-bold rounded-sm ${isAdaptation && isSizeError ? 'bg-[#222] text-[#444] cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                            className={`w-full py-6 text-sm tracking-[0.25em] font-bold rounded-sm shadow-lg shadow-red-900/20 hover:shadow-red-900/40 transition-all ${isAdaptation && isSizeError ? 'bg-[#222] text-[#444] cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
                         >
                             {isAdaptation && isSizeError ? "REDUCE FILE SIZE TO CONTINUE" : isAdaptation ? "START ADAPTATION ENGINE" : "INITIALIZE SYSTEM"}
                             {isAdaptation ? <BrainCircuit size={16} className="ml-2" /> : <ChevronRight size={12} className="ml-2" />}
@@ -446,7 +446,7 @@ export default function NewProjectPage() {
 
                 {/* --- RIGHT: VISUAL MATRIX --- */}
                 {!isAdaptation && (
-                    <div className="w-full lg:w-7/12 bg-[#050505] flex flex-col relative animate-in fade-in duration-500">
+                    <div className="w-full lg:w-5/12 bg-[#050505] flex flex-col relative animate-in fade-in duration-500">
                         <div className="h-16 border-b border-[#222] flex items-center justify-between px-8 bg-[#050505]/95 backdrop-blur-sm z-20 sticky top-0">
                             <div className="flex items-center gap-3">
                                 <Aperture className="text-red-600 animate-spin-slow" size={16} />
@@ -473,7 +473,7 @@ export default function NewProjectPage() {
                                             <span className="text-[9px] font-mono text-[#444] mb-0.5">{'//'} {axis.description}</span>
                                         </div>
 
-                                        <div className="grid grid-cols-3 xl:grid-cols-4 gap-3">
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                             {axis.options.map((option) => {
                                                 const isSelected = moodSelection[axis.code_prefix] === option.id;
                                                 return (
