@@ -237,15 +237,15 @@ export default function NewProjectPage() {
                         <p className="text-[10px] font-mono text-[#444] tracking-widest">SESSION_ID: {new Date().getTime().toString().slice(-6)}</p>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-8 space-y-8 dark-scrollbar pb-32">
+                    <div className="flex-1 overflow-y-auto p-8 space-y-6 dark-scrollbar pb-32">
 
-                        {/* 01. TYPE */}
+                        {/* --- 01. FORMAT SELECTION --- */}
                         <div className="space-y-3">
-                            <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
-                                <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">01</span> FORMAT SELECTION
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">01</span>
+                                <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">Format Selection</span>
                             </div>
-                            {/* Grid of 4 including Ad and Adaptation */}
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-3 gap-2">
                                 <FormatSelector
                                     active={formData.type === 'movie'}
                                     onClick={() => setFormData({ ...formData, type: 'movie' })}
@@ -274,87 +274,97 @@ export default function NewProjectPage() {
                                     label="Adaptation"
                                     subLabel="AI Remix"
                                 /> */}
-                            </div >
-                        </div >
+                            </div>
+                        </div>
 
-
-                        {/* 03. TITLE */}
-                        < div className="space-y-6 pt-2" >
-                            <div className="relative group bg-[#111] p-4 border border-[#222] rounded-sm focus-within:border-l-2 focus-within:border-l-red-600 transition-all">
-                                <label className="text-[9px] font-mono text-[#555] uppercase tracking-widest block mb-2 group-focus-within:text-red-500">
-                                    {isAdaptation ? "02" : "03"} {'//'} Project Title
-                                </label>
+                        {/* --- 02. PROJECT TITLE --- */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">02</span>
+                                <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">Project Title</span>
+                            </div>
+                            <div className="relative group">
                                 <input
                                     type="text"
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    className="w-full bg-transparent text-lg font-bold uppercase tracking-wide text-white placeholder-[#333] focus:outline-none"
-                                    placeholder={isAdaptation ? "EX: THE MATRIX REMIX" : "ENTER TITLE..."}
+                                    className="w-full bg-[#0E0E0E] border border-[#222] rounded-sm px-4 py-4 text-base font-bold uppercase tracking-wider text-white placeholder-[#333] focus:outline-none focus:border-red-600 transition-colors"
+                                    placeholder={isAdaptation ? "EX: THE MATRIX REMIX" : "ENTER PROJECT TITLE..."}
                                     autoComplete="off"
                                 />
                             </div>
-
                         </div>
 
                         {!isAdaptation ? (
                             <>
+                                {/* --- 03. ASPECT RATIO --- */}
                                 <div className="space-y-3">
-                                    <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
-                                        <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">03</span> ASPECT RATIO
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">03</span>
+                                        <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">Aspect Ratio</span>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="grid grid-cols-4 gap-2">
                                         {[
                                             { id: '16:9', label: '16:9', sub: 'Cinema', icon: RectangleHorizontal },
                                             { id: '21:9', label: '21:9', sub: 'Wide', icon: Monitor },
-                                            { id: '9:16', label: '9:16', sub: 'Social', icon: RectangleVertical },
+                                            { id: '9:16', label: '9:16', sub: 'Vertical', icon: RectangleVertical },
                                             { id: '4:5', label: '4:5', sub: 'Portrait', icon: RectangleVertical },
                                         ].map((opt) => (
                                             <button
                                                 key={opt.id}
-                                                onClick={() => setFormData({ ...formData, aspect_ratio: opt.id as any })}
-                                                className={`flex-1 py-3 border rounded-sm flex flex-col items-center justify-center gap-1 transition-all ${formData.aspect_ratio === opt.id
-                                                    ? 'border-white bg-[#222] text-white'
-                                                    : 'border-[#222] bg-[#0E0E0E] text-[#555] hover:border-[#444]'
-                                                    }`}
+                                                onClick={() => setFormData({ ...formData, aspect_ratio: opt.id as "16:9" | "21:9" | "9:16" | "4:5" })}
+                                                className={`relative p-3 border transition-all duration-300 flex flex-col items-center justify-center gap-2 group rounded-sm h-20
+                                                    ${formData.aspect_ratio === opt.id
+                                                        ? 'border-red-600 bg-[#1A0505]'
+                                                        : 'border-[#222] bg-[#0E0E0E] hover:border-[#444]'}
+                                                `}
                                             >
-                                                <opt.icon size={14} />
-                                                <span className="text-[10px] font-bold tracking-wider">{opt.label}</span>
+                                                <opt.icon size={16} className={formData.aspect_ratio === opt.id ? 'text-red-500' : 'text-[#444] group-hover:text-[#666]'} />
+                                                <div className="text-center">
+                                                    <div className={`text-[9px] font-mono tracking-widest uppercase mb-0.5 ${formData.aspect_ratio === opt.id ? 'text-red-400' : 'text-[#555]'}`}>{opt.sub}</div>
+                                                    <div className={`text-xs font-bold tracking-wider ${formData.aspect_ratio === opt.id ? 'text-white' : 'text-[#777] group-hover:text-white'}`}>{opt.label}</div>
+                                                </div>
+                                                {formData.aspect_ratio === opt.id && <div className="absolute top-2 right-2 h-1.5 w-1.5 bg-red-500 rounded-full shadow-[0_0_8px_#EF4444]" />}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
 
-                                <div className="relative group bg-[#111] p-4 border border-[#222] rounded-sm focus-within:border-l-2 focus-within:border-l-red-600 transition-all">
-                                    <label className="text-[9px] font-mono text-[#555] uppercase tracking-widest block mb-2 group-focus-within:text-red-500">
-                                        04 {'//'} Logline & Genre
-                                    </label>
+                                {/* --- 04. LOGLINE & GENRE --- */}
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">04</span>
+                                        <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">Logline & Genre</span>
+                                    </div>
                                     <textarea
                                         value={formData.genre}
                                         onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-                                        className="w-full bg-transparent text-sm font-medium text-[#CCC] placeholder-[#333] focus:outline-none resize-none h-20 leading-relaxed"
+                                        className="w-full bg-[#0E0E0E] border border-[#222] rounded-sm px-4 py-4 text-sm font-medium text-[#CCC] placeholder-[#333] focus:outline-none focus:border-red-600 resize-none h-24 leading-relaxed transition-colors"
                                         placeholder={formData.type === 'ad' ? "E.g. High energy sports drink commercial, neon lights..." : "Describe the story setting, genre, and tone..."}
                                     />
                                 </div>
 
+                                {/* --- 05. RENDER ENGINE --- */}
                                 <div className="space-y-3">
-                                    <div className="flex items-center gap-3 text-[10px] font-mono text-[#666]">
-                                        <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">05</span> RENDER ENGINE
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">05</span>
+                                        <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">Render Engine</span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-2">
                                         {[
-                                            { id: 'realistic', label: 'REALISTIC', icon: Clapperboard },
-                                            { id: 'anime', label: 'ANIMATION', icon: Layers }
+                                            { id: 'realistic', label: 'REALISTIC' },
+                                            { id: 'anime', label: 'ANIMATION' }
                                         ].map((s) => (
                                             <button
                                                 key={s.id}
-                                                onClick={() => setFormData({ ...formData, style: s.id as any })}
-                                                className={`py-4 border rounded-sm flex items-center justify-center gap-3 transition-all ${formData.style === s.id
-                                                    ? 'border-red-600 text-red-500 bg-[#1A0505]'
-                                                    : 'border-[#222] text-[#555] hover:text-[#888] bg-[#0E0E0E]'
-                                                    }`}
+                                                onClick={() => setFormData({ ...formData, style: s.id as "realistic" | "anime" })}
+                                                className={`py-4 border rounded-sm text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300
+                                                    ${formData.style === s.id
+                                                        ? 'border-red-600 bg-[#1A0505] text-red-500'
+                                                        : 'border-[#222] bg-[#0E0E0E] text-[#555] hover:border-[#444] hover:text-white'}
+                                                `}
                                             >
-                                                <s.icon size={16} />
-                                                <span className="text-xs font-bold tracking-widest">{s.label}</span>
+                                                {s.label}
                                             </button>
                                         ))}
                                     </div>
@@ -362,15 +372,16 @@ export default function NewProjectPage() {
                             </>
                         ) : (
                             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="flex items-center justify-between text-[10px] font-mono text-[#666]">
+                                <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <span className="bg-[#222] text-white px-1.5 py-0.5 rounded-sm">03</span> SOURCE MATERIAL
+                                        <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">03</span>
+                                        <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">Source Material</span>
                                     </div>
-                                    {isSizeError && <span className="text-red-500 font-bold flex items-center gap-1 animate-pulse"><AlertTriangle size={10} /> TOO LARGE</span>}
+                                    {isSizeError && <span className="text-red-500 text-[10px] font-bold flex items-center gap-1 animate-pulse"><AlertTriangle size={10} /> TOO LARGE</span>}
                                 </div>
 
                                 <div className={`
-                                        border border-dashed p-10 flex flex-col items-center justify-center text-center relative transition-all duration-300
+                                        border border-dashed p-10 flex flex-col items-center justify-center text-center relative transition-all duration-300 rounded-sm
                                         ${isSizeError ? 'border-red-600 bg-red-950/20 animate-shake' : adaptationFile ? 'border-red-600 bg-[#1A0505]' : 'border-[#333] bg-[#0E0E0E] hover:border-[#666] hover:text-white'}
                                     `}>
                                     <input
@@ -408,7 +419,7 @@ export default function NewProjectPage() {
                                     )}
                                 </div>
 
-                                <div className="p-4 bg-[#111] border border-[#222] rounded-sm text-[10px] text-[#666] font-mono leading-relaxed">
+                                <div className="p-4 bg-[#0E0E0E] border border-[#222] rounded-sm text-[10px] text-[#666] font-mono leading-relaxed">
                                     <strong className="text-white block mb-1">HOW ADAPTATION WORKS:</strong>
                                     1. Upload an existing video clip.<br />
                                     2. Our engine detects cuts and clusters characters.<br />
@@ -418,7 +429,7 @@ export default function NewProjectPage() {
                             </div>
                         )}
 
-                    </div >
+                    </div>
 
                     <div className="p-6 border-t border-[#222] bg-[#050505] z-30 flex justify-end">
                         <MotionButton
