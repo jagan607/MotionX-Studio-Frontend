@@ -279,11 +279,14 @@ export default function NewProjectPage() {
                         <div className="space-y-3">
                             <div className="flex items-center gap-3">
                                 <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">02</span>
-                                <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">Project Title</span>
+                                <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">
+                                    Project Title <span className="text-red-500">*</span>
+                                </span>
                             </div>
                             <div className="relative group">
                                 <input
                                     type="text"
+                                    autoFocus
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                     className="w-full bg-[#0E0E0E] border border-[#222] rounded-sm px-4 py-4 text-base font-bold uppercase tracking-wider text-white placeholder-[#333] focus:outline-none focus:border-red-600 transition-colors"
@@ -331,7 +334,9 @@ export default function NewProjectPage() {
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-3">
                                         <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">04</span>
-                                        <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">Logline & Genre</span>
+                                        <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">
+                                            Logline & Genre <span className="text-red-500">*</span>
+                                        </span>
                                     </div>
                                     <textarea
                                         value={formData.genre}

@@ -3,6 +3,7 @@ import { Inter, Anton, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import GlobalHeader from "@/components/GlobalHeader";
+import { Toaster } from "react-hot-toast";
 import Script from "next/script";
 import { MediaViewerProvider } from "@/app/context/MediaViewerContext";
 import GlobalMediaViewer from "@/app/components/media/GlobalMediaViewer";
@@ -87,6 +88,16 @@ export default function RootLayout({
                 {children}
               </main>
 
+              <Toaster
+                position="bottom-center"
+                toastOptions={{
+                  style: {
+                    background: '#333',
+                    color: '#fff',
+                    border: '1px solid #444',
+                  },
+                }}
+              />
             </AuthProvider>
           </div>
         </MediaViewerProvider>
