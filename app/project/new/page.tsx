@@ -342,8 +342,8 @@ export default function NewProjectPage() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         {[
-                                            { id: 'REALISTIC', label: 'REALISTIC', icon: Clapperboard },
-                                            { id: 'ANIMATIC', label: 'ANIMATIC', icon: Layers }
+                                            { id: 'realistic', label: 'REALISTIC', icon: Clapperboard },
+                                            { id: 'anime', label: 'ANIMATION', icon: Layers }
                                         ].map((s) => (
                                             <button
                                                 key={s.id}
