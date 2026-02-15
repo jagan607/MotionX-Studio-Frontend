@@ -195,12 +195,10 @@ export default function NewProjectPage() {
         >
             <div className="flex justify-between items-start w-full">
                 <Icon className={`w-5 h-5 ${active ? 'text-red-500' : 'text-[#444] group-hover:text-[#666]'}`} />
-                {active && <div className="h-1.5 w-1.5 bg-red-500 rounded-full shadow-[0_0_8px_#EF4444]" />}
-            </div>
-
-            <div className="text-left">
-                <div className={`text-[9px] font-mono tracking-widest uppercase mb-1 ${active ? 'text-red-400' : 'text-[#555]'}`}>{subLabel}</div>
-                <div className={`text-xs font-bold tracking-wider uppercase ${active ? 'text-white' : 'text-[#777] group-hover:text-white'}`}>{label}</div>
+                <div className="text-center">
+                    <div className={`text-[9px] font-mono tracking-widest uppercase mb-1 ${active ? 'text-red-400' : 'text-[#555]'}`}>{subLabel}</div>
+                    <div className={`text-xs font-bold tracking-wider uppercase ${active ? 'text-white' : 'text-[#777] group-hover:text-white'}`}>{label}</div>
+                </div>
             </div>
         </button>
     );
@@ -324,7 +322,6 @@ export default function NewProjectPage() {
                                                     <div className={`text-[9px] font-mono tracking-widest uppercase mb-0.5 ${formData.aspect_ratio === opt.id ? 'text-red-400' : 'text-[#555]'}`}>{opt.sub}</div>
                                                     <div className={`text-xs font-bold tracking-wider ${formData.aspect_ratio === opt.id ? 'text-white' : 'text-[#777] group-hover:text-white'}`}>{opt.label}</div>
                                                 </div>
-                                                {formData.aspect_ratio === opt.id && <div className="absolute top-2 right-2 h-1.5 w-1.5 bg-red-500 rounded-full shadow-[0_0_8px_#EF4444]" />}
                                             </button>
                                         ))}
                                     </div>
@@ -431,22 +428,29 @@ export default function NewProjectPage() {
 
                     </div>
 
-                    <div className="p-6 border-t border-[#222] bg-[#050505] z-30 flex justify-end">
-                        <MotionButton
-                            onClick={handleSubmit}
-                            loading={creating}
-                            disabled={isAdaptation && (isSizeError || !adaptationFile)}
-                            className={`w-full py-6 text-sm tracking-[0.25em] font-bold rounded-sm shadow-lg shadow-red-900/20 hover:shadow-red-900/40 transition-all ${isAdaptation && isSizeError ? 'bg-[#222] text-[#444] cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
-                        >
-                            {isAdaptation && isSizeError ? "REDUCE FILE SIZE TO CONTINUE" : isAdaptation ? "START ADAPTATION ENGINE" : "INITIALIZE SYSTEM"}
-                            {isAdaptation ? <BrainCircuit size={16} className="ml-2" /> : <ChevronRight size={12} className="ml-2" />}
-                        </MotionButton>
-                    </div>
-                </div >
+                    {/* MOVED CTA TO RIGHT COLUMN, but kept here for Adaptation flow if needed or hidden */}
+                    {/* For Adaptation, we might still want it here or also move it. User asked to place init system primary cta in right block.
+                        Assuming this applies to the main flow. Let's conditionally render it here ONLY if adaptation? 
+                         actually the user request was general. Let's move it to the right column area entirely for the standard flow.
+                    */}
+                    {isAdaptation && (
+                        <div className="p-6 border-t border-[#222] bg-[#050505] z-30 flex justify-end">
+                            <MotionButton
+                                onClick={handleSubmit}
+                                loading={creating}
+                                disabled={isSizeError || !adaptationFile}
+                                className={`w-full py-6 text-sm tracking-[0.25em] font-bold rounded-sm shadow-lg shadow-red-900/20 hover:shadow-red-900/40 transition-all ${isSizeError ? 'bg-[#222] text-[#444] cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                            >
+                                {isSizeError ? "REDUCE FILE SIZE" : "START ADAPTATION ENGINE"}
+                                <BrainCircuit size={16} className="ml-2" />
+                            </MotionButton>
+                        </div>
+                    )}
+                </div>
 
-                {/* --- RIGHT: VISUAL MATRIX --- */}
+                {/* --- RIGHT: VISUAL MATRIX & CTA --- */}
                 {!isAdaptation && (
-                    <div className="w-full lg:w-5/12 bg-[#050505] flex flex-col relative animate-in fade-in duration-500">
+                    <div className="w-full lg:w-5/12 bg-[#050505] flex flex-col relative animate-in fade-in duration-500 border-l border-[#222]">
                         <div className="h-16 border-b border-[#222] flex items-center justify-between px-8 bg-[#050505]/95 backdrop-blur-sm z-20 sticky top-0">
                             <div className="flex items-center gap-3">
                                 <Aperture className="text-red-600 animate-spin-slow" size={16} />
@@ -508,9 +512,21 @@ export default function NewProjectPage() {
                                 ))
                             )}
                         </div>
+
+                        {/* PRIMARY CTA IN RIGHT COLUMN */}
+                        <div className="p-6 border-t border-[#222] bg-[#050505] z-30">
+                            <MotionButton
+                                onClick={handleSubmit}
+                                loading={creating}
+                                className="w-full py-6 text-sm tracking-[0.25em] font-bold rounded-sm shadow-lg shadow-red-900/20 hover:shadow-red-900/40 transition-all bg-red-600 hover:bg-red-700 text-white"
+                            >
+                                INITIALIZE SYSTEM
+                                <ChevronRight size={12} className="ml-2" />
+                            </MotionButton>
+                        </div>
                     </div>
                 )}
-            </div >
-        </StudioLayout >
+            </div>
+        </StudioLayout>
     );
 }
