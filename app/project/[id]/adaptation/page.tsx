@@ -427,7 +427,27 @@ export default function AdaptationPage() {
     const handleRetryDetection = async () => { if (!confirm("Re-run?")) return; try { await api.post(`/api/v1/adaptation/analyze/${projectId}`); } catch (e) { } };
     const handleDeleteCluster = async (c: any) => { if (!confirm("Delete?")) return; setIsDeletingCluster(c.id); try { await api.delete(`/api/v1/adaptation/project/${projectId}/cluster/${c.id}`); } catch (e) { } finally { setIsDeletingCluster(null) } };
     const handleUpload = async () => { if (!file) return; setIsUploading(true); const fd = new FormData(); fd.append("file", file); fd.append("title", title); try { await api.post("/api/v1/adaptation/create_adaptation", fd); } catch (e) { } };
-    const handleCastUpload = async (cid: string, f: File) => { setUploadingCast(cid); const fd = new FormData(); fd.append("file", f); try { const r = await api.post("/api/v1/adaptation/upload_temp", fd); await updateDoc(doc(db, "projects", projectId, "cast_clusters", cid), { new_face_url: r.data.url, status: "mapped" }); } catch (e) { } finally { setUploadingCast(null) } };
+    const handleCastUpload = async (cid: string, f: File) => {
+        setUploadingCast(cid);
+        const fd = new FormData();
+        fd.append("file", f);
+
+        try {
+            const r = await api.post("/api/v1/adaptation/upload_temp", fd, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+
+            await updateDoc(doc(db, "projects", projectId, "cast_clusters", cid), {
+                new_face_url: r.data.url,
+                status: "mapped"
+            });
+        } catch (e) {
+            console.error("Upload failed", e);
+            toast.error("Upload failed");
+        } finally {
+            setUploadingCast(null);
+        }
+    };
     const handleDeleteShot = async (sid: string) => { if (!confirm("Delete?")) return; try { await deleteDoc(doc(db, "projects", projectId, "episodes", "main", "scenes", "scene_01", "shots", sid)); } catch (e) { } };
     const handleStartRender = async () => { setIsStartingRender(true); try { await updateDoc(doc(db, "projects", projectId), { adaptation_settings: { lighting: selectedLighting, color: selectedColor } }); await api.post(`/api/v1/adaptation/start_render/${projectId}`); } catch (e) { } finally { setIsStartingRender(false) } };
 

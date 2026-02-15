@@ -267,13 +267,13 @@ export default function NewProjectPage() {
                                     label="Commercial"
                                     subLabel="Short Form"
                                 />
-                                <FormatSelector
+                                {/* <FormatSelector
                                     active={formData.type === 'adaptation'}
                                     onClick={() => setFormData({ ...formData, type: 'adaptation' })}
                                     icon={BrainCircuit}
                                     label="Adaptation"
                                     subLabel="AI Remix"
-                                />
+                                /> */}
                             </div >
                         </div >
 
@@ -342,8 +342,8 @@ export default function NewProjectPage() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         {[
-                                            { id: 'realistic', label: 'REALISM', icon: Clapperboard },
-                                            { id: 'anime', label: 'ANIME', icon: Layers }
+                                            { id: 'REALISTIC', label: 'REALISTIC', icon: Clapperboard },
+                                            { id: 'ANIMATIC', label: 'ANIMATIC', icon: Layers }
                                         ].map((s) => (
                                             <button
                                                 key={s.id}
