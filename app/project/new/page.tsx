@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { doc, getDoc } from "firebase/firestore";
+import { onAuthStateChanged, User } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
 import { api, invalidateDashboardCache } from "@/lib/api";
 import {
@@ -62,6 +63,16 @@ export default function NewProjectPage() {
     // [NEW] Adaptation File State & Error State
     const [adaptationFile, setAdaptationFile] = useState<File | null>(null);
     const [isSizeError, setIsSizeError] = useState(false);
+
+    // [NEW] User Auth State for Access Control
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setCurrentUser(user);
+        });
+        return () => unsubscribe();
+    }, []);
 
     // 3. Mood Selection State
     const [moodSelection, setMoodSelection] = useState<Record<string, string>>({});
@@ -265,13 +276,15 @@ export default function NewProjectPage() {
                                     label="Commercial"
                                     subLabel="Short Form"
                                 />
-                                {/* <FormatSelector
-                                    active={formData.type === 'adaptation'}
-                                    onClick={() => setFormData({ ...formData, type: 'adaptation' })}
-                                    icon={BrainCircuit}
-                                    label="Adaptation"
-                                    subLabel="AI Remix"
-                                /> */}
+                                {currentUser?.email?.endsWith('@motionx.in') && (
+                                    <FormatSelector
+                                        active={formData.type === 'adaptation'}
+                                        onClick={() => setFormData({ ...formData, type: 'adaptation' })}
+                                        icon={BrainCircuit}
+                                        label="Adaptation"
+                                        subLabel="AI Remix"
+                                    />
+                                )}
                             </div>
                         </div>
 
