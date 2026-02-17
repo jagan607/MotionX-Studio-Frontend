@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { X, Sparkles, FileText, Upload } from "lucide-react";
+import { X } from "lucide-react";
 import { InputDeck } from "@/components/script/InputDeck";
 import { ContextReference } from "@/app/components/script/ContextSelectorModal";
 
@@ -61,16 +61,11 @@ export const ScriptIngestionModal: React.FC<ScriptIngestionModalProps> = ({
 
                 {/* Header */}
                 <div className="h-14 border-b border-[#222] bg-[#0A0A0A] flex items-center justify-between px-6 shrink-0">
-                    <div className="flex items-center gap-3">
-                        {mode === 'new' ? <Sparkles size={16} className="text-red-500" /> : <FileText size={16} className="text-blue-500" />}
-                        <div>
-                            <h2 className="text-sm font-bold text-white uppercase tracking-widest leading-none">
-                                {mode === 'new' ? "New Sequence" : "Edit Script"}
-                            </h2>
-                            <span className="text-[10px] text-[#555] font-mono">
-                                {mode === 'new' ? "INITIALIZE NEW NARRATIVE STREAM" : "MODIFY EXISTING SCREENPLAY DATA"}
-                            </span>
-                        </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-white uppercase tracking-tight">Script Setup</h2>
+                        <span className="text-[10px] font-mono text-neutral-500">
+                            Editing: <span className={mode === 'new' ? "text-red-500 font-bold" : "text-white"}>{mode === 'new' ? "New Episode" : "Existing Episode"}</span>
+                        </span>
                     </div>
                     <button
                         onClick={onClose}

@@ -589,7 +589,19 @@ export default function StudioPage() {
                 initialTitle={episodes.find(e => e.id === scriptTargetEpId)?.title}
                 initialScript={episodes.find(e => e.id === scriptTargetEpId)?.script_preview}
                 initialRuntime={episodes.find(e => e.id === scriptTargetEpId)?.runtime}
-                previousEpisode={null} // Can implement continuity finding logic if needed
+                previousEpisode={
+                    scriptMode === 'new' && episodes.length > 0
+                        ? (() => {
+                            const lastEp = episodes[episodes.length - 1];
+                            return lastEp ? {
+                                id: lastEp.id,
+                                episode_number: lastEp.episode_number,
+                                title: lastEp.title || `Episode ${lastEp.episode_number}`,
+                                script_preview: lastEp.script_preview || ""
+                            } : null;
+                        })()
+                        : null
+                }
                 onSuccess={handleScriptSuccess}
                 contextReferences={selectedContext}
                 onOpenContextModal={() => setIsContextModalOpen(true)}
