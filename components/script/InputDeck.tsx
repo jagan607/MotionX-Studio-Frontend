@@ -37,6 +37,10 @@ interface InputDeckProps {
     className?: string;
     contextReferences?: ContextReference[];
     onOpenContextModal?: () => void;
+
+    // Episode Switching
+    episodes?: any[];
+    onSwitchEpisode?: (id: string) => void;
 }
 
 type InputMethod = 'ai' | 'upload' | 'paste' | 'current';
@@ -56,7 +60,9 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     isModal = false,
     className = "",
     contextReferences = [],
-    onOpenContextModal
+    onOpenContextModal,
+    episodes = [],
+    onSwitchEpisode
 }) => {
     // --- STATE ---
     const [title, setTitle] = useState("");
@@ -366,11 +372,11 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
                 {/* --- 1. MANDATORY FIELDS (TITLE & RUNTIME) --- */}
                 <div className="shrink-0 flex gap-4 items-start">
-                    {/* TITLE INPUT */}
+                    {/* TITLE INPUT / DROPDOWN */}
                     <div className="flex-1">
                         <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                            {isSingleUnit ? "Script Title" : "Episode Title"}
-                            {/* Dynamic: hide REQUIRED when field is filled */}
+                            Title
+                            {/* Dynamic: hide REQUIRED when field is filled or single unit */}
                             {(!title && !isSingleUnit) && (
                                 <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30 animate-in fade-in duration-200">REQUIRED</span>
                             )}
@@ -394,12 +400,104 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 </div>
                             </div>
                         ) : (
-                            <div className="relative">
+                            // EPISODIC: Check if we have episodes to show a dropdown
+                            (episodes && episodes.length > 0 && onSwitchEpisode) ? (
+                                <div className="relative">
+                                    <select
+                                        className={`w-full bg-transparent border-b py-2 text-xl font-display text-white focus:outline-none focus:border-motion-red transition-colors uppercase appearance-none cursor-pointer
+                                            ${titleError ? 'border-red-500/50' : 'border-neutral-700'}
+                                        `}
+                                        value={isNewEpisodeMode ? 'new' : episodeId || 'new'}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === 'new') {
+                                                onSwitchEpisode('new');
+                                            } else {
+                                                onSwitchEpisode(val);
+                                            }
+                                        }}
+                                        disabled={isUploading}
+                                    >
+                                        <option value="new" className="bg-neutral-900 text-white font-bold">+ Create New Episode</option>
+                                        {episodes.map(ep => (
+                                            <option key={ep.id} value={ep.id} className="bg-neutral-900 text-white">
+                                                {ep.title || `Episode ${ep.episode_number}`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <ChevronRight className="absolute right-0 top-3 text-neutral-500 pointer-events-none rotate-90" size={14} />
+
+                                    {/* If NEW selected, we might still want to edit the title? 
+                                        Actually, for 'New', we probably want a text input. 
+                                        But the request says "dropdown here itself". 
+                                        Hybrid approach: Dropdown selects context. If 'new', we might need a separate input for the NEW title.
+                                        But usually, 'New Episode' implies we are creating one. 
+                                        Let's keep it simple: Dropdown selects WHICH episode.
+                                        If 'new' is selected, we show a secondary input for the title below or ideally, the dropdown IS the selector, and we have an input for the title.
+                                        
+                                        Wait, if I select "Ep 1", I am EDITING Ep 1. I can't change its title here easily without proper write-back.
+                                        Let's assume this dropdown REPLACES the title input for *switching* context.
+                                        BUT user still needs to NAME a new episode.
+                                        
+                                        So: 
+                                        1. Dropdown to Switch Context.
+                                        2. If 'new', Input for Title.
+                                        3. If 'existing', Input for Title (to rename) or just Display? The current flow allows renaming.
+                                    */}
+
+                                    {/* Let's render the Title Input BELOW the dropdown if we are in 'New' mode, OR if we want to allow renaming. 
+                                        Actually, "giving a dropdown" might mean REPLACING the text input with a selector.
+                                        But we need to output a string 'title'.
+                                        
+                                        Best UX:
+                                        Row 1: "Editing: [Dropdown]"
+                                        Row 2: "Title Input" (pre-filled)
+                                        
+                                        But to save space, let's keep the Input. The dropdown can be a small switcher nearby.
+                                        OR, the user request: "drop down here itself" means the main input becomes a dropdown.
+                                        
+                                        If I select "New", the value is "New Episode"? No.
+                                        
+                                        Let's try a hybrid: 
+                                        The main field is the Title Input.
+                                        But we add a small "Switch Episode" dropdown above or beside it?
+                                        
+                                        Re-reading: "give an dropdown here itself if project type is episodic".
+                                        
+                                        Let's go with:
+                                        Label: "Episode"
+                                        Component: Dropdown [New Episode, Ep 1, Ep 2...]
+                                        
+                                        IF 'New Episode' selected -> Show "Title" input.
+                                        IF 'Ep 1' selected -> Show "Title" input (pre-filled, editable).
+                                    */}
+                                </div>
+                            ) : (
+                                // Fallback standard input
+                                <div className="relative">
+                                    <input
+                                        className={`w-full bg-transparent border-b py-2 text-xl font-display text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors uppercase
+                                            ${titleError ? 'border-red-500/50' : 'border-neutral-700'}
+                                        `}
+                                        placeholder="e.g. The Pilot"
+                                        value={title}
+                                        onChange={(e) => {
+                                            setTitle(e.target.value);
+                                            if (e.target.value) setTitleError(false);
+                                        }}
+                                        disabled={isUploading}
+                                    />
+                                    {titleError && <AlertCircle className="absolute right-0 top-3 text-red-500 animate-pulse" size={14} />}
+                                </div>
+                            )
+                        )}
+
+                        {/* Secondary Title Input for Episodic (when dropdown is present) */}
+                        {!isSingleUnit && episodes && episodes.length > 0 && onSwitchEpisode && (
+                            <div className="mt-2 animate-in fade-inSlide-in-from-top-1">
                                 <input
-                                    className={`w-full bg-transparent border-b py-2 text-xl font-display text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors uppercase
-                                        ${titleError ? 'border-red-500/50' : 'border-neutral-700'}
-                                    `}
-                                    placeholder="e.g. The Pilot, Chapter One..."
+                                    className="w-full bg-transparent border-b border-neutral-800 py-1 text-sm font-display text-neutral-300 placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 transition-colors uppercase"
+                                    placeholder={isNewEpisodeMode ? "Name your new episode..." : "Rename episode..."}
                                     value={title}
                                     onChange={(e) => {
                                         setTitle(e.target.value);
@@ -407,7 +505,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     }}
                                     disabled={isUploading}
                                 />
-                                {titleError && <AlertCircle className="absolute right-0 top-3 text-red-500 animate-pulse" size={14} />}
                             </div>
                         )}
                     </div>
@@ -415,7 +512,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     {/* RUNTIME INPUT */}
                     <div className="w-[160px]">
                         <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                            Duration
+                            Runtime
                             {/* Dynamic: hide REQUIRED when field is filled */}
                             {!runtime && (
                                 <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30 animate-in fade-in duration-200">REQUIRED</span>
@@ -500,40 +597,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     <div className="h-px bg-white/5 w-full my-1" />
                 )}
 
-                {/* --- CONTEXT MATRIX (COMMON) --- */}
-                {onOpenContextModal && (
-                    <div className="bg-black/20 border border-white/5 rounded-lg p-3 mb-4 group">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                                <Database size={12} className="text-blue-500" />
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-300">Context Matrix</span>
-                            </div>
-                            <button
-                                onClick={onOpenContextModal}
-                                className="text-[9px] font-bold text-blue-400 hover:text-white bg-blue-900/10 hover:bg-blue-900/30 px-2 py-1 rounded border border-blue-900/30 transition-all uppercase"
-                            >
-                                + Edit Memory
-                            </button>
-                        </div>
 
-                        <div className="min-h-[24px] flex items-center">
-                            {contextReferences.length === 0 ? (
-                                <span className="text-[10px] text-neutral-600 font-mono">No active context. AI will generate in isolation.</span>
-                            ) : (
-                                <div className="flex flex-wrap gap-2">
-                                    {contextReferences.slice(0, 5).map(ref => (
-                                        <span key={ref.id} className="px-2 py-1 bg-blue-900/20 border border-blue-500/20 rounded text-[9px] text-blue-200 truncate max-w-[120px] shadow-sm">
-                                            {ref.sourceLabel}
-                                        </span>
-                                    ))}
-                                    {contextReferences.length > 5 && (
-                                        <span className="px-2 py-1 bg-white/5 rounded text-[9px] text-neutral-500">+{contextReferences.length - 5}</span>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
 
                 {/* --- 2. INPUT TABS --- */}
                 {renderTabs()}
@@ -585,6 +649,34 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 onChange={(e) => setSynopsisText(e.target.value)}
                                 disabled={isUploading}
                             />
+
+                            {/* NEW CONTEXT MATRIX LOCATION - FLOATING ACTION */}
+                            {onOpenContextModal && (
+                                <div className="absolute top-3 right-3 flex items-center gap-2">
+                                    {contextReferences.length > 0 && (
+                                        <div className="flex items-center gap-1">
+                                            {contextReferences.slice(0, 2).map(ref => (
+                                                <span key={ref.id} className="text-[8px] font-mono bg-blue-900/30 text-blue-200 px-1.5 py-0.5 rounded border border-blue-500/20 backdrop-blur-sm">
+                                                    {ref.sourceLabel}
+                                                </span>
+                                            ))}
+                                            {contextReferences.length > 2 && (
+                                                <span className="text-[8px] font-mono bg-blue-900/30 text-blue-200 px-1.5 py-0.5 rounded border border-blue-500/20 backdrop-blur-sm">
+                                                    +{contextReferences.length - 2}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                    <button
+                                        onClick={onOpenContextModal}
+                                        className="flex items-center gap-1.5 text-[9px] font-bold text-blue-400 hover:text-white bg-black/60 hover:bg-blue-900/60 pl-2 pr-2.5 py-1 rounded-full border border-blue-900/30 transition-all backdrop-blur-sm uppercase shadow-lg"
+                                        title="Configure AI Context Memory"
+                                    >
+                                        <Database size={10} />
+                                        {contextReferences.length > 0 ? "Edit Context" : "Add Context"}
+                                    </button>
+                                </div>
+                            )}
                             {/* Subtle branding */}
                             <div className="absolute bottom-3 right-3 flex items-center gap-2 text-[9px] font-mono text-neutral-700">
                                 <Cpu size={10} /> AI_ENGINE_READY
@@ -654,13 +746,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     </div>
                 )}
 
-                {isModal && (
-                    <div className="mt-4 pt-4 border-t border-neutral-800">
-                        <button onClick={onCancel} className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-bold tracking-widest text-motion-text-muted hover:text-motion-red transition-colors">
-                            <X size={14} /> CANCEL
-                        </button>
-                    </div>
-                )}
+
             </div>
 
             {/* FOOTER */}
@@ -682,13 +768,23 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                         </div>
                     </div>
                 ) : (
-                    <MotionButton
-                        onClick={() => executeProtocol('standard')}
-                        className={`w-full py-4 text-xs tracking-widest font-bold ${activeTab === 'current' ? 'opacity-60' : ''}`}
-                        disabled={!isButtonEnabled()}
-                    >
-                        {getButtonText()} {activeTab !== 'current' && <ArrowRight size={14} className="ml-2" />}
-                    </MotionButton>
+                    <div className="flex gap-3">
+                        {isModal && (
+                            <button
+                                onClick={onCancel}
+                                className="px-6 py-4 rounded-lg bg-neutral-800/50 hover:bg-neutral-800 text-[10px] font-bold tracking-widest text-neutral-400 hover:text-white transition-colors uppercase"
+                            >
+                                Cancel
+                            </button>
+                        )}
+                        <MotionButton
+                            onClick={() => executeProtocol('standard')}
+                            className={`flex-1 py-4 text-xs tracking-widest font-bold ${activeTab === 'current' ? 'opacity-60' : ''}`}
+                            disabled={!isButtonEnabled()}
+                        >
+                            {getButtonText()} {activeTab !== 'current' && <ArrowRight size={14} className="ml-2" />}
+                        </MotionButton>
+                    </div>
                 )}
             </div>
         </div>

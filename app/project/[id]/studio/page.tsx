@@ -581,6 +581,11 @@ export default function StudioPage() {
                 projectType={project.type as any}
                 mode={scriptMode}
                 episodeId={scriptTargetEpId}
+                episodes={episodes} // Pass all episodes for dropdown
+                onSwitchEpisode={(id) => {
+                    if (id === 'new') handleNewEpisode();
+                    else handleEditEpisode(id);
+                }}
                 initialTitle={episodes.find(e => e.id === scriptTargetEpId)?.title}
                 initialScript={episodes.find(e => e.id === scriptTargetEpId)?.script_preview}
                 initialRuntime={episodes.find(e => e.id === scriptTargetEpId)?.runtime}

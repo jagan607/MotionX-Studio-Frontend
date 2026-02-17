@@ -29,6 +29,8 @@ interface ScriptIngestionModalProps {
     onOpenContextModal?: () => void;
 
     previousEpisode?: any;
+    episodes?: any[];
+    onSwitchEpisode?: (id: string) => void;
 }
 
 export const ScriptIngestionModal: React.FC<ScriptIngestionModalProps> = ({
@@ -45,7 +47,9 @@ export const ScriptIngestionModal: React.FC<ScriptIngestionModalProps> = ({
     onSuccess,
     contextReferences,
     onOpenContextModal,
-    previousEpisode
+    previousEpisode,
+    episodes,
+    onSwitchEpisode
 }) => {
     if (!isOpen) return null;
 
@@ -83,6 +87,8 @@ export const ScriptIngestionModal: React.FC<ScriptIngestionModalProps> = ({
                         projectTitle={projectTitle}
                         projectType={projectType}
                         episodeId={mode === 'new' ? "new_placeholder" : episodeId} // [Critical] Use placeholder for new
+                        episodes={episodes}
+                        onSwitchEpisode={onSwitchEpisode}
                         initialTitle={initialTitle}
                         initialScript={initialScript}
                         initialRuntime={initialRuntime}
