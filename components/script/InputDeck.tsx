@@ -38,7 +38,7 @@ interface InputDeckProps {
     contextReferences?: ContextReference[];
 }
 
-type InputMethod = 'ai' | 'upload' | 'paste';
+type InputMethod = 'ai' | 'upload' | 'paste' | 'current';
 
 export const InputDeck: React.FC<InputDeckProps> = ({
     projectId,
@@ -102,21 +102,31 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     }, [isSingleUnit, projectTitle, initialTitle, initialRuntime]);
 
     useEffect(() => {
+        // If there's an existing script, default to the 'current' tab to show it
+        // Keep AI assistant textarea clean for fresh prompts
         if (initialScript) {
-            setSynopsisText(initialScript);
+            setActiveTab('current');
+        } else {
             setActiveTab('ai');
         }
+        // Clear AI synopsis when switching episodes
+        setSynopsisText("");
+        setPastedScript("");
+        setSelectedFile(null);
     }, [initialScript, episodeId]);
 
     const isUpdateMode = !!episodeId && !!initialScript && episodeId !== "new_placeholder";
 
     // Check modification based on active tab
+    const hasNewContent =
+        (activeTab === 'ai' && !!synopsisText.trim()) ||
+        (activeTab === 'upload' && !!selectedFile) ||
+        (activeTab === 'paste' && !!pastedScript.trim());
+
     const isModified =
         (title || "") !== (initialTitle || "") ||
         (runtime || "") !== (initialRuntime || "") ||
-        (activeTab === 'ai' && synopsisText !== initialScript) ||
-        (activeTab === 'upload' && !!selectedFile) ||
-        (activeTab === 'paste' && !!pastedScript);
+        hasNewContent;
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
@@ -132,11 +142,11 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
     const handleTabChange = (tab: InputMethod) => {
         if (isUploading) return;
-
-        // Optional: clear other inputs when switching? 
-        // For now, let's keep them in state but only submit the active one
         setActiveTab(tab);
     };
+
+    // Derived: whether an existing script is available for the 'current' tab
+    const hasExistingScript = !!initialScript && isUpdateMode;
 
     // --- MAIN PROTOCOL EXECUTION ---
     const executeProtocol = async (mode: 'standard' | 'continuity' = 'standard') => {
@@ -275,7 +285,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     };
 
     const getButtonText = () => {
-        if (isUpdateMode) return isModified ? "Update Script" : "Script Up to Date";
+        if (activeTab === 'current') return "Script Up to Date";
         if (activeTab === 'ai') return "Generate Script";
         if (activeTab === 'upload') return "Upload & Process";
         if (activeTab === 'paste') return "Process Script";
@@ -290,6 +300,9 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         // Multi-episode must have title
         if (!title && !isSingleUnit) return false;
 
+        // Current tab is read-only, no submission from it
+        if (activeTab === 'current') return false;
+
         // Active tab must have content
         if (activeTab === 'ai' && !synopsisText.trim()) return false;
         if (activeTab === 'upload' && !selectedFile) return false;
@@ -302,6 +315,18 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
     const renderTabs = () => (
         <div className="flex items-center gap-1 p-1 bg-black/20 border border-white/5 rounded-lg mb-4">
+            {/* Show 'Current Script' tab only when an existing script is present */}
+            {hasExistingScript && (
+                <button
+                    onClick={() => handleTabChange('current')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-wider rounded transition-all
+                        ${activeTab === 'current' ? 'bg-white/10 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'}
+                    `}
+                >
+                    <FileText size={12} className={activeTab === 'current' ? "text-green-400" : ""} />
+                    Current Script
+                </button>
+            )}
             <button
                 onClick={() => handleTabChange('ai')}
                 className={`flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-wider rounded transition-all
@@ -343,7 +368,13 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     <div className="flex-1">
                         <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                             {isSingleUnit ? "Script Title" : "Episode Title"}
-                            <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30">REQUIRED</span>
+                            {/* Dynamic: hide REQUIRED when field is filled */}
+                            {(!title && !isSingleUnit) && (
+                                <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30 animate-in fade-in duration-200">REQUIRED</span>
+                            )}
+                            {(!!title || isSingleUnit) && (
+                                <CheckCircle2 size={12} className="text-green-600 animate-in fade-in duration-200" />
+                            )}
                         </label>
 
                         {isSingleUnit ? (
@@ -383,7 +414,13 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     <div className="w-[160px]">
                         <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                             Duration
-                            <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30">REQUIRED</span>
+                            {/* Dynamic: hide REQUIRED when field is filled */}
+                            {!runtime && (
+                                <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30 animate-in fade-in duration-200">REQUIRED</span>
+                            )}
+                            {!!runtime && (
+                                <CheckCircle2 size={12} className="text-green-600 animate-in fade-in duration-200" />
+                            )}
                         </label>
                         <div className="relative">
                             <input
@@ -460,6 +497,27 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 {renderTabs()}
 
                 {/* --- 3. INPUT CONTENT --- */}
+
+                {/* D. CURRENT SCRIPT TAB (read-only preview) */}
+                {activeTab === 'current' && hasExistingScript && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] text-neutral-400">
+                                This is the current script for this episode. Switch to another tab to replace it.
+                            </span>
+                            <span className="text-[9px] font-bold text-green-500 bg-green-900/20 px-2 py-0.5 rounded border border-green-900/50 flex items-center gap-1">
+                                <CheckCircle2 size={10} /> SYNCED
+                            </span>
+                        </div>
+                        <div className="relative h-[240px]">
+                            <textarea
+                                className="w-full h-full bg-black/20 border border-neutral-800 p-4 font-mono text-xs text-neutral-300 resize-none leading-relaxed rounded-lg cursor-default"
+                                value={initialScript}
+                                readOnly
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* A. AI ASSISTANT TAB */}
                 {activeTab === 'ai' && (
@@ -584,11 +642,10 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 ) : (
                     <MotionButton
                         onClick={() => executeProtocol('standard')}
-                        className="w-full py-4 text-xs tracking-widest font-bold"
-                        // Disable logic uses isButtonEnabled
+                        className={`w-full py-4 text-xs tracking-widest font-bold ${activeTab === 'current' ? 'opacity-60' : ''}`}
                         disabled={!isButtonEnabled()}
                     >
-                        {getButtonText()} <ArrowRight size={14} className="ml-2" />
+                        {getButtonText()} {activeTab !== 'current' && <ArrowRight size={14} className="ml-2" />}
                     </MotionButton>
                 )}
             </div>
