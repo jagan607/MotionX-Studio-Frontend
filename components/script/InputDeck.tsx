@@ -3,8 +3,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
     Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2, Lock,
-    ChevronRight, Database, FastForward, ArrowRight, Clock,
-    FileText, Clipboard, AlertCircle, CheckCircle2
+    ChevronDown, ChevronRight, Database, FastForward, ArrowRight, Clock,
+    FileText, Clipboard, AlertCircle, CheckCircle2, Check, Plus
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { api, checkJobStatus } from "@/lib/api";
@@ -86,9 +86,24 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const logsContainerRef = useRef<HTMLDivElement>(null);
 
+    // Episode Selector Dropdown state
+    const [showEpisodeDropdown, setShowEpisodeDropdown] = useState(false);
+    const episodeDropdownRef = useRef<HTMLDivElement>(null);
+
     // [CHANGED] Group 'ad' and 'movie' as single-unit types
     const isSingleUnit = projectType === "movie" || projectType === "ad";
     const isNewEpisodeMode = !episodeId || episodeId === "new_placeholder";
+
+    // Close episode dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (episodeDropdownRef.current && !episodeDropdownRef.current.contains(e.target as Node)) {
+                setShowEpisodeDropdown(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     // --- SCROLL TO BOTTOM OF LOGS ---
     useEffect(() => {
@@ -365,23 +380,79 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         </div>
     );
 
+    // Get the label for the currently selected episode
+    const getSelectedEpisodeLabel = () => {
+        if (isNewEpisodeMode) return "+ New Episode";
+        const ep = episodes.find((e: any) => e.id === episodeId);
+        return ep ? (ep.title || `Episode ${ep.episode_number}`) : "Select Episode";
+    };
+
     return (
         <div className={`flex flex-col bg-neutral-900/30 border border-neutral-800 rounded-xl shadow-2xl ${className}`}>
 
-            <div className="flex flex-col p-6 gap-6">
+            <div className="flex flex-col p-6 gap-4">
+
+                {/* --- 0. EPISODE SELECTOR (Episodic projects only) --- */}
+                {!isSingleUnit && episodes && episodes.length > 0 && onSwitchEpisode && (
+                    <div className="relative" ref={episodeDropdownRef}>
+                        <button
+                            onClick={() => setShowEpisodeDropdown(!showEpisodeDropdown)}
+                            className="flex items-center justify-between gap-3 px-4 h-10 w-full bg-[#1A1A1A] text-[#EEE] border border-[#333] hover:border-[#555] rounded transition-all group cursor-pointer"
+                            disabled={isUploading}
+                        >
+                            <span className="text-[11px] font-semibold uppercase tracking-wide truncate select-none">
+                                {getSelectedEpisodeLabel()}
+                            </span>
+                            <ChevronDown
+                                size={14}
+                                className={`text-[#666] group-hover:text-white transition-all duration-200 ${showEpisodeDropdown ? "rotate-180" : ""}`}
+                            />
+                        </button>
+
+                        {showEpisodeDropdown && (
+                            <div className="absolute top-full left-0 mt-1 w-full bg-[#1A1A1A] border border-[#333] rounded shadow-2xl shadow-black/80 z-[9999] overflow-hidden">
+                                <div className="px-4 py-2.5 border-b border-[#222] flex items-center justify-between bg-[#111]">
+                                    <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Switch Episode</span>
+                                    <span className="text-[9px] font-mono text-[#333]">{episodes.length}</span>
+                                </div>
+                                <div className="max-h-[280px] overflow-y-auto">
+                                    <button
+                                        onClick={() => { onSwitchEpisode('new'); setShowEpisodeDropdown(false); }}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all cursor-pointer ${isNewEpisodeMode ? "bg-red-900/10 border-l-2 border-l-red-500" : "hover:bg-[#222] border-l-2 border-l-transparent"}`}
+                                    >
+                                        <Plus size={12} className="text-[#888] shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-[11px] font-bold text-[#EEE] uppercase tracking-wide">New Episode</div>
+                                        </div>
+                                        {isNewEpisodeMode && <Check size={14} className="text-red-500 shrink-0" />}
+                                    </button>
+                                    {episodes.map((ep: any) => (
+                                        <button
+                                            key={ep.id}
+                                            onClick={() => { onSwitchEpisode(ep.id); setShowEpisodeDropdown(false); }}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all cursor-pointer ${ep.id === episodeId ? "bg-red-900/10 border-l-2 border-l-red-500" : "hover:bg-[#222] border-l-2 border-l-transparent"}`}
+                                        >
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-[11px] font-bold text-[#EEE] uppercase tracking-wide truncate">{ep.title || `Episode ${ep.episode_number}`}</div>
+                                                <div className="text-[9px] font-mono text-[#555] uppercase mt-0.5">Episode {ep.episode_number}</div>
+                                            </div>
+                                            {ep.id === episodeId && <Check size={14} className="text-red-500 shrink-0" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* --- 1. MANDATORY FIELDS (TITLE & RUNTIME) --- */}
                 <div className="shrink-0 flex gap-4 items-start">
-                    {/* TITLE INPUT / DROPDOWN */}
+                    {/* TITLE INPUT */}
                     <div className="flex-1">
                         <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                             Title
-                            {/* Dynamic: hide REQUIRED when field is filled or single unit */}
                             {(!title && !isSingleUnit) && (
-                                <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30 animate-in fade-in duration-200">REQUIRED</span>
-                            )}
-                            {(!!title || isSingleUnit) && (
-                                <CheckCircle2 size={12} className="text-green-600 animate-in fade-in duration-200" />
+                                <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30">REQUIRED</span>
                             )}
                         </label>
 
@@ -394,110 +465,17 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     <span className="text-[9px] font-mono">LOCKED</span>
                                     <Lock size={14} />
                                 </div>
-                                {/* Tooltip */}
                                 <div className="absolute top-full left-0 mt-2 w-max px-2 py-1 bg-neutral-800 text-neutral-400 text-[9px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                                     Title inherited from project settings
                                 </div>
                             </div>
                         ) : (
-                            // EPISODIC: Check if we have episodes to show a dropdown
-                            (episodes && episodes.length > 0 && onSwitchEpisode) ? (
-                                <div className="relative">
-                                    <select
-                                        className={`w-full bg-transparent border-b py-2 text-xl font-display text-white focus:outline-none focus:border-motion-red transition-colors uppercase appearance-none cursor-pointer
-                                            ${titleError ? 'border-red-500/50' : 'border-neutral-700'}
-                                        `}
-                                        value={isNewEpisodeMode ? 'new' : episodeId || 'new'}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (val === 'new') {
-                                                onSwitchEpisode('new');
-                                            } else {
-                                                onSwitchEpisode(val);
-                                            }
-                                        }}
-                                        disabled={isUploading}
-                                    >
-                                        <option value="new" className="bg-neutral-900 text-white font-bold">+ Create New Episode</option>
-                                        {episodes.map(ep => (
-                                            <option key={ep.id} value={ep.id} className="bg-neutral-900 text-white">
-                                                {ep.title || `Episode ${ep.episode_number}`}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <ChevronRight className="absolute right-0 top-3 text-neutral-500 pointer-events-none rotate-90" size={14} />
-
-                                    {/* If NEW selected, we might still want to edit the title? 
-                                        Actually, for 'New', we probably want a text input. 
-                                        But the request says "dropdown here itself". 
-                                        Hybrid approach: Dropdown selects context. If 'new', we might need a separate input for the NEW title.
-                                        But usually, 'New Episode' implies we are creating one. 
-                                        Let's keep it simple: Dropdown selects WHICH episode.
-                                        If 'new' is selected, we show a secondary input for the title below or ideally, the dropdown IS the selector, and we have an input for the title.
-                                        
-                                        Wait, if I select "Ep 1", I am EDITING Ep 1. I can't change its title here easily without proper write-back.
-                                        Let's assume this dropdown REPLACES the title input for *switching* context.
-                                        BUT user still needs to NAME a new episode.
-                                        
-                                        So: 
-                                        1. Dropdown to Switch Context.
-                                        2. If 'new', Input for Title.
-                                        3. If 'existing', Input for Title (to rename) or just Display? The current flow allows renaming.
-                                    */}
-
-                                    {/* Let's render the Title Input BELOW the dropdown if we are in 'New' mode, OR if we want to allow renaming. 
-                                        Actually, "giving a dropdown" might mean REPLACING the text input with a selector.
-                                        But we need to output a string 'title'.
-                                        
-                                        Best UX:
-                                        Row 1: "Editing: [Dropdown]"
-                                        Row 2: "Title Input" (pre-filled)
-                                        
-                                        But to save space, let's keep the Input. The dropdown can be a small switcher nearby.
-                                        OR, the user request: "drop down here itself" means the main input becomes a dropdown.
-                                        
-                                        If I select "New", the value is "New Episode"? No.
-                                        
-                                        Let's try a hybrid: 
-                                        The main field is the Title Input.
-                                        But we add a small "Switch Episode" dropdown above or beside it?
-                                        
-                                        Re-reading: "give an dropdown here itself if project type is episodic".
-                                        
-                                        Let's go with:
-                                        Label: "Episode"
-                                        Component: Dropdown [New Episode, Ep 1, Ep 2...]
-                                        
-                                        IF 'New Episode' selected -> Show "Title" input.
-                                        IF 'Ep 1' selected -> Show "Title" input (pre-filled, editable).
-                                    */}
-                                </div>
-                            ) : (
-                                // Fallback standard input
-                                <div className="relative">
-                                    <input
-                                        className={`w-full bg-transparent border-b py-2 text-xl font-display text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors uppercase
-                                            ${titleError ? 'border-red-500/50' : 'border-neutral-700'}
-                                        `}
-                                        placeholder="e.g. The Pilot"
-                                        value={title}
-                                        onChange={(e) => {
-                                            setTitle(e.target.value);
-                                            if (e.target.value) setTitleError(false);
-                                        }}
-                                        disabled={isUploading}
-                                    />
-                                    {titleError && <AlertCircle className="absolute right-0 top-3 text-red-500 animate-pulse" size={14} />}
-                                </div>
-                            )
-                        )}
-
-                        {/* Secondary Title Input for Episodic (when dropdown is present) */}
-                        {!isSingleUnit && episodes && episodes.length > 0 && onSwitchEpisode && (
-                            <div className="mt-2 animate-in fade-inSlide-in-from-top-1">
+                            <div className="relative">
                                 <input
-                                    className="w-full bg-transparent border-b border-neutral-800 py-1 text-sm font-display text-neutral-300 placeholder:text-neutral-700 focus:outline-none focus:border-neutral-600 transition-colors uppercase"
-                                    placeholder={isNewEpisodeMode ? "Name your new episode..." : "Rename episode..."}
+                                    className={`w-full bg-transparent border-b py-2 text-xl font-display text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors uppercase
+                                        ${titleError ? 'border-red-500/50' : 'border-neutral-700'}
+                                    `}
+                                    placeholder={isNewEpisodeMode ? "Name your new episode..." : "e.g. The Pilot"}
                                     value={title}
                                     onChange={(e) => {
                                         setTitle(e.target.value);
@@ -505,6 +483,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     }}
                                     disabled={isUploading}
                                 />
+                                {titleError && <AlertCircle className="absolute right-0 top-3 text-red-500 animate-pulse" size={14} />}
                             </div>
                         )}
                     </div>
@@ -513,12 +492,8 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     <div className="w-[160px]">
                         <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                             Runtime
-                            {/* Dynamic: hide REQUIRED when field is filled */}
                             {!runtime && (
-                                <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30 animate-in fade-in duration-200">REQUIRED</span>
-                            )}
-                            {!!runtime && (
-                                <CheckCircle2 size={12} className="text-green-600 animate-in fade-in duration-200" />
+                                <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30">REQUIRED</span>
                             )}
                         </label>
                         <div className="relative">
@@ -536,7 +511,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 disabled={isUploading}
                             />
                             {runtimeError && <AlertCircle className="absolute right-0 top-3 text-red-500 animate-pulse" size={14} />}
-                            <span className="absolute right-0 top-3 text-[10px] text-neutral-600 font-mono pointer-events-none right-6">MINS</span>
+                            <span className="absolute top-3 text-[10px] text-neutral-600 font-mono pointer-events-none right-6">MINS</span>
                         </div>
                     </div>
                 </div>
@@ -552,11 +527,9 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     Continue from {previousEpisode.title || `Episode ${previousEpisode.episode_number}`}
                                 </span>
                             </div>
-
                             <p className="text-[10px] text-blue-200/60 line-clamp-2 font-mono mb-4 pl-1 border-l border-blue-800">
-                                "{previousEpisode.script_preview || "No preview available..."}"
+                                &quot;{previousEpisode.script_preview || "No preview available..."}&quot;
                             </p>
-
                             <div className="flex gap-3">
                                 <input
                                     type="text"
@@ -565,7 +538,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     value={continuityInstruction}
                                     onChange={(e) => setContinuityInstruction(e.target.value)}
                                 />
-
                                 <MotionButton
                                     onClick={() => executeProtocol('continuity')}
                                     disabled={!title}
@@ -578,7 +550,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     </div>
                 )}
 
-                {/* DIVIDER if Continuity exists */}
+                {/* DIVIDER */}
                 {previousEpisode && isNewEpisodeMode && !isUploading && (
                     <div className="flex items-center gap-4 shrink-0 opacity-50">
                         <div className="flex-1 h-px bg-neutral-800"></div>
@@ -587,205 +559,202 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     </div>
                 )}
 
-                {/* DIVIDER for standard flow */}
-                {(!previousEpisode || !isNewEpisodeMode) && (
-                    <div className="h-px bg-white/5 w-full my-1" />
-                )}
-
-                {/* DIVIDER for standard flow */}
-                {(!previousEpisode || !isNewEpisodeMode) && (
-                    <div className="h-px bg-white/5 w-full my-1" />
-                )}
-
-
-
                 {/* --- 2. INPUT TABS --- */}
                 {renderTabs()}
 
                 {/* --- 3. INPUT CONTENT --- */}
 
                 {/* D. CURRENT SCRIPT TAB (read-only preview) */}
-                {activeTab === 'current' && hasExistingScript && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] text-neutral-400">
-                                This is the current script for this episode. Switch to another tab to replace it.
-                            </span>
-                            <span className="text-[9px] font-bold text-green-500 bg-green-900/20 px-2 py-0.5 rounded border border-green-900/50 flex items-center gap-1">
-                                <CheckCircle2 size={10} /> SYNCED
-                            </span>
-                        </div>
-                        <div className="relative h-[240px]">
-                            <textarea
-                                className="w-full h-full bg-black/20 border border-neutral-800 p-4 font-mono text-xs text-neutral-300 resize-none leading-relaxed rounded-lg cursor-default"
-                                value={initialScript}
-                                readOnly
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {/* A. AI ASSISTANT TAB */}
-                {activeTab === 'ai' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] text-neutral-400">
-                                Describe your story, characters, and setting. Our AI will generate a formatted screenplay.
-                            </span>
-                            {contextReferences.length > 0 && (
-                                <div className="flex items-center gap-1 text-[9px] font-bold text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded border border-blue-900/50">
-                                    <Database size={10} />
-                                    {contextReferences.length} ACTIVE
-                                </div>
-                            )}
-                        </div>
-                        <div className="relative h-[240px]">
-                            <textarea
-                                className="w-full h-full bg-black/40 border border-neutral-700 p-4 font-sans text-sm text-motion-text placeholder:text-neutral-600 focus:outline-none focus:border-motion-red resize-none leading-relaxed rounded-lg transition-colors"
-                                placeholder={contextReferences.length > 0
-                                    ? "Describe the next events including character actions and dialogue..."
-                                    : "e.g. Interior apartment, day. Two friends discuss the future of AI..."}
-                                value={synopsisText}
-                                onChange={(e) => setSynopsisText(e.target.value)}
-                                disabled={isUploading}
-                            />
-
-                            {/* NEW CONTEXT MATRIX LOCATION - FLOATING ACTION */}
-                            {onOpenContextModal && (
-                                <div className="absolute top-3 right-3 flex items-center gap-2">
-                                    {contextReferences.length > 0 && (
-                                        <div className="flex items-center gap-1">
-                                            {contextReferences.slice(0, 2).map(ref => (
-                                                <span key={ref.id} className="text-[8px] font-mono bg-blue-900/30 text-blue-200 px-1.5 py-0.5 rounded border border-blue-500/20 backdrop-blur-sm">
-                                                    {ref.sourceLabel}
-                                                </span>
-                                            ))}
-                                            {contextReferences.length > 2 && (
-                                                <span className="text-[8px] font-mono bg-blue-900/30 text-blue-200 px-1.5 py-0.5 rounded border border-blue-500/20 backdrop-blur-sm">
-                                                    +{contextReferences.length - 2}
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                    <button
-                                        onClick={onOpenContextModal}
-                                        className="flex items-center gap-1.5 text-[9px] font-bold text-blue-400 hover:text-white bg-black/60 hover:bg-blue-900/60 pl-2 pr-2.5 py-1 rounded-full border border-blue-900/30 transition-all backdrop-blur-sm uppercase shadow-lg"
-                                        title="Configure AI Context Memory"
-                                    >
-                                        <Database size={10} />
-                                        {contextReferences.length > 0 ? "Edit Context" : "Add Context"}
-                                    </button>
-                                </div>
-                            )}
-                            {/* Subtle branding */}
-                            <div className="absolute bottom-3 right-3 flex items-center gap-2 text-[9px] font-mono text-neutral-700">
-                                <Cpu size={10} /> AI_ENGINE_READY
+                {
+                    activeTab === 'current' && hasExistingScript && (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] text-neutral-400">
+                                    This is the current script for this episode. Switch to another tab to replace it.
+                                </span>
+                                <span className="text-[9px] font-bold text-green-500 bg-green-900/20 px-2 py-0.5 rounded border border-green-900/50 flex items-center gap-1">
+                                    <CheckCircle2 size={10} /> SYNCED
+                                </span>
+                            </div>
+                            <div className="relative h-[240px]">
+                                <textarea
+                                    className="w-full h-full bg-black/20 border border-neutral-800 p-4 font-mono text-xs text-neutral-300 resize-none leading-relaxed rounded-lg cursor-default"
+                                    value={initialScript}
+                                    readOnly
+                                />
                             </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
+
+                {/* A. AI ASSISTANT TAB */}
+                {
+                    activeTab === 'ai' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] text-neutral-400">
+                                    Describe your story, characters, and setting. Our AI will generate a formatted screenplay.
+                                </span>
+                                {contextReferences.length > 0 && (
+                                    <div className="flex items-center gap-1 text-[9px] font-bold text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded border border-blue-900/50">
+                                        <Database size={10} />
+                                        {contextReferences.length} ACTIVE
+                                    </div>
+                                )}
+                            </div>
+                            <div className="relative h-[240px]">
+                                <textarea
+                                    className="w-full h-full bg-black/40 border border-neutral-700 p-4 font-sans text-sm text-motion-text placeholder:text-neutral-600 focus:outline-none focus:border-motion-red resize-none leading-relaxed rounded-lg transition-colors"
+                                    placeholder={contextReferences.length > 0
+                                        ? "Describe the next events including character actions and dialogue..."
+                                        : "e.g. Interior apartment, day. Two friends discuss the future of AI..."}
+                                    value={synopsisText}
+                                    onChange={(e) => setSynopsisText(e.target.value)}
+                                    disabled={isUploading}
+                                />
+
+                                {/* NEW CONTEXT MATRIX LOCATION - FLOATING ACTION */}
+                                {onOpenContextModal && (
+                                    <div className="absolute top-3 right-3 flex items-center gap-2">
+                                        {contextReferences.length > 0 && (
+                                            <div className="flex items-center gap-1">
+                                                {contextReferences.slice(0, 2).map(ref => (
+                                                    <span key={ref.id} className="text-[8px] font-mono bg-blue-900/30 text-blue-200 px-1.5 py-0.5 rounded border border-blue-500/20 backdrop-blur-sm">
+                                                        {ref.sourceLabel}
+                                                    </span>
+                                                ))}
+                                                {contextReferences.length > 2 && (
+                                                    <span className="text-[8px] font-mono bg-blue-900/30 text-blue-200 px-1.5 py-0.5 rounded border border-blue-500/20 backdrop-blur-sm">
+                                                        +{contextReferences.length - 2}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                        <button
+                                            onClick={onOpenContextModal}
+                                            className="flex items-center gap-1.5 text-[9px] font-bold text-blue-400 hover:text-white bg-black/60 hover:bg-blue-900/60 pl-2 pr-2.5 py-1 rounded-full border border-blue-900/30 transition-all backdrop-blur-sm uppercase shadow-lg"
+                                            title="Configure AI Context Memory"
+                                        >
+                                            <Database size={10} />
+                                            {contextReferences.length > 0 ? "Edit Context" : "Add Context"}
+                                        </button>
+                                    </div>
+                                )}
+                                {/* Subtle branding */}
+                                <div className="absolute bottom-3 right-3 flex items-center gap-2 text-[9px] font-mono text-neutral-700">
+                                    <Cpu size={10} /> AI_ENGINE_READY
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
 
                 {/* B. UPLOAD TAB */}
-                {activeTab === 'upload' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div
-                            onClick={() => !isUploading && fileInputRef.current?.click()}
-                            className={`
+                {
+                    activeTab === 'upload' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div
+                                onClick={() => !isUploading && fileInputRef.current?.click()}
+                                className={`
                                 h-[240px] border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-4 transition-all cursor-pointer relative overflow-hidden
                                 ${isUploading ? 'opacity-50 cursor-not-allowed border-neutral-800' : 'hover:border-neutral-500 hover:bg-white/5 border-neutral-800 bg-black/20'}
                                 ${selectedFile ? 'border-green-900/50 bg-green-900/5' : ''}
                             `}
-                        >
-                            <input type="file" ref={fileInputRef} hidden onChange={handleFileSelect} accept=".pdf,.docx,.txt" disabled={isUploading} />
+                            >
+                                <input type="file" ref={fileInputRef} hidden onChange={handleFileSelect} accept=".pdf,.docx,.txt" disabled={isUploading} />
 
-                            {selectedFile ? (
-                                <>
-                                    <div className="w-16 h-16 rounded-full bg-green-900/20 flex items-center justify-center text-green-500 mb-2">
-                                        <FileText size={32} />
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-sm font-bold text-white mb-1">{selectedFile.name}</div>
-                                        <div className="text-[10px] font-mono text-green-400 uppercase tracking-wider">
-                                            {(selectedFile.size / 1024).toFixed(1)} KB • READY TO UPLOAD
+                                {selectedFile ? (
+                                    <>
+                                        <div className="w-16 h-16 rounded-full bg-green-900/20 flex items-center justify-center text-green-500 mb-2">
+                                            <FileText size={32} />
                                         </div>
-                                    </div>
-                                    <div className="absolute top-4 right-4 text-green-500">
-                                        <CheckCircle2 size={20} />
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="w-16 h-16 rounded-full bg-[#111] flex items-center justify-center text-neutral-600 group-hover:text-white transition-colors">
-                                        <Upload size={24} />
-                                    </div>
-                                    <div className="text-center">
-                                        <h3 className="text-sm font-bold text-white mb-1">Click to Upload Script</h3>
-                                        <p className="text-[10px] text-neutral-500 font-mono uppercase tracking-widest">PDF • DOCX • TXT</p>
-                                    </div>
-                                </>
-                            )}
+                                        <div className="text-center">
+                                            <div className="text-sm font-bold text-white mb-1">{selectedFile.name}</div>
+                                            <div className="text-[10px] font-mono text-green-400 uppercase tracking-wider">
+                                                {(selectedFile.size / 1024).toFixed(1)} KB • READY TO UPLOAD
+                                            </div>
+                                        </div>
+                                        <div className="absolute top-4 right-4 text-green-500">
+                                            <CheckCircle2 size={20} />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-16 h-16 rounded-full bg-[#111] flex items-center justify-center text-neutral-600 group-hover:text-white transition-colors">
+                                            <Upload size={24} />
+                                        </div>
+                                        <div className="text-center">
+                                            <h3 className="text-sm font-bold text-white mb-1">Click to Upload Script</h3>
+                                            <p className="text-[10px] text-neutral-500 font-mono uppercase tracking-widest">PDF • DOCX • TXT</p>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
 
                 {/* C. PASTE TAB */}
-                {activeTab === 'paste' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] text-neutral-400">
-                                Paste your screenplay text directly. Standard screenplay formatting is recommended but not required.
-                            </span>
+                {
+                    activeTab === 'paste' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] text-neutral-400">
+                                    Paste your screenplay text directly. Standard screenplay formatting is recommended but not required.
+                                </span>
+                            </div>
+                            <textarea
+                                className="w-full h-[240px] bg-black/40 border border-neutral-700 p-4 font-mono text-xs text-green-100 placeholder:text-neutral-700 focus:outline-none focus:border-green-600 resize-none leading-relaxed rounded-lg"
+                                placeholder="INT. COFFEE SHOP - DAY..."
+                                value={pastedScript}
+                                onChange={(e) => setPastedScript(e.target.value)}
+                                disabled={isUploading}
+                            />
                         </div>
-                        <textarea
-                            className="w-full h-[240px] bg-black/40 border border-neutral-700 p-4 font-mono text-xs text-green-100 placeholder:text-neutral-700 focus:outline-none focus:border-green-600 resize-none leading-relaxed rounded-lg"
-                            placeholder="INT. COFFEE SHOP - DAY..."
-                            value={pastedScript}
-                            onChange={(e) => setPastedScript(e.target.value)}
-                            disabled={isUploading}
-                        />
-                    </div>
-                )}
+                    )
+                }
 
 
             </div>
 
             {/* FOOTER */}
             <div className="shrink-0 p-4 border-t border-neutral-800 bg-black/30 min-h-[5.5rem] flex flex-col justify-center rounded-b-xl">
-                {isUploading ? (
-                    <div className="w-full h-32 bg-black border border-neutral-800 rounded p-4 font-mono text-[10px] overflow-hidden flex flex-col ring-1 ring-white/5">
-                        <div className="flex items-center justify-between text-neutral-500 mb-2 pb-2 border-b border-neutral-900">
-                            <span className="flex items-center gap-2 text-white"><Loader2 className="animate-spin text-motion-red" size={12} /> Processing your script...</span>
+                {
+                    isUploading ? (
+                        <div className="w-full h-32 bg-black border border-neutral-800 rounded p-4 font-mono text-[10px] overflow-hidden flex flex-col ring-1 ring-white/5" >
+                            <div className="flex items-center justify-between text-neutral-500 mb-2 pb-2 border-b border-neutral-900">
+                                <span className="flex items-center gap-2 text-white"><Loader2 className="animate-spin text-motion-red" size={12} /> Processing your script...</span>
+                            </div>
+                            <div ref={logsContainerRef} className="flex-1 overflow-y-auto space-y-1.5 scrollbar-hide">
+                                {logs.map((log, i) => (
+                                    <div key={i} className="flex gap-2 text-neutral-400">
+                                        <span className="text-neutral-700">➜</span>
+                                        <span className={i === logs.length - 1 ? "text-green-400 font-bold" : ""}>
+                                            {log}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <div ref={logsContainerRef} className="flex-1 overflow-y-auto space-y-1.5 scrollbar-hide">
-                            {logs.map((log, i) => (
-                                <div key={i} className="flex gap-2 text-neutral-400">
-                                    <span className="text-neutral-700">➜</span>
-                                    <span className={i === logs.length - 1 ? "text-green-400 font-bold" : ""}>
-                                        {log}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex gap-3">
-                        {isModal && (
-                            <button
-                                onClick={onCancel}
-                                className="px-6 py-4 rounded-lg bg-neutral-800/50 hover:bg-neutral-800 text-[10px] font-bold tracking-widest text-neutral-400 hover:text-white transition-colors uppercase"
+                    ) : (
+                        <div className="flex gap-3">
+                            {isModal && (
+                                <button
+                                    onClick={onCancel}
+                                    className="px-6 py-4 rounded-lg bg-neutral-800/50 hover:bg-neutral-800 text-[10px] font-bold tracking-widest text-neutral-400 hover:text-white transition-colors uppercase"
+                                >
+                                    Cancel
+                                </button>
+                            )}
+                            <MotionButton
+                                onClick={() => executeProtocol('standard')}
+                                className={`flex-1 py-4 text-xs tracking-widest font-bold ${activeTab === 'current' ? 'opacity-60' : ''}`}
+                                disabled={!isButtonEnabled()}
                             >
-                                Cancel
-                            </button>
-                        )}
-                        <MotionButton
-                            onClick={() => executeProtocol('standard')}
-                            className={`flex-1 py-4 text-xs tracking-widest font-bold ${activeTab === 'current' ? 'opacity-60' : ''}`}
-                            disabled={!isButtonEnabled()}
-                        >
-                            {getButtonText()} {activeTab !== 'current' && <ArrowRight size={14} className="ml-2" />}
-                        </MotionButton>
-                    </div>
-                )}
+                                {getButtonText()} {activeTab !== 'current' && <ArrowRight size={14} className="ml-2" />}
+                            </MotionButton>
+                        </div>
+                    )}
             </div>
         </div>
     );
