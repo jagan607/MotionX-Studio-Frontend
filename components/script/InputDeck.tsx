@@ -36,6 +36,7 @@ interface InputDeckProps {
     isModal?: boolean;
     className?: string;
     contextReferences?: ContextReference[];
+    onOpenContextModal?: () => void;
 }
 
 type InputMethod = 'ai' | 'upload' | 'paste' | 'current';
@@ -54,7 +55,8 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     onStatusChange,
     isModal = false,
     className = "",
-    contextReferences = []
+    contextReferences = [],
+    onOpenContextModal
 }) => {
     // --- STATE ---
     const [title, setTitle] = useState("");
@@ -493,6 +495,46 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     <div className="h-px bg-white/5 w-full my-1" />
                 )}
 
+                {/* DIVIDER for standard flow */}
+                {(!previousEpisode || !isNewEpisodeMode) && (
+                    <div className="h-px bg-white/5 w-full my-1" />
+                )}
+
+                {/* --- CONTEXT MATRIX (COMMON) --- */}
+                {onOpenContextModal && (
+                    <div className="bg-black/20 border border-white/5 rounded-lg p-3 mb-4 group">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                                <Database size={12} className="text-blue-500" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-300">Context Matrix</span>
+                            </div>
+                            <button
+                                onClick={onOpenContextModal}
+                                className="text-[9px] font-bold text-blue-400 hover:text-white bg-blue-900/10 hover:bg-blue-900/30 px-2 py-1 rounded border border-blue-900/30 transition-all uppercase"
+                            >
+                                + Edit Memory
+                            </button>
+                        </div>
+
+                        <div className="min-h-[24px] flex items-center">
+                            {contextReferences.length === 0 ? (
+                                <span className="text-[10px] text-neutral-600 font-mono">No active context. AI will generate in isolation.</span>
+                            ) : (
+                                <div className="flex flex-wrap gap-2">
+                                    {contextReferences.slice(0, 5).map(ref => (
+                                        <span key={ref.id} className="px-2 py-1 bg-blue-900/20 border border-blue-500/20 rounded text-[9px] text-blue-200 truncate max-w-[120px] shadow-sm">
+                                            {ref.sourceLabel}
+                                        </span>
+                                    ))}
+                                    {contextReferences.length > 5 && (
+                                        <span className="px-2 py-1 bg-white/5 rounded text-[9px] text-neutral-500">+{contextReferences.length - 5}</span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* --- 2. INPUT TABS --- */}
                 {renderTabs()}
 
@@ -529,7 +571,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                             {contextReferences.length > 0 && (
                                 <div className="flex items-center gap-1 text-[9px] font-bold text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded border border-blue-900/50">
                                     <Database size={10} />
-                                    {contextReferences.length} REFS
+                                    {contextReferences.length} ACTIVE
                                 </div>
                             )}
                         </div>

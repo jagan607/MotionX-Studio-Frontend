@@ -363,38 +363,7 @@ export default function ScriptIngestionPage() {
                             </div>
                         </div>
 
-                        {/* CONTEXT MATRIX MODULE */}
-                        <div className="p-5 bg-gradient-to-br from-white/5 to-transparent border border-white/5 rounded-lg mt-4 group">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                    <Database size={18} className="text-blue-500" />
-                                    <span className="text-xs font-bold text-white uppercase tracking-wider">Context Matrix</span>
-                                </div>
-                                <button onClick={() => setIsContextModalOpen(true)} className="text-[10px] text-blue-400 hover:text-white transition-colors uppercase font-bold">
-                                    + Edit
-                                </button>
-                            </div>
-
-                            <div className="text-[10px] text-neutral-400 leading-relaxed mb-3">
-                                {selectedContext.length === 0
-                                    ? "No active memory references. AI will generate in isolation."
-                                    : `${selectedContext.length} narrative threads loaded into memory.`}
-                            </div>
-
-                            {/* Mini Chips Display */}
-                            {selectedContext.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                    {selectedContext.slice(0, 3).map(ref => (
-                                        <span key={ref.id} className="px-2 py-1 bg-blue-900/20 border border-blue-900/30 rounded text-[9px] text-blue-300 truncate max-w-[100px]">
-                                            {ref.sourceLabel}
-                                        </span>
-                                    ))}
-                                    {selectedContext.length > 3 && (
-                                        <span className="px-2 py-1 bg-white/5 rounded text-[9px] text-neutral-500">+{selectedContext.length - 3}</span>
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                        {/* CONTEXT MATRIX MODULE REMOVED - MOVED TO INPUT DECK */}
                     </div>
 
                     <div className="mt-auto p-6 border-t border-white/5 bg-black/60 flex justify-between">
@@ -449,6 +418,7 @@ export default function ScriptIngestionPage() {
                                     onSuccess={handleIngestSuccess}
                                     onStatusChange={handleIngestStatus}
                                     contextReferences={selectedContext}
+                                    onOpenContextModal={() => setIsContextModalOpen(true)}
                                     previousEpisode={previousEpisodeData}
                                 />
                             </div>

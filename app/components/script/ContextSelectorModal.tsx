@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import {
     X, Check, Layers, FileText, Loader2, ChevronRight,
-    Search, Database, ArrowRight, AlertCircle
+    Search, Database, ArrowRight, AlertCircle, Minus
 } from "lucide-react";
 
 // --- TYPES ---
@@ -97,6 +97,77 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
         }
     };
 
+    // --- WHOLE EPISODE SELECTION HELPERS ---
+
+    const getEpisodeSelectionState = (episodeId: string): 'all' | 'some' | 'none' => {
+        const scenes = sceneCache[episodeId];
+        if (!scenes || scenes.length === 0) return 'none'; // Not loaded or empty, treat as none
+
+        const selectedCount = scenes.filter(s => selectedRefs.some(r => r.id === s.id)).length;
+
+        if (selectedCount === 0) return 'none';
+        if (selectedCount === scenes.length) return 'all';
+        return 'some';
+    };
+
+    const toggleEpisode = async (episode: any, e: React.MouseEvent) => {
+        e.stopPropagation(); // Don't switch view if implemented that way, though switching view is fine here
+
+        // If scenes are not loaded, we must load them first
+        if (!sceneCache[episode.id]) {
+            setLoadingEp(episode.id);
+            try {
+                const fetchedScenes = await onFetchScenes(episode.id);
+                setSceneCache(prev => ({ ...prev, [episode.id]: fetchedScenes }));
+
+                // Once loaded, select all
+                const newRefs = fetchedScenes.map(scene => ({
+                    id: scene.id,
+                    sourceLabel: `EP ${episode.episode_number || '?'} • SC ${scene.scene_number}`,
+                    header: scene.slugline || scene.header || "UNKNOWN SCENE",
+                    summary: scene.synopsis || scene.summary || ""
+                }));
+
+                // Add only ones that aren't already active (though here it's likely none)
+                setSelectedRefs(prev => {
+                    const existingIds = new Set(prev.map(r => r.id));
+                    const uniqueNewNodes = newRefs.filter(r => !existingIds.has(r.id));
+                    return [...prev, ...uniqueNewNodes];
+                });
+
+            } catch (err) {
+                console.error("Failed to load episode for selection", err);
+            } finally {
+                setLoadingEp(null);
+            }
+            return;
+        }
+
+        // Logic for cached episodes
+        const currentState = getEpisodeSelectionState(episode.id);
+        const scenes = sceneCache[episode.id];
+
+        if (currentState === 'all') {
+            // Deselect all
+            const sceneIds = new Set(scenes.map(s => s.id));
+            setSelectedRefs(prev => prev.filter(r => !sceneIds.has(r.id)));
+        } else {
+            // Select all (from none or some)
+            const newRefs = scenes.map(scene => ({
+                id: scene.id,
+                sourceLabel: `EP ${episode.episode_number || '?'} • SC ${scene.scene_number}`,
+                header: scene.slugline || scene.header || "UNKNOWN SCENE",
+                summary: scene.synopsis || scene.summary || ""
+            }));
+
+            setSelectedRefs(prev => {
+                const existingIds = new Set(prev.map(r => r.id));
+                const uniqueNewNodes = newRefs.filter(r => !existingIds.has(r.id));
+                return [...prev, ...uniqueNewNodes];
+            });
+        }
+    };
+
     if (!isOpen) return null;
 
     // Helper to get current active scenes
@@ -141,22 +212,45 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                                     No active reels found.
                                 </div>
                             )}
-                            {episodes.map((ep) => (
-                                <button
-                                    key={ep.id}
-                                    onClick={() => setActiveEpisodeId(ep.id)}
-                                    className={`w-full text-left px-4 py-3 border transition-all flex items-center justify-between group
-                                    ${activeEpisodeId === ep.id
-                                            ? "bg-[#111] border-[#333] border-l-2 border-l-red-600 text-white"
-                                            : "bg-transparent border-transparent text-[#666] hover:bg-[#0E0E0E] hover:text-[#CCC]"}`}
-                                >
-                                    <div>
-                                        <div className="text-[9px] font-mono opacity-50 mb-1">REEL {String(ep.episode_number || 0).padStart(2, '0')}</div>
-                                        <div className="text-xs font-bold uppercase truncate max-w-[180px]">{ep.title || "Untitled Reel"}</div>
-                                    </div>
-                                    {activeEpisodeId === ep.id && <ChevronRight size={14} className="text-red-600" />}
-                                </button>
-                            ))}
+                            {episodes.map((ep) => {
+                                const selectionState = getEpisodeSelectionState(ep.id);
+                                const isLoading = loadingEp === ep.id;
+
+                                return (
+                                    <button
+                                        key={ep.id}
+                                        onClick={() => setActiveEpisodeId(ep.id)}
+                                        className={`w-full text-left px-4 py-3 border transition-all flex items-center gap-3 group
+                                        ${activeEpisodeId === ep.id
+                                                ? "bg-[#111] border-[#333] border-l-2 border-l-red-600 text-white"
+                                                : "bg-transparent border-transparent text-[#666] hover:bg-[#0E0E0E] hover:text-[#CCC]"}`}
+                                    >
+                                        {/* CHECKBOX for Whole Episode */}
+                                        <div
+                                            onClick={(e) => toggleEpisode(ep, e)}
+                                            className={`w-4 h-4 rounded-sm border flex items-center justify-center shrink-0 transition-colors z-10
+                                                ${selectionState !== 'none' ? "bg-red-900/20 border-red-600" : "border-[#333] hover:border-[#666] bg-transparent"}
+                                            `}
+                                        >
+                                            {isLoading ? (
+                                                <Loader2 size={10} className="animate-spin text-red-600" />
+                                            ) : (
+                                                <>
+                                                    {selectionState === 'all' && <Check size={10} className="text-red-500 stroke-[4]" />}
+                                                    {selectionState === 'some' && <Minus size={10} className="text-red-500 stroke-[4]" />}
+                                                </>
+                                            )}
+                                        </div>
+
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-[9px] font-mono opacity-50 mb-1">REEL {String(ep.episode_number || 0).padStart(2, '0')}</div>
+                                            <div className="text-xs font-bold uppercase truncate">{ep.title || "Untitled Reel"}</div>
+                                        </div>
+
+                                        {activeEpisodeId === ep.id && <ChevronRight size={14} className="text-red-600 shrink-0" />}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
