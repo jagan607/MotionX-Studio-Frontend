@@ -74,27 +74,44 @@ export const ScriptIngestionModal: React.FC<ScriptIngestionModalProps> = ({
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 bg-[#000]">
-                    <InputDeck
-                        projectId={projectId}
-                        projectTitle={projectTitle}
-                        projectType={projectType}
-                        episodeId={mode === 'new' ? "new_placeholder" : episodeId} // [Critical] Use placeholder for new
-                        episodes={episodes}
-                        onSwitchEpisode={onSwitchEpisode}
-                        initialTitle={initialTitle}
-                        initialScript={initialScript}
-                        initialRuntime={initialRuntime}
-                        previousEpisode={previousEpisode}
-                        onSuccess={onSuccess}
-                        onCancel={onClose}
-                        isModal={true}
+                    {(() => {
+                        const isSingleUnit = projectType === 'movie' || projectType === 'ad';
+                        const firstEpisode = episodes?.[0];
 
-                        // Pass Context props
-                        contextReferences={contextReferences}
-                        onOpenContextModal={onOpenContextModal}
+                        // For single unit projects, always use the existing episode if available
+                        const targetEpisodeId = isSingleUnit && firstEpisode
+                            ? firstEpisode.id
+                            : (mode === 'new' ? "new_placeholder" : episodeId);
 
-                        className="border-none shadow-none bg-transparent"
-                    />
+                        // Also derive initial data from the episode if we are targeting it
+                        const effectiveTitle = (isSingleUnit && firstEpisode) ? firstEpisode.title : initialTitle;
+                        const effectiveScript = (isSingleUnit && firstEpisode) ? firstEpisode.script_preview : initialScript;
+                        const effectiveRuntime = (isSingleUnit && firstEpisode) ? firstEpisode.runtime : initialRuntime;
+
+                        return (
+                            <InputDeck
+                                projectId={projectId}
+                                projectTitle={projectTitle}
+                                projectType={projectType}
+                                episodeId={targetEpisodeId}
+                                episodes={episodes}
+                                onSwitchEpisode={onSwitchEpisode}
+                                initialTitle={effectiveTitle}
+                                initialScript={effectiveScript}
+                                initialRuntime={effectiveRuntime}
+                                previousEpisode={previousEpisode}
+                                onSuccess={onSuccess}
+                                onCancel={onClose}
+                                isModal={true}
+
+                                // Pass Context props
+                                contextReferences={contextReferences}
+                                onOpenContextModal={onOpenContextModal}
+
+                                className="border-none shadow-none bg-transparent"
+                            />
+                        );
+                    })()}
                 </div>
             </div>
         </div>

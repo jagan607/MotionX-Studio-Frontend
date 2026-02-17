@@ -145,9 +145,24 @@ export default function StudioPage() {
                 }
 
             } else {
+                // Movie / Ad — single episode, but fetch real data for script_preview, runtime etc.
                 const mainReelId = projData.default_episode_id || "main";
-                setEpisodes([{ id: mainReelId, title: "Main Picture Reel", episode_number: 1 }]);
-                setActiveEpisodeId(mainReelId);
+                try {
+                    const epsData = await fetchEpisodes(projectId);
+                    let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
+                    const targetEp = eps.find((e: any) => e.id === mainReelId) || eps[0];
+                    if (targetEp) {
+                        setEpisodes([targetEp]);
+                        setActiveEpisodeId(targetEp.id);
+                    } else {
+                        setEpisodes([{ id: mainReelId, title: "Main Picture Reel", episode_number: 1 }]);
+                        setActiveEpisodeId(mainReelId);
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch episode for single-unit project", e);
+                    setEpisodes([{ id: mainReelId, title: "Main Picture Reel", episode_number: 1 }]);
+                    setActiveEpisodeId(mainReelId);
+                }
             }
 
         } catch (e) {
@@ -466,13 +481,23 @@ export default function StudioPage() {
 
     const loadEpisodes = async () => {
         try {
+            const epsData = await fetchEpisodes(projectId);
+            let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
+            eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
+
             if (project?.type === 'micro_drama') {
-                const epsData = await fetchEpisodes(projectId);
-                let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
-                eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
                 const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
                 const finalEpisodes = realEpisodes.length > 0 ? realEpisodes : eps;
                 setEpisodes(finalEpisodes);
+            } else {
+                // Movie / Ad — use the first (only) episode with full data
+                const mainReelId = project?.default_episode_id || "main";
+                const targetEp = eps.find((e: any) => e.id === mainReelId) || eps[0];
+                if (targetEp) {
+                    setEpisodes([targetEp]);
+                } else {
+                    setEpisodes([{ id: mainReelId, title: "Main Picture Reel", episode_number: 1 }]);
+                }
             }
         } catch (e) {
             console.error("Refresh Episodes Error", e);
