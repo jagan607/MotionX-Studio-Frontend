@@ -489,12 +489,15 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                         <div className="relative">
                             <input
                                 type="number"
+                                min="1"
                                 className={`w-full bg-transparent border-b py-2 text-xl font-mono text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors
                                     ${runtimeError ? 'border-red-500/50 text-red-100' : 'border-neutral-700'}
                                 `}
                                 placeholder="mins"
                                 value={runtime}
                                 onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    if (!isNaN(val) && val < 0) return; // Prevent negative
                                     setRuntime(e.target.value);
                                     if (e.target.value) setRuntimeError(false);
                                 }}

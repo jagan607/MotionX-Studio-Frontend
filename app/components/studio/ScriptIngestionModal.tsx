@@ -63,9 +63,6 @@ export const ScriptIngestionModal: React.FC<ScriptIngestionModalProps> = ({
                 <div className="h-14 border-b border-[#222] bg-[#0A0A0A] flex items-center justify-between px-6 shrink-0">
                     <div>
                         <h2 className="text-xl font-bold text-white uppercase tracking-tight">Script Setup</h2>
-                        <span className="text-[10px] font-mono text-neutral-500">
-                            Editing: <span className={mode === 'new' ? "text-red-500 font-bold" : "text-white"}>{mode === 'new' ? "New Episode" : "Existing Episode"}</span>
-                        </span>
                     </div>
                     <button
                         onClick={onClose}
