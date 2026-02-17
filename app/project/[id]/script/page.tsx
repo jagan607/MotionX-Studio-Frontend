@@ -343,10 +343,10 @@ export default function ScriptIngestionPage() {
                         {/* Static Info */}
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-[11px] font-bold text-white uppercase tracking-widest">
-                                <Terminal size={14} className="text-red-500" /> Ingestion Protocol
+                                <Terminal size={14} className="text-red-500" /> How It Works
                             </div>
                             <p className="text-xs text-neutral-400 leading-relaxed pl-4 border-l-2 border-red-600/30">
-                                This terminal accepts raw screenplay data. The Neural Engine will parse headers, action lines, and dialogue blocks automatically.
+                                Provide your screenplay via AI generation, file upload, or direct paste. Our engine will automatically parse scene headers, dialogue, and action lines.
                             </p>
                         </div>
 
@@ -421,18 +421,18 @@ export default function ScriptIngestionPage() {
 
                                 <div className="flex justify-between items-end mb-8 pb-4 border-b border-white/5">
                                     <div>
-                                        <h2 className="text-xl font-bold text-white uppercase tracking-tight">Data Entry</h2>
+                                        <h2 className="text-xl font-bold text-white uppercase tracking-tight">Script Setup</h2>
                                         {/* [CHANGED] Hide target label for single unit */}
                                         {!isSingleUnit && (
                                             <div className="text-[10px] font-mono text-neutral-500 mt-1 flex items-center gap-1">
-                                                TARGET: <Film size={10} />
+                                                Editing:
                                                 <span className={selectedEpisodeId === null ? "text-red-500 font-bold" : "text-white"}>
-                                                    {selectedEpisodeId === null ? "NEW SEQUENCE" : (activeEpisode?.title || "UNKNOWN REEL")}
+                                                    {selectedEpisodeId === null ? "New Episode" : (activeEpisode?.title || "Unknown Episode")}
                                                 </span>
                                             </div>
                                         )}
                                     </div>
-                                    <div className="text-[10px] font-mono text-neutral-500">UPLOAD OR PASTE</div>
+                                    {/* Removed redundant UPLOAD OR PASTE label */}
                                 </div>
 
                                 <InputDeck

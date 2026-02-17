@@ -3,7 +3,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
     Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2, Lock,
-    ChevronRight, Database, FastForward, ArrowRight, Clock
+    ChevronRight, Database, FastForward, ArrowRight, Clock,
+    FileText, Clipboard, AlertCircle, CheckCircle2
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { api, checkJobStatus } from "@/lib/api";
@@ -37,6 +38,8 @@ interface InputDeckProps {
     contextReferences?: ContextReference[];
 }
 
+type InputMethod = 'ai' | 'upload' | 'paste';
+
 export const InputDeck: React.FC<InputDeckProps> = ({
     projectId,
     projectTitle,
@@ -53,13 +56,20 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     className = "",
     contextReferences = []
 }) => {
+    // --- STATE ---
     const [title, setTitle] = useState("");
     const [runtime, setRuntime] = useState<string | number>("");
+
+    // Input Methods State
+    const [activeTab, setActiveTab] = useState<InputMethod>('ai');
     const [synopsisText, setSynopsisText] = useState("");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pastedScript, setPastedScript] = useState("");
+
+    // Validation & Processing State
     const [isUploading, setIsUploading] = useState(false);
     const [runtimeError, setRuntimeError] = useState(false);
+    const [titleError, setTitleError] = useState(false);
 
     // User Instructions for Continuity
     const [continuityInstruction, setContinuityInstruction] = useState("");
@@ -92,19 +102,21 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     }, [isSingleUnit, projectTitle, initialTitle, initialRuntime]);
 
     useEffect(() => {
-        setSynopsisText(initialScript || "");
-        setPastedScript("");
-        setSelectedFile(null);
+        if (initialScript) {
+            setSynopsisText(initialScript);
+            setActiveTab('ai');
+        }
     }, [initialScript, episodeId]);
 
     const isUpdateMode = !!episodeId && !!initialScript && episodeId !== "new_placeholder";
 
+    // Check modification based on active tab
     const isModified =
         (title || "") !== (initialTitle || "") ||
         (runtime || "") !== (initialRuntime || "") ||
-        (synopsisText || "") !== (initialScript || "") ||
-        !!selectedFile ||
-        !!pastedScript;
+        (activeTab === 'ai' && synopsisText !== initialScript) ||
+        (activeTab === 'upload' && !!selectedFile) ||
+        (activeTab === 'paste' && !!pastedScript);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
@@ -118,13 +130,35 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         if (onStatusChange) onStatusChange(message);
     };
 
+    const handleTabChange = (tab: InputMethod) => {
+        if (isUploading) return;
+
+        // Optional: clear other inputs when switching? 
+        // For now, let's keep them in state but only submit the active one
+        setActiveTab(tab);
+    };
+
     // --- MAIN PROTOCOL EXECUTION ---
     const executeProtocol = async (mode: 'standard' | 'continuity' = 'standard') => {
-        // [CHANGED] Validation uses isSingleUnit
-        if (!title && !isSingleUnit) { toast.error("ENTER IDENTIFIER (TITLE)"); return; }
+        // 1. VALIDATION
+        let isValid = true;
+
+        if (!title && !isSingleUnit) {
+            setTitleError(true);
+            isValid = false;
+        } else {
+            setTitleError(false);
+        }
+
         if (!runtime) {
             setRuntimeError(true);
-            toast.error("ENTER RUNTIME");
+            isValid = false;
+        } else {
+            setRuntimeError(false);
+        }
+
+        if (!isValid) {
+            toast.error("Please fill in all required fields", { icon: "🚨" });
             return;
         }
 
@@ -167,18 +201,30 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 formData.append("smart_context", JSON.stringify(contextPayload));
             }
 
-            if (synopsisText.trim()) {
+            // Only send data from the active tab
+            if (activeTab === 'ai') {
+                if (!synopsisText.trim()) {
+                    toast.error("Please enter a synopsis or story description");
+                    return;
+                }
                 const content = `[TYPE: SYNOPSIS/TREATMENT]\n\n${synopsisText}`;
                 const blob = new Blob([content], { type: "text/plain" });
                 formData.append("file", new File([blob], "synopsis.txt"));
-            } else if (pastedScript.trim()) {
+            }
+            else if (activeTab === 'paste') {
+                if (!pastedScript.trim()) {
+                    toast.error("Please paste your script text");
+                    return;
+                }
                 const blob = new Blob([pastedScript], { type: "text/plain" });
                 formData.append("file", new File([blob], "terminal_paste.txt"));
-            } else if (selectedFile) {
+            }
+            else if (activeTab === 'upload') {
+                if (!selectedFile) {
+                    toast.error("Please select a file to upload");
+                    return;
+                }
                 formData.append("file", selectedFile);
-            } else {
-                toast.error("PROVIDE INPUT VIA ONE METHOD");
-                return;
             }
         }
 
@@ -192,19 +238,19 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             });
 
             const jobId = res.data.job_id;
-            addLog("PAYLOAD ACCEPTED. JOB ID: " + jobId.substring(0, 8));
-            addLog("WAITING FOR WORKER NODE...");
+            addLog("Payload received. Job ID: " + jobId.substring(0, 8));
+            addLog("Waiting for worker node...");
 
             const pollInterval = setInterval(async () => {
                 const job = await checkJobStatus(jobId);
 
                 if (job.progress) {
-                    addLog(job.progress.toUpperCase());
+                    addLog(job.progress); // Removed .toUpperCase() for friendlier logs
                 }
 
                 if (job.status === "completed") {
                     clearInterval(pollInterval);
-                    addLog("SEQUENCE COMPLETE. REDIRECTING...");
+                    addLog("Sequence complete. Redirecting...");
                     if (job.redirect_url) {
                         setTimeout(() => onSuccess(job.redirect_url), 800);
                     } else {
@@ -214,7 +260,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 } else if (job.status === "failed") {
                     clearInterval(pollInterval);
                     setIsUploading(false);
-                    addLog("ERROR: " + (job.error || "UNKNOWN FAILURE"));
+                    addLog("Error: " + (job.error || "Unknown Failure"));
                     toast.error(job.error || "Ingestion Failed");
                 }
             }, 1000);
@@ -223,79 +269,143 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             console.error(e);
             setIsUploading(false);
             const errorMsg = e.response?.data?.detail || e.message;
-            addLog("FATAL ERROR: " + errorMsg);
+            addLog("Fatal Error: " + errorMsg);
             toast.error(`Protocol Failed: ${errorMsg}`);
         }
     };
 
     const getButtonText = () => {
-        if (isUpdateMode) return isModified ? "MODIFY SCRIPT" : "SCRIPT SYNCED";
-        if (synopsisText.trim()) return "GENERATE & INGEST";
-        return "INITIALIZE INGESTION";
+        if (isUpdateMode) return isModified ? "Update Script" : "Script Up to Date";
+        if (activeTab === 'ai') return "Generate Script";
+        if (activeTab === 'upload') return "Upload & Process";
+        if (activeTab === 'paste') return "Process Script";
+        return "Initialize";
     };
 
+    // Helper to determine if we should enable the submit button
     const isButtonEnabled = () => {
-        if (isUpdateMode) return isModified;
-        // [CHANGED] Validation uses isSingleUnit
+        // Must have runtime
+        if (!runtime) return false;
+
+        // Multi-episode must have title
         if (!title && !isSingleUnit) return false;
-        return !!(synopsisText.trim() || pastedScript.trim() || selectedFile);
+
+        // Active tab must have content
+        if (activeTab === 'ai' && !synopsisText.trim()) return false;
+        if (activeTab === 'upload' && !selectedFile) return false;
+        if (activeTab === 'paste' && !pastedScript.trim()) return false;
+
+        return true;
     };
+
+    // --- RENDERERS ---
+
+    const renderTabs = () => (
+        <div className="flex items-center gap-1 p-1 bg-black/20 border border-white/5 rounded-lg mb-4">
+            <button
+                onClick={() => handleTabChange('ai')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-wider rounded transition-all
+                    ${activeTab === 'ai' ? 'bg-white/10 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'}
+                `}
+            >
+                <Sparkles size={12} className={activeTab === 'ai' ? "text-motion-red" : ""} />
+                AI Assistant
+            </button>
+            <button
+                onClick={() => handleTabChange('upload')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-wider rounded transition-all
+                    ${activeTab === 'upload' ? 'bg-white/10 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'}
+                `}
+            >
+                <Upload size={12} />
+                Upload File
+            </button>
+            <button
+                onClick={() => handleTabChange('paste')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-wider rounded transition-all
+                    ${activeTab === 'paste' ? 'bg-white/10 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'}
+                `}
+            >
+                <Clipboard size={12} />
+                Paste Script
+            </button>
+        </div>
+    );
 
     return (
         <div className={`flex flex-col bg-neutral-900/30 border border-neutral-800 rounded-xl shadow-2xl ${className}`}>
 
             <div className="flex flex-col p-6 gap-6">
 
-                {/* DYNAMIC SESSION IDENTIFIER & RUNTIME */}
-                <div className="shrink-0 flex gap-4">
+                {/* --- 1. MANDATORY FIELDS (TITLE & RUNTIME) --- */}
+                <div className="shrink-0 flex gap-4 items-start">
                     {/* TITLE INPUT */}
                     <div className="flex-1">
-                        <label className="text-[9px] font-mono text-motion-text-muted uppercase tracking-widest mb-2 block">
-                            {/* [CHANGED] Label logic */}
-                            {isSingleUnit ? "Project Script Title" : "Episode Identifier"}
+                        <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                            {isSingleUnit ? "Script Title" : "Episode Title"}
+                            <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30">REQUIRED</span>
                         </label>
-                        {/* [CHANGED] Render logic uses isSingleUnit */}
+
                         {isSingleUnit ? (
-                            <div className="flex items-center justify-between w-full border-b border-neutral-700 py-2">
+                            <div className="flex items-center justify-between w-full border-b border-neutral-700 py-2 group cursor-help relative">
                                 <span className="text-xl font-display text-white/50 uppercase select-none">
-                                    {projectTitle || "UNTITLED PROJECT"}
+                                    {projectTitle || "Untitled Project"}
                                 </span>
                                 <div className="flex items-center gap-2 text-neutral-600">
                                     <span className="text-[9px] font-mono">LOCKED</span>
                                     <Lock size={14} />
                                 </div>
+                                {/* Tooltip */}
+                                <div className="absolute top-full left-0 mt-2 w-max px-2 py-1 bg-neutral-800 text-neutral-400 text-[9px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                    Title inherited from project settings
+                                </div>
                             </div>
                         ) : (
-                            <input
-                                className="w-full bg-transparent border-b border-neutral-700 py-2 text-xl font-display text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors uppercase"
-                                placeholder={`ENTER EPISODE TITLE...`}
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                disabled={isUploading}
-                            />
+                            <div className="relative">
+                                <input
+                                    className={`w-full bg-transparent border-b py-2 text-xl font-display text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors uppercase
+                                        ${titleError ? 'border-red-500/50' : 'border-neutral-700'}
+                                    `}
+                                    placeholder="e.g. The Pilot, Chapter One..."
+                                    value={title}
+                                    onChange={(e) => {
+                                        setTitle(e.target.value);
+                                        if (e.target.value) setTitleError(false);
+                                    }}
+                                    disabled={isUploading}
+                                />
+                                {titleError && <AlertCircle className="absolute right-0 top-3 text-red-500 animate-pulse" size={14} />}
+                            </div>
                         )}
                     </div>
 
                     {/* RUNTIME INPUT */}
-                    <div className="w-[140px]">
-                        <label className="text-[9px] font-mono text-motion-text-muted uppercase tracking-widest mb-2 block flex items-center gap-1">
-                            <Clock size={10} /> Runtime (Mins) <span className="text-motion-red">*</span>
+                    <div className="w-[160px]">
+                        <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                            Duration
+                            <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30">REQUIRED</span>
                         </label>
-                        <input
-                            type="number"
-                            className={`w-full bg-transparent border-b py-2 text-xl font-mono text-white placeholder:text-neutral-600 focus:outline-none focus:border-motion-red transition-colors ${runtimeError ? 'border-red-500' : 'border-neutral-700'}`}
-                            placeholder="e.g 45"
-                            value={runtime}
-                            onChange={(e) => {
-                                setRuntime(e.target.value);
-                                if (e.target.value) setRuntimeError(false);
-                            }}
-                            disabled={isUploading}
-                        />
+                        <div className="relative">
+                            <input
+                                type="number"
+                                className={`w-full bg-transparent border-b py-2 text-xl font-mono text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors 
+                                    ${runtimeError ? 'border-red-500/50 text-red-100' : 'border-neutral-700'}
+                                `}
+                                placeholder="mins"
+                                value={runtime}
+                                onChange={(e) => {
+                                    setRuntime(e.target.value);
+                                    if (e.target.value) setRuntimeError(false);
+                                }}
+                                disabled={isUploading}
+                            />
+                            {runtimeError && <AlertCircle className="absolute right-0 top-3 text-red-500 animate-pulse" size={14} />}
+                            <span className="absolute right-0 top-3 text-[10px] text-neutral-600 font-mono pointer-events-none right-6">MINS</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* --- 1. CONTINUITY CARD --- */}
+                {/* --- CONTINUITY CARD --- */}
                 {previousEpisode && isNewEpisodeMode && !isUploading && (
                     <div className="relative group overflow-hidden rounded-lg border border-blue-900/30 bg-blue-950/10 hover:border-blue-600/50 transition-colors">
                         <div className="absolute top-0 left-0 w-1 h-full bg-blue-600" />
@@ -332,91 +442,139 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     </div>
                 )}
 
-                {/* --- 2. OR DIVIDER --- */}
+                {/* DIVIDER if Continuity exists */}
                 {previousEpisode && isNewEpisodeMode && !isUploading && (
                     <div className="flex items-center gap-4 shrink-0 opacity-50">
                         <div className="flex-1 h-px bg-neutral-800"></div>
-                        <span className="text-[9px] font-bold tracking-widest text-neutral-500">OR START FRESH</span>
+                        <span className="text-[9px] font-bold tracking-widest text-neutral-500">OR WRITE A NEW SCRIPT</span>
                         <div className="flex-1 h-px bg-neutral-800"></div>
                     </div>
                 )}
 
-                {/* --- 3. STANDARD GENERATION --- */}
-                <div className={`flex flex-col ${previousEpisode && isNewEpisodeMode ? 'opacity-80 hover:opacity-100 transition-opacity' : ''}`}>
-                    <div className="flex items-center justify-between mb-2 shrink-0">
-                        <div className="flex items-center gap-2">
-                            <Sparkles size={14} className="text-motion-red" />
-                            <span className="text-[10px] font-bold tracking-[1px] uppercase text-white">Manual Generation</span>
-                            <span className="text-[9px] text-motion-text-muted">PRIMARY</span>
+                {/* DIVIDER for standard flow */}
+                {(!previousEpisode || !isNewEpisodeMode) && (
+                    <div className="h-px bg-white/5 w-full my-1" />
+                )}
+
+                {/* --- 2. INPUT TABS --- */}
+                {renderTabs()}
+
+                {/* --- 3. INPUT CONTENT --- */}
+
+                {/* A. AI ASSISTANT TAB */}
+                {activeTab === 'ai' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] text-neutral-400">
+                                Describe your story, characters, and setting. Our AI will generate a formatted screenplay.
+                            </span>
+                            {contextReferences.length > 0 && (
+                                <div className="flex items-center gap-1 text-[9px] font-bold text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded border border-blue-900/50">
+                                    <Database size={10} />
+                                    {contextReferences.length} REFS
+                                </div>
+                            )}
                         </div>
-
-                        {contextReferences.length > 0 && (
-                            <div className="flex items-center gap-1 text-[9px] font-bold text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded border border-blue-900/50">
-                                <Database size={10} />
-                                {contextReferences.length} REFS ACTIVE
+                        <div className="relative h-[240px]">
+                            <textarea
+                                className="w-full h-full bg-black/40 border border-neutral-700 p-4 font-sans text-sm text-motion-text placeholder:text-neutral-600 focus:outline-none focus:border-motion-red resize-none leading-relaxed rounded-lg transition-colors"
+                                placeholder={contextReferences.length > 0
+                                    ? "Describe the next events including character actions and dialogue..."
+                                    : "e.g. Interior apartment, day. Two friends discuss the future of AI..."}
+                                value={synopsisText}
+                                onChange={(e) => setSynopsisText(e.target.value)}
+                                disabled={isUploading}
+                            />
+                            {/* Subtle branding */}
+                            <div className="absolute bottom-3 right-3 flex items-center gap-2 text-[9px] font-mono text-neutral-700">
+                                <Cpu size={10} /> AI_ENGINE_READY
                             </div>
-                        )}
+                        </div>
                     </div>
+                )}
 
-                    <div className="relative h-[200px]">
+                {/* B. UPLOAD TAB */}
+                {activeTab === 'upload' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div
+                            onClick={() => !isUploading && fileInputRef.current?.click()}
+                            className={`
+                                h-[240px] border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-4 transition-all cursor-pointer relative overflow-hidden
+                                ${isUploading ? 'opacity-50 cursor-not-allowed border-neutral-800' : 'hover:border-neutral-500 hover:bg-white/5 border-neutral-800 bg-black/20'}
+                                ${selectedFile ? 'border-green-900/50 bg-green-900/5' : ''}
+                            `}
+                        >
+                            <input type="file" ref={fileInputRef} hidden onChange={handleFileSelect} accept=".pdf,.docx,.txt" disabled={isUploading} />
+
+                            {selectedFile ? (
+                                <>
+                                    <div className="w-16 h-16 rounded-full bg-green-900/20 flex items-center justify-center text-green-500 mb-2">
+                                        <FileText size={32} />
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-sm font-bold text-white mb-1">{selectedFile.name}</div>
+                                        <div className="text-[10px] font-mono text-green-400 uppercase tracking-wider">
+                                            {(selectedFile.size / 1024).toFixed(1)} KB • READY TO UPLOAD
+                                        </div>
+                                    </div>
+                                    <div className="absolute top-4 right-4 text-green-500">
+                                        <CheckCircle2 size={20} />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-16 h-16 rounded-full bg-[#111] flex items-center justify-center text-neutral-600 group-hover:text-white transition-colors">
+                                        <Upload size={24} />
+                                    </div>
+                                    <div className="text-center">
+                                        <h3 className="text-sm font-bold text-white mb-1">Click to Upload Script</h3>
+                                        <p className="text-[10px] text-neutral-500 font-mono uppercase tracking-widest">PDF • DOCX • TXT</p>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* C. PASTE TAB */}
+                {activeTab === 'paste' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] text-neutral-400">
+                                Paste your screenplay text directly. Standard screenplay formatting is recommended but not required.
+                            </span>
+                        </div>
                         <textarea
-                            className="w-full h-full bg-black/40 border border-neutral-700 p-4 font-sans text-sm text-motion-text placeholder:text-neutral-600 focus:outline-none focus:border-motion-red resize-none leading-relaxed rounded-lg"
-                            placeholder={contextReferences.length > 0
-                                ? "Describe the next events (AI will use context references)..."
-                                : "Describe your scene..."}
-                            value={synopsisText}
-                            onChange={(e) => setSynopsisText(e.target.value)}
+                            className="w-full h-[240px] bg-black/40 border border-neutral-700 p-4 font-mono text-xs text-green-100 placeholder:text-neutral-700 focus:outline-none focus:border-green-600 resize-none leading-relaxed rounded-lg"
+                            placeholder="INT. COFFEE SHOP - DAY..."
+                            value={pastedScript}
+                            onChange={(e) => setPastedScript(e.target.value)}
                             disabled={isUploading}
                         />
-                        <div className="absolute bottom-3 right-3 flex items-center gap-2 text-[9px] font-mono text-motion-red bg-motion-red/10 px-2 py-1 rounded">
-                            <Cpu size={10} /> STORY_ENGINE_V2
-                        </div>
                     </div>
-                </div>
-
-                {/* SECONDARY INPUTS */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 shrink-0">
-                    <div onClick={() => !isUploading && fileInputRef.current?.click()} className={`h-16 border border-dashed border-neutral-700 flex flex-col items-center justify-center gap-2 group rounded-lg transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:border-neutral-500 cursor-pointer hover:bg-white/5'}`}>
-                        <input type="file" ref={fileInputRef} hidden onChange={handleFileSelect} accept=".pdf,.docx,.txt" disabled={isUploading} />
-                        {selectedFile ? (
-                            <div className="text-[10px] font-bold text-white truncate max-w-[150px]">{selectedFile.name}</div>
-                        ) : (
-                            <div className="flex items-center gap-2 text-[10px] text-neutral-600 group-hover:text-neutral-400">
-                                <Upload size={12} /> UPLOAD FILE
-                            </div>
-                        )}
-                    </div>
-                    <textarea
-                        className="w-full h-16 bg-black/30 border border-neutral-700 p-3 font-mono text-[10px] text-green-500 placeholder:text-green-900/50 focus:outline-none focus:border-green-600 resize-none leading-relaxed rounded-lg"
-                        placeholder="// PASTE..."
-                        value={pastedScript}
-                        onChange={(e) => setPastedScript(e.target.value)}
-                        disabled={isUploading}
-                    />
-                </div>
+                )}
 
                 {isModal && (
                     <div className="mt-4 pt-4 border-t border-neutral-800">
                         <button onClick={onCancel} className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-bold tracking-widest text-motion-text-muted hover:text-motion-red transition-colors">
-                            <X size={14} /> ABORT
+                            <X size={14} /> CANCEL
                         </button>
                     </div>
                 )}
             </div>
 
             {/* FOOTER */}
-            <div className="shrink-0 p-4 border-t border-neutral-800 bg-black/30 min-h-[5.5rem] flex flex-col justify-center">
+            <div className="shrink-0 p-4 border-t border-neutral-800 bg-black/30 min-h-[5.5rem] flex flex-col justify-center rounded-b-xl">
                 {isUploading ? (
-                    <div className="w-full h-32 bg-black border border-neutral-800 rounded p-3 font-mono text-[10px] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between text-neutral-500 mb-2 pb-1 border-b border-neutral-900">
-                            <span className="flex items-center gap-2"><Loader2 className="animate-spin" size={10} /> PROCESSING</span>
-                            <span>SEQ_ID_{Math.floor(Math.random() * 1000)}</span>
+                    <div className="w-full h-32 bg-black border border-neutral-800 rounded p-4 font-mono text-[10px] overflow-hidden flex flex-col ring-1 ring-white/5">
+                        <div className="flex items-center justify-between text-neutral-500 mb-2 pb-2 border-b border-neutral-900">
+                            <span className="flex items-center gap-2 text-white"><Loader2 className="animate-spin text-motion-red" size={12} /> Processing your script...</span>
                         </div>
-                        <div ref={logsContainerRef} className="flex-1 overflow-y-auto space-y-1 scrollbar-hide">
+                        <div ref={logsContainerRef} className="flex-1 overflow-y-auto space-y-1.5 scrollbar-hide">
                             {logs.map((log, i) => (
                                 <div key={i} className="flex gap-2 text-neutral-400">
                                     <span className="text-neutral-700">➜</span>
-                                    <span className={i === logs.length - 1 ? "text-green-500 animate-pulse" : ""}>
+                                    <span className={i === logs.length - 1 ? "text-green-400 font-bold" : ""}>
                                         {log}
                                     </span>
                                 </div>
@@ -426,10 +584,11 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 ) : (
                     <MotionButton
                         onClick={() => executeProtocol('standard')}
+                        className="w-full py-4 text-xs tracking-widest font-bold"
+                        // Disable logic uses isButtonEnabled
                         disabled={!isButtonEnabled()}
-                        className="w-full py-3"
                     >
-                        {getButtonText()}
+                        {getButtonText()} <ArrowRight size={14} className="ml-2" />
                     </MotionButton>
                 )}
             </div>
