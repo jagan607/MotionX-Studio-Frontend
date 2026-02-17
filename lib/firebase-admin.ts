@@ -1,20 +1,27 @@
-import 'server-only';
-import * as admin from 'firebase-admin';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 
-// 1. Import the service account JSON
-// Note: You might need to adjust the path ("../../") depending on where this file is located relative to your root
-const serviceAccount = require('@/serviceAccountKey.json');
-// OR if using a relative path from lib/: 
-// const serviceAccount = require('../serviceAccountKey.json');
+// Construct the credentials object from Environment Variables
+const serviceAccount = {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    // IMPORTANT: Vercel turns newlines (\n) into string literals (\\n), so we fix them here:
+    privateKey: process.env.FIREBASE_PRIVATE_KEY
+        ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+        : undefined,
+};
 
-if (!admin.apps.length) {
-    admin.initializeApp({
-        // 2. Pass the entire JSON object directly
-        credential: admin.credential.cert(serviceAccount),
-        storageBucket: "motionx-studio.firebasestorage.app"
+if (!getApps().length) {
+    initializeApp({
+        credential: cert(serviceAccount),
+        storageBucket: "motionx-studio.firebasestorage.app" // Your bucket name
     });
 }
 
-export const adminDb = admin.firestore();
-export const adminAuth = admin.auth();
-export const adminStorage = admin.storage();
+const adminDb = getFirestore();
+const adminAuth = getAuth();
+const adminStorage = getStorage();
+
+export { adminDb, adminAuth, adminStorage };
