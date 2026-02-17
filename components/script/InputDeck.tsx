@@ -317,21 +317,11 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
     // Helper to determine if we should enable the submit button
     const isButtonEnabled = () => {
-        // Must have runtime
-        if (!runtime) return false;
-
-        // Multi-episode must have title
-        if (!title && !isSingleUnit) return false;
-
         // Current tab is read-only, no submission from it
         if (activeTab === 'current') return false;
 
-        // Active tab must have content
-        if (activeTab === 'ai' && !synopsisText.trim()) return false;
-        if (activeTab === 'upload' && !selectedFile) return false;
-        if (activeTab === 'paste' && !pastedScript.trim()) return false;
-
-        return true;
+        // Allow clicking to trigger validation (unless uploading)
+        return !isUploading;
     };
 
     // --- RENDERERS ---
@@ -499,7 +489,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                         <div className="relative">
                             <input
                                 type="number"
-                                className={`w-full bg-transparent border-b py-2 text-xl font-mono text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors 
+                                className={`w-full bg-transparent border-b py-2 text-xl font-mono text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors
                                     ${runtimeError ? 'border-red-500/50 text-red-100' : 'border-neutral-700'}
                                 `}
                                 placeholder="mins"
@@ -540,7 +530,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 />
                                 <MotionButton
                                     onClick={() => executeProtocol('continuity')}
-                                    disabled={!title}
+                                    disabled={isUploading}
                                     className="flex-1 bg-blue-900/40 hover:bg-blue-800 border-blue-500/20 text-blue-100/80 px-4 py-3 h-auto text-[10px] shadow-none hover:shadow-lg transition-all"
                                 >
                                     AUTO-GENERATE <ArrowRight size={12} className="ml-2" />
