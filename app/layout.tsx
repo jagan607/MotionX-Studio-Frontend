@@ -7,6 +7,7 @@ import { Toaster } from "react-hot-toast";
 import Script from "next/script";
 import { MediaViewerProvider } from "@/app/context/MediaViewerContext";
 import GlobalMediaViewer from "@/app/components/media/GlobalMediaViewer";
+import { ActivityTracker } from "@/components/ActivityTracker";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -78,6 +79,7 @@ export default function RootLayout({
               dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
             <AuthProvider>
+              <ActivityTracker />
               {/* <div className="vignette pointer-events-none fixed inset-0 z-50" /> */}
 
               {/* GlobalHeader handles its own visibility */}

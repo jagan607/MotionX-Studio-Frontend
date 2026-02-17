@@ -1,5 +1,9 @@
 "use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase"; // Client SDK
 import { ChevronRight, Check, Play, Aperture, Film, Crosshair } from "lucide-react";
 
 // --- HELPER COMPONENT: CINEMATIC PRICING TICKET ---
@@ -44,6 +48,34 @@ const CompactPricingCard = ({ title, price, features, isPopular = false }: { tit
 );
 
 export default function LandingPage() {
+  // --- CMS STATE ---
+  const [cmsData, setCmsData] = useState({
+    headline: "Direct Everything",
+    subhead: "AI CINEMA ENGINE",
+    heroVideoUrl: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media&token=8b2fd5b3-3280-48b5-b141-1f399daf00ac"
+  });
+
+  // --- REAL-TIME CMS LISTENER ---
+  useEffect(() => {
+    // Listen to the 'landing_page' document in 'site_config' collection
+    const unsub = onSnapshot(doc(db, "site_config", "landing_page"), (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setCmsData({
+          headline: data.headline || "Direct Everything",
+          subhead: data.subhead || "AI CINEMA ENGINE",
+          // Fallback to default if field is empty in DB
+          heroVideoUrl: data.heroVideoUrl || "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media&token=8b2fd5b3-3280-48b5-b141-1f399daf00ac"
+        });
+      }
+    });
+    return () => unsub(); // Cleanup on unmount
+  }, []);
+
+  // Helper to check if URL is an image (simple check)
+  const isImage = (url: string) => {
+    return url.match(/\.(jpeg|jpg|gif|png)$/) != null;
+  };
 
   const castingImages = [
     "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-1%20(1).png?alt=media&token=4125c260-6236-49d0-abb5-d06b20278eb0",
@@ -163,24 +195,44 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* 2. HERO SECTION - IMMERSIVE */}
+      {/* 2. HERO SECTION - IMMERSIVE (CONNECTED TO CMS) */}
       <section style={{ height: '100vh', width: '100vw', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
         <div className="scanline"></div>
 
-        {/* Background Video */}
-        <video autoPlay loop muted playsInline style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6, filter: 'contrast(1.2) saturation(0)' }}>
-          <source src="https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media&token=8b2fd5b3-3280-48b5-b141-1f399daf00ac" type="video/mp4" />
-        </video>
+        {/* Dynamic Background: Supports Video or Image */}
+        {isImage(cmsData.heroVideoUrl) ? (
+          <img
+            src={cmsData.heroVideoUrl}
+            alt="Hero Background"
+            style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6, filter: 'contrast(1.2) saturation(0)' }}
+          />
+        ) : (
+          <video
+            autoPlay loop muted playsInline
+            key={cmsData.heroVideoUrl} // Forces reload on URL change
+            style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6, filter: 'contrast(1.2) saturation(0)' }}
+          >
+            <source src={cmsData.heroVideoUrl} type="video/mp4" />
+          </video>
+        )}
 
         {/* Vignette */}
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle, transparent 20%, #050505 100%)', zIndex: 1 }}></div>
 
         {/* Content */}
         <div style={{ zIndex: 10, textAlign: 'center', width: '100%', padding: '0 20px' }}>
-          <div style={{ fontFamily: 'Space Mono', color: '#FF0000', fontSize: '12px', letterSpacing: '0.5em', marginBottom: '20px' }}>AI CINEMA ENGINE</div>
-          <h1 className="hero-title video-text-overlay" style={{ fontSize: '140px', fontFamily: 'Anton', lineHeight: 0.85, textTransform: 'uppercase', letterSpacing: '-4px', margin: '0 0 40px 0' }}>
-            Direct<br />Everything
-          </h1>
+          {/* CMS: SUBHEAD */}
+          <div style={{ fontFamily: 'Space Mono', color: '#FF0000', fontSize: '12px', letterSpacing: '0.5em', marginBottom: '20px' }}>
+            {cmsData.subhead}
+          </div>
+
+          {/* CMS: HEADLINE */}
+          {/* dangerouslySetInnerHTML allows you to use <br> tags in the Admin Panel for line breaks */}
+          <h1
+            className="hero-title video-text-overlay"
+            style={{ fontSize: '140px', fontFamily: 'Anton', lineHeight: 0.85, textTransform: 'uppercase', letterSpacing: '-4px', margin: '0 0 40px 0' }}
+            dangerouslySetInnerHTML={{ __html: cmsData.headline.replace(/\n/g, '<br/>') }}
+          />
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', alignItems: 'center' }}>
             <Link href="/login" style={{ textDecoration: 'none' }}>
