@@ -21,6 +21,7 @@ interface ReelSidebarProps {
         assetCount: number;
         format: string;
     };
+    onEditEpisode?: (id: string) => void;
     className?: string;
 }
 
@@ -29,6 +30,7 @@ export const ReelSidebar: React.FC<ReelSidebarProps> = ({
     activeEpisodeId,
     onSelectEpisode,
     onNewEpisode,
+    onEditEpisode,
     metadata,
     className = ""
 }) => {
@@ -62,8 +64,20 @@ export const ReelSidebar: React.FC<ReelSidebarProps> = ({
                                         {ep.title || `EPISODE ${ep.episode_number}`}
                                     </span>
                                 </div>
+
                                 {isActive && (
-                                    <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)]" />
+                                    <div className="flex items-center gap-2">
+                                        {onEditEpisode && (
+                                            <div
+                                                onClick={(e) => { e.stopPropagation(); onEditEpisode(ep.id); }}
+                                                className="w-5 h-5 flex items-center justify-center rounded-full bg-red-900/30 text-red-400 hover:bg-red-600 hover:text-white transition-colors border border-red-900/50"
+                                                title="Edit Script"
+                                            >
+                                                <Layers size={10} />
+                                            </div>
+                                        )}
+                                        <div className="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)]" />
+                                    </div>
                                 )}
                             </button>
                         );

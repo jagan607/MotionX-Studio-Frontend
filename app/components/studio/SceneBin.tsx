@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { LayoutGrid, Clapperboard, ArrowRight, Plus, Wand2, Loader2, X } from "lucide-react";
+import { LayoutGrid, Clapperboard, ArrowRight, Plus, Wand2, Loader2, X, FileText } from "lucide-react";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { useRouter } from "next/navigation";
 import {
@@ -46,6 +46,7 @@ interface SceneBinProps {
     onUpdateCast: (sceneId: string, newCast: string[]) => void;
     onRewrite: (sceneId: string, instruction: string, contextRefs?: ContextReference[]) => Promise<void>;
     onFetchRemoteScenes: (episodeId: string) => Promise<any[]>;
+    onEditScript?: () => void;
 }
 
 export const SceneBin: React.FC<SceneBinProps> = ({
@@ -75,6 +76,7 @@ export const SceneBin: React.FC<SceneBinProps> = ({
     onUpdateCast,
     onRewrite,
     onFetchRemoteScenes,
+    onEditScript
 }) => {
     const router = useRouter();
     const isEditing = !!editingScene;
@@ -202,6 +204,16 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                         {isExtending ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
                         {isExtending ? "Extending..." : "Auto-Extend"}
                     </button>
+
+                    {/* Edit Script Action */}
+                    {onEditScript && (
+                        <button
+                            onClick={onEditScript}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-blue-500/50 text-[9px] font-bold text-[#888] hover:text-blue-400 uppercase tracking-wider transition-colors rounded"
+                        >
+                            <FileText size={11} /> Script
+                        </button>
+                    )}
                 </div>
             </div>
 

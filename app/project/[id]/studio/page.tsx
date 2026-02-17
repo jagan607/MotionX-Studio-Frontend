@@ -29,6 +29,8 @@ import { ReelSidebar } from "@/app/components/studio/ReelSidebar";
 import { SceneBin } from "@/app/components/studio/SceneBin";
 import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
 import { SceneStoryboardContainer } from "@/app/components/studio/SceneStoryboardContainer";
+import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionModal";
+import { ContextSelectorModal, ContextReference } from "@/app/components/script/ContextSelectorModal";
 
 export default function StudioPage() {
     const params = useParams();
@@ -56,6 +58,16 @@ export default function StudioPage() {
     // AI State
     const [isProcessing, setIsProcessing] = useState(false);
     const [isExtending, setIsExtending] = useState(false);
+
+
+    // Dialog State
+    const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
+    const [scriptMode, setScriptMode] = useState<'new' | 'edit'>('new');
+    const [scriptTargetEpId, setScriptTargetEpId] = useState<string>("");
+
+    // Context Selector State
+    const [isContextModalOpen, setIsContextModalOpen] = useState(false);
+    const [selectedContext, setSelectedContext] = useState<ContextReference[]>([]);
 
     // Asset DB
     const [assets, setAssets] = useState<{
@@ -131,6 +143,7 @@ export default function StudioPage() {
                     console.error("Episode Fetch Error:", epError);
                     toast.error("Failed to load episodes");
                 }
+
             } else {
                 const mainReelId = projData.default_episode_id || "main";
                 setEpisodes([{ id: mainReelId, title: "Main Picture Reel", episode_number: 1 }]);
@@ -448,8 +461,43 @@ export default function StudioPage() {
     };
 
     // --- OTHER HANDLERS ---
+
+    // --- SCRIPT & MODAL HANDLERS ---
+
+    const loadEpisodes = async () => {
+        try {
+            if (project?.type === 'micro_drama') {
+                const epsData = await fetchEpisodes(projectId);
+                let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
+                eps = eps.sort((a: any, b: any) => (a.episode_number || 0) - (b.episode_number || 0));
+                const realEpisodes = eps.filter((e: any) => e.synopsis !== "Initial setup");
+                const finalEpisodes = realEpisodes.length > 0 ? realEpisodes : eps;
+                setEpisodes(finalEpisodes);
+            }
+        } catch (e) {
+            console.error("Refresh Episodes Error", e);
+        }
+    };
+
     const handleNewEpisode = () => {
-        router.push(`/project/${projectId}/script?mode=new`);
+        setScriptMode('new');
+        setScriptTargetEpId("");
+        setIsScriptModalOpen(true);
+    };
+
+    const handleEditEpisode = (epId: string) => {
+        setScriptMode('edit');
+        setScriptTargetEpId(epId);
+        setIsScriptModalOpen(true);
+    };
+
+    const handleScriptSuccess = async () => {
+        setIsScriptModalOpen(false);
+        toast.success("Script Protocol Complete", { icon: "✨" });
+
+        // Refresh Data
+        await loadEpisodes();
+        if (activeEpisodeId) await loadScenes(activeEpisodeId);
     };
 
     const handleUpdateProject = (updatedProject: Project) => {
@@ -484,6 +532,7 @@ export default function StudioPage() {
                     activeEpisodeId={activeEpisodeId}
                     onSelectEpisode={setActiveEpisodeId}
                     onNewEpisode={handleNewEpisode}
+                    onEditEpisode={handleEditEpisode}
                     metadata={{
                         sceneCount: stats.sceneCount,
                         assetCount: stats.assetCount,
@@ -517,10 +566,39 @@ export default function StudioPage() {
                     onUpdateCast={handleUpdateCast}
                     onRewrite={handleRewrite}
                     onFetchRemoteScenes={fetchRemoteScenes}
+                    // Setup Edit Script Action
+                    onEditScript={() => handleEditEpisode(activeEpisodeId)}
                 />
             </div>
 
             {/* MODALS */}
+
+            <ScriptIngestionModal
+                isOpen={isScriptModalOpen}
+                onClose={() => setIsScriptModalOpen(false)}
+                projectId={projectId}
+                projectTitle={project.title}
+                projectType={project.type as any}
+                mode={scriptMode}
+                episodeId={scriptTargetEpId}
+                initialTitle={episodes.find(e => e.id === scriptTargetEpId)?.title}
+                initialScript={episodes.find(e => e.id === scriptTargetEpId)?.script_preview}
+                initialRuntime={episodes.find(e => e.id === scriptTargetEpId)?.runtime}
+                previousEpisode={null} // Can implement continuity finding logic if needed
+                onSuccess={handleScriptSuccess}
+                contextReferences={selectedContext}
+                onOpenContextModal={() => setIsContextModalOpen(true)}
+            />
+
+            <ContextSelectorModal
+                isOpen={isContextModalOpen}
+                onClose={() => setIsContextModalOpen(false)}
+                episodes={episodes}
+                onFetchScenes={fetchRemoteScenes}
+                initialSelection={selectedContext}
+                onConfirm={(newSelection) => setSelectedContext(newSelection)}
+            />
+
             <ProjectSettingsModal
                 isOpen={isSettingsOpen}
                 onClose={() => setIsSettingsOpen(false)}
