@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Layers, Film, Plus } from "lucide-react";
+import { Layers, Film, Plus, Settings } from "lucide-react";
 
 // Define the shape of an Episode object based on your DB
 interface Episode {
@@ -22,6 +22,8 @@ interface ReelSidebarProps {
         format: string;
     };
     onEditEpisode?: (id: string) => void;
+    onOpenSettings?: () => void;
+    projectType?: string;
     className?: string;
 }
 
@@ -31,6 +33,8 @@ export const ReelSidebar: React.FC<ReelSidebarProps> = ({
     onSelectEpisode,
     onNewEpisode,
     onEditEpisode,
+    onOpenSettings,
+    projectType,
     metadata,
     className = ""
 }) => {
@@ -90,14 +94,16 @@ export const ReelSidebar: React.FC<ReelSidebarProps> = ({
                         </div>
                     )}
 
-                    {/* NEW REEL CTA */}
-                    <button
-                        onClick={onNewEpisode}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 mt-4 text-[10px] font-bold tracking-widest uppercase text-[#444] border border-dashed border-[#333] hover:border-[#666] hover:text-white hover:bg-[#0A0A0A] transition-all group"
-                    >
-                        <Plus size={12} className="group-hover:rotate-90 transition-transform duration-300" />
-                        <span>New Reel</span>
-                    </button>
+                    {/* NEW REEL CTA — only for multi-episode projects */}
+                    {projectType !== 'movie' && projectType !== 'ad' && (
+                        <button
+                            onClick={onNewEpisode}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 mt-4 text-[10px] font-bold tracking-widest uppercase text-[#444] border border-dashed border-[#333] hover:border-[#666] hover:text-white hover:bg-[#0A0A0A] transition-all group"
+                        >
+                            <Plus size={12} className="group-hover:rotate-90 transition-transform duration-300" />
+                            <span>New Reel</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -121,6 +127,20 @@ export const ReelSidebar: React.FC<ReelSidebarProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* --- CONFIG BUTTON --- */}
+            {onOpenSettings && (
+                <div className="px-6 pb-4">
+                    <button
+                        onClick={onOpenSettings}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0A0A0A] border border-[#222] hover:bg-[#151515] hover:border-[#444] transition-all group rounded-sm"
+                        title="Project Settings"
+                    >
+                        <Settings size={12} className="text-[#666] group-hover:text-white group-hover:rotate-90 transition-all duration-500" />
+                        <span className="text-[10px] font-bold text-[#666] group-hover:text-white uppercase tracking-widest">Config</span>
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

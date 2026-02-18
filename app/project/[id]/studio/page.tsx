@@ -547,7 +547,6 @@ export default function StudioPage() {
                 projectId={projectId}
                 projectTitle={project.title}
                 activeEpisodeId={activeEpisodeId}
-                onOpenSettings={() => setIsSettingsOpen(true)}
                 onOpenAssets={() => setIsAssetModalOpen(true)}
             />
 
@@ -561,6 +560,8 @@ export default function StudioPage() {
                     onSelectEpisode={setActiveEpisodeId}
                     onNewEpisode={handleNewEpisode}
                     onEditEpisode={handleEditEpisode}
+                    onOpenSettings={() => setIsSettingsOpen(true)}
+                    projectType={project.type}
                     metadata={{
                         sceneCount: stats.sceneCount,
                         assetCount: stats.assetCount,

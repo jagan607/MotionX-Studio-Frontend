@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-    ArrowLeft, Settings,
+    ArrowLeft,
     Plus, ChevronDown, Check
 } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
@@ -16,8 +16,7 @@ interface StudioHeaderProps {
     projectTitle: string;
     projectId: string;
     activeEpisodeId?: string;
-    onOpenSettings: () => void;
-    onOpenAssets?: () => void; // If provided, opens modal instead of navigating
+    onOpenAssets?: () => void;
     className?: string;
 }
 
@@ -25,7 +24,6 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
     projectTitle,
     projectId,
     activeEpisodeId,
-    onOpenSettings,
     onOpenAssets,
     className = ""
 }) => {
@@ -145,18 +143,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                         )}
                     </div>
 
-                    {/* DIVIDER */}
-                    <div className="h-8 w-[1px] bg-[#222]" />
 
-                    {/* CONFIG BUTTON */}
-                    <button
-                        onClick={onOpenSettings}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#0A0A0A] border border-[#222] hover:bg-[#151515] hover:border-[#444] transition-all group rounded-sm"
-                        title="Project Settings"
-                    >
-                        <Settings size={12} className="text-[#666] group-hover:text-white group-hover:rotate-90 transition-all duration-500" />
-                        <span className="text-[10px] font-bold text-[#666] group-hover:text-white uppercase tracking-widest">Config</span>
-                    </button>
 
 
 
