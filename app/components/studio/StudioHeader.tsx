@@ -17,6 +17,7 @@ interface StudioHeaderProps {
     projectId: string;
     activeEpisodeId?: string;
     onOpenSettings: () => void;
+    onOpenAssets?: () => void; // If provided, opens modal instead of navigating
     className?: string;
 }
 
@@ -25,6 +26,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
     projectId,
     activeEpisodeId,
     onOpenSettings,
+    onOpenAssets,
     className = ""
 }) => {
     const pathname = usePathname();
@@ -193,13 +195,23 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                             <FileText size={12} className={activeTab === "script" ? "text-red-500" : "text-[#666]"} />
                             <span>Script</span>
                         </Link>
-                        <Link
-                            href={`/project/${projectId}/assets`}
-                            className={`${tabBase} ${activeTab === "assets" ? tabActive : tabInactive}`}
-                        >
-                            <Database size={12} className={activeTab === "assets" ? "text-red-500" : "text-[#666]"} />
-                            <span>Assets</span>
-                        </Link>
+                        {onOpenAssets ? (
+                            <button
+                                onClick={onOpenAssets}
+                                className={`${tabBase} ${activeTab === "assets" ? tabActive : tabInactive}`}
+                            >
+                                <Database size={12} className={activeTab === "assets" ? "text-red-500" : "text-[#666]"} />
+                                <span>Assets</span>
+                            </button>
+                        ) : (
+                            <Link
+                                href={`/project/${projectId}/assets`}
+                                className={`${tabBase} ${activeTab === "assets" ? tabActive : tabInactive}`}
+                            >
+                                <Database size={12} className={activeTab === "assets" ? "text-red-500" : "text-[#666]"} />
+                                <span>Assets</span>
+                            </Link>
+                        )}
                     </div>
 
                     {/* DIVIDER */}

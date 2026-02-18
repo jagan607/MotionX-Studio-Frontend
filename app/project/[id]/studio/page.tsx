@@ -30,6 +30,7 @@ import { SceneBin } from "@/app/components/studio/SceneBin";
 import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
 import { SceneStoryboardContainer } from "@/app/components/studio/SceneStoryboardContainer";
 import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionModal";
+import { AssetManagerModal } from "@/app/components/studio/AssetManagerModal";
 import { ContextSelectorModal, ContextReference } from "@/app/components/script/ContextSelectorModal";
 
 export default function StudioPage() {
@@ -64,6 +65,7 @@ export default function StudioPage() {
     const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
     const [scriptMode, setScriptMode] = useState<'new' | 'edit'>('new');
     const [scriptTargetEpId, setScriptTargetEpId] = useState<string>("");
+    const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
 
     // Context Selector State
     const [isContextModalOpen, setIsContextModalOpen] = useState(false);
@@ -546,6 +548,7 @@ export default function StudioPage() {
                 projectTitle={project.title}
                 activeEpisodeId={activeEpisodeId}
                 onOpenSettings={() => setIsSettingsOpen(true)}
+                onOpenAssets={() => setIsAssetModalOpen(true)}
             />
 
             {/* MAIN CONTENT ROW */}
@@ -630,6 +633,25 @@ export default function StudioPage() {
                 onSuccess={handleScriptSuccess}
                 contextReferences={selectedContext}
                 onOpenContextModal={() => setIsContextModalOpen(true)}
+            />
+
+            <AssetManagerModal
+                isOpen={isAssetModalOpen}
+                onClose={() => setIsAssetModalOpen(false)}
+                projectId={projectId}
+                project={project}
+                onAssetsUpdated={async () => {
+                    // Refresh lightweight asset lists used by DirectorConsole
+                    try {
+                        const { fetchProjectAssets } = await import('@/lib/api');
+                        const assetsData = await fetchProjectAssets(projectId);
+                        setAssets({
+                            characters: (assetsData.characters || []).map((c: any) => ({ ...c, type: 'character' })),
+                            locations: (assetsData.locations || []).map((l: any) => ({ ...l, type: 'location' })),
+                            products: (assetsData.products || []).map((p: any) => ({ ...p, type: 'product' })),
+                        });
+                    } catch (e) { console.error('Failed to refresh assets', e); }
+                }}
             />
 
             <ContextSelectorModal
