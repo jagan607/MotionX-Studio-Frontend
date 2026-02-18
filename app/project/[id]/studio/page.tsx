@@ -596,6 +596,7 @@ export default function StudioPage() {
                     onFetchRemoteScenes={fetchRemoteScenes}
                     // Setup Edit Script Action
                     onEditScript={() => handleEditEpisode(activeEpisodeId)}
+                    onOpenAssets={() => setIsAssetModalOpen(true)}
                 />
             </div>
 

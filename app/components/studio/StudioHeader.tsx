@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
-    ArrowLeft, FileText, Database, Settings,
-    Plus, Clapperboard, ChevronDown, Check
+    ArrowLeft, Settings,
+    Plus, ChevronDown, Check
 } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import CreditModal from "@/app/components/modals/CreditModal";
@@ -29,7 +29,6 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
     onOpenAssets,
     className = ""
 }) => {
-    const pathname = usePathname();
     const router = useRouter();
     const { credits } = useCredits();
     const [showTopUp, setShowTopUp] = useState(false);
@@ -65,27 +64,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
         }
     };
 
-    // --- NAVIGATION LOGIC ---
-    const getActiveTab = () => {
-        if (pathname.includes("/script")) return "script";
-        if (pathname.endsWith("/assets")) return "assets";
-        if (pathname.endsWith("/studio")) return "studio";
-        return "";
-    };
 
-    const activeTab = getActiveTab();
-
-    // --- LINK CONSTRUCTION ---
-    const hasValidEpisode = activeEpisodeId && activeEpisodeId !== "empty" && activeEpisodeId !== "new_placeholder";
-
-    const scriptHref = hasValidEpisode
-        ? `/project/${projectId}/script?episode_id=${activeEpisodeId}`
-        : `/project/${projectId}/script`;
-
-    // --- STYLES ---
-    const tabBase = "flex items-center gap-2 px-4 py-1.5 rounded-sm transition-all duration-200 text-[10px] font-bold uppercase tracking-widest select-none";
-    const tabActive = "bg-[#222] text-white shadow-sm border border-[#333]";
-    const tabInactive = "text-[#666] hover:text-white hover:bg-[#151515] border border-transparent";
 
     return (
         <>
@@ -179,43 +158,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                         <span className="text-[10px] font-bold text-[#666] group-hover:text-white uppercase tracking-widest">Config</span>
                     </button>
 
-                    {/* MAIN NAVIGATION SWITCHER */}
-                    <div className="flex items-center bg-[#0A0A0A] border border-[#222] rounded-sm p-1 gap-1">
-                        <Link
-                            href={`/project/${projectId}/studio`}
-                            className={`${tabBase} ${activeTab === "studio" ? tabActive : tabInactive}`}
-                        >
-                            <Clapperboard size={12} className={activeTab === "studio" ? "text-red-500" : "text-[#666]"} />
-                            <span>Studio</span>
-                        </Link>
-                        <Link
-                            href={scriptHref}
-                            className={`${tabBase} ${activeTab === "script" ? tabActive : tabInactive}`}
-                        >
-                            <FileText size={12} className={activeTab === "script" ? "text-red-500" : "text-[#666]"} />
-                            <span>Script</span>
-                        </Link>
-                        {onOpenAssets ? (
-                            <button
-                                onClick={onOpenAssets}
-                                className={`${tabBase} ${activeTab === "assets" ? tabActive : tabInactive}`}
-                            >
-                                <Database size={12} className={activeTab === "assets" ? "text-red-500" : "text-[#666]"} />
-                                <span>Assets</span>
-                            </button>
-                        ) : (
-                            <Link
-                                href={`/project/${projectId}/assets`}
-                                className={`${tabBase} ${activeTab === "assets" ? tabActive : tabInactive}`}
-                            >
-                                <Database size={12} className={activeTab === "assets" ? "text-red-500" : "text-[#666]"} />
-                                <span>Assets</span>
-                            </Link>
-                        )}
-                    </div>
 
-                    {/* DIVIDER */}
-                    <div className="h-8 w-[1px] bg-[#222]" />
 
                     {/* CREDITS */}
                     <div className="flex items-center gap-5">

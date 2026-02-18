@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { LayoutGrid, Clapperboard, ArrowRight, Plus, Wand2, Loader2, X, FileText } from "lucide-react";
+import { LayoutGrid, Clapperboard, ArrowRight, Plus, Wand2, Loader2, X, FileText, Database } from "lucide-react";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { useRouter } from "next/navigation";
 import {
@@ -47,6 +47,7 @@ interface SceneBinProps {
     onRewrite: (sceneId: string, instruction: string, contextRefs?: ContextReference[]) => Promise<void>;
     onFetchRemoteScenes: (episodeId: string) => Promise<any[]>;
     onEditScript?: () => void;
+    onOpenAssets?: () => void;
 }
 
 export const SceneBin: React.FC<SceneBinProps> = ({
@@ -76,7 +77,8 @@ export const SceneBin: React.FC<SceneBinProps> = ({
     onUpdateCast,
     onRewrite,
     onFetchRemoteScenes,
-    onEditScript
+    onEditScript,
+    onOpenAssets
 }) => {
     const router = useRouter();
     const isEditing = !!editingScene;
@@ -212,6 +214,16 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-blue-500/50 text-[9px] font-bold text-[#888] hover:text-blue-400 uppercase tracking-wider transition-colors rounded"
                         >
                             <FileText size={11} /> Script
+                        </button>
+                    )}
+
+                    {/* Assets Action */}
+                    {onOpenAssets && (
+                        <button
+                            onClick={onOpenAssets}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-purple-500/50 text-[9px] font-bold text-[#888] hover:text-purple-400 uppercase tracking-wider transition-colors rounded"
+                        >
+                            <Database size={11} /> Assets
                         </button>
                     )}
                 </div>
