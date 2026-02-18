@@ -16,6 +16,7 @@ interface StudioHeaderProps {
     projectTitle: string;
     projectId: string;
     activeEpisodeId?: string;
+    onOpenSettings?: () => void; // Optional — used by non-studio pages (assets, script, editor)
     onOpenAssets?: () => void;
     className?: string;
 }
