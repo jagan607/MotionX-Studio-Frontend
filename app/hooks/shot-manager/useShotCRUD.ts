@@ -1,7 +1,7 @@
 import { doc, setDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { arrayMove } from "@dnd-kit/sortable";
-import { toast } from "react-hot-toast";
+import { toastError } from "@/lib/toast";
 
 export const useShotCRUD = (
     projectId: string,
@@ -25,7 +25,7 @@ export const useShotCRUD = (
                 }
             } catch (e) { }
         });
-        const newShotId = `shot_${String(maxId + 1).padStart(2, '0')}`;
+        const newShotId = `shot_${String(maxId + 1).padStart(2, '0')} `;
 
         // 2. Calculate Order
         const currentMaxOrder = shots.length > 0 ? Math.max(...shots.map(s => s.order || 0)) : -1;
@@ -89,7 +89,7 @@ export const useShotCRUD = (
             await batch.commit();
         } catch (error) {
             console.error(error);
-            toast.error("Failed to save order");
+            toastError("Failed to save order");
         }
     };
 

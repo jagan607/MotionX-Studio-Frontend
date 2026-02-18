@@ -1,7 +1,7 @@
 import { doc, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { api } from "@/lib/api";
-import { toast } from "react-hot-toast";
+import { toastError } from "@/lib/toast";
 import { useState } from "react";
 
 // Helper to match backend CAPS_CAPS format
@@ -101,7 +101,7 @@ export const useShotAI = (
             console.error(e);
             const errorMsg = e.response?.data?.detail || "Auto-Direct failed";
             setTerminalLog(prev => [...prev, `> ERROR: ${errorMsg.toUpperCase()}`]);
-            toast.error(errorMsg);
+            toastError(errorMsg);
         } finally {
             setIsAutoDirecting(false);
         }

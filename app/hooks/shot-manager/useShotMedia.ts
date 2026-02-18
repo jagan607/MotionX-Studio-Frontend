@@ -1,7 +1,7 @@
 import { doc, writeBatch } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
-import { toast } from "react-hot-toast";
+import { toastError } from "@/lib/toast";
 
 export const useShotMedia = (
     projectId: string,
@@ -36,7 +36,7 @@ export const useShotMedia = (
             await batch.commit();
             setTerminalLog(prev => [...prev, "> MEDIA CLEARED."]);
         } catch (error) {
-            toast.error("Failed to clear media");
+            toastError("Failed to clear media");
         }
     };
 
@@ -62,7 +62,7 @@ export const useShotMedia = (
             setShots([]);
             setTerminalLog(prev => [...prev, "> SCENE RESET COMPLETE."]);
         } catch (error) {
-            toast.error("Failed to reset scene");
+            toastError("Failed to reset scene");
         }
     };
 

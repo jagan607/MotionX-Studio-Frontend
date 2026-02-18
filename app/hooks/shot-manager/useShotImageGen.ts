@@ -1,7 +1,7 @@
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { api } from "@/lib/api";
-import { toast } from "react-hot-toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 // Helper to handle API errors
 const getErrorMessage = (e: any) => {
@@ -88,18 +88,16 @@ export const useShotImageGen = (
                 headers: { "Content-Type": "multipart/form-data" }
             });
 
-            if (res.data.status === "queued") {
-                toast.success(`Generating with ${provider}...`);
-            }
+            toastSuccess(`Generating with ${provider}...`);
         } catch (e: any) {
             console.error(e);
             await updateDoc(shotRef, { status: "failed" });
 
             if (e.response && e.response.status === 402) {
                 if (onLowCredits) onLowCredits();
-                else toast.error("Insufficient Credits");
+                else toastError("Insufficient Credits");
             } else {
-                toast.error(getErrorMessage(e));
+                toastError(getErrorMessage(e));
             }
         } finally {
             removeLoadingShot(shot.id);
@@ -122,9 +120,9 @@ export const useShotImageGen = (
                 headers: { "Content-Type": "multipart/form-data" }
             });
 
-            toast.success("Shot Finalized");
+            toastSuccess("Shot Finalized");
         } catch (e: any) {
-            toast.error(getErrorMessage(e));
+            toastError(getErrorMessage(e));
         } finally {
             removeLoadingShot(shot.id);
         }
@@ -168,7 +166,7 @@ export const useShotImageGen = (
 
         } catch (e: any) {
             console.error(e);
-            toast.error(getErrorMessage(e));
+            toastError(getErrorMessage(e));
             await updateDoc(shotRef, { status: "failed" });
             return null;
         }

@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import { toast } from "react-hot-toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 export const useShotVideoGen = (
     projectId: string,
@@ -12,7 +12,7 @@ export const useShotVideoGen = (
         provider: 'kling' | 'seedance' = 'kling',
         endFrameUrl?: string | null
     ) => {
-        if (!shot.image_url) return toast.error("No image to animate");
+        if (!shot.image_url) return toastError("No image to animate");
 
         try {
             // FIX: Use JSON Payload instead of FormData
@@ -28,9 +28,9 @@ export const useShotVideoGen = (
             };
 
             await api.post("/api/v1/shot/animate_shot", payload);
-            toast.success("Animation Queued");
+            toastSuccess("Animation Queued");
         } catch (e: any) {
-            toast.error(e.response?.data?.detail || "Animation request failed");
+            toastError(e.response?.data?.detail || "Animation request failed");
         }
     };
 

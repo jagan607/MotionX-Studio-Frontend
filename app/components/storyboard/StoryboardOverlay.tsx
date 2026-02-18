@@ -9,7 +9,8 @@ import {
     SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { useRouter } from "next/navigation";
-import { Toaster, toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 // --- INTERNAL SIBLING IMPORTS ---
 import { ShotImage } from "./ShotImage";
@@ -225,7 +226,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
             window.URL.revokeObjectURL(blobUrl);
             toast.dismiss(toastId);
-            toast.success("Download started");
+            toastSuccess("Download started");
         } catch (e) {
             console.error("Download failed", e);
             toast.dismiss(toastId);
@@ -242,7 +243,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
             if (shotToDownload.image_url) {
                 forceDownload(shotToDownload.image_url, `${prefix}_frame.jpg`);
             } else {
-                toast.error("No image found for this shot.");
+                toastError("No image found for this shot.");
             }
         }
 
@@ -252,7 +253,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     forceDownload(shotToDownload.video_url, `${prefix}_motion.mp4`);
                 }, type === 'both' ? 800 : 0);
             } else if (type === 'video') {
-                toast.error("No video found for this shot.");
+                toastError("No video found for this shot.");
             }
         }
         setShotToDownload(null);
@@ -351,7 +352,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
     return (
         <div style={styles.sbOverlay}>
-            <Toaster position="bottom-right" reverseOrder={false} />
+
 
             {/* MODALS */}
             <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
@@ -438,7 +439,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
                     {/* ADD SHOT */}
                     <button
-                        onClick={() => shotMgr.handleAddShot(currentScene)}
+                        onClick={() => { shotMgr.handleAddShot(currentScene); toastSuccess("Shot added"); }}
                         style={{
                             height: '40px', padding: '0 24px', backgroundColor: '#FFF', color: '#000',
                             border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 700,

@@ -1,7 +1,7 @@
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { api } from "@/lib/api";
-import { toast } from "react-hot-toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 export const useShotAudioGen = (
     projectId: string,
@@ -50,8 +50,8 @@ export const useShotAudioGen = (
     };
 
     const handleLipSyncShot = async (shot: any, audioUrl: string | null, audioFile: File | null) => {
-        if (!shot.video_url) return toast.error("No video to sync");
-        if (!audioUrl && !audioFile) return toast.error("No audio provided");
+        if (!shot.video_url) return toastError("No video to sync");
+        if (!audioUrl && !audioFile) return toastError("No audio provided");
         if (!sceneId) return;
 
         const shotRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId, "shots", shot.id);
@@ -85,10 +85,10 @@ export const useShotAudioGen = (
 
             await api.post("/api/v1/shot/lipsync_shot", payload);
 
-            toast.success("Lip Sync Queued");
+            toastSuccess("Lip Sync Queued");
         } catch (e: any) {
             console.error(e);
-            toast.error(e.response?.data?.detail || "Lip Sync failed");
+            toastError(e.response?.data?.detail || "Lip Sync failed");
             await setDoc(shotRef, { video_status: "ready" }, { merge: true });
         }
     };

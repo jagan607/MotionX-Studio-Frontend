@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
-import { Toaster, toast } from "react-hot-toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 // --- IMPORTS ---
 import { StoryboardOverlay } from "../storyboard/StoryboardOverlay";
@@ -95,7 +95,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
         projectId,
         episodeId,
         activeSceneData?.id || "",
-        () => toast.error("Insufficient Credits! Please top up.")
+        () => toastError("Insufficient Credits! Please top up.")
     );
 
     // 3. Handler to switch scenes from inside the Overlay
@@ -106,12 +106,12 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     // 4. Create a "Safe Proxy" of the Manager
     const safeShotMgr = useMemo(() => ({
         ...rawShotMgr,
-        handleRenderShot: async (shot: any, sceneData: any, refFile?: File | null) => {
+        handleRenderShot: async (shot: any, sceneData: any, refFile?: File | null, provider?: 'gemini' | 'seedream') => {
             try {
-                return await rawShotMgr.handleRenderShot(shot, sceneData, refFile);
+                return await rawShotMgr.handleRenderShot(shot, sceneData, refFile, provider);
             } catch (e: any) {
                 const msg = safeError(e);
-                toast.error(msg);
+                toastError(msg);
                 throw new Error(msg);
             }
         },
@@ -120,7 +120,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 return await rawShotMgr.handleAnimateShot(shot, provider, endFrameUrl);
             } catch (e: any) {
                 const msg = safeError(e);
-                toast.error(msg);
+                toastError(msg);
                 throw new Error(msg);
             }
         },
@@ -129,7 +129,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 return await rawShotMgr.handleGenerateVoiceover(shot);
             } catch (e: any) {
                 const msg = safeError(e);
-                toast.error(msg);
+                toastError(msg);
                 throw new Error(msg);
             }
         },
@@ -145,7 +145,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 return await rawShotMgr.handleInpaintShot(shotId, prompt, maskBase64, originalImageUrl, refImages);
             } catch (e: any) {
                 const msg = safeError(e);
-                toast.error(msg);
+                toastError(msg);
                 throw new Error(msg);
             }
         }
@@ -158,10 +158,10 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
         try {
             await rawShotMgr.updateShot(inpaintData.shotId, "image_url", newImageUrl);
             setInpaintData(null);
-            toast.success("VFX Frame Updated");
+            toastSuccess("VFX Frame Updated");
         } catch (e) {
             console.error("Failed to apply inpaint:", e);
-            toast.error("Failed to save changes");
+            toastError("Failed to save changes");
         }
     };
 
@@ -169,28 +169,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
 
     return (
         <div className="relative z-[100]">
-            <Toaster
-                position="bottom-right"
-                toastOptions={{
-                    style: {
-                        background: '#0A0A0A',
-                        color: '#fff',
-                        border: '1px solid #333',
-                        borderRadius: '0px',
-                        fontFamily: 'monospace',
-                        fontSize: '12px',
-                        padding: '12px 16px',
-                    },
-                    success: {
-                        iconTheme: { primary: '#DC2626', secondary: '#fff' },
-                        style: { border: '1px solid #111' }
-                    },
-                    error: {
-                        iconTheme: { primary: '#DC2626', secondary: '#fff' },
-                        style: { border: '1px solid #DC2626' }
-                    }
-                }}
-            />
+
 
             <StoryboardOverlay
                 activeSceneId={activeSceneData.id}
