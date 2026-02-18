@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
@@ -128,6 +128,21 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [shotToDownload, setShotToDownload] = useState<any>(null);
     const [sceneList, setSceneList] = useState<any[]>([]);
+
+    // Scene Selector Dropdown
+    const [showSceneDropdown, setShowSceneDropdown] = useState(false);
+    const sceneDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (sceneDropdownRef.current && !sceneDropdownRef.current.contains(e.target as Node)) {
+                setShowSceneDropdown(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     // UI State
     const [showTopUp, setShowTopUp] = useState(false);
@@ -412,31 +427,66 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 <div style={styles.headerActions}>
 
                     {/* SCENE SELECTOR */}
-                    <div id="tour-sb-scene-selector" style={{ position: 'relative' }}>
-                        <select
-                            value={activeSceneId || ""}
-                            onChange={(e) => {
-                                const selectedScene = sceneList.find(s => s.id === e.target.value);
-                                if (selectedScene && onSceneChange) {
-                                    onSceneChange(selectedScene);
-                                }
-                            }}
+                    <div id="tour-sb-scene-selector" className="relative" ref={sceneDropdownRef}>
+                        <button
+                            onClick={() => setShowSceneDropdown(!showSceneDropdown)}
                             style={{
-                                height: '40px', padding: '0 32px 0 16px', backgroundColor: '#1A1A1A', color: '#EEE',
+                                height: '40px', padding: '0 16px', backgroundColor: '#1A1A1A', color: '#EEE',
                                 border: '1px solid #333', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
                                 minWidth: '240px', maxWidth: '300px', cursor: 'pointer', outline: 'none',
-                                textTransform: 'uppercase', appearance: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                                textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                gap: '10px'
                             }}
+                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
                         >
-                            {sceneList.map((scene) => (
-                                <option key={scene.id} value={scene.id}>
-                                    SCENE {scene.scene_number}: {scene.slugline || "UNTITLED SCENE"}
-                                </option>
-                            ))}
-                        </select>
-                        <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#666' }}>
-                            <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </div>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {(() => {
+                                    const selected = sceneList.find(s => s.id === activeSceneId);
+                                    return selected
+                                        ? `SCENE ${selected.scene_number}: ${selected.slugline || "UNTITLED"}`
+                                        : "SELECT SCENE";
+                                })()}
+                            </span>
+                            <div style={{ transform: showSceneDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                            </div>
+                        </button>
+
+                        {showSceneDropdown && (
+                            <div style={{
+                                position: 'absolute', top: '100%', left: 0, marginTop: '4px', width: '100%',
+                                backgroundColor: '#1A1A1A', border: '1px solid #333', borderRadius: '4px',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.5)', zIndex: 9999, overflow: 'hidden'
+                            }}>
+                                <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                                    {sceneList.map((scene) => (
+                                        <button
+                                            key={scene.id}
+                                            onClick={() => {
+                                                if (onSceneChange) onSceneChange(scene);
+                                                setShowSceneDropdown(false);
+                                            }}
+                                            style={{
+                                                width: '100%', textAlign: 'left', padding: '10px 16px',
+                                                backgroundColor: scene.id === activeSceneId ? 'rgba(220, 38, 38, 0.1)' : 'transparent',
+                                                borderLeft: scene.id === activeSceneId ? '2px solid #ef4444' : '2px solid transparent',
+                                                color: '#EEE', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
+                                                cursor: 'pointer', transition: 'all 0.1s'
+                                            }}
+                                            onMouseOver={(e) => {
+                                                if (scene.id !== activeSceneId) e.currentTarget.style.backgroundColor = '#222';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                if (scene.id !== activeSceneId) e.currentTarget.style.backgroundColor = 'transparent';
+                                            }}
+                                        >
+                                            SCENE {scene.scene_number}: {scene.slugline || "UNTITLED SCENE"}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* GENERATE ALL */}
@@ -482,10 +532,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         id="tour-sb-add-shot"
                         onClick={() => { shotMgr.handleAddShot(currentScene); toastSuccess("Shot added"); }}
                         style={{
-                            height: '40px', padding: '0 24px', backgroundColor: '#FFF', color: '#000',
-                            border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 700,
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
+                            height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
+                            border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                            transition: 'all 0.2s'
                         }}
+                        onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
                     >
                         <Plus size={16} strokeWidth={3} /> ADD SHOT
                     </button>
