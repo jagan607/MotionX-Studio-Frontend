@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
@@ -106,6 +106,17 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     );
 
     const { openViewer } = useMediaViewer();
+
+    // --- TOUR FILTERING ---
+    const tourSteps = useMemo(() => {
+        return STORYBOARD_TOUR_STEPS.filter(step => {
+            // Steps that depend on shots existing:
+            if (step.targetId === 'tour-sb-generate-all' && shotMgr.shots.length === 0) return false;
+            if (step.targetId === 'tour-sb-shot-card' && shotMgr.shots.length === 0) return false;
+            return true;
+        });
+    }, [shotMgr.shots.length]);
+
 
     // --- STATE ---
     const [showOverwriteWarning, setShowOverwriteWarning] = useState(false);
@@ -732,7 +743,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 />
             )}
 
-            <TourOverlay step={tourStep} steps={STORYBOARD_TOUR_STEPS} onNext={onTourNext} onComplete={onTourComplete} />
+            <TourOverlay step={tourStep} steps={tourSteps} onNext={onTourNext} onComplete={onTourComplete} />
         </div>
     );
 };
