@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2 } from 'lucide-react';
+import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database } from 'lucide-react';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
 } from '@dnd-kit/core';
@@ -26,6 +26,8 @@ import { TourOverlay } from "@/components/tour/TourOverlay";
 import { STORYBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import CreditModal from "@/app/components/modals/CreditModal";
+import { AssetManagerModal } from "@/app/components/studio/AssetManagerModal";
+import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionModal";
 
 // --- CONTEXT IMPORT ---
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
@@ -116,6 +118,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
     // UI State
     const [showTopUp, setShowTopUp] = useState(false);
+    const [showAssets, setShowAssets] = useState(false);
+    const [showScript, setShowScript] = useState(false);
 
     // Data State (Episode Title Correction)
     const [realEpisodeTitle, setRealEpisodeTitle] = useState(episodeTitle);
@@ -357,6 +361,24 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
             {/* MODALS */}
             <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
 
+            <AssetManagerModal
+                isOpen={showAssets}
+                onClose={() => setShowAssets(false)}
+                projectId={seriesId}
+                project={null}
+            />
+
+            <ScriptIngestionModal
+                isOpen={showScript}
+                onClose={() => setShowScript(false)}
+                projectId={seriesId}
+                projectTitle={seriesName}
+                projectType="micro_drama"
+                mode="edit"
+                episodeId={episodeId}
+                onSuccess={() => setShowScript(false)}
+            />
+
             {/* --- HEADER --- */}
             <div style={styles.sbHeader}>
                 {/* LEFT */}
@@ -450,6 +472,36 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         }}
                     >
                         <Plus size={16} strokeWidth={3} /> ADD SHOT
+                    </button>
+
+                    {/* SCRIPT */}
+                    <button
+                        onClick={() => setShowScript(true)}
+                        style={{
+                            height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
+                            border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                            transition: 'border-color 0.2s'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
+                    >
+                        <FileText size={14} /> SCRIPT
+                    </button>
+
+                    {/* ASSETS */}
+                    <button
+                        onClick={() => setShowAssets(true)}
+                        style={{
+                            height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
+                            border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                            transition: 'border-color 0.2s'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
+                    >
+                        <Database size={14} /> ASSETS
                     </button>
 
                     {/* DIVIDER */}
