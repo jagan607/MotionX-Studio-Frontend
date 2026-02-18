@@ -165,35 +165,35 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                     <button
                                         onClick={onManualAdd}
                                         disabled={isExtending}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-[#555] text-[9px] font-bold text-[#888] hover:text-white uppercase tracking-wider transition-colors rounded-sm disabled:opacity-50"
+                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded disabled:opacity-50"
                                     >
-                                        <Plus size={11} /> Add Scene
+                                        <Plus size={14} /> Add Scene
                                     </button>
                                 )}
                                 {onAutoExtend && (
                                     <button
                                         onClick={onAutoExtend}
                                         disabled={isExtending}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/10 border border-red-900/30 hover:border-red-500/50 text-[9px] font-bold text-red-400 hover:text-red-300 uppercase tracking-wider transition-colors rounded-sm disabled:opacity-50"
+                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded disabled:opacity-50"
                                     >
-                                        {isExtending ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+                                        {isExtending ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
                                         {isExtending ? "Extending..." : "Auto-Extend"}
                                     </button>
                                 )}
                                 {onEditScript && (
                                     <button
                                         onClick={onEditScript}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-blue-500/50 text-[9px] font-bold text-[#888] hover:text-blue-400 uppercase tracking-wider transition-colors rounded-sm"
+                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded"
                                     >
-                                        <FileText size={11} /> Script
+                                        <FileText size={14} /> Script
                                     </button>
                                 )}
                                 {onOpenAssets && (
                                     <button
                                         onClick={onOpenAssets}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-purple-500/50 text-[9px] font-bold text-[#888] hover:text-purple-400 uppercase tracking-wider transition-colors rounded-sm"
+                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded"
                                     >
-                                        <Database size={11} /> Assets
+                                        <Database size={14} /> Assets
                                     </button>
                                 )}
                             </div>
