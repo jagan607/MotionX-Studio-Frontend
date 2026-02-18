@@ -548,6 +548,10 @@ export default function StudioPage() {
                 projectTitle={project.title}
                 activeEpisodeId={activeEpisodeId}
                 onOpenAssets={() => setIsAssetModalOpen(true)}
+                onManualAdd={handleManualAdd}
+                onAutoExtend={handleAutoExtend}
+                isExtending={isExtending}
+                onEditScript={() => handleEditEpisode(activeEpisodeId)}
             />
 
             {/* MAIN CONTENT ROW */}

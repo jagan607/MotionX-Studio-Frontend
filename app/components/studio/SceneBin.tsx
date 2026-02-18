@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { LayoutGrid, Clapperboard, ArrowRight, Plus, Wand2, Loader2, X, FileText, Database } from "lucide-react";
+import { Clapperboard, ArrowRight, Plus, Loader2, X } from "lucide-react";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { useRouter } from "next/navigation";
 import {
@@ -182,52 +182,7 @@ export const SceneBin: React.FC<SceneBinProps> = ({
     return (
         <div className={`flex-1 bg-[#020202] flex flex-col relative ${className}`}>
 
-            {/* --- BIN TOOLBAR --- */}
-            <div className="h-12 border-b border-[#222] bg-[#080808] flex items-center justify-between px-6 shrink-0">
-                <div className="flex items-center gap-2 text-[10px] font-bold text-[#555] uppercase tracking-widest">
-                    <LayoutGrid size={14} />
-                    <span className="text-[#888]">{activeReelTitle}</span> <span className="text-[#333]">/</span> SCENE BIN
-                </div>
 
-                {/* ADD SCENE CONTROLS */}
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={handleAddClick}
-                        disabled={isExtending}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-[#555] text-[9px] font-bold text-[#888] hover:text-white uppercase tracking-wider transition-colors rounded disabled:opacity-50"
-                    >
-                        <Plus size={11} /> Add Scene
-                    </button>
-                    <button
-                        onClick={handleExtendClick}
-                        disabled={isExtending || scenes.length === 0}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/10 border border-red-900/30 hover:border-red-500/50 text-[9px] font-bold text-red-400 hover:text-red-300 uppercase tracking-wider transition-colors rounded disabled:opacity-50"
-                    >
-                        {isExtending ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
-                        {isExtending ? "Extending..." : "Auto-Extend"}
-                    </button>
-
-                    {/* Edit Script Action */}
-                    {onEditScript && (
-                        <button
-                            onClick={onEditScript}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-blue-500/50 text-[9px] font-bold text-[#888] hover:text-blue-400 uppercase tracking-wider transition-colors rounded"
-                        >
-                            <FileText size={11} /> Script
-                        </button>
-                    )}
-
-                    {/* Assets Action */}
-                    {onOpenAssets && (
-                        <button
-                            onClick={onOpenAssets}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-purple-500/50 text-[9px] font-bold text-[#888] hover:text-purple-400 uppercase tracking-wider transition-colors rounded"
-                        >
-                            <Database size={11} /> Assets
-                        </button>
-                    )}
-                </div>
-            </div>
 
             {/* --- MAIN CONTENT: GRID + INLINE EDIT PANEL --- */}
             <div className="flex-1 flex overflow-hidden">

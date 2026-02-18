@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
     ArrowLeft,
-    Plus, ChevronDown, Check
+    Plus, ChevronDown, Check, Wand2, Loader2, FileText, Database
 } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import CreditModal from "@/app/components/modals/CreditModal";
@@ -16,8 +16,12 @@ interface StudioHeaderProps {
     projectTitle: string;
     projectId: string;
     activeEpisodeId?: string;
-    onOpenSettings?: () => void; // Optional — used by non-studio pages (assets, script, editor)
+    onOpenSettings?: () => void;
     onOpenAssets?: () => void;
+    onManualAdd?: () => void;
+    onAutoExtend?: () => void;
+    isExtending?: boolean;
+    onEditScript?: () => void;
     className?: string;
 }
 
@@ -26,6 +30,10 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
     projectId,
     activeEpisodeId,
     onOpenAssets,
+    onManualAdd,
+    onAutoExtend,
+    isExtending = false,
+    onEditScript,
     className = ""
 }) => {
     const router = useRouter();
@@ -147,6 +155,51 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
 
 
 
+
+                    {/* SCENE CTAs */}
+                    {(onManualAdd || onAutoExtend || onEditScript || onOpenAssets) && (
+                        <>
+                            <div className="h-8 w-[1px] bg-[#222]" />
+                            <div className="flex items-center gap-2">
+                                {onManualAdd && (
+                                    <button
+                                        onClick={onManualAdd}
+                                        disabled={isExtending}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-[#555] text-[9px] font-bold text-[#888] hover:text-white uppercase tracking-wider transition-colors rounded-sm disabled:opacity-50"
+                                    >
+                                        <Plus size={11} /> Add Scene
+                                    </button>
+                                )}
+                                {onAutoExtend && (
+                                    <button
+                                        onClick={onAutoExtend}
+                                        disabled={isExtending}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-900/10 border border-red-900/30 hover:border-red-500/50 text-[9px] font-bold text-red-400 hover:text-red-300 uppercase tracking-wider transition-colors rounded-sm disabled:opacity-50"
+                                    >
+                                        {isExtending ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+                                        {isExtending ? "Extending..." : "Auto-Extend"}
+                                    </button>
+                                )}
+                                {onEditScript && (
+                                    <button
+                                        onClick={onEditScript}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-blue-500/50 text-[9px] font-bold text-[#888] hover:text-blue-400 uppercase tracking-wider transition-colors rounded-sm"
+                                    >
+                                        <FileText size={11} /> Script
+                                    </button>
+                                )}
+                                {onOpenAssets && (
+                                    <button
+                                        onClick={onOpenAssets}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-purple-500/50 text-[9px] font-bold text-[#888] hover:text-purple-400 uppercase tracking-wider transition-colors rounded-sm"
+                                    >
+                                        <Database size={11} /> Assets
+                                    </button>
+                                )}
+                            </div>
+                            <div className="h-8 w-[1px] bg-[#222]" />
+                        </>
+                    )}
 
                     {/* CREDITS */}
                     <div className="flex items-center gap-5">
