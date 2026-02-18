@@ -9,6 +9,9 @@ import Link from "next/link";
 import { Loader2, Plus, Film, Radio, Image as ImageIcon, Crosshair, Disc, Maximize, Signal, Play, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { DashboardProject, fetchUserDashboardProjects, fetchGlobalFeed, invalidateDashboardCache, fetchUserProjectsBasic, enrichProjectPreview } from "@/lib/api";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import { TourOverlay } from "@/components/tour/TourOverlay";
+import { useTour } from "@/hooks/useTour";
+import { DASHBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
 
 const DEFAULT_SHOWREEL = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
 
@@ -22,6 +25,7 @@ export default function Dashboard() {
     const [timeCode, setTimeCode] = useState("00:00:00:00");
     const [projectToDelete, setProjectToDelete] = useState<DashboardProject | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const { step: tourStep, nextStep: tourNext, completeTour } = useTour("dashboard_tour");
 
     const router = useRouter();
     const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
@@ -197,7 +201,7 @@ export default function Dashboard() {
                             onWheel={handleFilmStripWheel}
                             className="h-full flex gap-4 overflow-x-auto overflow-y-hidden no-scrollbar pb-1 items-center select-none px-1 scroll-smooth"
                         >
-                            <Link href="/project/new" className="shrink-0 aspect-[16/9] h-full border border-dashed border-[#333] bg-[#0A0A0A] flex flex-col items-center justify-center text-[#444] hover:text-[#FF0000] hover:border-[#FF0000] hover:bg-[#0f0f0f] transition-all group rounded-sm">
+                            <Link id="tour-new-series-target" href="/project/new" className="shrink-0 aspect-[16/9] h-full border border-dashed border-[#333] bg-[#0A0A0A] flex flex-col items-center justify-center text-[#444] hover:text-[#FF0000] hover:border-[#FF0000] hover:bg-[#0f0f0f] transition-all group rounded-sm">
                                 <Plus size={24} className="group-hover:scale-110 transition-transform" />
                                 <span className="text-[9px] font-mono mt-3 uppercase tracking-[2px]">NEW_SLATE</span>
                             </Link>
@@ -320,6 +324,7 @@ export default function Dashboard() {
                     onCancel={() => setProjectToDelete(null)}
                 />
             )}
+            <TourOverlay step={tourStep} steps={DASHBOARD_TOUR_STEPS} onNext={tourNext} onComplete={completeTour} />
         </main>
     );
 }

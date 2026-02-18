@@ -95,7 +95,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                 <div className="flex items-center h-full gap-4">
 
                     {/* PROJECT SWITCHER DROPDOWN */}
-                    <div className="relative" ref={dropdownRef}>
+                    <div id="tour-studio-switcher" className="relative" ref={dropdownRef}>
                         <button
                             onClick={() => setShowProjectDropdown(!showProjectDropdown)}
                             className="flex items-center justify-between gap-3 px-4 h-10 bg-[#1A1A1A] text-[#EEE] border border-[#333] hover:border-[#555] rounded transition-all group cursor-pointer min-w-[240px] max-w-[300px]"
@@ -160,7 +160,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                     {(onManualAdd || onAutoExtend || onEditScript || onOpenAssets) && (
                         <>
                             <div className="h-8 w-[1px] bg-[#222]" />
-                            <div className="flex items-center gap-2">
+                            <div id="tour-studio-ctas" className="flex items-center gap-2">
                                 {onManualAdd && (
                                     <button
                                         onClick={onManualAdd}
@@ -202,7 +202,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                     )}
 
                     {/* CREDITS */}
-                    <div className="flex items-center gap-5">
+                    <div id="tour-studio-credits" className="flex items-center gap-5">
                         <div className="text-right">
                             <div className="flex items-center justify-end gap-1.5 mb-0.5">
                                 <span className="block text-[8px] text-[#888] font-mono uppercase leading-none">Credits</span>

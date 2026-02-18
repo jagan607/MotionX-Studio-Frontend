@@ -222,7 +222,7 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                                         : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
                                     }`}
                                 >
-                                    {scenes.map((scene) => {
+                                    {scenes.map((scene, index) => {
                                         const isActive = editingScene?.id === scene.id;
                                         return (
                                             <div
@@ -253,6 +253,7 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                                                     episodeId={episodeId}
                                                     projectId={projectId}
                                                     isEditing={isActive}
+                                                    isFirstCard={index === 0}
                                                 />
                                             </div>
                                         );

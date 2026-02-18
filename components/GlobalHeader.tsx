@@ -74,7 +74,7 @@ export default function GlobalHeader() {
                 </Link>
 
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <div style={styles.creditsWrapper}>
+                    <div id="tour-credits-target" style={styles.creditsWrapper}>
                         <div style={{ textAlign: 'right' }}>
                             <span style={styles.creditsLabel}>Credits</span>
                             <div style={styles.creditsValue}>{credits !== null ? credits : '---'}</div>

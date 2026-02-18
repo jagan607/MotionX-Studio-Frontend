@@ -39,7 +39,7 @@ export const ReelSidebar: React.FC<ReelSidebarProps> = ({
     className = ""
 }) => {
     return (
-        <div className={`w-[280px] bg-[#050505] border-r border-[#222] flex flex-col shrink-0 ${className}`}>
+        <div id="tour-studio-sidebar" className={`w-[280px] bg-[#050505] border-r border-[#222] flex flex-col shrink-0 ${className}`}>
 
             {/* --- REEL LIST SECTION --- */}
             <div className="p-6 border-b border-[#222] flex-1 overflow-y-auto">

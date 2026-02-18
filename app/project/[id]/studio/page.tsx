@@ -32,6 +32,9 @@ import { SceneStoryboardContainer } from "@/app/components/studio/SceneStoryboar
 import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionModal";
 import { AssetManagerModal } from "@/app/components/studio/AssetManagerModal";
 import { ContextSelectorModal, ContextReference } from "@/app/components/script/ContextSelectorModal";
+import { useTour } from "@/hooks/useTour";
+import { TourOverlay } from "@/components/tour/TourOverlay";
+import { STUDIO_TOUR_STEPS } from "@/lib/tourConfigs";
 
 export default function StudioPage() {
     const params = useParams();
@@ -59,6 +62,7 @@ export default function StudioPage() {
     // AI State
     const [isProcessing, setIsProcessing] = useState(false);
     const [isExtending, setIsExtending] = useState(false);
+    const { step: tourStep, nextStep: tourNext, completeTour: tourComplete } = useTour("studio_tour");
 
 
     // Dialog State
@@ -689,6 +693,7 @@ export default function StudioPage() {
                 />
             )}
 
+            <TourOverlay step={tourStep} steps={STUDIO_TOUR_STEPS} onNext={tourNext} onComplete={tourComplete} />
 
         </StudioLayout>
     );

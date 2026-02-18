@@ -40,6 +40,7 @@ interface SceneCardProps {
     episodeId?: string;
     projectId?: string;
     isEditing?: boolean;
+    isFirstCard?: boolean;
 }
 
 export const SceneCard: React.FC<SceneCardProps> = ({
@@ -51,7 +52,8 @@ export const SceneCard: React.FC<SceneCardProps> = ({
     onDelete,
     episodeId,
     projectId,
-    isEditing = false
+    isEditing = false,
+    isFirstCard = false
 }) => {
     // --- DRAG & DROP ---
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: scene.id });
@@ -101,6 +103,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
 
     return (
         <div
+            id={isFirstCard ? "tour-studio-scene-card" : undefined}
             ref={setNodeRef}
             style={editingStyle}
             className={`group relative bg-[#090909] border rounded-xl flex flex-col justify-between 
@@ -136,6 +139,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
 
                         {/* EDIT BUTTON */}
                         <button
+                            id={isFirstCard ? "tour-studio-edit-scene" : undefined}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onEdit(scene);
@@ -250,6 +254,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
 
             {/* ACTION FOOTER */}
             <button
+                id={isFirstCard ? "tour-studio-open-sb" : undefined}
                 onClick={() => onOpenStoryboard(scene)}
                 className="w-full border-t border-[#222] bg-[#111] text-neutral-400 
                 hover:bg-neutral-800 hover:text-white 

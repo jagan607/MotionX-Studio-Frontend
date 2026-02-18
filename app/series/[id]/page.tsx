@@ -15,15 +15,16 @@ import { checkJobStatus } from "@/lib/api";
 import { toastError } from "@/lib/toast";
 
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
-import { SeriesTour } from "@/components/SeriesTour";
-import { useSeriesTour } from "@/hooks/useSeriesTour";
+import { TourOverlay } from "@/components/tour/TourOverlay";
+import { useTour } from "@/hooks/useTour";
+import { SERIES_TOUR_STEPS } from "@/lib/tourConfigs";
 
 type InputMethod = 'upload' | 'paste' | 'synopsis';
 
 export default function SeriesDetail() {
   const params = useParams();
   const seriesId = params.id as string;
-  const { tourStep, completeTour } = useSeriesTour();
+  const { step: tourStep, nextStep: tourNext, completeTour } = useTour("series_tour");
 
   // Data State
   const [seriesData, setSeriesData] = useState<any>(null);
@@ -245,7 +246,7 @@ export default function SeriesDetail() {
             <span>TYPE: {seriesData?.genre?.toUpperCase() || 'UNK'}</span>
           </div>
         </div>
-        <button style={styles.addButton} onClick={() => setIsUploadModalOpen(true)}>
+        <button id="tour-series-new-ep" style={styles.addButton} onClick={() => setIsUploadModalOpen(true)}>
           <Plus size={20} /> NEW EPISODE
         </button>
       </div>
@@ -358,7 +359,7 @@ export default function SeriesDetail() {
       )}
 
       {deleteId && <DeleteConfirmModal title="DELETE?" message="Confirm destruction of data." isDeleting={isDeleting} onConfirm={performDelete} onCancel={() => { setDeleteId(null); setDeleteType(null); }} />}
-      <SeriesTour step={tourStep} onComplete={completeTour} />
+      <TourOverlay step={tourStep} steps={SERIES_TOUR_STEPS} onNext={tourNext} onComplete={completeTour} />
     </main>
   );
 }

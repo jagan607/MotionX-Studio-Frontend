@@ -19,7 +19,7 @@ import { CastingTab } from "./components/CastingTab";
 import { LocationsTab } from "./components/LocationsTab";
 import { StoryboardOverlay } from "../../../../components/storyboard/StoryboardOverlay";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
-import { TourGuide } from "./components/TourGuide";
+import { TourOverlay } from "@/components/tour/TourOverlay";
 import { AssetModal } from '../../../../../components/AssetModal';
 import { LibraryModal } from "./components/LibraryModal";
 import CreditModal from "@/app/components/modals/CreditModal"; // <--- 1. NEW IMPORT
@@ -28,8 +28,8 @@ import CreditModal from "@/app/components/modals/CreditModal"; // <--- 1. NEW IM
 import { useEpisodeData } from "./hooks/useEpisodeData";
 import { useAssetManager } from "./hooks/useAssetManager";
 // import { useShotManager } from "./hooks/useShotManager";
-import { useEpisodeTour } from "./hooks/useEpisodeTour";
-import { useStoryboardTour } from "@/hooks/useStoryboardTour";
+import { useTour } from "@/hooks/useTour";
+import { EPISODE_TOUR_STEPS, STORYBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
 import { useSeriesAssets } from "@/hooks/useSeriesAssets";
 
 // --- TYPES ---
@@ -88,8 +88,8 @@ export default function EpisodeBoard() {
 
     const currentScene = scenes.find(s => s.id === activeSceneId);
 
-    const epTour = useEpisodeTour();
-    const sbTour = useStoryboardTour();
+    const epTour = useTour("episode_tour");
+    const sbTour = useTour("storyboard_tour");
 
     const [deleteShotId, setDeleteShotId] = useState<string | null>(null);
     const [isDeletingShot, setIsDeletingShot] = useState(false);
@@ -258,8 +258,9 @@ export default function EpisodeBoard() {
     };
 
     return (
-        <main >
-
+        <main>
+            <TourOverlay step={epTour.step} steps={EPISODE_TOUR_STEPS} onNext={epTour.nextStep} onComplete={epTour.completeTour} />
+            <TourOverlay step={sbTour.step} steps={STORYBOARD_TOUR_STEPS} onNext={sbTour.nextStep} onComplete={sbTour.completeTour} />
         </main>
     );
 }

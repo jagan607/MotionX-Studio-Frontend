@@ -21,7 +21,8 @@ import { DownloadModal } from "./DownloadModal";
 import { styles } from "./BoardStyles";
 
 // --- GLOBAL UI IMPORTS ---
-import { StoryboardTour } from "@/components/StoryboardTour";
+import { TourOverlay } from "@/components/tour/TourOverlay";
+import { STORYBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import CreditModal from "@/app/components/modals/CreditModal";
 
@@ -669,7 +670,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 />
             )}
 
-            <StoryboardTour step={tourStep} onNext={onTourNext} onComplete={onTourComplete} />
+            <TourOverlay step={tourStep} steps={STORYBOARD_TOUR_STEPS} onNext={onTourNext} onComplete={onTourComplete} />
         </div>
     );
 };
