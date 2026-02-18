@@ -63,6 +63,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
         episodeId === 'main' ? "FEATURE FILM" : `EPISODE ${episodeId}`
     );
     const [realScript, setRealScript] = useState<string>("");
+    const [realRuntime, setRealRuntime] = useState<string | number>(""); // [NEW]
 
     // Sync state if the prop changes
     useEffect(() => {
@@ -87,6 +88,9 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                     }
                     if (data.script_preview) {
                         setRealScript(data.script_preview);
+                    }
+                    if (data.runtime) {
+                        setRealRuntime(data.runtime);
                     }
                 }
             } catch (err) {
@@ -195,6 +199,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 seriesName={seriesTitle || "UNTITLED PROJECT"}
                 episodeTitle={realEpisodeTitle}
                 initialScript={realScript}
+                initialRuntime={realRuntime} // [NEW] Pass runtime
 
                 shotMgr={safeShotMgr}
                 onClose={onClose}

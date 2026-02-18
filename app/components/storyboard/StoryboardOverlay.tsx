@@ -61,6 +61,7 @@ interface StoryboardOverlayProps {
     locations: any[];
     products: any[]; // [NEW] Added products prop
     initialScript?: string; // [NEW] Script content (fetched by parent)
+    initialRuntime?: string | number; // [NEW] Runtime
 
     seriesName: string;
     episodeTitle: string;
@@ -91,7 +92,7 @@ interface StoryboardOverlayProps {
 
 export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     activeSceneId, currentScene, onClose, credits, castMembers, locations, products,
-    seriesName, episodeTitle, initialScript,
+    seriesName, episodeTitle, initialScript, initialRuntime,
     seriesId, episodeId,
     shotMgr, inpaintData, setInpaintData, onSaveInpaint, onApplyInpaint,
     onZoom, onDownload, onDeleteShot, onSceneChange,
@@ -377,7 +378,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 projectType="micro_drama"
                 mode="edit"
                 episodeId={episodeId}
+                initialTitle={episodeTitle} // [NEW] Pass episode title
                 initialScript={initialScript}
+                initialRuntime={initialRuntime} // [NEW] Pass runtime
                 onSuccess={() => setShowScript(false)}
             />
 
