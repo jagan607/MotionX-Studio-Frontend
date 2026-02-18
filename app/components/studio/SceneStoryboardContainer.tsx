@@ -8,6 +8,7 @@ import { StoryboardOverlay } from "../storyboard/StoryboardOverlay";
 import { useShotManager } from "@/app/hooks/useShotManager";
 import { SceneData } from "@/components/studio/SceneCard";
 import { Asset } from "@/lib/types";
+import { useTour } from "@/hooks/useTour";
 
 // --- FIREBASE IMPORTS ---
 import { doc, getDoc } from "firebase/firestore";
@@ -50,6 +51,9 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     seriesTitle,
     credits
 }) => {
+
+    // Tour
+    const sbTour = useTour("storyboard_tour");
 
     // 1. Internal State for Scene Switching
     const [activeSceneData, setActiveSceneData] = useState<SceneData>(scene);
@@ -207,9 +211,9 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 onApplyInpaint={handleApplyInpaint}
                 onZoom={() => { }}
                 onDownload={() => { }}
-                tourStep={0}
-                onTourNext={() => { }}
-                onTourComplete={() => { }}
+                tourStep={sbTour.step}
+                onTourNext={sbTour.nextStep}
+                onTourComplete={sbTour.completeTour}
             />
         </div>
     );

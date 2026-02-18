@@ -374,7 +374,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 <div style={styles.headerActions}>
 
                     {/* SCENE SELECTOR */}
-                    <div style={{ position: 'relative' }}>
+                    <div id="tour-sb-scene-selector" style={{ position: 'relative' }}>
                         <select
                             value={activeSceneId || ""}
                             onChange={(e) => {
@@ -404,6 +404,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     {/* GENERATE ALL */}
                     {shotMgr.shots.length > 0 && (
                         <button
+                            id="tour-sb-generate-all"
                             onClick={handleSafeGenerateAll}
                             disabled={(shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping}
                             style={{
@@ -424,6 +425,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
                     {/* AUTO DIRECT */}
                     <button
+                        id="tour-sb-autodirect"
                         onClick={() => handleSafeAutoDirect()}
                         disabled={shotMgr.isAutoDirecting || shotMgr.isGeneratingAll || shotMgr.isStopping}
                         style={{
@@ -439,6 +441,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
                     {/* ADD SHOT */}
                     <button
+                        id="tour-sb-add-shot"
                         onClick={() => { shotMgr.handleAddShot(currentScene); toastSuccess("Shot added"); }}
                         style={{
                             height: '40px', padding: '0 24px', backgroundColor: '#FFF', color: '#000',
@@ -453,7 +456,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     <div style={{ width: '1px', height: '32px', backgroundColor: '#222', margin: '0 16px' }} />
 
                     {/* CREDITS */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <div id="tour-sb-credits" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                         <div style={{ textAlign: 'right' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginBottom: '2px' }}>
                                 <span style={{ display: 'block', fontSize: '8px', color: '#888', fontFamily: 'monospace', textTransform: 'uppercase', lineHeight: 1 }}>CREDITS</span>
@@ -484,7 +487,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
             {/* --- CONTENT --- */}
             <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#050505', display: 'flex', flexDirection: 'column' }}>
 
-                <div style={{ margin: '40px 40px 0 40px' }}>
+                <div id="tour-sb-context-strip" style={{ margin: '40px 40px 0 40px' }}>
                     <SceneContextStrip
                         seriesName={seriesName}
                         episodeTitle={realEpisodeTitle}
@@ -546,6 +549,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                 nextShotImage={nextShotImage}
                                                 isMorphedByPrev={isMorphedByPrev}
                                                 onUploadImage={(file) => shotMgr.handleShotImageUpload(shot, file)}
+                                                tourId={index === 0 ? "tour-sb-shot-card" : undefined}
                                             >
                                                 <div style={styles.shotImageContainer}>
                                                     <ShotImage

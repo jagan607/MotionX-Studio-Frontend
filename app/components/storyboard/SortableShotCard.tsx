@@ -48,6 +48,7 @@ interface SortableShotCardProps {
     nextShotImage?: string;
     isMorphedByPrev?: boolean;
     onUploadImage: (file: File) => void;
+    tourId?: string;
     children: React.ReactNode;
 }
 
@@ -71,6 +72,7 @@ export const SortableShotCard = ({
     nextShotImage,
     isMorphedByPrev = false,
     onUploadImage,
+    tourId,
     children,
 }: SortableShotCardProps) => {
 
@@ -221,7 +223,7 @@ export const SortableShotCard = ({
     });
 
     return (
-        <div ref={setNodeRef} style={{ ...styles?.shotCard, ...dragStyle, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        <div ref={setNodeRef} id={tourId} style={{ ...styles?.shotCard, ...dragStyle, position: 'relative', display: 'flex', flexDirection: 'column' }}>
 
             {/* --- LOCKED OVERLAY LABEL --- */}
             {isMorphedByPrev && (

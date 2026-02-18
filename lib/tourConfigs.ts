@@ -55,22 +55,54 @@ export const EPISODE_TOUR_STEPS: TourStep[] = [
     },
 ];
 
-// --- STORYBOARD TOUR ---
-// Target IDs: "tour-sb-aspect", "tour-sb-autodirect"
+// --- STORYBOARD OVERLAY TOUR ---
+// Target IDs: tour-sb-scene-selector, tour-sb-generate-all, tour-sb-autodirect,
+//             tour-sb-add-shot, tour-sb-credits, tour-sb-context-strip, tour-sb-shot-card
 export const STORYBOARD_TOUR_STEPS: TourStep[] = [
     {
-        targetId: "tour-sb-aspect",
-        title: "SET FORMAT",
-        body: "Choose your format first. Select 16:9 for Cinematic widescreen or 9:16 for Social/Reels before generating shots.",
+        targetId: "tour-sb-scene-selector",
+        title: "SCENE SWITCHER",
+        body: "Jump between scenes without closing the board. Your entire episode timeline is one click away.",
         placement: "bottom",
         arrowSide: "left",
     },
     {
+        targetId: "tour-sb-generate-all",
+        title: "BATCH GENERATE",
+        body: "Fire off AI generation for every shot in one go. Use STOP to halt mid-run if needed.",
+        placement: "bottom",
+    },
+    {
         targetId: "tour-sb-autodirect",
         title: "AI DIRECTOR",
-        body: "The Magic Button. Click here to let AI automatically generate a shot list, camera angles, and prompts based on your scene action.",
+        body: "Let AI auto-create a shot list with camera angles, prompts, and casting based on your scene summary.",
+        placement: "bottom",
+    },
+    {
+        targetId: "tour-sb-add-shot",
+        title: "ADD SHOTS",
+        body: "Manually add blank shots to your sequence. You control the shot count and can drag to reorder.",
+        placement: "bottom",
+    },
+    {
+        targetId: "tour-sb-credits",
+        title: "CREDITS",
+        body: "Your generation fuel. Each AI render, animation, or voiceover costs credits. Top up here when low.",
         placement: "bottom",
         arrowSide: "right",
+    },
+    {
+        targetId: "tour-sb-context-strip",
+        title: "SCENE CONTEXT",
+        body: "Edit your scene summary, review location, time of day, and cast. Changes here influence AI shot generation.",
+        placement: "bottom",
+        arrowSide: "left",
+    },
+    {
+        targetId: "tour-sb-shot-card",
+        title: "SHOT CARD",
+        body: "Each card is one shot. Configure casting, prompts, choose your AI engine (SEEDREAM / GEMINI), then hit GENERATE. Drag to reorder.",
+        placement: "right",
     },
 ];
 
