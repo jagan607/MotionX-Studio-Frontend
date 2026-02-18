@@ -4,6 +4,7 @@ import { Asset, CharacterProfile } from "@/lib/types";
 
 interface AssetCardProps {
     variant?: 'default' | 'create'; // <--- NEW PROP
+    tourId?: string; // <--- FOR TOUR TARGETING
     asset?: Asset;
     projectId?: string;
     isGenerating?: boolean;
@@ -24,7 +25,8 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     onDelete,
     onCreate,
     onView,
-    label
+    label,
+    tourId
 }) => {
 
     // --- VARIANT: CREATE NEW CARD ---
@@ -48,7 +50,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     if (!asset) return null; // Safety check
 
     return (
-        <div className="group relative aspect-[3/4] bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden hover:border-neutral-600 transition-all">
+        <div id={!isGenerating ? tourId : undefined} className="group relative aspect-[3/4] bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden hover:border-neutral-600 transition-all">
 
             {/* --- 1. VISUAL LAYER --- */}
             <div

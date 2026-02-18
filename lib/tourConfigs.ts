@@ -155,3 +155,34 @@ export const STUDIO_TOUR_STEPS: TourStep[] = [
         placement: "right",
     },
 ];
+
+// --- ASSET MANAGER TOUR ---
+// Target IDs: tour-am-cast-tab, tour-am-register-new, tour-am-generate-all, tour-am-asset-card
+export const ASSET_MANAGER_TOUR_STEPS: TourStep[] = [
+    {
+        targetId: "tour-am-cast-tab",
+        title: "ASSET CATEGORIES",
+        body: "Switch between Cast, Locations, and Products. Each tab holds a separate database of assets.",
+        placement: "bottom",
+        arrowSide: "left",
+    },
+    {
+        targetId: "tour-am-register-new",
+        title: "REGISTER NEW",
+        body: "Create a new character, location, or product manually. You can define visual traits, voice, and more.",
+        placement: "right",
+    },
+    {
+        targetId: "tour-am-generate-all",
+        title: "BATCH RENDER",
+        body: "Generate images for all assets in the current category at once. Great for quickly visualizing a cast list.",
+        placement: "bottom",
+        arrowSide: "right",
+    },
+    {
+        targetId: "tour-am-asset-card",
+        title: "ASSET CARD",
+        body: "This is a single asset. Use REGEN to create new variations, or CONFIG to fine-tune details like voice and appearance.",
+        placement: "right",
+    },
+];

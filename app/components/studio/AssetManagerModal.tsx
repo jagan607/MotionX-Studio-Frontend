@@ -25,6 +25,11 @@ import { AssetModal } from "@/components/AssetModal";
 // --- CONTEXT ---
 import { useMediaViewer, MediaItem } from "@/app/context/MediaViewerContext";
 
+// --- TOUR ---
+import { useTour } from "@/hooks/useTour";
+import { TourOverlay } from "@/components/tour/TourOverlay";
+import { ASSET_MANAGER_TOUR_STEPS } from "@/lib/tourConfigs";
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AssetManagerModalProps {
@@ -45,6 +50,9 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
     onAssetsUpdated,
 }) => {
     const { openViewer } = useMediaViewer();
+
+    // --- TOUR ---
+    const amTour = useTour("asset_manager_tour");
 
     // --- STATE ---
     const [activeTab, setActiveTab] = useState<'cast' | 'locations' | 'products'>('cast');
@@ -297,6 +305,12 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+            <TourOverlay
+                step={amTour.step}
+                steps={ASSET_MANAGER_TOUR_STEPS}
+                onNext={amTour.nextStep}
+                onComplete={amTour.completeTour}
+            />
 
             {/* Modal Container — wider to accommodate the grid */}
             <div className="w-[95vw] max-w-[1200px] h-[90vh] flex flex-col bg-[#050505] border border-[#222] shadow-2xl shadow-black relative overflow-hidden rounded-lg">
@@ -315,6 +329,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                     <div className="flex items-center gap-3">
                         {/* Generate All */}
                         <button
+                            id="tour-am-generate-all"
                             onClick={handleGenerateAll}
                             className="flex items-center gap-2 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-red-600 hover:bg-red-600/10 text-[#888] hover:text-red-400 text-[10px] font-bold tracking-widest uppercase transition-all"
                         >
@@ -331,7 +346,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                 </div>
 
                 {/* ── TAB BAR ── */}
-                <div className="h-11 border-b border-[#222] bg-[#080808] flex items-center px-6 gap-1 shrink-0">
+                <div id="tour-am-cast-tab" className="h-11 border-b border-[#222] bg-[#080808] flex items-center px-6 gap-1 shrink-0">
                     {/* Products tab — shown first for ad projects */}
                     {project?.type === 'ad' && (
                         <TabButton
@@ -385,6 +400,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
 
                         {/* Register New Card */}
                         <button
+                            id="tour-am-register-new"
                             onClick={handleOpenDraft}
                             className="group aspect-[3/4] bg-[#050505] border border-dashed border-[#333] hover:border-red-600 hover:bg-[#080808] flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden"
                         >
@@ -407,9 +423,10 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                                 <Loader2 className="animate-spin text-red-600 mb-4" size={24} />
                                 <span className="text-xs font-mono tracking-widest">ACCESSING MAINFRAME...</span>
                             </div>
-                        ) : displayedAssets.map((asset) => (
+                        ) : displayedAssets.map((asset, index) => (
                             <div key={asset.id} className="relative group">
                                 <AssetCard
+                                    tourId={index === 0 ? "tour-am-asset-card" : undefined}
                                     variant="default"
                                     asset={asset}
                                     projectId={projectId}
