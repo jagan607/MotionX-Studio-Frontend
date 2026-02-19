@@ -608,61 +608,61 @@ export default function Dashboard() {
                 const total = visibleAnnouncements.length;
                 return (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={closeWhatsNew}>
-                        <div className="absolute inset-0 bg-black/85 backdrop-blur-md" style={{ animation: 'fadeIn 0.3s ease' }} />
+                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" style={{ animation: 'fadeIn 0.3s ease' }} />
                         <div
-                            className="relative z-10 w-full max-w-[520px] mx-4 rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(229,9,20,0.15)]"
+                            className="relative z-10 w-full max-w-lg mx-4 bg-[#0d0d0d] border border-[#222] rounded-xl overflow-hidden shadow-2xl"
                             onClick={e => e.stopPropagation()}
-                            style={{ animation: 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                            style={{ animation: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}
                         >
-                            {/* Full card with media as background */}
-                            <div className="relative min-h-[420px] flex flex-col" style={{
-                                transition: 'opacity 0.3s ease',
-                                opacity: modalFading ? 0 : 1,
-                            }}>
-                                {/* Background: media or gradient */}
-                                {a.media_url ? (
-                                    <div className="absolute inset-0">
-                                        {isVid ? (
-                                            <video key={a.id} src={a.media_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-                                        ) : (
-                                            <img key={a.id} src={a.media_url} alt="" className="w-full h-full object-cover" />
-                                        )}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/20" />
-                                    </div>
-                                ) : (
-                                    <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#111] to-[#0a0a0a]">
-                                        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
-                                    </div>
-                                )}
+                            {/* Red top accent */}
+                            <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#E50914] via-[#ff4444] to-[#E50914]" />
 
-                                {/* Top bar */}
-                                <div className="relative z-10 flex items-center justify-between p-5">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-2 h-2 bg-[#E50914] rounded-full animate-pulse shadow-[0_0_8px_#E50914]" />
-                                        <span className="text-[9px] font-mono text-white/60 uppercase tracking-[3px] font-bold">What's New</span>
-                                    </div>
-                                    <button onClick={closeWhatsNew} className="text-white/30 hover:text-white text-xs transition-colors cursor-pointer">✕</button>
+                            <div className="p-7">
+                                {/* Header */}
+                                <div className="flex items-center gap-2.5 mb-1">
+                                    <Megaphone size={18} className="text-[#E50914]" />
+                                    <span className="text-[10px] font-mono text-[#E50914] uppercase tracking-[4px] font-bold">What's New</span>
                                 </div>
+                                <h2 className="font-anton text-3xl text-white uppercase tracking-wide mb-5">Latest Updates</h2>
 
-                                {/* Centered content */}
-                                <div className="relative z-10 flex-1 flex flex-col justify-end p-8 pt-16">
-                                    <div className="flex items-center gap-2 mb-3">
+                                {/* Slide content with transition */}
+                                <div
+                                    className="overflow-hidden"
+                                    style={{
+                                        transition: 'opacity 0.35s ease, transform 0.35s ease',
+                                        opacity: modalFading ? 0 : 1,
+                                        transform: modalFading ? 'translateX(-30px)' : 'translateX(0)',
+                                    }}
+                                >
+                                    {/* Media card */}
+                                    {a.media_url && (
+                                        <div className="w-full aspect-video rounded-lg overflow-hidden border border-[#222] mb-4 bg-black">
+                                            {isVid ? (
+                                                <video key={a.id} src={a.media_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                                            ) : (
+                                                <img key={a.id} src={a.media_url} alt="" className="w-full h-full object-cover" />
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Type badge + Title + Body */}
+                                    <div className="flex items-center gap-2 mb-2">
                                         <Icon size={16} style={{ color: config.color }} />
-                                        <span className="text-[9px] font-bold uppercase tracking-[2px] px-2.5 py-1 rounded-full" style={{ background: `${config.color}25`, color: config.color, border: `1px solid ${config.color}30` }}>
+                                        <span className="text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded" style={{ background: `${config.color}20`, color: config.color, border: `1px solid ${config.color}30` }}>
                                             {config.label}
                                         </span>
                                     </div>
-                                    <h2 className="font-anton text-4xl text-white uppercase tracking-wide leading-tight mb-3 drop-shadow-lg">{a.title}</h2>
-                                    <p className="text-[13px] text-white/70 leading-relaxed max-w-[90%]">{a.body}</p>
+                                    <h3 className="font-anton text-2xl text-white uppercase tracking-wide leading-tight">{a.title}</h3>
+                                    <p className="text-[12px] text-[#888] mt-2 leading-relaxed">{a.body}</p>
                                 </div>
 
-                                {/* Bottom bar: navigation + CTA */}
-                                <div className="relative z-10 p-5 flex items-center gap-4">
-                                    {total > 1 && (
+                                {/* Bottom: dots + Got It */}
+                                <div className="flex items-center justify-between mt-6 pt-5 border-t border-[#1a1a1a]">
+                                    {total > 1 ? (
                                         <div className="flex items-center gap-3">
                                             <button
                                                 onClick={() => modalGoTo((modalSlideIdx - 1 + total) % total)}
-                                                className="w-8 h-8 rounded-full border border-white/15 flex items-center justify-center text-white/40 hover:text-white hover:border-white/40 transition-all cursor-pointer backdrop-blur-sm"
+                                                className="w-7 h-7 rounded-full border border-[#333] flex items-center justify-center text-[#555] hover:text-white hover:border-[#555] transition-colors cursor-pointer"
                                             >
                                                 <ChevronLeft size={14} />
                                             </button>
@@ -673,22 +673,22 @@ export default function Dashboard() {
                                                         onClick={() => modalGoTo(idx)}
                                                         className={`rounded-full transition-all duration-300 cursor-pointer ${idx === modalSlideIdx
                                                             ? 'w-5 h-1.5 bg-[#E50914]'
-                                                            : 'w-1.5 h-1.5 bg-white/20 hover:bg-white/40'
+                                                            : 'w-1.5 h-1.5 bg-[#333] hover:bg-[#555]'
                                                             }`}
                                                     />
                                                 ))}
                                             </div>
                                             <button
                                                 onClick={() => modalGoTo((modalSlideIdx + 1) % total)}
-                                                className="w-8 h-8 rounded-full border border-white/15 flex items-center justify-center text-white/40 hover:text-white hover:border-white/40 transition-all cursor-pointer backdrop-blur-sm"
+                                                className="w-7 h-7 rounded-full border border-[#333] flex items-center justify-center text-[#555] hover:text-white hover:border-[#555] transition-colors cursor-pointer"
                                             >
                                                 <ChevronRight size={14} />
                                             </button>
                                         </div>
-                                    )}
+                                    ) : <div />}
                                     <button
                                         onClick={closeWhatsNew}
-                                        className="ml-auto bg-white/10 hover:bg-[#E50914] border border-white/15 hover:border-[#E50914] text-white px-6 py-2.5 text-[10px] font-bold uppercase tracking-[2px] transition-all rounded-lg cursor-pointer backdrop-blur-sm"
+                                        className="bg-[#E50914] hover:bg-[#ff1a25] text-white px-8 py-2.5 text-[10px] font-bold uppercase tracking-[3px] transition-colors rounded-md cursor-pointer"
                                     >
                                         Got It
                                     </button>
