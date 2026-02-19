@@ -80,7 +80,8 @@ export const useShotAudioGen = (
                 scene_id: sceneId,
                 shot_id: shot.id,
                 video_url: shot.video_url,
-                audio_url: finalAudioUrl // Now we always have a URL string
+                audio_url: finalAudioUrl, // Now we always have a URL string
+                video_duration: shot.video_duration || parseInt(shot.video_settings?.duration) || 5
             };
 
             await api.post("/api/v1/shot/lipsync_shot", payload);

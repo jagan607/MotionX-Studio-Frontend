@@ -32,6 +32,7 @@ import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionMod
 
 // --- CONTEXT IMPORT ---
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
+import { PricingProvider } from "@/app/hooks/usePricing";
 
 //db
 import { doc, onSnapshot, getDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
@@ -385,435 +386,437 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     }
 
     return (
-        <div style={styles.sbOverlay}>
+        <PricingProvider>
+            <div style={styles.sbOverlay}>
 
 
-            {/* MODALS */}
-            <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
+                {/* MODALS */}
+                <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
 
-            <AssetManagerModal
-                isOpen={showAssets}
-                onClose={() => setShowAssets(false)}
-                projectId={seriesId}
-                project={null}
-            />
+                <AssetManagerModal
+                    isOpen={showAssets}
+                    onClose={() => setShowAssets(false)}
+                    projectId={seriesId}
+                    project={null}
+                />
 
-            <ScriptIngestionModal
-                isOpen={showScript}
-                onClose={() => setShowScript(false)}
-                projectId={seriesId}
-                projectTitle={seriesName}
-                projectType="micro_drama"
-                mode="edit"
-                episodeId={episodeId}
-                initialTitle={episodeTitle} // [NEW] Pass episode title
-                initialScript={initialScript}
-                initialRuntime={initialRuntime} // [NEW] Pass runtime
-                onSuccess={() => setShowScript(false)}
-            />
+                <ScriptIngestionModal
+                    isOpen={showScript}
+                    onClose={() => setShowScript(false)}
+                    projectId={seriesId}
+                    projectTitle={seriesName}
+                    projectType="micro_drama"
+                    mode="edit"
+                    episodeId={episodeId}
+                    initialTitle={episodeTitle} // [NEW] Pass episode title
+                    initialScript={initialScript}
+                    initialRuntime={initialRuntime} // [NEW] Pass runtime
+                    onSuccess={() => setShowScript(false)}
+                />
 
-            {/* --- HEADER --- */}
-            <div style={styles.sbHeader}>
-                {/* LEFT */}
-                <div style={styles.headerLeft}>
-                    <button
-                        onClick={onClose}
-                        style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600 }}
-                    >
-                        <ArrowLeft size={16} /> CLOSE BOARD
-                    </button>
-                    <h1 style={styles.headerTitle}>SCENE STORYBOARD</h1>
-                </div>
-
-                {/* RIGHT */}
-                <div style={styles.headerActions}>
-
-                    {/* SCENE SELECTOR */}
-                    <div id="tour-sb-scene-selector" className="relative" ref={sceneDropdownRef}>
+                {/* --- HEADER --- */}
+                <div style={styles.sbHeader}>
+                    {/* LEFT */}
+                    <div style={styles.headerLeft}>
                         <button
-                            onClick={() => setShowSceneDropdown(!showSceneDropdown)}
+                            onClick={onClose}
+                            style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600 }}
+                        >
+                            <ArrowLeft size={16} /> CLOSE BOARD
+                        </button>
+                        <h1 style={styles.headerTitle}>SCENE STORYBOARD</h1>
+                    </div>
+
+                    {/* RIGHT */}
+                    <div style={styles.headerActions}>
+
+                        {/* SCENE SELECTOR */}
+                        <div id="tour-sb-scene-selector" className="relative" ref={sceneDropdownRef}>
+                            <button
+                                onClick={() => setShowSceneDropdown(!showSceneDropdown)}
+                                style={{
+                                    height: '40px', padding: '0 16px', backgroundColor: '#1A1A1A', color: '#EEE',
+                                    border: '1px solid #333', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
+                                    minWidth: '240px', maxWidth: '300px', cursor: 'pointer', outline: 'none',
+                                    textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    gap: '10px'
+                                }}
+                                onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
+                                onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
+                            >
+                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {(() => {
+                                        const selected = sceneList.find(s => s.id === activeSceneId);
+                                        return selected
+                                            ? `SCENE ${selected.scene_number}: ${selected.slugline || "UNTITLED"}`
+                                            : "SELECT SCENE";
+                                    })()}
+                                </span>
+                                <div style={{ transform: showSceneDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                </div>
+                            </button>
+
+                            {showSceneDropdown && (
+                                <div style={{
+                                    position: 'absolute', top: '100%', left: 0, marginTop: '4px', width: '100%',
+                                    backgroundColor: '#1A1A1A', border: '1px solid #333', borderRadius: '4px',
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.5)', zIndex: 9999, overflow: 'hidden'
+                                }}>
+                                    <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                                        {sceneList.map((scene) => (
+                                            <button
+                                                key={scene.id}
+                                                onClick={() => {
+                                                    if (onSceneChange) onSceneChange(scene);
+                                                    setShowSceneDropdown(false);
+                                                }}
+                                                style={{
+                                                    width: '100%', textAlign: 'left', padding: '10px 16px',
+                                                    backgroundColor: scene.id === activeSceneId ? 'rgba(220, 38, 38, 0.1)' : 'transparent',
+                                                    borderLeft: scene.id === activeSceneId ? '2px solid #ef4444' : '2px solid transparent',
+                                                    color: '#EEE', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
+                                                    cursor: 'pointer', transition: 'all 0.1s'
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    if (scene.id !== activeSceneId) e.currentTarget.style.backgroundColor = '#222';
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    if (scene.id !== activeSceneId) e.currentTarget.style.backgroundColor = 'transparent';
+                                                }}
+                                            >
+                                                SCENE {scene.scene_number}: {scene.slugline || "UNTITLED SCENE"}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* GENERATE ALL */}
+                        {shotMgr.shots.length > 0 && (
+                            <button
+                                id="tour-sb-generate-all"
+                                onClick={handleSafeGenerateAll}
+                                disabled={(shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping}
+                                style={{
+                                    height: '40px', padding: '0 20px', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease',
+                                    opacity: ((shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping) ? 0.5 : 1,
+                                    backgroundColor: shotMgr.isGeneratingAll ? '#2a0a0a' : '#1A1A1A',
+                                    border: shotMgr.isGeneratingAll ? '1px solid #7f1d1d' : '1px solid #333',
+                                    color: shotMgr.isGeneratingAll ? '#f87171' : '#EEE',
+                                }}
+                            >
+                                {shotMgr.isStopping ? <Loader2 size={14} className="animate-spin" /> :
+                                    shotMgr.isGeneratingAll ? <Square size={14} fill="currentColor" /> :
+                                        <Layers size={14} />}
+                                {shotMgr.isStopping ? 'STOPPING...' : shotMgr.isGeneratingAll ? 'STOP' : 'GENERATE ALL'}
+                            </button>
+                        )}
+
+                        {/* AUTO DIRECT */}
+                        <button
+                            id="tour-sb-autodirect"
+                            onClick={() => handleSafeAutoDirect()}
+                            disabled={shotMgr.isAutoDirecting || shotMgr.isGeneratingAll || shotMgr.isStopping}
                             style={{
-                                height: '40px', padding: '0 16px', backgroundColor: '#1A1A1A', color: '#EEE',
-                                border: '1px solid #333', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
-                                minWidth: '240px', maxWidth: '300px', cursor: 'pointer', outline: 'none',
-                                textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                gap: '10px'
+                                height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
+                                border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease',
+                                opacity: shotMgr.isAutoDirecting ? 0.5 : 1
+                            }}
+                        >
+                            <Wand2 size={14} />
+                            {shotMgr.isAutoDirecting ? 'DIRECTING...' : 'AUTO-DIRECT'}
+                        </button>
+
+                        {/* ADD SHOT */}
+                        <button
+                            id="tour-sb-add-shot"
+                            onClick={() => { shotMgr.handleAddShot(currentScene); toastSuccess("Shot added"); }}
+                            style={{
+                                height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
+                                border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                                transition: 'all 0.2s'
                             }}
                             onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
                             onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
                         >
-                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {(() => {
-                                    const selected = sceneList.find(s => s.id === activeSceneId);
-                                    return selected
-                                        ? `SCENE ${selected.scene_number}: ${selected.slugline || "UNTITLED"}`
-                                        : "SELECT SCENE";
-                                })()}
-                            </span>
-                            <div style={{ transform: showSceneDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                            </div>
+                            <Plus size={16} strokeWidth={3} /> ADD SHOT
                         </button>
 
-                        {showSceneDropdown && (
-                            <div style={{
-                                position: 'absolute', top: '100%', left: 0, marginTop: '4px', width: '100%',
-                                backgroundColor: '#1A1A1A', border: '1px solid #333', borderRadius: '4px',
-                                boxShadow: '0 4px 20px rgba(0,0,0,0.5)', zIndex: 9999, overflow: 'hidden'
-                            }}>
-                                <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
-                                    {sceneList.map((scene) => (
-                                        <button
-                                            key={scene.id}
-                                            onClick={() => {
-                                                if (onSceneChange) onSceneChange(scene);
-                                                setShowSceneDropdown(false);
-                                            }}
-                                            style={{
-                                                width: '100%', textAlign: 'left', padding: '10px 16px',
-                                                backgroundColor: scene.id === activeSceneId ? 'rgba(220, 38, 38, 0.1)' : 'transparent',
-                                                borderLeft: scene.id === activeSceneId ? '2px solid #ef4444' : '2px solid transparent',
-                                                color: '#EEE', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
-                                                cursor: 'pointer', transition: 'all 0.1s'
-                                            }}
-                                            onMouseOver={(e) => {
-                                                if (scene.id !== activeSceneId) e.currentTarget.style.backgroundColor = '#222';
-                                            }}
-                                            onMouseOut={(e) => {
-                                                if (scene.id !== activeSceneId) e.currentTarget.style.backgroundColor = 'transparent';
-                                            }}
-                                        >
-                                            SCENE {scene.scene_number}: {scene.slugline || "UNTITLED SCENE"}
-                                        </button>
-                                    ))}
+                        {/* SCRIPT */}
+                        <button
+                            onClick={() => setShowScript(true)}
+                            style={{
+                                height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
+                                border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                                transition: 'border-color 0.2s'
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
+                        >
+                            <FileText size={14} /> SCRIPT
+                        </button>
+
+                        {/* ASSETS */}
+                        <button
+                            onClick={() => setShowAssets(true)}
+                            style={{
+                                height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
+                                border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                                transition: 'border-color 0.2s'
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
+                        >
+                            <Database size={14} /> ASSETS
+                        </button>
+
+                        {/* DIVIDER */}
+                        <div style={{ width: '1px', height: '32px', backgroundColor: '#222', margin: '0 16px' }} />
+
+                        {/* CREDITS */}
+                        <div id="tour-sb-credits" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginBottom: '2px' }}>
+                                    <span style={{ display: 'block', fontSize: '8px', color: '#888', fontFamily: 'monospace', textTransform: 'uppercase', lineHeight: 1 }}>CREDITS</span>
+                                    {credits !== null && <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#22c55e' }} className="animate-pulse" />}
+                                </div>
+                                <div style={{ fontSize: '13px', color: 'white', fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.05em', lineHeight: 1 }}>
+                                    {credits !== null ? credits.toLocaleString() : <span style={{ color: '#333' }}>---</span>}
                                 </div>
                             </div>
+
+                            <button
+                                onClick={() => setShowTopUp(true)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(127, 29, 29, 0.1)',
+                                    border: '1px solid rgba(220, 38, 38, 0.3)', color: 'white', padding: '8px 16px', fontSize: '9px', fontWeight: 700,
+                                    textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '2px'
+                                }}
+                                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#dc2626'; e.currentTarget.style.borderColor = '#dc2626'; }}
+                                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(127, 29, 29, 0.1)'; e.currentTarget.style.borderColor = 'rgba(220, 38, 38, 0.3)'; }}
+                            >
+                                <Plus size={10} strokeWidth={4} /> TOP UP
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+                {/* --- CONTENT --- */}
+                <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#050505', display: 'flex', flexDirection: 'column' }}>
+
+                    <div id="tour-sb-context-strip" style={{ margin: '40px 40px 0 40px' }}>
+                        <SceneContextStrip
+                            seriesName={seriesName}
+                            episodeTitle={realEpisodeTitle}
+                            sceneNumber={currentScene.scene_number}
+                            summary={currentScene.summary || currentScene.description || currentScene.synopsis}
+                            locationName={sceneLoc}
+                            timeOfDay={currentScene.time_of_day || "DAY"}
+                            castList={charDisplay}
+                            aspectRatio={shotMgr.aspectRatio || "16:9"}
+                            onAutoDirect={(newSummary) => handleSafeAutoDirect(newSummary)}
+                            isAutoDirecting={shotMgr.isAutoDirecting}
+                        />
+                    </div>
+
+                    <div style={{ padding: '20px', flex: 1 }}>
+                        {shotMgr.shots.length === 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', border: '1px dashed #222', borderRadius: '8px', minHeight: '400px' }}>
+                                <Film size={48} style={{ opacity: 0.2, color: '#FFF', marginBottom: '20px' }} />
+                                <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '24px', color: '#333' }}>EMPTY SEQUENCE</h3>
+                                <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
+                                    <button onClick={() => handleSafeAutoDirect()} disabled={shotMgr.isAutoDirecting} style={{ padding: '12px 24px', backgroundColor: '#111', color: 'white', border: '1px solid #333', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <Wand2 size={16} /> AUTO-DIRECT SCENE
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={shotMgr.handleDragEnd}>
+                                <SortableContext items={shotMgr.shots.map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
+                                    <div style={styles.sbGrid}>
+                                        {shotMgr.shots.map((shot: any, index: number) => {
+                                            const nextShot = shotMgr.shots[index + 1];
+                                            const nextShotImage = nextShot?.image_url;
+                                            const prevShot = shotMgr.shots[index - 1];
+                                            const isMorphedByPrev = prevShot?.morph_to_next === true;
+
+                                            return (
+                                                <SortableShotCard
+                                                    key={shot.id}
+                                                    shot={shot}
+                                                    index={index}
+                                                    styles={styles}
+                                                    onDelete={() => setShotToDelete(shot.id)}
+                                                    castMembers={castMembers}
+                                                    locations={locations}
+                                                    // [NEW] Pass products list
+                                                    products={products}
+
+                                                    onUpdateShot={shotMgr.updateShot}
+                                                    onEdit={() => setEditingShotId(shot.id)}
+                                                    onRender={(referenceFile, provider) =>
+                                                        shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider)
+                                                    }
+                                                    isRendering={shotMgr.loadingShots.has(shot.id)}
+                                                    onFinalize={() => shotMgr.handleFinalizeShot(shot)}
+                                                    onExpand={() => handleOpenViewer(index)}
+                                                    nextShotImage={nextShotImage}
+                                                    isMorphedByPrev={isMorphedByPrev}
+                                                    onUploadImage={(file) => shotMgr.handleShotImageUpload(shot, file)}
+                                                    tourId={index === 0 ? "tour-sb-shot-card" : undefined}
+                                                >
+                                                    <div style={styles.shotImageContainer}>
+                                                        <ShotImage
+                                                            src={shot.image_url}
+                                                            videoUrl={shot.video_url}
+                                                            lipsyncUrl={shot.lipsync_url}
+                                                            videoStatus={shot.video_status}
+                                                            shotId={shot.id}
+                                                            isSystemLoading={shotMgr.loadingShots.has(shot.id)}
+                                                            onClickZoom={() => handleOpenViewer(index)}
+                                                            onDownload={() => setShotToDownload(shot)}
+                                                            onStartInpaint={() => setInpaintData({ src: shot.image_url, shotId: shot.id })}
+                                                            onAnimate={() => shotMgr.handleAnimateShot(shot, 'kling')}
+                                                        />
+                                                    </div>
+                                                </SortableShotCard>
+                                            );
+                                        })}
+                                    </div>
+                                </SortableContext>
+                            </DndContext>
                         )}
                     </div>
-
-                    {/* GENERATE ALL */}
-                    {shotMgr.shots.length > 0 && (
-                        <button
-                            id="tour-sb-generate-all"
-                            onClick={handleSafeGenerateAll}
-                            disabled={(shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping}
-                            style={{
-                                height: '40px', padding: '0 20px', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease',
-                                opacity: ((shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping) ? 0.5 : 1,
-                                backgroundColor: shotMgr.isGeneratingAll ? '#2a0a0a' : '#1A1A1A',
-                                border: shotMgr.isGeneratingAll ? '1px solid #7f1d1d' : '1px solid #333',
-                                color: shotMgr.isGeneratingAll ? '#f87171' : '#EEE',
-                            }}
-                        >
-                            {shotMgr.isStopping ? <Loader2 size={14} className="animate-spin" /> :
-                                shotMgr.isGeneratingAll ? <Square size={14} fill="currentColor" /> :
-                                    <Layers size={14} />}
-                            {shotMgr.isStopping ? 'STOPPING...' : shotMgr.isGeneratingAll ? 'STOP' : 'GENERATE ALL'}
-                        </button>
-                    )}
-
-                    {/* AUTO DIRECT */}
-                    <button
-                        id="tour-sb-autodirect"
-                        onClick={() => handleSafeAutoDirect()}
-                        disabled={shotMgr.isAutoDirecting || shotMgr.isGeneratingAll || shotMgr.isStopping}
-                        style={{
-                            height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
-                            border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease',
-                            opacity: shotMgr.isAutoDirecting ? 0.5 : 1
-                        }}
-                    >
-                        <Wand2 size={14} />
-                        {shotMgr.isAutoDirecting ? 'DIRECTING...' : 'AUTO-DIRECT'}
-                    </button>
-
-                    {/* ADD SHOT */}
-                    <button
-                        id="tour-sb-add-shot"
-                        onClick={() => { shotMgr.handleAddShot(currentScene); toastSuccess("Shot added"); }}
-                        style={{
-                            height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
-                            border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                            transition: 'all 0.2s'
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
-                    >
-                        <Plus size={16} strokeWidth={3} /> ADD SHOT
-                    </button>
-
-                    {/* SCRIPT */}
-                    <button
-                        onClick={() => setShowScript(true)}
-                        style={{
-                            height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
-                            border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                            transition: 'border-color 0.2s'
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
-                    >
-                        <FileText size={14} /> SCRIPT
-                    </button>
-
-                    {/* ASSETS */}
-                    <button
-                        onClick={() => setShowAssets(true)}
-                        style={{
-                            height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
-                            border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                            transition: 'border-color 0.2s'
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
-                    >
-                        <Database size={14} /> ASSETS
-                    </button>
-
-                    {/* DIVIDER */}
-                    <div style={{ width: '1px', height: '32px', backgroundColor: '#222', margin: '0 16px' }} />
-
-                    {/* CREDITS */}
-                    <div id="tour-sb-credits" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', marginBottom: '2px' }}>
-                                <span style={{ display: 'block', fontSize: '8px', color: '#888', fontFamily: 'monospace', textTransform: 'uppercase', lineHeight: 1 }}>CREDITS</span>
-                                {credits !== null && <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#22c55e' }} className="animate-pulse" />}
-                            </div>
-                            <div style={{ fontSize: '13px', color: 'white', fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.05em', lineHeight: 1 }}>
-                                {credits !== null ? credits.toLocaleString() : <span style={{ color: '#333' }}>---</span>}
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={() => setShowTopUp(true)}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(127, 29, 29, 0.1)',
-                                border: '1px solid rgba(220, 38, 38, 0.3)', color: 'white', padding: '8px 16px', fontSize: '9px', fontWeight: 700,
-                                textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s', borderRadius: '2px'
-                            }}
-                            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#dc2626'; e.currentTarget.style.borderColor = '#dc2626'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(127, 29, 29, 0.1)'; e.currentTarget.style.borderColor = 'rgba(220, 38, 38, 0.3)'; }}
-                        >
-                            <Plus size={10} strokeWidth={4} /> TOP UP
-                        </button>
-                    </div>
-
                 </div>
-            </div>
 
-            {/* --- CONTENT --- */}
-            <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#050505', display: 'flex', flexDirection: 'column' }}>
-
-                <div id="tour-sb-context-strip" style={{ margin: '40px 40px 0 40px' }}>
-                    <SceneContextStrip
-                        seriesName={seriesName}
-                        episodeTitle={realEpisodeTitle}
-                        sceneNumber={currentScene.scene_number}
-                        summary={currentScene.summary || currentScene.description || currentScene.synopsis}
-                        locationName={sceneLoc}
-                        timeOfDay={currentScene.time_of_day || "DAY"}
-                        castList={charDisplay}
-                        aspectRatio={shotMgr.aspectRatio || "16:9"}
-                        onAutoDirect={(newSummary) => handleSafeAutoDirect(newSummary)}
-                        isAutoDirecting={shotMgr.isAutoDirecting}
+                {/* MODALS */}
+                {inpaintData && (
+                    <InpaintEditor
+                        src={inpaintData.src}
+                        styles={styles}
+                        onClose={() => setInpaintData(null)}
+                        onSave={onSaveInpaint}
+                        onApply={onApplyInpaint}
                     />
-                </div>
+                )}
 
-                <div style={{ padding: '20px', flex: 1 }}>
-                    {shotMgr.shots.length === 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', border: '1px dashed #222', borderRadius: '8px', minHeight: '400px' }}>
-                            <Film size={48} style={{ opacity: 0.2, color: '#FFF', marginBottom: '20px' }} />
-                            <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '24px', color: '#333' }}>EMPTY SEQUENCE</h3>
-                            <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-                                <button onClick={() => handleSafeAutoDirect()} disabled={shotMgr.isAutoDirecting} style={{ padding: '12px 24px', backgroundColor: '#111', color: 'white', border: '1px solid #333', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <Wand2 size={16} /> AUTO-DIRECT SCENE
-                                </button>
+                {lipSyncShot && (
+                    <LipSyncModal
+                        videoUrl={lipSyncShot.videoUrl}
+                        credits={credits || 0}
+                        onClose={() => setLipSyncShot(null)}
+                        onGenerateVoice={(text, voiceId, emotion) => {
+                            const originalShot = shotMgr.shots.find((s: any) => s.id === lipSyncShot.id);
+                            if (!originalShot) return Promise.reject("Shot not found");
+                            const shotPayload = { ...originalShot, voiceover_text: text, voice_id: voiceId };
+                            return shotMgr.handleGenerateVoiceover(shotPayload);
+                        }}
+                        onStartSync={(audioUrl, audioFile) => {
+                            const shot = shotMgr.shots.find((s: any) => s.id === lipSyncShot.id);
+                            if (shot) return shotMgr.handleLipSyncShot(shot, audioUrl, audioFile);
+                            return Promise.resolve();
+                        }}
+                    />
+                )}
+
+                {shotToDownload && (
+                    <DownloadModal
+                        shot={shotToDownload}
+                        onClose={() => setShotToDownload(null)}
+                        onDownload={handleDownloadSelection}
+                    />
+                )}
+
+                {/* TERMINAL OVERLAY */}
+                {shotMgr.isAutoDirecting && (
+                    <div style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 9999,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'monospace'
+                    }}>
+                        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.3, pointerEvents: 'none' }} />
+                        <div style={{ position: 'relative', width: '600px', maxWidth: '90%' }}>
+                            <div style={{ marginBottom: '40px', borderBottom: '1px solid #333', paddingBottom: '20px' }}>
+                                <h2 style={{ color: '#FFF', fontSize: '24px', fontWeight: 'bold', letterSpacing: '2px', margin: 0 }}>AI DIRECTOR ACTIVE</h2>
+                                <p style={{ color: '#666', fontSize: '12px', margin: '5px 0 0 0', letterSpacing: '1px' }}>ANALYZING SCENE CONTEXT & GENERATING SHOT LIST</p>
                             </div>
-                        </div>
-                    ) : (
-                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={shotMgr.handleDragEnd}>
-                            <SortableContext items={shotMgr.shots.map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
-                                <div style={styles.sbGrid}>
-                                    {shotMgr.shots.map((shot: any, index: number) => {
-                                        const nextShot = shotMgr.shots[index + 1];
-                                        const nextShotImage = nextShot?.image_url;
-                                        const prevShot = shotMgr.shots[index - 1];
-                                        const isMorphedByPrev = prevShot?.morph_to_next === true;
-
-                                        return (
-                                            <SortableShotCard
-                                                key={shot.id}
-                                                shot={shot}
-                                                index={index}
-                                                styles={styles}
-                                                onDelete={() => setShotToDelete(shot.id)}
-                                                castMembers={castMembers}
-                                                locations={locations}
-                                                // [NEW] Pass products list
-                                                products={products}
-
-                                                onUpdateShot={shotMgr.updateShot}
-                                                onEdit={() => setEditingShotId(shot.id)}
-                                                onRender={(referenceFile, provider) =>
-                                                    shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider)
-                                                }
-                                                isRendering={shotMgr.loadingShots.has(shot.id)}
-                                                onFinalize={() => shotMgr.handleFinalizeShot(shot)}
-                                                onExpand={() => handleOpenViewer(index)}
-                                                nextShotImage={nextShotImage}
-                                                isMorphedByPrev={isMorphedByPrev}
-                                                onUploadImage={(file) => shotMgr.handleShotImageUpload(shot, file)}
-                                                tourId={index === 0 ? "tour-sb-shot-card" : undefined}
-                                            >
-                                                <div style={styles.shotImageContainer}>
-                                                    <ShotImage
-                                                        src={shot.image_url}
-                                                        videoUrl={shot.video_url}
-                                                        lipsyncUrl={shot.lipsync_url}
-                                                        videoStatus={shot.video_status}
-                                                        shotId={shot.id}
-                                                        isSystemLoading={shotMgr.loadingShots.has(shot.id)}
-                                                        onClickZoom={() => handleOpenViewer(index)}
-                                                        onDownload={() => setShotToDownload(shot)}
-                                                        onStartInpaint={() => setInpaintData({ src: shot.image_url, shotId: shot.id })}
-                                                        onAnimate={() => shotMgr.handleAnimateShot(shot, 'kling')}
-                                                    />
-                                                </div>
-                                            </SortableShotCard>
-                                        );
-                                    })}
-                                </div>
-                            </SortableContext>
-                        </DndContext>
-                    )}
-                </div>
-            </div>
-
-            {/* MODALS */}
-            {inpaintData && (
-                <InpaintEditor
-                    src={inpaintData.src}
-                    styles={styles}
-                    onClose={() => setInpaintData(null)}
-                    onSave={onSaveInpaint}
-                    onApply={onApplyInpaint}
-                />
-            )}
-
-            {lipSyncShot && (
-                <LipSyncModal
-                    videoUrl={lipSyncShot.videoUrl}
-                    credits={credits || 0}
-                    onClose={() => setLipSyncShot(null)}
-                    onGenerateVoice={(text, voiceId, emotion) => {
-                        const originalShot = shotMgr.shots.find((s: any) => s.id === lipSyncShot.id);
-                        if (!originalShot) return Promise.reject("Shot not found");
-                        const shotPayload = { ...originalShot, voiceover_text: text, voice_id: voiceId };
-                        return shotMgr.handleGenerateVoiceover(shotPayload);
-                    }}
-                    onStartSync={(audioUrl, audioFile) => {
-                        const shot = shotMgr.shots.find((s: any) => s.id === lipSyncShot.id);
-                        if (shot) return shotMgr.handleLipSyncShot(shot, audioUrl, audioFile);
-                        return Promise.resolve();
-                    }}
-                />
-            )}
-
-            {shotToDownload && (
-                <DownloadModal
-                    shot={shotToDownload}
-                    onClose={() => setShotToDownload(null)}
-                    onDownload={handleDownloadSelection}
-                />
-            )}
-
-            {/* TERMINAL OVERLAY */}
-            {shotMgr.isAutoDirecting && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 9999,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'monospace'
-                }}>
-                    <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.3, pointerEvents: 'none' }} />
-                    <div style={{ position: 'relative', width: '600px', maxWidth: '90%' }}>
-                        <div style={{ marginBottom: '40px', borderBottom: '1px solid #333', paddingBottom: '20px' }}>
-                            <h2 style={{ color: '#FFF', fontSize: '24px', fontWeight: 'bold', letterSpacing: '2px', margin: 0 }}>AI DIRECTOR ACTIVE</h2>
-                            <p style={{ color: '#666', fontSize: '12px', margin: '5px 0 0 0', letterSpacing: '1px' }}>ANALYZING SCENE CONTEXT & GENERATING SHOT LIST</p>
-                        </div>
-                        <div style={{ backgroundColor: '#050505', border: '1px solid #222', borderRadius: '4px', padding: '20px', height: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', boxShadow: '0 0 50px rgba(0,0,0,0.5)', fontFamily: 'monospace' }}>
-                            {shotMgr.terminalLog.map((log: string, i: number) => (
-                                <div key={i} style={{ color: log.includes('ERROR') ? '#ff4444' : '#00ff41', fontSize: '12px', display: 'flex', gap: '12px', opacity: 0.8 }}>
+                            <div style={{ backgroundColor: '#050505', border: '1px solid #222', borderRadius: '4px', padding: '20px', height: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', boxShadow: '0 0 50px rgba(0,0,0,0.5)', fontFamily: 'monospace' }}>
+                                {shotMgr.terminalLog.map((log: string, i: number) => (
+                                    <div key={i} style={{ color: log.includes('ERROR') ? '#ff4444' : '#00ff41', fontSize: '12px', display: 'flex', gap: '12px', opacity: 0.8 }}>
+                                        <span style={{ color: '#444', minWidth: '80px' }}>[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
+                                        <span>{`> ${log}`}</span>
+                                    </div>
+                                ))}
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: 'auto' }}>
                                     <span style={{ color: '#444', minWidth: '80px' }}>[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
-                                    <span>{`> ${log}`}</span>
+                                    <span style={{ color: '#00ff41', display: 'flex', alignItems: 'center' }}>{`> PROCESSING`} <TerminalSpinner /></span>
                                 </div>
-                            ))}
-                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: 'auto' }}>
-                                <span style={{ color: '#444', minWidth: '80px' }}>[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
-                                <span style={{ color: '#00ff41', display: 'flex', alignItems: 'center' }}>{`> PROCESSING`} <TerminalSpinner /></span>
                             </div>
-                        </div>
-                        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', color: '#333', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                            <span>System: ONLINE</span><span>Model: GEMINI-1.5-PRO</span><span>Queue: PROCESSING</span>
+                            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', color: '#333', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                <span>System: ONLINE</span><span>Model: GEMINI-1.5-PRO</span><span>Queue: PROCESSING</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* WARNINGS & DELETE MODALS */}
-            {showOverwriteWarning && (
-                <DeleteConfirmModal
-                    title="OVERWRITE SCENE?"
-                    message="Running Auto-Director will PERMANENTLY DELETE all existing shots."
-                    isDeleting={isWiping}
-                    onConfirm={confirmOverwrite}
-                    onCancel={() => { setShowOverwriteWarning(false); setPendingSummary(undefined); }}
+                {/* WARNINGS & DELETE MODALS */}
+                {showOverwriteWarning && (
+                    <DeleteConfirmModal
+                        title="OVERWRITE SCENE?"
+                        message="Running Auto-Director will PERMANENTLY DELETE all existing shots."
+                        isDeleting={isWiping}
+                        onConfirm={confirmOverwrite}
+                        onCancel={() => { setShowOverwriteWarning(false); setPendingSummary(undefined); }}
+                    />
+                )}
+
+                {showGenerateWarning && (
+                    <DeleteConfirmModal
+                        title="RE-GENERATE FRAMES?"
+                        message="Generating all frames will PERMANENTLY DELETE any existing images or videos."
+                        isDeleting={isWiping}
+                        onConfirm={confirmGenerateAll}
+                        onCancel={() => setShowGenerateWarning(false)}
+                    />
+                )}
+
+                {shotToDelete && (
+                    <DeleteConfirmModal
+                        title="DELETE SHOT?"
+                        message="This action will permanently delete this shot and any associated images/videos."
+                        isDeleting={isDeletingShot}
+                        onConfirm={confirmDeleteShot}
+                        onCancel={() => setShotToDelete(null)}
+                    />
+                )}
+
+                <ShotEditorPanel
+                    projectId={seriesId}
+                    shot={shotMgr.shots.find((s: any) => s.id === editingShotId) || null}
+                    isOpen={!!editingShotId}
+                    onClose={() => setEditingShotId(null)}
+                    onUpdateShot={shotMgr.updateShot}
+                    onAnimate={(provider, endFrameUrl, options) => {
+                        const shot = shotMgr.shots.find((s: any) => s.id === editingShotId);
+                        if (shot) shotMgr.handleAnimateShot(shot, provider, endFrameUrl, options);
+                    }}
+                    onLipSync={(shot) => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url || '' })}
+                    onText2Video={(options) => {
+                        const shot = shotMgr.shots.find((s: any) => s.id === editingShotId);
+                        if (shot) shotMgr.handleText2Video(shot, options);
+                    }}
+                    isGenerating={editingShotId ? shotMgr.loadingShots.has(editingShotId) : false}
                 />
-            )}
 
-            {showGenerateWarning && (
-                <DeleteConfirmModal
-                    title="RE-GENERATE FRAMES?"
-                    message="Generating all frames will PERMANENTLY DELETE any existing images or videos."
-                    isDeleting={isWiping}
-                    onConfirm={confirmGenerateAll}
-                    onCancel={() => setShowGenerateWarning(false)}
-                />
-            )}
-
-            {shotToDelete && (
-                <DeleteConfirmModal
-                    title="DELETE SHOT?"
-                    message="This action will permanently delete this shot and any associated images/videos."
-                    isDeleting={isDeletingShot}
-                    onConfirm={confirmDeleteShot}
-                    onCancel={() => setShotToDelete(null)}
-                />
-            )}
-
-            <ShotEditorPanel
-                projectId={seriesId}
-                shot={shotMgr.shots.find((s: any) => s.id === editingShotId) || null}
-                isOpen={!!editingShotId}
-                onClose={() => setEditingShotId(null)}
-                onUpdateShot={shotMgr.updateShot}
-                onAnimate={(provider, endFrameUrl, options) => {
-                    const shot = shotMgr.shots.find((s: any) => s.id === editingShotId);
-                    if (shot) shotMgr.handleAnimateShot(shot, provider, endFrameUrl, options);
-                }}
-                onLipSync={(shot) => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url || '' })}
-                onText2Video={(options) => {
-                    const shot = shotMgr.shots.find((s: any) => s.id === editingShotId);
-                    if (shot) shotMgr.handleText2Video(shot, options);
-                }}
-                isGenerating={editingShotId ? shotMgr.loadingShots.has(editingShotId) : false}
-            />
-
-            <TourOverlay step={tourStep} steps={tourSteps} onNext={onTourNext} onComplete={onTourComplete} />
-        </div>
+                <TourOverlay step={tourStep} steps={tourSteps} onNext={onTourNext} onComplete={onTourComplete} />
+            </div>
+        </PricingProvider>
     );
 };

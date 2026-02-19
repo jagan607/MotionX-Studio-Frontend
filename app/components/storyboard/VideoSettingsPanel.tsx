@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import type { VideoProvider, AnimateOptions, PromptSegment } from '@/app/hooks/shot-manager/useShotVideoGen';
 import type { KlingElement } from '@/app/hooks/shot-manager/useElementLibrary';
+import { usePricing } from '@/app/hooks/usePricing';
 import Image from 'next/image';
 
 interface VideoSettingsPanelProps {
@@ -48,6 +49,10 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const [provider, setProvider] = useState<VideoProvider>(initialSettings?.provider || 'kling-v3');
     const [duration, setDuration] = useState<'3' | '5' | '10' | '15'>(initialSettings?.duration || '5');
     const [mode, setMode] = useState<'std' | 'pro'>(initialSettings?.mode || 'pro');
+
+    // --- Pricing ---
+    const { getVideoCost, getLipSyncCost } = usePricing();
+    const videoCost = getVideoCost(provider, mode, duration);
     const [showAdvanced, setShowAdvanced] = useState(false);
 
     // Advanced
@@ -430,6 +435,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         <>
                             {hasVideo ? <RefreshCw size={13} /> : <Film size={13} />}
                             {hasVideo ? 'Re-Animate' : 'Animate'}
+                            {videoCost > 0 && (
+                                <span className="opacity-60 text-[9px] font-normal">· {videoCost} cr</span>
+                            )}
                         </>
                     )}
                 </button>

@@ -5,6 +5,7 @@ import { X, Loader2, Mic, Upload, Volume2, Wand2, Play, Pause, Search, ChevronDo
 import { toastError } from "@/lib/toast";
 import { API_BASE_URL } from "@/lib/config";
 import { auth } from "@/lib/firebase";
+import { usePricing } from "@/app/hooks/usePricing";
 
 // WaveSurfer Imports
 import WaveSurfer from 'wavesurfer.js';
@@ -50,6 +51,10 @@ const ACCENTS = ["All", "american", "british", "australian", "indian"];
 export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }: LipSyncModalProps) => {
     const [mode, setMode] = useState<'tts' | 'upload'>('tts');
     const [text, setText] = useState("");
+
+    // --- Pricing ---
+    const { getVoiceoverCost, getLipSyncCost } = usePricing();
+    const voiceoverCost = getVoiceoverCost();
 
     const [allVoices, setAllVoices] = useState<Voice[]>([]);
     const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
@@ -507,6 +512,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
                                     <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={`Enter dialogue... (${selectedEmotion} tone)`} style={{ width: '100%', height: '60px', backgroundColor: '#111', border: '1px solid #333', color: 'white', padding: '10px', fontSize: '11px', resize: 'none' }} />
                                     <button onClick={handleSynthesize} disabled={isSynthesizing} style={{ width: '100%', marginTop: '10px', padding: '10px', backgroundColor: '#222', border: '1px solid #333', color: 'white', fontSize: '10px', fontWeight: 'bold', display: 'flex', justifyContent: 'center', gap: '8px' }}>
                                         {isSynthesizing ? <Loader2 size={12} className="animate-spin" /> : <Mic size={12} />} SYNTHESIZE
+                                        <span style={{ opacity: 0.5, fontSize: '9px', fontWeight: 'normal' }}>· {voiceoverCost} cr</span>
                                     </button>
                                 </div>
                             </>
@@ -558,6 +564,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
                         <button onClick={handleExecuteSync} disabled={isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile)} style={{ width: '100%', padding: '15px', backgroundColor: '#E50914', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', display: 'flex', justifyContent: 'center', gap: '10px', opacity: (isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile)) ? 0.5 : 1 }}>
                             {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
                             {mode === 'upload' && trimRange && (Math.abs(trimRange.end - trimRange.start - audioDuration) > 0.1) ? 'TRIM & SYNC' : 'EXECUTE SYNC'}
+                            <span style={{ opacity: 0.6, fontSize: '10px', fontWeight: 'normal', letterSpacing: '0' }}>· {getLipSyncCost(5)} cr</span>
                         </button>
                     </div>
                 </div>

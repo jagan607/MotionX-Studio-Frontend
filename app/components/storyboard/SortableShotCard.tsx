@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 import type { VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
+import { usePricing } from '@/app/hooks/usePricing';
 
 interface CastMember { id: string; name: string; }
 interface Location { id: string; name: string; }
@@ -95,6 +96,11 @@ export const SortableShotCard = ({
     const hasImage = Boolean(shot.image_url);
     const hasVideo = Boolean(shot.video_url);
     const canLink = hasImage && Boolean(nextShotImage) && !isMorphedByPrev;
+
+    // --- Pricing ---
+    const { getImageCost, getFinalizeCost } = usePricing();
+    const imageCost = getImageCost();
+    const finalizeCost = getFinalizeCost();
 
     // --- Cast Toggle Logic ---
     const handleCharToggle = (charId: string) => {
@@ -427,7 +433,8 @@ export const SortableShotCard = ({
                         disabled={isBusy}
                         className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                        <Sparkles size={12} /> {hasImage ? "Re-Gen Image" : "Gen Image"}
+                        <Sparkles size={12} /> {hasImage ? "Re-Gen" : "Gen Image"}
+                        <span className="opacity-50 text-[9px] font-normal">· {imageCost} cr</span>
                     </button>
                     <button
                         onClick={onFinalize}
@@ -441,6 +448,7 @@ export const SortableShotCard = ({
                     >
                         {isFinalized ? <CheckCircle2 size={12} /> : <Wand2 size={12} />}
                         {isFinalized ? "Finalized" : "Finalize"}
+                        {!isFinalized && <span className="opacity-50 text-[9px] font-normal">· {finalizeCost} cr</span>}
                     </button>
                 </div>
 
