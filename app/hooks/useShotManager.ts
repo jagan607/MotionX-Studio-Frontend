@@ -9,7 +9,7 @@ import { useShotCRUD } from "./shot-manager/useShotCRUD";
 import { useShotMedia } from "./shot-manager/useShotMedia";
 import { useShotAI } from "./shot-manager/useShotAI";
 import { useShotImageGen } from "./shot-manager/useShotImageGen";
-import { useShotVideoGen } from "./shot-manager/useShotVideoGen";
+import { useShotVideoGen, VideoProvider, AnimateOptions } from "./shot-manager/useShotVideoGen";
 import { useShotAudioGen } from "./shot-manager/useShotAudioGen";
 import { useShotBatch } from "./shot-manager/useShotBatch";
 
@@ -159,9 +159,15 @@ export const useShotManager = (
         // Video
         handleAnimateShot: (
             shot: any,
-            provider: 'kling' | 'seedance' = 'kling',
-            endFrameUrl?: string | null
-        ) => videoGen.handleAnimateShot(shot, provider, endFrameUrl),
+            provider: VideoProvider = 'kling',
+            endFrameUrl?: string | null,
+            options?: AnimateOptions
+        ) => videoGen.handleAnimateShot(shot, provider, endFrameUrl, options),
+
+        handleText2Video: (
+            shot: any,
+            options?: AnimateOptions & { negative_prompt?: string }
+        ) => videoGen.handleText2Video(shot, options),
 
         // Audio
         handleGenerateVoiceover: audioGen.handleGenerateVoiceover,

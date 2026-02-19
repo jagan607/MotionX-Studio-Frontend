@@ -6,6 +6,7 @@ import { toastError, toastSuccess } from "@/lib/toast";
 // --- IMPORTS ---
 import { StoryboardOverlay } from "../storyboard/StoryboardOverlay";
 import { useShotManager } from "@/app/hooks/useShotManager";
+import { VideoProvider, AnimateOptions } from "@/app/hooks/shot-manager/useShotVideoGen";
 import { SceneData } from "@/components/studio/SceneCard";
 import { Asset } from "@/lib/types";
 import { useTour } from "@/hooks/useTour";
@@ -127,9 +128,18 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 throw new Error(msg);
             }
         },
-        handleAnimateShot: async (shot: any, provider: 'kling' | 'seedance' = 'kling', endFrameUrl?: string | null) => {
+        handleAnimateShot: async (shot: any, provider: VideoProvider = 'kling', endFrameUrl?: string | null, options?: AnimateOptions) => {
             try {
-                return await rawShotMgr.handleAnimateShot(shot, provider, endFrameUrl);
+                return await rawShotMgr.handleAnimateShot(shot, provider, endFrameUrl, options);
+            } catch (e: any) {
+                const msg = safeError(e);
+                toastError(msg);
+                throw new Error(msg);
+            }
+        },
+        handleText2Video: async (shot: any, options?: AnimateOptions & { negative_prompt?: string }) => {
+            try {
+                return await rawShotMgr.handleText2Video(shot, options);
             } catch (e: any) {
                 const msg = safeError(e);
                 toastError(msg);

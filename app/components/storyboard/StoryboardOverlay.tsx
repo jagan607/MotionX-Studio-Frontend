@@ -19,6 +19,7 @@ import { SortableShotCard } from "./SortableShotCard";
 import { SceneContextStrip } from "./SceneContextStrip";
 import { LipSyncModal } from "./LipSyncModal";
 import { DownloadModal } from "./DownloadModal";
+import { ShotEditorPanel } from "./ShotEditorPanel";
 import { styles } from "./BoardStyles";
 
 // --- GLOBAL UI IMPORTS ---
@@ -127,6 +128,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [shotToDelete, setShotToDelete] = useState<string | null>(null);
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [shotToDownload, setShotToDownload] = useState<any>(null);
+    const [editingShotId, setEditingShotId] = useState<string | null>(null);
     const [sceneList, setSceneList] = useState<any[]>([]);
 
     // Scene Selector Dropdown
@@ -657,12 +659,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                 products={products}
 
                                                 onUpdateShot={shotMgr.updateShot}
-                                                onLipSync={() => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url })}
+                                                onEdit={() => setEditingShotId(shot.id)}
                                                 onRender={(referenceFile, provider) =>
                                                     shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider)
-                                                }
-                                                onAnimate={(provider, endFrameUrl) =>
-                                                    shotMgr.handleAnimateShot(shot, provider, endFrameUrl)
                                                 }
                                                 isRendering={shotMgr.loadingShots.has(shot.id)}
                                                 onFinalize={() => shotMgr.handleFinalizeShot(shot)}
@@ -795,6 +794,24 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     onCancel={() => setShotToDelete(null)}
                 />
             )}
+
+            <ShotEditorPanel
+                projectId={seriesId}
+                shot={shotMgr.shots.find((s: any) => s.id === editingShotId) || null}
+                isOpen={!!editingShotId}
+                onClose={() => setEditingShotId(null)}
+                onUpdateShot={shotMgr.updateShot}
+                onAnimate={(provider, endFrameUrl, options) => {
+                    const shot = shotMgr.shots.find((s: any) => s.id === editingShotId);
+                    if (shot) shotMgr.handleAnimateShot(shot, provider, endFrameUrl, options);
+                }}
+                onLipSync={(shot) => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url || '' })}
+                onText2Video={(options) => {
+                    const shot = shotMgr.shots.find((s: any) => s.id === editingShotId);
+                    if (shot) shotMgr.handleText2Video(shot, options);
+                }}
+                isGenerating={editingShotId ? shotMgr.loadingShots.has(editingShotId) : false}
+            />
 
             <TourOverlay step={tourStep} steps={tourSteps} onNext={onTourNext} onComplete={onTourComplete} />
         </div>

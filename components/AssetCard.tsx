@@ -1,5 +1,5 @@
 import React from "react";
-import { Trash2, Loader2, Wand2, Play, Sparkles, Settings, Plus } from "lucide-react";
+import { Trash2, Loader2, Wand2, Play, Sparkles, Settings, Plus, Video } from "lucide-react";
 import { Asset, CharacterProfile } from "@/lib/types";
 
 interface AssetCardProps {
@@ -13,6 +13,7 @@ interface AssetCardProps {
     onDelete?: (id: string, type: string) => void;
     onCreate?: () => void; // <--- Handler for Create Mode
     onView?: (asset: Asset) => void; // <--- Handler for View Mode
+    onRegisterKling?: (asset: Asset) => void; // <--- Handler for Kling Registration
     label?: string;        // <--- Label for Create Mode (e.g., "New Character")
 }
 
@@ -25,6 +26,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     onDelete,
     onCreate,
     onView,
+    onRegisterKling,
     label,
     tourId
 }) => {
@@ -108,12 +110,12 @@ export const AssetCard: React.FC<AssetCardProps> = ({
             </div>
 
             {/* --- 2. CONTROLS LAYER --- */}
-            <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-black via-black/90 to-transparent z-10">
-                <h3 className="text-sm font-display uppercase text-white truncate mb-3 pl-1">
+            <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-black via-black/90 to-transparent z-10 flex flex-col justify-end min-h-[50%]">
+                <h3 className="text-sm font-display uppercase text-white truncate mb-2 pl-1">
                     {asset.name}
                 </h3>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 mb-2">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -133,9 +135,28 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                         disabled={isGenerating}
                         className="flex items-center justify-center gap-1.5 py-2 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white rounded-md text-[9px] font-bold tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Settings size={10} /> Configure
+                        <Settings size={10} /> Config
                     </button>
                 </div>
+
+                {/* KLING ENABLE VIDEO BUTTON */}
+                {asset.type !== 'location' && (
+                    <div className="w-full">
+                        {asset.kling_element_id ? (
+                            <div className="w-full py-1.5 bg-[#00ff41]/10 border border-[#00ff41]/30 rounded-md flex items-center justify-center gap-1.5 text-[#00ff41] text-[9px] font-bold tracking-widest uppercase cursor-default">
+                                <Video size={10} /> Video Ready
+                            </div>
+                        ) : (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onRegisterKling?.(asset); }}
+                                disabled={isGenerating || !onRegisterKling}
+                                className="w-full py-1.5 bg-blue-500/10 hover:bg-blue-500/30 border border-blue-500/20 hover:border-blue-500/50 text-blue-200 rounded-md flex items-center justify-center gap-1.5 text-[9px] font-bold tracking-widest uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Video size={10} /> Enable Video
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

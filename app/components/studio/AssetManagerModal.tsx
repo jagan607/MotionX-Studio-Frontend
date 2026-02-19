@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 
 // --- API & TYPES ---
 import {
+    api,
     fetchProjectAssets,
     deleteAsset,
     createAsset,
@@ -282,6 +283,36 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
         openViewer(mediaItems, index);
     };
 
+    const handleRegisterKling = async (asset: Asset) => {
+        const toastId = toast.loading("Enabling for video...");
+        try {
+            const res = await api.post(`/api/v1/projects/${projectId}/${asset.type}/${asset.id}/register_kling`);
+            if (res.data.status === 'success') {
+                toast.success("Asset enabled for video", { id: toastId });
+
+                // Update local state
+                setAssets(prev => {
+                    const newState = { ...prev };
+                    if (asset.type === 'character') {
+                        newState.characters = prev.characters.map(c =>
+                            c.id === asset.id ? { ...c, kling_element_id: String(res.data.kling_element_id) } : c
+                        );
+                    } else if (asset.type === 'product') {
+                        newState.products = prev.products.map(p =>
+                            p.id === asset.id ? { ...p, kling_element_id: String(res.data.kling_element_id) } : p
+                        );
+                    }
+                    return newState;
+                });
+
+                onAssetsUpdated?.();
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to enable asset", { id: toastId });
+        }
+    };
+
     // --- HELPERS ---
 
     const getDisplayedAssets = (): Asset[] => {
@@ -407,7 +438,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                             <div className="h-12 w-12 rounded-full bg-white/[0.04] flex items-center justify-center border border-white/[0.06] group-hover:bg-[#E50914] group-hover:border-[#E50914] group-hover:text-white text-neutral-600 transition-colors mb-4">
                                 <Plus size={24} />
                             </div>
-                            <span className="text-[10px] font-bold tracking-[0.2em] text-neutral-600 group-hover:text-white uppercase">
+                            <span className="text-[10px] font-bold tracking-widest text-neutral-600 group-hover:text-white uppercase">
                                 Add New
                             </span>
                         </button>
@@ -433,6 +464,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                                     }}
                                     onDelete={handleDelete}
                                     onView={handleViewAsset}
+                                    onRegisterKling={handleRegisterKling} // <--- PASS HANDLER
                                 />
                                 {/* Corner accent */}
                             </div>

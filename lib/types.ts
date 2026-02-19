@@ -53,6 +53,7 @@ export interface CharacterProfile {
     prompt?: string;
     base_prompt?: string;
     created_at?: any;
+    kling_element_id?: string; // [NEW] Kling 3.0 Element ID
 }
 
 export interface LocationProfile {
@@ -86,7 +87,9 @@ export interface ProductProfile {
 
     // Metadata container
     product_metadata?: {
-        brand_name?: string;
+        brand_metadata?: {
+            brand_name?: string;
+        };
         category?: string;
         visual_dna?: {
             materials?: string[];
@@ -101,6 +104,7 @@ export interface ProductProfile {
     created_at?: any;
 
     prompt?: string;
+    kling_element_id?: string; // [NEW] Kling 3.0 Element ID
 }
 
 // --- 4. THE UNIFIED ASSET TYPE ---
@@ -163,6 +167,20 @@ export interface Shot {
     status?: 'draft' | 'rendered' | 'animating' | 'completed' | 'finalized';
 
     morph_to_next?: boolean; // Added for UI logic
+
+    // [NEW] Persisted Video Settings
+    video_settings?: {
+        duration?: '3' | '5' | '10' | '15';
+        mode?: 'std' | 'pro';
+        negative_prompt?: string;
+        cfg_scale?: number;
+        sound?: 'on' | 'off';
+        watermark?: boolean;
+        multi_shot?: boolean;
+        shot_type?: 'intelligence' | 'customize';
+        element_list?: string[]; // IDs
+        voice_list?: string[]; // IDs
+    };
 
     created_at?: string;
 }

@@ -4,21 +4,22 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-    GripVertical, Trash2, Sparkles, Film, RefreshCw,
-    ImagePlus, Mic2, Link2, Plus, CheckCircle2,
-    Wand2, Loader2, Palette, XCircle, Upload, ShoppingBag
+    GripVertical, Trash2, Sparkles, Film,
+    ImagePlus, Link2, Plus, CheckCircle2,
+    Wand2, Loader2, Palette, XCircle, Upload, Settings
 } from "lucide-react";
 import imageCompression from 'browser-image-compression';
+import type { VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
 
 interface CastMember { id: string; name: string; }
 interface Location { id: string; name: string; }
-interface Product { id: string; name: string; } // [NEW] Simple Product Interface
+interface Product { id: string; name: string; }
 
 interface Shot {
     id: string;
     shot_type: string;
     characters: string[];
-    products?: string[]; // [NEW] Added products array
+    products?: string[];
     visual_action: string;
     video_prompt?: string;
     location?: string;
@@ -28,6 +29,7 @@ interface Shot {
     video_status?: string;
     status?: string;
     morph_to_next?: boolean;
+    prompt: string; // Ensure prompt is in interface as it's used
 }
 
 interface SortableShotCardProps {
@@ -37,14 +39,13 @@ interface SortableShotCardProps {
     onDelete: (id: string) => void;
     castMembers: CastMember[];
     locations: Location[];
-    products?: Product[]; // [NEW] Added products prop
+    products?: Product[];
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
     onRender: (referenceFile?: File | null, provider?: 'gemini' | 'seedream') => void;
-    onAnimate: (provider: 'kling' | 'seedance', endFrameUrl?: string | null) => void;
+    onEdit: () => void;
     onFinalize: () => void;
     isRendering: boolean;
     onExpand: () => void;
-    onLipSync: () => void;
     nextShotImage?: string;
     isMorphedByPrev?: boolean;
     onUploadImage: (file: File) => void;
@@ -61,14 +62,13 @@ export const SortableShotCard = ({
     onDelete,
     castMembers,
     locations,
-    products = [], // Default to empty array
+    products = [],
     onUpdateShot,
     onRender,
-    onAnimate,
+    onEdit,
     onFinalize,
     isRendering,
     onExpand,
-    onLipSync,
     nextShotImage,
     isMorphedByPrev = false,
     onUploadImage,
@@ -78,54 +78,50 @@ export const SortableShotCard = ({
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
 
-    // --- PROVIDER STATES ---
-    const [videoProvider, setVideoProvider] = useState<'kling' | 'seedance'>('kling');
+    // --- Provider States ---
     const [imageProvider, setImageProvider] = useState<'gemini' | 'seedream'>('gemini');
 
-    // Use DB state, fallback to false
+    // Linked State
     const isLinked = shot.morph_to_next === true;
 
     // Loading States
     const isGenerating = isRendering || shot.status === 'generating';
     const isAnimating = ['animating', 'processing', 'queued', 'pending'].includes(shot.video_status || '');
     const isBusy = isGenerating || isAnimating;
-    const overlayText = isAnimating ? "ANIMATING..." : "GENERATING...";
+    const overlayText = isAnimating ? "Animating..." : "Generating...";
     const isFinalized = shot.status === 'finalized';
 
     // Validation
     const hasImage = Boolean(shot.image_url);
     const hasVideo = Boolean(shot.video_url);
-    const canLink = hasImage && Boolean(nextShotImage) && videoProvider === 'kling' && !isMorphedByPrev;
+    const canLink = hasImage && Boolean(nextShotImage) && !isMorphedByPrev;
 
-    // --- CAST TOGGLE LOGIC ---
+    // --- Cast Toggle Logic ---
     const handleCharToggle = (charId: string) => {
-        if (isMorphedByPrev) return;
-        const current = Array.isArray(shot.characters) ? shot.characters : [];
-        const isPresent = current.includes(charId);
+        const current = Array.isArray(shot.characters) ? [...shot.characters] : [];
+        const isActive = current.includes(charId) || current.some(c => normalize(c) === normalize(castMembers.find(cm => cm.id === charId)?.name || ''));
         let updated;
-        if (isPresent) {
-            updated = current.filter((c) => c !== charId);
+        if (isActive) {
+            updated = current.filter(c => c !== charId && normalize(c) !== normalize(castMembers.find(cm => cm.id === charId)?.name || ''));
         } else {
             updated = [...current, charId];
         }
         onUpdateShot(shot.id, "characters", updated);
     };
 
-    // --- [NEW] PRODUCT TOGGLE LOGIC ---
+    // --- Product Toggle Logic ---
     const handleProductToggle = (prodId: string) => {
-        if (isMorphedByPrev) return;
-        const current = Array.isArray(shot.products) ? shot.products : [];
-        const isPresent = current.includes(prodId);
+        const current = Array.isArray(shot.products) ? [...shot.products] : [];
         let updated;
-        if (isPresent) {
-            updated = current.filter((p) => p !== prodId);
+        if (current.includes(prodId)) {
+            updated = current.filter(id => id !== prodId);
         } else {
             updated = [...current, prodId];
         }
         onUpdateShot(shot.id, "products", updated);
     };
 
-    // --- REF IMAGE LOGIC ---
+    // --- Ref Image Logic ---
     const [refFile, setRefFile] = useState<File | null>(null);
     const [refPreviewUrl, setRefPreviewUrl] = useState<string | null>(null);
     const [isHoveringRef, setIsHoveringRef] = useState(false);
@@ -133,12 +129,8 @@ export const SortableShotCard = ({
     const mainImageInputRef = useRef<HTMLInputElement>(null);
     const [isCompressing, setIsCompressing] = useState(false);
 
-
     useEffect(() => {
-        if (!refFile) {
-            setRefPreviewUrl(null);
-            return;
-        }
+        if (!refFile) { setRefPreviewUrl(null); return; }
         const objectUrl = URL.createObjectURL(refFile);
         setRefPreviewUrl(objectUrl);
         return () => URL.revokeObjectURL(objectUrl);
@@ -158,9 +150,6 @@ export const SortableShotCard = ({
 
     const handleMainImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
-            // Optional: Compress before upload if needed, but for now direct upload
-            // or use existing compression if preferred.
-            // Let's compress it gently to save bandwidth/storage, consistent with REF logic
             try {
                 const compressed = await imageCompression(e.target.files[0], { maxSizeMB: 2, maxWidthOrHeight: 2048, useWebWorker: true });
                 onUploadImage(compressed);
@@ -184,114 +173,112 @@ export const SortableShotCard = ({
     useEffect(() => { setLocalVisualAction(shot.visual_action || ""); }, [shot.visual_action]);
     useEffect(() => { setLocalVideoPrompt(shot.video_prompt || ""); }, [shot.video_prompt]);
 
-    // --- STYLES ---
-    let borderColor = '1px solid #222';
-    if (isFinalized) borderColor = `1px solid rgba(255, 255, 255, 0.5)`;
-    if (isMorphedByPrev) borderColor = `1px solid #E50914`;
-
+    // --- Drag Style ---
     const dragStyle = {
         transform: CSS.Transform.toString(transform),
         transition,
         zIndex: isDragging ? 1000 : 1,
-        opacity: isDragging ? 0.6 : 1,
-        transformOrigin: "0 0",
-        scale: isDragging ? "1.02" : "1",
-        border: borderColor,
-        backgroundColor: isFinalized ? "rgba(255, 255, 255, 0.05)" : "#0A0A0A",
-        boxShadow: (isLinked || isMorphedByPrev) ? '0 0 0 1px #E50914' : 'none'
     };
 
-    const labelStyle: React.CSSProperties = { fontSize: '9px', color: isMorphedByPrev ? '#555' : '#666', marginBottom: '6px', display: 'block', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' };
-    const inputStyle: React.CSSProperties = {
-        width: '100%',
-        backgroundColor: isMorphedByPrev ? '#111' : '#111',
-        border: isMorphedByPrev ? '1px solid #330000' : '1px solid #222',
-        color: isMorphedByPrev ? '#444' : '#e0e0e0',
-        fontSize: '11px', padding: '8px 10px', borderRadius: '4px', outline: 'none',
-        cursor: isMorphedByPrev ? 'not-allowed' : 'text'
-    };
+    // --- Pill button helper ---
+    const pillBtn = (active: boolean) =>
+        `flex-1 px-2 py-1.5 text-[10px] font-semibold rounded-md text-center transition-all cursor-pointer select-none
+        ${active
+            ? 'bg-[#E50914]/15 text-white border border-[#E50914]/60'
+            : 'bg-white/[0.03] text-neutral-500 border border-white/[0.08] hover:border-white/20 hover:text-neutral-300'
+        }
+        ${isBusy || isMorphedByPrev ? '!cursor-not-allowed' : ''}`;
 
-    const toggleStyle = (active: boolean) => ({
-        flex: 1, padding: '6px', fontSize: '9px', fontWeight: 'bold',
-        border: active ? '1px solid #E50914' : '1px solid #333',
-        backgroundColor: active ? 'rgba(229, 9, 20, 0.1)' : 'transparent',
-        color: active ? '#FFF' : '#666',
-        cursor: isBusy || isMorphedByPrev ? 'not-allowed' : 'pointer',
-        borderRadius: '3px',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-        transition: 'all 0.2s'
-    });
+    // Tag button helper
+    const tagBtn = (active: boolean) =>
+        `px-2.5 py-1 text-[10px] rounded-md border transition-all cursor-pointer select-none
+        ${active
+            ? 'bg-[#E50914] text-white border-[#E50914]'
+            : 'bg-transparent text-neutral-500 border-white/[0.1] hover:border-white/20 hover:text-neutral-300'
+        }
+        ${isMorphedByPrev ? 'opacity-40 !cursor-not-allowed' : ''}`;
 
     return (
-        <div ref={setNodeRef} id={tourId} style={{ ...styles?.shotCard, ...dragStyle, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        <div
+            ref={setNodeRef}
+            id={tourId}
+            style={dragStyle}
+            className={`relative flex flex-col rounded-xl p-4
+                ${isDragging ? 'opacity-60 scale-[1.02]' : 'opacity-100'}
+                ${isFinalized ? 'bg-white/[0.04] border border-white/20' : 'bg-[#0A0A0A] border border-white/[0.08]'}
+                ${isMorphedByPrev ? 'border-[#E50914]/60' : ''}
+                ${(isLinked || isMorphedByPrev) ? 'shadow-[0_0_0_1px_#E50914]' : ''}
+            `}
+        >
 
-            {/* --- LOCKED OVERLAY LABEL --- */}
+            {/* ── Linked Sequence Label ── */}
             {isMorphedByPrev && (
-                <div style={{
-                    position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
-                    backgroundColor: '#E50914', color: 'white', fontSize: '9px', fontWeight: 'bold',
-                    padding: '2px 8px', borderRadius: '4px', zIndex: 60, display: 'flex', alignItems: 'center', gap: '4px',
-                    boxShadow: '0 0 10px rgba(229,9,20,0.4)'
-                }}>
-                    <Link2 size={10} /> LINKED SEQUENCE
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-[#E50914] text-white text-[9px] font-bold px-2 py-0.5 rounded-md z-[60] flex items-center gap-1 shadow-[0_0_10px_rgba(229,9,20,0.4)]">
+                    <Link2 size={9} /> Linked
                 </div>
             )}
 
-            {/* --- GUTTER LINK BUTTON --- */}
+            {/* ── Gutter Link Button ── */}
             {canLink && (
                 <>
                     {isLinked && (
-                        <div style={{
-                            position: 'absolute', top: '50%', right: '-30px', width: '40px', height: '2px',
-                            backgroundColor: '#E50914', zIndex: 40, transform: 'translateY(-50%)', boxShadow: '0 0 8px #E50914'
-                        }} />
+                        <div className="absolute top-1/2 -right-[30px] w-10 h-0.5 bg-[#E50914] z-40 -translate-y-1/2 shadow-[0_0_8px_#E50914]" />
                     )}
                     <div
                         onClick={() => onUpdateShot(shot.id, "morph_to_next", !isLinked)}
-                        title={isLinked ? "Unlink from Next Shot" : "Morph into Next Shot"}
-                        style={{
-                            position: 'absolute', top: '50%', right: '-14px', transform: 'translateY(-50%)', zIndex: 50,
-                            width: '28px', height: '28px', borderRadius: '50%',
-                            backgroundColor: isLinked ? '#E50914' : '#111',
-                            border: isLinked ? '2px solid #000' : '1px solid #333',
-                            color: isLinked ? 'white' : '#666',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                            boxShadow: isLinked ? '0 0 15px rgba(229,9,20,0.5)' : '0 2px 5px rgba(0,0,0,0.5)',
-                            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                        }}
+                        title={isLinked ? "Unlink" : "Morph into Next Shot"}
+                        className={`absolute top-1/2 -right-3.5 -translate-y-1/2 z-50 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all
+                            ${isLinked
+                                ? 'bg-[#E50914] border-2 border-black text-white shadow-[0_0_15px_rgba(229,9,20,0.5)]'
+                                : 'bg-[#111] border border-white/[0.15] text-neutral-500 shadow-md hover:border-white/30'
+                            }
+                        `}
                     >
-                        {isLinked ? <Link2 size={14} /> : <Plus size={14} />}
+                        {isLinked ? <Link2 size={13} /> : <Plus size={13} />}
                     </div>
                 </>
             )}
 
-            {/* HEADER */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div {...attributes} {...listeners} style={{ cursor: 'grab', color: '#666', padding: '4px' }}><GripVertical size={18} /></div>
-                    <span style={{ color: '#E50914', fontWeight: 'bold', fontSize: '12px', letterSpacing: '1px' }}>
-                        SHOT {String(index + 1).padStart(2, '0')} {isFinalized && "⭐"}
+            {/* ── Header ── */}
+            <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-2.5">
+                    <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-neutral-600 hover:text-neutral-400 transition-colors p-0.5">
+                        <GripVertical size={16} />
+                    </div>
+                    <span className="text-[11px] font-bold tracking-wide text-[#E50914]">
+                        Shot {String(index + 1).padStart(2, '0')}
+                        {isFinalized && <span className="ml-1.5 text-neutral-400">⭐</span>}
                     </span>
                 </div>
-                <button onClick={() => onDelete(shot.id)} style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                <button onClick={() => onDelete(shot.id)} className="bg-transparent border-none text-neutral-600 hover:text-red-500 cursor-pointer transition-colors p-1 rounded-md hover:bg-white/[0.05]">
+                    <Trash2 size={14} />
+                </button>
             </div>
 
-            {/* PREVIEW */}
-            <div onClick={(e) => { e.stopPropagation(); if (hasImage || hasVideo) onExpand(); }} style={{ position: 'relative', marginBottom: '12px', cursor: (hasImage || hasVideo) ? 'pointer' : 'default' }}>
+            {/* ── Preview ── */}
+            <div
+                onClick={(e) => { e.stopPropagation(); if (hasImage || hasVideo) onExpand(); }}
+                className={`relative mb-3 rounded-lg overflow-hidden ${(hasImage || hasVideo) ? 'cursor-pointer' : ''}`}
+            >
                 {isBusy && (
-                    <div style={{ position: 'absolute', inset: 0, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px' }}>
-                        <Loader2 className="animate-spin text-red-600" size={24} />
-                        <span style={{ fontSize: '9px', fontWeight: 'bold', color: '#fff', letterSpacing: '1px' }}>{overlayText}</span>
+                    <div className="absolute inset-0 z-10 bg-black/70 backdrop-blur-sm flex items-center justify-center flex-col gap-2">
+                        <Loader2 className="animate-spin text-[#E50914]" size={22} />
+                        <span className="text-[9px] font-semibold text-white/80 tracking-wide">{overlayText}</span>
                     </div>
                 )}
                 {children}
             </div>
 
-            {/* METADATA */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <div style={{ flex: 1 }}>
-                    <label style={labelStyle}>SHOT TYPE</label>
-                    <select disabled={isMorphedByPrev} style={inputStyle} defaultValue={shot.shot_type || "Wide Shot"} onChange={(e) => onUpdateShot(shot.id, "shot_type", e.target.value)}>
+            {/* ── Metadata ── */}
+            <div className="flex gap-2 mb-3">
+                <div className="flex-1">
+                    <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Shot Type</label>
+                    <select
+                        disabled={isMorphedByPrev}
+                        defaultValue={shot.shot_type || "Wide Shot"}
+                        onChange={(e) => onUpdateShot(shot.id, "shot_type", e.target.value)}
+                        className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
                         <option value="">{shot.shot_type}</option>
                         <option value="Wide Shot">Wide Shot</option>
                         <option value="Medium Shot">Medium Shot</option>
@@ -300,9 +287,14 @@ export const SortableShotCard = ({
                         <option value="Medium Close Up">Medium Close Up</option>
                     </select>
                 </div>
-                <div style={{ flex: 1 }}>
-                    <label style={labelStyle}>LOCATION</label>
-                    <select disabled={isMorphedByPrev} style={inputStyle} value={shot.location || ""} onChange={(e) => onUpdateShot(shot.id, "location", e.target.value)}>
+                <div className="flex-1">
+                    <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Location</label>
+                    <select
+                        disabled={isMorphedByPrev}
+                        value={shot.location || ""}
+                        onChange={(e) => onUpdateShot(shot.id, "location", e.target.value)}
+                        className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
                         <option disabled value="">Select...</option>
                         <option value={shot.location}>{shot.location}</option>
                         {locations.filter(l => l.name !== shot.location).map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
@@ -310,28 +302,15 @@ export const SortableShotCard = ({
                 </div>
             </div>
 
-            {/* [NEW] PRODUCTS SECTION */}
-            {products && products.length > 0 && (
-                <div style={{ marginBottom: '12px' }}>
-                    <label style={labelStyle}>PRODUCTS</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {/* ── Products ── */}
+            {products.length > 0 && (
+                <div className="mb-3">
+                    <label className="text-[9px] font-semibold text-neutral-500 mb-1.5 block">Products</label>
+                    <div className="flex flex-wrap gap-1.5">
                         {products.map((prod) => {
                             const isActive = Array.isArray(shot.products) && shot.products.includes(prod.id);
-
                             return (
-                                <button
-                                    disabled={isMorphedByPrev}
-                                    key={prod.id}
-                                    onClick={() => handleProductToggle(prod.id)}
-                                    style={{
-                                        fontSize: '10px', padding: '4px 10px', borderRadius: '4px', opacity: isMorphedByPrev ? 0.5 : 1,
-                                        border: '1px solid #333',
-                                        backgroundColor: isActive ? '#E50914' : 'transparent',
-                                        color: isActive ? 'white' : '#666',
-                                        cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: '4px'
-                                    }}
-                                >
+                                <button key={prod.id} disabled={isMorphedByPrev} onClick={() => handleProductToggle(prod.id)} className={tagBtn(isActive)}>
                                     {prod.name}
                                 </button>
                             );
@@ -340,30 +319,17 @@ export const SortableShotCard = ({
                 </div>
             )}
 
-            {/* CASTING */}
-            <div style={{ marginBottom: '12px' }}>
-                <label style={labelStyle}>CASTING</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {/* ── Cast ── */}
+            <div className="mb-3">
+                <label className="text-[9px] font-semibold text-neutral-500 mb-1.5 block">Cast</label>
+                <div className="flex flex-wrap gap-1.5">
                     {castMembers.map((char) => {
                         const isActive = Array.isArray(shot.characters) && (
                             shot.characters.includes(char.id) ||
                             shot.characters.some(c => normalize(c) === normalize(char.name))
                         );
-                        const baseStyle = styles?.charToggle ? styles.charToggle(isActive) : {};
                         return (
-                            <button
-                                disabled={isMorphedByPrev}
-                                key={char.id}
-                                onClick={() => handleCharToggle(char.id)}
-                                style={{
-                                    ...baseStyle,
-                                    fontSize: '10px', padding: '4px 10px', borderRadius: '4px', opacity: isMorphedByPrev ? 0.5 : 1,
-                                    border: '1px solid #333',
-                                    backgroundColor: isActive ? '#E50914' : 'transparent',
-                                    color: isActive ? 'white' : '#666',
-                                    cursor: 'pointer'
-                                }}
-                            >
+                            <button key={char.id} disabled={isMorphedByPrev} onClick={() => handleCharToggle(char.id)} className={tagBtn(isActive)}>
                                 {char.name}
                             </button>
                         );
@@ -371,208 +337,121 @@ export const SortableShotCard = ({
                 </div>
             </div>
 
-            {/* PROMPTS & REF IMAGE */}
-            <div style={{ marginBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', position: 'relative' }}>
-                    <label style={labelStyle}>IMAGE PROMPT</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', position: 'relative' }}>
-                        <input disabled={isMorphedByPrev} type="file" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} accept="image/*" />
-                        <input disabled={isMorphedByPrev || isBusy} type="file" ref={mainImageInputRef} onChange={handleMainImageSelect} style={{ display: 'none' }} accept="image/*" />
-                        {/* REF BUTTON CONTAINER */}
-                        <div
-                            onMouseEnter={() => setIsHoveringRef(true)}
-                            onMouseLeave={() => setIsHoveringRef(false)}
-                            style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '4px' }}
+            {/* ── Image Prompt ── */}
+            <div className="mb-3">
+                <div className="flex justify-between items-center mb-1.5">
+                    <label className="text-[9px] font-semibold text-neutral-500">Image Prompt</label>
+                    <div className="flex items-center gap-1.5 relative"
+                        onMouseEnter={() => setIsHoveringRef(true)}
+                        onMouseLeave={() => setIsHoveringRef(false)}
+                    >
+                        <input disabled={isMorphedByPrev} type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
+                        <input disabled={isMorphedByPrev || isBusy} type="file" ref={mainImageInputRef} onChange={handleMainImageSelect} className="hidden" accept="image/*" />
+
+                        <button
+                            disabled={isMorphedByPrev || isCompressing}
+                            onClick={() => fileInputRef.current?.click()}
+                            className={`flex items-center gap-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-md transition-all
+                                ${refPreviewUrl
+                                    ? 'text-[#E50914] bg-[#E50914]/10 border border-[#E50914]/30'
+                                    : 'text-neutral-500 hover:text-neutral-300 border-none bg-transparent'
+                                }
+                                ${(isMorphedByPrev || isCompressing) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+                            `}
                         >
-                            <button
-                                disabled={isMorphedByPrev || isCompressing}
-                                onClick={() => fileInputRef.current?.click()}
-                                style={{
-                                    background: 'none',
-                                    border: refPreviewUrl ? '1px solid #00FF41' : 'none',
-                                    color: (refFile && !isMorphedByPrev) ? '#00FF41' : '#666',
-                                    cursor: (isMorphedByPrev || isCompressing) ? 'not-allowed' : 'pointer',
-                                    fontSize: '9px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    fontWeight: 'bold',
-                                    padding: refPreviewUrl ? '2px 6px' : '0',
-                                    borderRadius: '4px',
-                                    backgroundColor: refPreviewUrl ? 'rgba(0, 255, 65, 0.1)' : 'transparent'
-                                }}
-                            >
-                                {isCompressing ? (
-                                    <>
-                                        <Loader2 size={10} className="animate-spin" /> PROCESSING
-                                    </>
-                                ) : refPreviewUrl ? (
-                                    <>
-                                        <div style={{
-                                            width: '12px', height: '12px',
-                                            backgroundImage: `url(${refPreviewUrl})`,
-                                            backgroundSize: 'cover',
-                                            borderRadius: '2px'
-                                        }} />
-                                        REF ACTIVE
-                                    </>
-                                ) : (
-                                    <>
-                                        <ImagePlus size={10} /> ADD REF
-                                    </>
-                                )}
+                            {isCompressing ? (
+                                <><Loader2 size={9} className="animate-spin" /> Processing</>
+                            ) : refPreviewUrl ? (
+                                <>
+                                    <div className="w-3 h-3 rounded-sm bg-cover bg-center" style={{ backgroundImage: `url(${refPreviewUrl})` }} />
+                                    Ref Active
+                                </>
+                            ) : (
+                                <><ImagePlus size={9} /> Add Ref</>
+                            )}
+                        </button>
+
+                        {refPreviewUrl && !isCompressing && !isMorphedByPrev && (
+                            <button onClick={clearRefImage} className="text-neutral-600 hover:text-red-500 transition-colors p-0.5" title="Remove Reference">
+                                <XCircle size={11} />
                             </button>
+                        )}
 
-                            {/* PERMANENT CROSS BUTTON (If Ref exists) */}
-                            {refPreviewUrl && !isCompressing && !isMorphedByPrev && (
-                                <button
-                                    onClick={clearRefImage}
-                                    style={{
-                                        background: 'none', border: 'none',
-                                        color: '#666', cursor: 'pointer',
-                                        padding: '2px', display: 'flex', alignItems: 'center'
-                                    }}
-                                    title="Remove Reference"
-                                >
-                                    <XCircle size={12} className="hover:text-red-500 transition-colors" />
-                                </button>
-                            )}
-
-                            {/* HOVER EXPANSION (Clean Preview Only) */}
-                            {refPreviewUrl && isHoveringRef && !isCompressing && (
-                                <div style={{
-                                    position: 'absolute',
-                                    bottom: '100%',
-                                    right: 0,
-                                    marginBottom: '8px',
-                                    width: '160px',
-                                    height: 'auto',
-                                    backgroundColor: '#000',
-                                    border: '1px solid #00FF41',
-                                    borderRadius: '6px',
-                                    overflow: 'hidden',
-                                    zIndex: 9999,
-                                    boxShadow: '0 4px 20px rgba(0,0,0,0.8)',
-                                    pointerEvents: 'none'
-                                }}>
-                                    <img
-                                        src={refPreviewUrl}
-                                        alt="Ref Preview"
-                                        style={{ width: '100%', height: 'auto', display: 'block' }}
-                                    />
-                                </div>
-                            )}
-                        </div>
+                        {refPreviewUrl && isHoveringRef && !isCompressing && (
+                            <div className="absolute bottom-full right-0 mb-2 w-40 bg-black border border-white/[0.15] rounded-lg overflow-hidden z-[9999] shadow-2xl pointer-events-none">
+                                <img src={refPreviewUrl} alt="Ref Preview" className="w-full h-auto block" />
+                            </div>
+                        )}
                     </div>
                 </div>
-                <textarea disabled={isMorphedByPrev} style={inputStyle} minLength={60} value={isMorphedByPrev ? "Content determined by morph transition." : localVisualAction} onChange={(e) => { setLocalVisualAction(e.target.value); onUpdateShot(shot.id, "visual_action", e.target.value); }} placeholder="Visual description..." />
+                <textarea
+                    disabled={isMorphedByPrev}
+                    value={isMorphedByPrev ? "Content determined by morph transition." : localVisualAction}
+                    onChange={(e) => { setLocalVisualAction(e.target.value); onUpdateShot(shot.id, "visual_action", e.target.value); }}
+                    placeholder="Visual description..."
+                    className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 resize-none transition-colors placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                    rows={2}
+                />
             </div>
 
-            <div style={{ marginBottom: '15px' }}>
-                <label style={labelStyle}>VIDEO PROMPT</label>
-                <textarea disabled={isMorphedByPrev} style={inputStyle} minLength={60} value={isMorphedByPrev ? "Movement controlled by previous shot transition." : localVideoPrompt} onChange={(e) => { setLocalVideoPrompt(e.target.value); onUpdateShot(shot.id, "video_prompt", e.target.value); }} placeholder="Motion description..." />
+            {/* ── Video Prompt ── */}
+            <div className="mb-3">
+                <label className="text-[9px] font-semibold text-neutral-500 mb-1.5 block">Video Prompt</label>
+                <textarea
+                    disabled={isMorphedByPrev}
+                    value={isMorphedByPrev ? "Movement controlled by previous shot transition." : localVideoPrompt}
+                    onChange={(e) => { setLocalVideoPrompt(e.target.value); onUpdateShot(shot.id, "video_prompt", e.target.value); }}
+                    placeholder="Motion description..."
+                    className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 resize-none transition-colors placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                    rows={2}
+                />
             </div>
 
-            {/* ACTION FOOTER */}
-            <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #1a1a1a', opacity: isMorphedByPrev ? 0.3 : 1, pointerEvents: isMorphedByPrev ? 'none' : 'auto' }}>
+            {/* ── Action Footer ── */}
+            <div className={`mt-auto pt-3 border-t border-white/[0.06] ${isMorphedByPrev ? 'opacity-30 pointer-events-none' : ''}`}>
 
-                {/* 1. IMAGE PROVIDER SELECTION */}
-                <div style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
-                    <button
-                        onClick={() => setImageProvider('seedream')}
-                        style={toggleStyle(imageProvider === 'seedream')}
-                    >
-                        <Palette size={10} /> SEEDREAM (HQ)
-                    </button>
-                    <button
-                        onClick={() => setImageProvider('gemini')}
-                        style={toggleStyle(imageProvider === 'gemini')}
-                    >
-                        <Sparkles size={10} /> GEMINI
-                    </button>
-                </div>
+                {/* Edit & Animate Button - Triggers Inspector */}
+                <button
+                    onClick={onEdit}
+                    disabled={isBusy}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <Settings size={14} className="group-hover:rotate-45 transition-transform text-[#E50914]" />
+                    Shot Settings & Animate
+                </button>
 
-                {/* 2. RE-GEN / FINALIZE */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                {/* Image Rendering Utils */}
+                <div className="grid grid-cols-2 gap-2 mb-2">
                     <button
                         onClick={() => onRender(refFile, imageProvider)}
                         disabled={isBusy}
-                        style={{ padding: '10px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: isBusy ? '#666' : '#FFF', fontSize: '10px', fontWeight: 'bold', cursor: isBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px' }}
+                        className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                        <Sparkles size={14} /> {hasImage ? "RE-GEN" : "GENERATE"}
+                        <Sparkles size={12} /> {hasImage ? "Re-Gen Image" : "Gen Image"}
                     </button>
-                    <button onClick={onFinalize} disabled={!hasImage || isBusy} style={{ padding: '10px', backgroundColor: isFinalized ? 'rgba(229, 9, 20, 0.1)' : '#1a1a1a', border: isFinalized ? '1px solid #E50914' : '1px solid #333', color: isFinalized ? '#FFF' : (hasImage ? '#FFF' : '#444'), fontSize: '10px', fontWeight: 'bold', cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px' }}>
-                        {isFinalized ? <CheckCircle2 size={14} /> : <Wand2 size={14} />}
-                        {isFinalized ? "DONE" : "FINALIZE"}
-                    </button>
-                </div>
-
-                {/* MANUAL UPLOAD */}
-                <div style={{ marginBottom: '8px' }}>
                     <button
-                        onClick={() => mainImageInputRef.current?.click()}
-                        disabled={isBusy}
-                        style={{
-                            width: '100%',
-                            padding: '8px',
-                            backgroundColor: '#111',
-                            border: '1px dashed #333',
-                            color: '#888',
-                            fontSize: '10px',
-                            fontWeight: 'bold',
-                            cursor: isBusy ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            borderRadius: '4px',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        <Upload size={12} /> UPLOAD IMAGE DIRECTLY
-                    </button>
-                </div>
-
-                {/* 3. VIDEO PROVIDER TOGGLE */}
-                {hasImage && !isBusy && (
-                    <div style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
-                        <button onClick={() => setVideoProvider('kling')} style={toggleStyle(videoProvider === 'kling')}>KLING (HQ)</button>
-                        <button onClick={() => { if (!isLinked) setVideoProvider('seedance'); }} disabled={isLinked} style={{ ...toggleStyle(videoProvider === 'seedance'), opacity: isLinked ? 0.3 : 1 }}>SEEDANCE</button>
-                    </div>
-                )}
-
-                {/* 4. ANIMATE BUTTON */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                        onClick={() => onAnimate(videoProvider, isLinked ? nextShotImage : null)}
+                        onClick={onFinalize}
                         disabled={!hasImage || isBusy}
-                        style={{
-                            flex: 1, padding: '10px',
-                            backgroundColor: isLinked ? '#E50914' : (hasImage ? '#1a1a1a' : '#111'),
-                            border: isLinked ? '1px solid #E50914' : (hasImage ? '1px solid #333' : '1px solid #222'),
-                            color: isLinked ? '#FFF' : (hasImage ? '#FFF' : '#444'),
-                            fontSize: '10px', fontWeight: 'bold', cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px', transition: 'all 0.2s'
-                        }}
+                        className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed
+                            ${isFinalized
+                                ? 'bg-green-500/15 text-white border border-green-500/60'
+                                : 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
+                            }
+                        `}
                     >
-                        {isLinked ? (
-                            <>
-                                <Link2 size={14} /> MORPH TO NEXT SHOT
-                            </>
-                        ) : (
-                            <>
-                                {hasVideo ? <RefreshCw size={14} /> : <Film size={14} fill={hasImage ? "white" : "gray"} />}
-                                {hasVideo ? "RE-ANIMATE" : "ANIMATE"}
-                            </>
-                        )}
+                        {isFinalized ? <CheckCircle2 size={12} /> : <Wand2 size={12} />}
+                        {isFinalized ? "Finalized" : "Finalize"}
                     </button>
-
-                    {hasVideo && (
-                        <button onClick={onLipSync} disabled={isBusy} style={{ width: '42px', padding: '0', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#FFF', cursor: isBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}>
-                            <Mic2 size={16} />
-                        </button>
-                    )}
                 </div>
+
+                {/* Upload Image */}
+                <button
+                    onClick={() => mainImageInputRef.current?.click()}
+                    disabled={isBusy}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-semibold text-neutral-500 border border-dashed border-white/[0.1] bg-white/[0.02] hover:border-white/20 hover:text-neutral-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                    <Upload size={10} /> Upload Image
+                </button>
             </div>
         </div>
     );
