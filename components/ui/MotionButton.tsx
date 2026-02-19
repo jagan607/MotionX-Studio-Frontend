@@ -18,17 +18,18 @@ export const MotionButton: React.FC<MotionButtonProps> = ({
         w-full py-4 text-xs font-bold tracking-[2px] uppercase 
         transition-all duration-300 ease-out
         flex items-center justify-center gap-2
-        rounded-md
+        rounded-lg
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50
     `;
 
     const variants = {
         primary: `
-            bg-gradient-to-r from-red-900 to-red-600
+            bg-gradient-to-r from-[#B91C1C] to-[#E50914]
             text-white 
-            hover:from-red-600 hover:to-red-500
-            hover:shadow-[0_0_40px_rgba(255,0,0,0.4)]
-            shadow-[0_0_20px_rgba(255,0,0,0.2)]
-            border border-red-500/30
+            hover:from-[#DC2626] hover:to-[#EF4444]
+            hover:shadow-[0_0_30px_rgba(229,9,20,0.35)]
+            shadow-[0_0_15px_rgba(229,9,20,0.15)]
+            border border-red-500/20
             hover:scale-[1.01]
             active:scale-[0.99]
         `,
@@ -37,7 +38,7 @@ export const MotionButton: React.FC<MotionButtonProps> = ({
             border border-neutral-700 
             text-gray-400 
             hover:border-red-600 hover:text-white
-            hover:shadow-[0_0_20px_rgba(255,0,0,0.1)]
+            hover:shadow-[0_0_20px_rgba(229,9,20,0.1)]
         `
     };
 

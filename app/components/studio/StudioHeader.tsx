@@ -77,7 +77,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
         <>
             <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
 
-            <header className={`h-20 border-b border-[#222] bg-[#050505] flex items-center justify-between px-8 shrink-0 z-50 ${className}`}>
+            <header className={`h-20 border-b border-white/[0.06] bg-[#050505]/85 backdrop-blur-xl flex items-center justify-between px-8 shrink-0 z-50 ${className}`}>
 
                 {/* --- LEFT: BACK + STUDIO TITLE --- */}
                 <div className="flex items-center h-full gap-6">
@@ -98,7 +98,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                     <div id="tour-studio-switcher" className="relative" ref={dropdownRef}>
                         <button
                             onClick={() => setShowProjectDropdown(!showProjectDropdown)}
-                            className="flex items-center justify-between gap-3 px-4 h-10 bg-[#1A1A1A] text-[#EEE] border border-[#333] hover:border-[#555] rounded transition-all group cursor-pointer min-w-[240px] max-w-[300px]"
+                            className="flex items-center justify-between gap-3 px-4 h-10 bg-[#1A1A1A] text-[#EEE] border border-[#333] hover:border-[#555] rounded-md transition-all group cursor-pointer min-w-[240px] max-w-[300px]"
                         >
                             <span className="text-[11px] font-semibold uppercase tracking-wide truncate select-none">
                                 {projectTitle || "Untitled Project"}
@@ -110,7 +110,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                         </button>
 
                         {showProjectDropdown && (
-                            <div className="absolute top-full right-0 mt-1 w-full bg-[#1A1A1A] border border-[#333] rounded shadow-2xl shadow-black/80 z-[9999] overflow-hidden">
+                            <div className="absolute top-full right-0 mt-1 w-full bg-[#1A1A1A] border border-[#333] rounded-md shadow-2xl shadow-black/80 z-[9999] overflow-hidden">
                                 {/* Header */}
                                 <div className="px-4 py-2.5 border-b border-[#222] flex items-center justify-between bg-[#111]">
                                     <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Switch Project</span>
@@ -165,7 +165,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                     <button
                                         onClick={onManualAdd}
                                         disabled={isExtending}
-                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded disabled:opacity-50"
+                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md disabled:opacity-50"
                                     >
                                         <Plus size={14} /> Add Scene
                                     </button>
@@ -174,7 +174,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                     <button
                                         onClick={onAutoExtend}
                                         disabled={isExtending}
-                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded disabled:opacity-50"
+                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md disabled:opacity-50"
                                     >
                                         {isExtending ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
                                         {isExtending ? "Extending..." : "Auto-Extend"}
@@ -183,7 +183,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                 {onEditScript && (
                                     <button
                                         onClick={onEditScript}
-                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded"
+                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md"
                                     >
                                         <FileText size={14} /> Script
                                     </button>
@@ -191,7 +191,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                 {onOpenAssets && (
                                     <button
                                         onClick={onOpenAssets}
-                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded"
+                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md"
                                     >
                                         <Database size={14} /> Assets
                                     </button>
@@ -212,7 +212,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                 {credits !== null ? credits.toLocaleString() : <span className="text-[#333] animate-pulse">---</span>}
                             </div>
                         </div>
-                        <button onClick={() => setShowTopUp(true)} className="flex items-center gap-1.5 bg-red-900/10 border border-red-600/30 text-white px-4 py-2 text-[9px] font-bold uppercase cursor-pointer transition-all hover:bg-red-600 hover:border-red-600 rounded-sm">
+                        <button onClick={() => setShowTopUp(true)} className="flex items-center gap-1.5 bg-red-900/10 border border-red-600/30 text-white px-4 py-2 text-[9px] font-bold uppercase cursor-pointer transition-all hover:bg-red-600 hover:border-red-600 rounded-md">
                             <Plus size={10} strokeWidth={4} /> Top Up
                         </button>
                     </div>

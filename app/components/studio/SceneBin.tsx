@@ -230,18 +230,14 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                                                 className="scene-card-wrapper group relative"
                                                 ref={isActive ? editingCardRef : undefined}
                                                 style={isActive ? {
-                                                    outline: '2px solid rgba(239, 68, 68, 0.5)',
+                                                    outline: '2px solid rgba(229, 9, 20, 0.4)',
                                                     outlineOffset: '-1px',
-                                                    boxShadow: '0 0 15px rgba(220, 38, 38, 0.2), 0 0 40px rgba(220, 38, 38, 0.08)',
+                                                    boxShadow: '0 0 20px rgba(229, 9, 20, 0.15), 0 0 60px rgba(229, 9, 20, 0.05)',
                                                     borderRadius: '12px',
                                                     position: 'relative',
                                                     zIndex: 5,
                                                 } : undefined}
                                             >
-                                                {/* Tech Accents */}
-                                                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[#333] z-10 pointer-events-none" />
-                                                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#333] z-10 pointer-events-none" />
-
                                                 {/* The Card Component */}
                                                 <SceneCard
                                                     scene={scene}
@@ -288,13 +284,13 @@ export const SceneBin: React.FC<SceneBinProps> = ({
 
                 {/* --- INLINE EDIT PANEL --- */}
                 <div
-                    className={`shrink-0 bg-[#080808] border-l border-[#222] overflow-hidden transition-all duration-300 ease-in-out
+                    className={`shrink-0 bg-[#080808] border-l border-white/[0.06] overflow-hidden transition-all duration-300 ease-in-out
                         ${isEditing ? 'w-[380px] opacity-100' : 'w-0 opacity-0 border-l-0'}`}
                 >
                     {/* Panel inner content (always rendered for smooth transitions) */}
                     <div className="w-[380px] h-full flex flex-col overflow-hidden">
                         {/* PANEL HEADER */}
-                        <div className="h-12 border-b border-[#222] bg-[#0A0A0A] flex items-center justify-between px-4 shrink-0">
+                        <div className="h-12 border-b border-white/[0.06] bg-[#0A0A0A] flex items-center justify-between px-4 shrink-0">
                             <div className="flex items-center gap-2">
                                 <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest">Editing Scene</span>
                                 <span className="text-sm font-bold text-red-500 font-mono">

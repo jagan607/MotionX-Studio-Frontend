@@ -20,8 +20,8 @@ export const OverviewChart = ({ data }: { data: any[] }) => {
                 <AreaChart data={data}>
                     <defs>
                         <linearGradient id="colorRed" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#FF0000" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#FF0000" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#E50914" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#E50914" stopOpacity={0} />
                         </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
@@ -41,15 +41,15 @@ export const OverviewChart = ({ data }: { data: any[] }) => {
                         tick={{ fontFamily: 'monospace' }}
                     />
                     <Tooltip
-                        contentStyle={{ backgroundColor: '#000', border: '1px solid #FF0000', borderRadius: '0px' }}
+                        contentStyle={{ backgroundColor: '#000', border: '1px solid #E50914', borderRadius: '0px' }}
                         itemStyle={{ color: '#FFF', fontFamily: 'monospace', fontSize: '12px' }}
                         labelStyle={{ color: '#666', fontFamily: 'monospace', fontSize: '10px', marginBottom: '5px' }}
-                        cursor={{ stroke: '#FF0000', strokeWidth: 1 }}
+                        cursor={{ stroke: '#E50914', strokeWidth: 1 }}
                     />
                     <Area
                         type="monotone"
                         dataKey="users"
-                        stroke="#FF0000"
+                        stroke="#E50914"
                         strokeWidth={2}
                         fillOpacity={1}
                         fill="url(#colorRed)"

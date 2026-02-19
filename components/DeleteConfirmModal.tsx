@@ -12,22 +12,24 @@ interface DeleteConfirmModalProps {
 export const DeleteConfirmModal = ({ title, message, isDeleting, onConfirm, onCancel }: DeleteConfirmModalProps) => {
     return (
         <div style={{
-            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 9999,
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)'
         }}>
             <div style={{
-                width: '400px', backgroundColor: '#050505', border: '1px solid #333',
-                padding: '30px', position: 'relative', boxShadow: '0 0 50px rgba(255, 0, 0, 0.2)'
+                width: '400px', backgroundColor: '#0A0A0A', border: '1px solid rgba(255,255,255,0.08)',
+                padding: '30px', position: 'relative', boxShadow: '0 8px 40px rgba(0, 0, 0, 0.6), 0 0 40px rgba(229, 9, 20, 0.1)',
+                borderRadius: '12px'
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                    <h2 style={{ fontFamily: 'Anton, sans-serif', fontSize: '24px', color: '#FF0000', margin: 0, textTransform: 'uppercase' }}>
+                    <h2 style={{ fontFamily: 'Anton, sans-serif', fontSize: '24px', color: '#E50914', margin: 0, textTransform: 'uppercase' }}>
                         {title}
                     </h2>
                     <X size={20} color="#666" style={{ cursor: 'pointer' }} onClick={onCancel} />
                 </div>
 
                 <div style={{ display: 'flex', gap: '15px', alignItems: 'start', marginBottom: '25px' }}>
-                    <AlertTriangle color="#FF0000" size={24} style={{ flexShrink: 0 }} />
+                    <AlertTriangle color="#E50914" size={24} style={{ flexShrink: 0 }} />
                     <p style={{ fontSize: '13px', color: '#CCC', lineHeight: '1.5', margin: 0 }}>
                         {message}
                     </p>
@@ -39,8 +41,9 @@ export const DeleteConfirmModal = ({ title, message, isDeleting, onConfirm, onCa
                         disabled={isDeleting}
                         style={{
                             flex: 1, padding: '12px', backgroundColor: 'transparent',
-                            border: '1px solid #333', color: '#888',
-                            fontSize: '11px', fontWeight: 'bold', cursor: 'pointer'
+                            border: '1px solid rgba(255,255,255,0.1)', color: '#888',
+                            fontSize: '11px', fontWeight: 'bold', cursor: 'pointer',
+                            borderRadius: '6px', transition: 'all 0.2s ease'
                         }}
                     >
                         CANCEL
@@ -49,10 +52,11 @@ export const DeleteConfirmModal = ({ title, message, isDeleting, onConfirm, onCa
                         onClick={onConfirm}
                         disabled={isDeleting}
                         style={{
-                            flex: 1, padding: '12px', backgroundColor: '#FF0000',
+                            flex: 1, padding: '12px', backgroundColor: '#E50914',
                             border: 'none', color: 'white',
                             fontSize: '11px', fontWeight: 'bold', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                            borderRadius: '6px', transition: 'all 0.2s ease'
                         }}
                     >
                         {isDeleting ? <Loader2 className="spin-loader" size={14} /> : <Trash2 size={14} />}

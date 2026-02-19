@@ -97,7 +97,7 @@ export default function SettingsTab({
                 }
                 .danger-btn:hover {
                     background-color: #1A0505 !important;
-                    border-color: #FF0000 !important;
+                    border-color: #E50914 !important;
                 }
             `}</style>
 

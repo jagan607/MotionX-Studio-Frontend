@@ -80,7 +80,7 @@ export const usePayment = () => {
                         if (onError) onError("Verification Failed");
                     }
                 },
-                theme: { color: "#FF0000" },
+                theme: { color: "#E50914" },
                 modal: {
                     ondismiss: () => {
                         setLoading(false);
@@ -160,7 +160,7 @@ export const usePayment = () => {
                         if (onError) onError("Verification Failed");
                     }
                 },
-                theme: { color: "#FF0000" },
+                theme: { color: "#E50914" },
                 modal: {
                     ondismiss: () => {
                         setLoading(false);

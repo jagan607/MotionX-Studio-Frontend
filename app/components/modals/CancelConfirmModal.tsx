@@ -29,13 +29,13 @@ export default function CancelConfirmModal({
             />
 
             {/* Modal Content */}
-            <div className="relative w-full max-w-md bg-[#050505] border border-[#330000] shadow-[0_0_50px_rgba(255,0,0,0.1)] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative w-full max-w-md bg-[#050505] border border-[#330000] shadow-[0_0_50px_rgba(229,9,20,0.1)] flex flex-col animate-in fade-in zoom-in-95 duration-200">
 
                 {/* Header */}
                 <div className="flex justify-between items-start p-6 border-b border-[#220000] bg-[#0A0000]">
                     <div className="flex gap-3">
-                        <div className="p-2 bg-[rgba(255,0,0,0.1)] border border-[rgba(255,0,0,0.2)]">
-                            <AlertTriangle className="text-[#FF0000]" size={20} />
+                        <div className="p-2 bg-[rgba(229,9,20,0.1)] border border-[rgba(229,9,20,0.2)]">
+                            <AlertTriangle className="text-[#E50914]" size={20} />
                         </div>
                         <div>
                             <h2 className="text-xl font-anton uppercase text-white tracking-wide">
@@ -88,7 +88,7 @@ export default function CancelConfirmModal({
                     <button
                         onClick={onConfirm}
                         disabled={isProcessing}
-                        className="flex-1 py-3 text-[10px] font-bold tracking-[2px] uppercase bg-[#FF0000] text-white border border-[#FF0000] hover:bg-[#CC0000] transition-all flex items-center justify-center gap-2"
+                        className="flex-1 py-3 text-[10px] font-bold tracking-[2px] uppercase bg-[#E50914] text-white border border-[#E50914] hover:bg-[#CC0000] transition-all flex items-center justify-center gap-2"
                     >
                         {isProcessing ? (
                             <>

@@ -65,7 +65,7 @@ export const FinanceChart = ({ transactions }: { transactions: any[] }) => {
                     />
                     <Bar dataKey="total" barSize={40}>
                         {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={index === data.length - 1 ? '#FF0000' : '#333'} />
+                            <Cell key={`cell-${index}`} fill={index === data.length - 1 ? '#E50914' : '#333'} />
                         ))}
                     </Bar>
                 </BarChart>

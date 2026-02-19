@@ -16,16 +16,18 @@ const config: Config = {
       },
       colors: {
         motion: {
-          bg: "#030303",        // Deep Black
-          surface: "#111111",   // Panel/Card BG
-          red: "#FF0000",       // Brand Accent
-          redHover: "#CC0000",  // Darker Red
+          bg: "#030303",           // Deep Black
+          surface: "#0F0F0F",     // Panel/Card BG
+          surfaceHover: "#1A1A1A", // Hover BG
+          red: "#E50914",         // Brand Accent (Premium)
+          redHover: "#B91C1C",    // Deeper Red
+          redGlow: "rgba(229, 9, 20, 0.15)", // Subtle glow
           text: {
-            DEFAULT: "#EDEDED", // Primary White
-            muted: "#666666",   // Subtitles
-            error: "#EF4444",   // Error State
+            DEFAULT: "#EDEDED",   // Primary White
+            muted: "#888888",     // Subtitles (softer)
+            error: "#EF4444",     // Error State
           },
-          border: "#333333",    // Subtle lines
+          border: "#222222",      // Subtle lines
         }
       },
       backgroundImage: {

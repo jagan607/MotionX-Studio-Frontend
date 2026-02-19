@@ -143,25 +143,25 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             if (asset.id === "new") {
                 const res = await createAsset(projectId, { ...data, type: asset.type });
                 const newAsset = { ...res.data.asset, type: asset.type };
-                toast.success("ENTRY CREATED");
+                toast.success("Asset created");
                 setSelectedAsset(newAsset);
                 loadData();
                 return newAsset;
             } else {
                 await updateAsset(projectId, asset.type, asset.id, data);
-                toast.success("DATABASE UPDATED");
+                toast.success("Asset updated");
                 loadData();
                 return asset;
             }
         } catch (e) {
             console.error(e);
-            toast.error("SAVE FAILED");
+            toast.error("Save failed");
             throw e;
         }
     };
 
     const handleDelete = async (id: string, type: string) => {
-        if (!confirm("CONFIRM DELETION?")) return;
+        if (!confirm("Delete this asset?")) return;
         try {
             await deleteAsset(projectId, type, id);
             setAssets(prev => {
@@ -171,10 +171,10 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                 else if (type === 'product') newState.products = prev.products.filter(a => a.id !== id);
                 return newState;
             });
-            toast.success("ASSET PURGED");
+            toast.success("Asset deleted");
             onAssetsUpdated?.();
         } catch (e) {
-            toast.error("DELETION FAILED");
+            toast.error("Delete failed");
         }
     };
 
@@ -182,7 +182,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
         if (asset.id === "new") return;
 
         setGeneratingIds(prev => new Set(prev).add(asset.id));
-        toast("INITIALIZING RENDER...", { icon: '⚡' });
+        toast("Generating visual...", { icon: '✨' });
 
         try {
             const { code, owner_id, ...cleanStyle } = (project as any)?.moodboard || {};
@@ -231,7 +231,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
 
             return res.image_url;
         } catch (e) {
-            toast.error("RENDER FAILED");
+            toast.error("Generation failed");
             setGeneratingIds(prev => { const next = new Set(prev); next.delete(asset.id); return next; });
         }
     };
@@ -250,7 +250,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             loadData();
             await handleGenerate(newAsset, draftData.prompt, true);
         } catch (e) {
-            toast.error("CREATION FAILED");
+            toast.error("Creation failed");
         }
     };
 
@@ -261,8 +261,8 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
         else if (activeTab === 'products') targetList = assets.products;
 
         const pending = targetList.filter(a => !a.image_url);
-        if (pending.length === 0) { toast.success("ALL SYSTEMS READY"); return; }
-        toast.loading(`BATCH PROCESSING ${pending.length} ITEMS...`);
+        if (pending.length === 0) { toast.success("All assets are ready"); return; }
+        toast.loading(`Generating ${pending.length} assets...`);
         await Promise.all(pending.map(asset => handleGenerate(asset)));
     };
 
@@ -292,9 +292,9 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
     };
 
     const getHeaderTitle = () => {
-        if (activeTab === 'cast') return 'Character Manifest';
-        if (activeTab === 'locations') return 'Environment Database';
-        return 'Product Inventory';
+        if (activeTab === 'cast') return 'Cast';
+        if (activeTab === 'locations') return 'Locations';
+        return 'Products';
     };
 
     const displayedAssets = getDisplayedAssets();
@@ -313,16 +313,16 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             />
 
             {/* Modal Container — wider to accommodate the grid */}
-            <div className="w-[95vw] max-w-[1200px] h-[90vh] flex flex-col bg-[#050505] border border-[#222] shadow-2xl shadow-black relative overflow-hidden rounded-lg">
+            <div className="w-[95vw] max-w-[1200px] h-[90vh] flex flex-col bg-[#050505] border border-white/[0.06] shadow-2xl shadow-black/80 relative overflow-hidden rounded-xl">
 
                 {/* ── HEADER ── */}
-                <div className="h-14 border-b border-[#222] bg-[#0A0A0A] flex items-center justify-between px-6 shrink-0">
+                <div className="h-14 border-b border-white/[0.06] bg-[#0A0A0A] flex items-center justify-between px-6 shrink-0">
                     <div className="flex items-center gap-4">
-                        <h2 className="text-xl font-bold text-white uppercase tracking-tight">Asset Manager</h2>
-                        <div className="text-[10px] font-mono text-[#444] flex items-center gap-3">
-                            <span>READY: {assets.characters.filter(c => c.image_url).length + assets.locations.filter(l => l.image_url).length + assets.products.filter(p => p.image_url).length}</span>
-                            <span className="text-[#222]">|</span>
-                            <span>PENDING: {assets.characters.filter(c => !c.image_url).length + assets.locations.filter(l => !l.image_url).length + assets.products.filter(p => !p.image_url).length}</span>
+                        <h2 className="text-xl font-bold text-white uppercase tracking-tight">Assets</h2>
+                        <div className="text-[10px] text-neutral-600 flex items-center gap-3">
+                            <span>Ready: {assets.characters.filter(c => c.image_url).length + assets.locations.filter(l => l.image_url).length + assets.products.filter(p => p.image_url).length}</span>
+                            <span className="text-white/[0.08]">|</span>
+                            <span>Pending: {assets.characters.filter(c => !c.image_url).length + assets.locations.filter(l => !l.image_url).length + assets.products.filter(p => !p.image_url).length}</span>
                         </div>
                     </div>
 
@@ -331,14 +331,14 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                         <button
                             id="tour-am-generate-all"
                             onClick={handleGenerateAll}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-[#111] border border-[#333] hover:border-red-600 hover:bg-red-600/10 text-[#888] hover:text-red-400 text-[10px] font-bold tracking-widest uppercase transition-all"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/[0.08] hover:border-[#E50914]/50 hover:bg-[#E50914]/10 text-neutral-500 hover:text-[#ff6b6b] text-[10px] font-bold tracking-widest uppercase transition-all rounded-md"
                         >
-                            <Sparkles size={11} /> GENERATE ALL
+                            <Sparkles size={11} /> Generate All
                         </button>
 
                         <button
                             onClick={onClose}
-                            className="w-8 h-8 flex items-center justify-center hover:bg-[#151515] text-[#666] hover:text-white transition-colors rounded-full"
+                            className="w-8 h-8 flex items-center justify-center hover:bg-white/[0.04] text-neutral-600 hover:text-white transition-colors rounded-full"
                         >
                             <X size={18} />
                         </button>
@@ -346,14 +346,14 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                 </div>
 
                 {/* ── TAB BAR ── */}
-                <div id="tour-am-cast-tab" className="h-11 border-b border-[#222] bg-[#080808] flex items-center px-6 gap-1 shrink-0">
+                <div id="tour-am-cast-tab" className="h-11 border-b border-white/[0.06] bg-[#080808] flex items-center px-6 gap-1 shrink-0">
                     {/* Products tab — shown first for ad projects */}
                     {project?.type === 'ad' && (
                         <TabButton
                             active={activeTab === 'products'}
                             onClick={() => setActiveTab('products')}
                             icon={<ShoppingBag size={12} />}
-                            label="PRODUCTS"
+                            label="Products"
                             count={assets.products.length}
                         />
                     )}
@@ -361,14 +361,14 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                         active={activeTab === 'cast'}
                         onClick={() => setActiveTab('cast')}
                         icon={<Users size={12} />}
-                        label="CAST LIST"
+                        label="Cast"
                         count={assets.characters.length}
                     />
                     <TabButton
                         active={activeTab === 'locations'}
                         onClick={() => setActiveTab('locations')}
                         icon={<MapPin size={12} />}
-                        label="LOCATIONS"
+                        label="Locations"
                         count={assets.locations.length}
                     />
                     {/* Products tab for non-ad projects */}
@@ -377,19 +377,19 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                             active={activeTab === 'products'}
                             onClick={() => setActiveTab('products')}
                             icon={<ShoppingBag size={12} />}
-                            label="PRODUCTS"
+                            label="Products"
                             count={assets.products.length}
                         />
                     )}
 
                     {/* Right side — section label + search placeholder */}
                     <div className="ml-auto flex items-center gap-3">
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-[#444] uppercase tracking-widest">
+                        <div className="flex items-center gap-2 text-[10px] font-semibold text-neutral-600 uppercase tracking-widest">
                             <LayoutGrid size={12} />
                             {getHeaderTitle()}
                         </div>
-                        <div className="flex items-center gap-2 px-3 py-1 bg-[#111] border border-[#222] text-[10px] font-mono text-[#555]">
-                            <Search size={10} /> SEARCH_DB
+                        <div className="flex items-center gap-2 px-3 py-1 bg-white/[0.03] border border-white/[0.06] rounded-md text-[10px] text-neutral-600">
+                            <Search size={10} /> Search
                         </div>
                     </div>
                 </div>
@@ -402,26 +402,21 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                         <button
                             id="tour-am-register-new"
                             onClick={handleOpenDraft}
-                            className="group aspect-[3/4] bg-[#050505] border border-dashed border-[#333] hover:border-red-600 hover:bg-[#080808] flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden"
+                            className="group aspect-[3/4] bg-white/[0.02] border border-dashed border-white/[0.08] hover:border-[#E50914]/40 hover:bg-[#E50914]/5 rounded-xl flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden"
                         >
-                            <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-[#333]" />
-                            <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-[#333]" />
-                            <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-[#333]" />
-                            <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-[#333]" />
-
-                            <div className="h-12 w-12 rounded-none bg-[#111] flex items-center justify-center border border-[#222] group-hover:bg-red-600 group-hover:border-red-600 group-hover:text-white text-[#444] transition-colors mb-4">
+                            <div className="h-12 w-12 rounded-full bg-white/[0.04] flex items-center justify-center border border-white/[0.06] group-hover:bg-[#E50914] group-hover:border-[#E50914] group-hover:text-white text-neutral-600 transition-colors mb-4">
                                 <Plus size={24} />
                             </div>
-                            <span className="text-[10px] font-bold tracking-[0.2em] text-[#555] group-hover:text-white uppercase">
-                                REGISTER NEW
+                            <span className="text-[10px] font-bold tracking-[0.2em] text-neutral-600 group-hover:text-white uppercase">
+                                Add New
                             </span>
                         </button>
 
                         {/* Loading State */}
                         {loading ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-50">
-                                <Loader2 className="animate-spin text-red-600 mb-4" size={24} />
-                                <span className="text-xs font-mono tracking-widest">ACCESSING MAINFRAME...</span>
+                                <Loader2 className="animate-spin text-[#E50914] mb-4" size={24} />
+                                <span className="text-xs tracking-widest text-neutral-600">Loading assets...</span>
                             </div>
                         ) : displayedAssets.map((asset, index) => (
                             <div key={asset.id} className="relative group">
@@ -440,15 +435,14 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                                     onView={handleViewAsset}
                                 />
                                 {/* Corner accent */}
-                                <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-red-600/0 group-hover:border-red-600 transition-colors pointer-events-none" />
                             </div>
                         ))}
 
                         {/* Empty State */}
                         {!loading && displayedAssets.length === 0 && (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-40">
-                                <div className="text-[10px] font-mono tracking-widest text-[#555] uppercase">
-                                    NO ENTRIES — REGISTER NEW TO BEGIN
+                                <div className="text-[10px] tracking-widest text-neutral-600 uppercase">
+                                    No assets yet — add one to get started
                                 </div>
                             </div>
                         )}
@@ -481,8 +475,8 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                     styles={{
                         modal: {
                             background: '#050505',
-                            border: '1px solid #333',
-                            borderRadius: '0px',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                            borderRadius: '12px',
                             boxShadow: '0 0 100px rgba(0,0,0,0.9)',
                             zIndex: 70,
                         }
@@ -508,12 +502,12 @@ const TabButton = ({ active, onClick, icon, label, count }: {
         onClick={onClick}
         className={`flex items-center gap-2 px-4 py-2 text-[10px] font-bold tracking-widest uppercase transition-all border-b-2 h-full
         ${active
-                ? "border-red-600 text-white bg-[#0A0A0A]"
-                : "border-transparent text-[#555] hover:text-[#AAA] hover:bg-[#0A0A0A]"}`}
+                ? "border-[#E50914] text-white bg-white/[0.02]"
+                : "border-transparent text-neutral-600 hover:text-neutral-300 hover:bg-white/[0.02]"}`}
     >
         {icon}
         {label}
-        <span className={`font-mono ml-1 ${active ? "text-red-500" : "text-[#333]"}`}>
+        <span className={`ml-1 ${active ? "text-[#E50914]" : "text-neutral-700"}`}>
             {String(count).padStart(2, '0')}
         </span>
     </button>

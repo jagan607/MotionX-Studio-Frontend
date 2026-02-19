@@ -192,7 +192,7 @@ export default function ScriptLab() {
                     </button>
 
                     <div>
-                        <div style={{ fontSize: '10px', color: '#FF0000', letterSpacing: '2px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ fontSize: '10px', color: '#E50914', letterSpacing: '2px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <FileCode size={12} /> SCRIPT LAB // STAGING
                         </div>
                         <h1 style={{ fontFamily: 'Anton, sans-serif', fontSize: '32px', textTransform: 'uppercase', margin: 0, color: 'white' }}>
@@ -247,14 +247,14 @@ export default function ScriptLab() {
                         border: '1px solid #222', padding: '30px', backgroundColor: '#080808',
                         boxShadow: '0 10px 40px rgba(0,0,0,0.5)', borderRadius: '4px'
                     }}>
-                        <div style={{ fontSize: '10px', color: '#FF0000', marginBottom: '20px', letterSpacing: '2px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ fontSize: '10px', color: '#E50914', marginBottom: '20px', letterSpacing: '2px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Sparkles size={12} /> AI DIRECTOR
                         </div>
 
                         {activeSceneId ? (
                             <>
                                 <div style={{ marginBottom: '20px', fontSize: '13px', color: '#AAA', borderBottom: '1px solid #222', paddingBottom: '15px' }}>
-                                    <span style={{ color: '#FF0000', fontWeight: 'bold' }}>MODIFYING: </span>
+                                    <span style={{ color: '#E50914', fontWeight: 'bold' }}>MODIFYING: </span>
                                     SCENE {scenes.find(s => s.id === activeSceneId)?.scene_number}
                                 </div>
 
@@ -274,7 +274,7 @@ export default function ScriptLab() {
                                     onClick={handleAiRewrite}
                                     disabled={isProcessing}
                                     style={{
-                                        width: '100%', padding: '15px', backgroundColor: '#FF0000',
+                                        width: '100%', padding: '15px', backgroundColor: '#E50914',
                                         color: 'white', border: 'none', cursor: isProcessing ? 'not-allowed' : 'pointer',
                                         display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px',
                                         fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', opacity: isProcessing ? 0.7 : 1
@@ -317,7 +317,7 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
         transition,
         // Blue/Cyan Theme for Active State
         backgroundColor: isActive ? 'rgba(6, 182, 212, 0.05)' : '#080808',
-        border: isActive ? '1px solid #FF0000' : '1px solid #1A1A1A',
+        border: isActive ? '1px solid #E50914' : '1px solid #1A1A1A',
         padding: '25px',
         cursor: 'default',
         display: 'flex',
@@ -332,7 +332,7 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
             {/* Drag Handle */}
             <div
                 {...attributes} {...listeners}
-                style={{ cursor: 'grab', color: isActive ? '#FF0000' : '#444', display: 'flex', alignItems: 'center', paddingRight: '10px' }}
+                style={{ cursor: 'grab', color: isActive ? '#E50914' : '#444', display: 'flex', alignItems: 'center', paddingRight: '10px' }}
                 title="Drag to Reorder"
             >
                 <GripVertical size={20} />
@@ -342,7 +342,7 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
             <div style={{ flex: 1 }}>
                 <div style={{
                     fontSize: '10px',
-                    color: isActive ? '#FF0000' : '#666',
+                    color: isActive ? '#E50914' : '#666',
                     fontFamily: 'monospace', marginBottom: '8px', fontWeight: 'bold', letterSpacing: '1px'
                 }}>
                     SCENE {index + 1} // {scene.header} // {scene.time}
@@ -362,7 +362,7 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
                     onClick={onEdit}
                     title="Edit with AI"
                     style={{
-                        background: isActive ? '#FF0000' : 'transparent',
+                        background: isActive ? '#E50914' : 'transparent',
                         border: isActive ? 'none' : '1px solid #333',
                         borderRadius: '4px',
                         width: '36px', height: '36px', display: 'flex', alignItems: 'center',

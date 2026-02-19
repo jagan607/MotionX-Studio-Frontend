@@ -93,7 +93,7 @@ export const LibraryModal = ({ isOpen, onClose, type, masterList, currentList, o
                 {/* HEADER */}
                 <div style={modalStyles.header}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {type === 'character' ? <Users size={20} color="#FF0000" /> : <MapPin size={20} color="#FF0000" />}
+                        {type === 'character' ? <Users size={20} color="#E50914" /> : <MapPin size={20} color="#E50914" />}
                         <div>
                             <h2 style={{ fontFamily: 'Anton', fontSize: '20px', margin: 0, textTransform: 'uppercase', color: 'white' }}>
                                 SERIES {type === 'character' ? 'CASTING' : 'LOCATIONS'}
@@ -133,7 +133,7 @@ export const LibraryModal = ({ isOpen, onClose, type, masterList, currentList, o
                                     key={item.id}
                                     onClick={() => toggleSelect(item.id)}
                                     style={{
-                                        border: isSelected ? '1px solid #FF0000' : '1px solid #222',
+                                        border: isSelected ? '1px solid #E50914' : '1px solid #222',
                                         backgroundColor: isSelected ? 'rgba(6, 182, 212, 0.05)' : '#0E0E0E',
                                         padding: '12px', borderRadius: '4px', cursor: 'pointer',
                                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -161,7 +161,7 @@ export const LibraryModal = ({ isOpen, onClose, type, masterList, currentList, o
                                             </div>
                                         </div>
                                     </div>
-                                    {isSelected && <Check size={16} color="#FF0000" />}
+                                    {isSelected && <Check size={16} color="#E50914" />}
                                 </div>
                             );
                         })
@@ -175,7 +175,7 @@ export const LibraryModal = ({ isOpen, onClose, type, masterList, currentList, o
                         disabled={selected.size === 0}
                         style={{
                             padding: '12px 24px',
-                            backgroundColor: selected.size > 0 ? '#FF0000' : '#222',
+                            backgroundColor: selected.size > 0 ? '#E50914' : '#222',
                             color: selected.size > 0 ? '#FFF' : '#444',
                             border: 'none',
                             fontWeight: 'bold', fontSize: '11px', letterSpacing: '1px',

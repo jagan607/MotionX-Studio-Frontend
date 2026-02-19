@@ -119,14 +119,14 @@ export default function Dashboard() {
     });
 
     if (bootState === 'booting') return (
-        <div className="h-screen w-screen bg-[#050505] flex flex-col items-center justify-center text-[#FF0000] font-mono tracking-[4px]">
+        <div className="h-screen w-screen bg-[#050505] flex flex-col items-center justify-center text-[#E50914] font-sans tracking-[4px]">
             <Loader2 className="animate-spin mb-4" size={40} />
-            <span>SYSTEM_INITIALIZING...</span>
+            <span className="text-xs font-semibold">Loading Studio...</span>
         </div>
     );
 
     return (
-        <main className="fixed inset-0 bg-[#050505] text-[#EDEDED] font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#FF0000] selection:text-white">
+        <main className="fixed inset-0 bg-[#050505] text-[#EDEDED] font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#E50914] selection:text-white">
 
             {/* MAIN WORKSPACE */}
             <div className="flex-1 flex p-6 gap-6 min-h-0 overflow-hidden">
@@ -135,7 +135,7 @@ export default function Dashboard() {
                 <div className="flex-[3] flex flex-col min-w-0 h-full overflow-hidden gap-6">
 
                     {/* MONITOR */}
-                    <div className="flex-[2] relative bg-black border border-[#333] group overflow-hidden shadow-2xl min-h-0 rounded-sm transition-colors hover:border-[#444]">
+                    <div className="flex-[2] relative bg-black border border-[#222] group overflow-hidden shadow-2xl min-h-0 rounded-lg transition-colors hover:border-[#333]">
                         <div className="absolute inset-0 pointer-events-none z-20 p-4">
                             <div className="absolute top-4 left-4 w-8 h-8 border-l border-t border-white/60" />
                             <div className="absolute top-4 right-4 w-8 h-8 border-r border-t border-white/30" />
@@ -158,8 +158,8 @@ export default function Dashboard() {
                                     <div className="absolute bottom-0 left-0 p-8 w-full z-30 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
                                         <div className="flex items-end justify-between">
                                             <div>
-                                                <span className="bg-[#FF0000] text-black text-[9px] font-bold px-2 py-0.5 font-mono rounded-sm mr-3 uppercase inline-block mb-2">
-                                                    {activeProject ? (activeProject.type === 'movie' ? "FEATURE_FILM" : "SERIES") : "DEMO_MODE"}
+                                                <span className="bg-[#E50914] text-white text-[9px] font-bold px-3 py-0.5 rounded-md mr-3 uppercase inline-block mb-2 tracking-wide">
+                                                    {activeProject ? (activeProject.type === 'movie' ? "FEATURE FILM" : "SERIES") : "WELCOME"}
                                                 </span>
                                                 <h1 className="text-5xl font-anton uppercase text-white leading-none drop-shadow-md">
                                                     {activeProject ? activeProject.title : "WELCOME STUDIO"}
@@ -168,7 +168,7 @@ export default function Dashboard() {
 
                                             {activeProject && (
                                                 <Link href={projectType === 'adaptation' ? `/project/${activeProject.id}/adaptation` : `/project/${activeProject.id}/studio`}>
-                                                    <button className="bg-white text-black px-8 py-3 font-bold text-xs uppercase tracking-[2px] hover:bg-[#FF0000] hover:text-white transition-colors duration-300 flex items-center gap-3 cursor-pointer">
+                                                    <button className="bg-white text-black px-8 py-3 font-bold text-xs uppercase tracking-[2px] hover:bg-[#E50914] hover:text-white transition-colors duration-300 flex items-center gap-3 cursor-pointer rounded-md">
                                                         ENTER PRODUCTION <Maximize size={14} />
                                                     </button>
                                                 </Link>
@@ -190,7 +190,7 @@ export default function Dashboard() {
                         {/* LEFT SCROLL BUTTON */}
                         <button
                             onClick={() => scrollFilmStrip('left')}
-                            className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black via-black/80 to-transparent z-20 flex items-center justify-center text-white opacity-0 group-hover/strip:opacity-100 transition-opacity duration-300 hover:text-[#FF0000] cursor-pointer"
+                            className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-black via-black/80 to-transparent z-20 flex items-center justify-center text-white opacity-0 group-hover/strip:opacity-100 transition-opacity duration-300 hover:text-[#E50914] cursor-pointer"
                         >
                             <ChevronLeft size={32} />
                         </button>
@@ -201,15 +201,15 @@ export default function Dashboard() {
                             onWheel={handleFilmStripWheel}
                             className="h-full flex gap-4 overflow-x-auto overflow-y-hidden no-scrollbar pb-1 items-center select-none px-1 scroll-smooth"
                         >
-                            <Link id="tour-new-series-target" href="/project/new" className="shrink-0 aspect-[16/9] h-full border border-dashed border-[#333] bg-[#0A0A0A] flex flex-col items-center justify-center text-[#444] hover:text-[#FF0000] hover:border-[#FF0000] hover:bg-[#0f0f0f] transition-all group rounded-sm">
+                            <Link id="tour-new-series-target" href="/project/new" className="shrink-0 aspect-[16/9] h-full border border-dashed border-[#333] bg-[#0A0A0A] flex flex-col items-center justify-center text-[#444] hover:text-[#E50914] hover:border-[#E50914] hover:bg-[#0f0f0f] transition-all group rounded-md">
                                 <Plus size={24} className="group-hover:scale-110 transition-transform" />
-                                <span className="text-[9px] font-mono mt-3 uppercase tracking-[2px]">NEW_SLATE</span>
+                                <span className="text-[9px] font-semibold mt-3 uppercase tracking-[2px]">New Project</span>
                             </Link>
 
                             {myProjects.map((p, i) => (
                                 <div
                                     key={p.id}
-                                    className={`shrink-0 aspect-[16/9] h-full bg-black border cursor-pointer relative overflow-hidden transition-all duration-300 group/card ${activeProjectIndex === i ? 'border-[#FF0000] scale-[1.0] z-10 shadow-[0_0_15px_rgba(255,0,0,0.2)] opacity-100' : 'border-[#222] opacity-60 hover:opacity-100 hover:border-[#444]'}`}
+                                    className={`shrink-0 aspect-[16/9] h-full bg-black border cursor-pointer relative overflow-hidden transition-all duration-300 group/card rounded-md ${activeProjectIndex === i ? 'border-[#E50914] scale-[1.0] z-10 shadow-[0_0_15px_rgba(229,9,20,0.15)] opacity-100' : 'border-[#222] opacity-60 hover:opacity-100 hover:border-[#333]'}`}
                                 >
                                     {/* CLICKABLE AREA FOR SELECTION */}
                                     <div
@@ -223,7 +223,7 @@ export default function Dashboard() {
                                             e.stopPropagation();
                                             setProjectToDelete(p);
                                         }}
-                                        className="absolute top-2 right-2 z-20 bg-black/80 p-2 rounded-sm text-white opacity-0 group-hover/card:opacity-100 hover:bg-red-600 transition-all duration-200"
+                                        className="absolute top-2 right-2 z-20 bg-black/80 p-2 rounded-md text-white opacity-0 group-hover/card:opacity-100 hover:bg-red-600 transition-all duration-200"
                                     >
                                         <Trash2 size={14} />
                                     </button>
@@ -242,7 +242,7 @@ export default function Dashboard() {
                         {/* RIGHT SCROLL BUTTON */}
                         <button
                             onClick={() => scrollFilmStrip('right')}
-                            className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black via-black/80 to-transparent z-20 flex items-center justify-center text-white opacity-0 group-hover/strip:opacity-100 transition-opacity duration-300 hover:text-[#FF0000] cursor-pointer"
+                            className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-black via-black/80 to-transparent z-20 flex items-center justify-center text-white opacity-0 group-hover/strip:opacity-100 transition-opacity duration-300 hover:text-[#E50914] cursor-pointer"
                         >
                             <ChevronRight size={32} />
                         </button>
@@ -251,18 +251,18 @@ export default function Dashboard() {
 
                 {/* RIGHT FEED STREAM */}
                 <div className="w-[320px] border-l border-[#222] pl-6 flex flex-col shrink-0 h-full overflow-hidden">
-                    <div className="flex items-center justify-between mb-4 shrink-0 h-8 font-mono">
-                        <span className="text-[10px] text-[#888] uppercase tracking-[2px] flex items-center gap-2"><Radio size={12} className={globalShots.length > 0 ? "text-[#FF0000] animate-pulse" : "text-[#333]"} /> FEED_STREAM</span>
+                    <div className="flex items-center justify-between mb-4 shrink-0 h-8">
+                        <span className="text-[10px] text-[#888] uppercase tracking-[2px] flex items-center gap-2 font-semibold"><Radio size={12} className={globalShots.length > 0 ? "text-[#E50914] animate-pulse" : "text-[#333]"} /> Community Feed</span>
                         <div className="flex gap-1">
                             {['ALL', 'MOTION', 'STATIC'].map(f => (
-                                <button key={f} onClick={() => setFilter(f as any)} className={`text-[8px] font-bold px-2 py-1 border rounded-sm transition-all ${filter === f ? 'bg-[#FF0000] text-black border-[#FF0000]' : 'text-[#444] border-[#333] hover:border-[#555]'}`}>{f[0]}</button>
+                                <button key={f} onClick={() => setFilter(f as any)} className={`text-[8px] font-bold px-2 py-1 border rounded-md transition-all ${filter === f ? 'bg-[#E50914] text-white border-[#E50914]' : 'text-[#444] border-[#333] hover:border-[#555]'}`}>{f[0]}</button>
                             ))}
                         </div>
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-4 pr-2 no-scrollbar pb-10">
                         {filteredGlobal.map((shot, i) => (
-                            <div key={shot.id + i} className="bg-[#0A0A0A] border border-[#222] group hover:border-[#444] transition-all rounded-sm overflow-hidden shrink-0 relative"
+                            <div key={shot.id + i} className="bg-[#0A0A0A] border border-[#222] group hover:border-[#333] transition-all rounded-md overflow-hidden shrink-0 relative"
                                 onMouseEnter={() => videoRefs.current[shot.id + i]?.play().catch(() => { })}
                                 onMouseLeave={() => {
                                     const vid = videoRefs.current[shot.id + i];
@@ -291,7 +291,7 @@ export default function Dashboard() {
                                 <div className="p-3 border-t border-[#1a1a1a] font-mono relative bg-[#0A0A0A]">
                                     <div className="flex justify-between items-start mb-1">
                                         <span className="text-[8px] text-[#555] uppercase tracking-[1px]">{shot.shot_type || "RAW"}</span>
-                                        {shot.video_url && <Play size={8} className="text-[#FF0000] opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" />}
+                                        {shot.video_url && <Play size={8} className="text-[#E50914] opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" />}
                                     </div>
                                     <p className="text-[10px] text-[#999] line-clamp-2 leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity">"{shot.prompt}"</p>
                                 </div>

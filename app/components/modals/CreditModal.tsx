@@ -85,7 +85,7 @@ export default function CreditModal({ isOpen, onClose }: CreditModalProps) {
                     <div className="flex justify-between items-center p-6 border-b border-[#1F1F1F] bg-[#0A0A0A]">
                         <div>
                             <h2 className="text-2xl font-anton uppercase text-white tracking-wide flex items-center gap-3">
-                                <Zap className="text-[#FF0000]" fill="currentColor" size={24} /> Top Up Credits
+                                <Zap className="text-[#E50914]" fill="currentColor" size={24} /> Top Up Credits
                             </h2>
                             <div className="flex items-center gap-4 mt-2">
                                 <p className="text-[#666] text-xs font-mono uppercase tracking-wider">

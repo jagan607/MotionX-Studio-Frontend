@@ -21,7 +21,7 @@ export const ScenesTab: React.FC<ScenesTabProps> = ({ scenes, onOpenStoryboard, 
             {/* Inject CSS for the Hover Effect */}
             <style>{`
                 .scene-card:hover {
-                    border-color: #FF0000 !important;
+                    border-color: #E50914 !important;
                     background-color: #0E0E0E !important;
                     transform: translateY(-4px);
                     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -77,7 +77,7 @@ export const ScenesTab: React.FC<ScenesTabProps> = ({ scenes, onOpenStoryboard, 
                         id={index === 0 ? "tour-storyboard-target" : undefined}
                         style={styles.openBtn}
                         onClick={() => onOpenStoryboard(scene.id)}
-                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#FF0000')}
+                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#E50914')}
                         onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#2a2a2a')}
                     >
                         <Film size={12} /> OPEN STORYBOARD

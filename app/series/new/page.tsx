@@ -107,7 +107,7 @@ export default function CreateSeries() {
     label: {
       display: 'block',
       fontSize: '10px', // Matches other labels
-      color: '#FF0000',
+      color: '#E50914',
       marginBottom: '10px',
       fontWeight: 'bold' as const,
       letterSpacing: '2px',
@@ -141,7 +141,7 @@ export default function CreateSeries() {
     }),
     submitBtn: {
       width: '100%',
-      backgroundColor: '#FF0000',
+      backgroundColor: '#E50914',
       color: 'white',
       border: 'none',
       padding: '24px',
@@ -151,7 +151,7 @@ export default function CreateSeries() {
       marginTop: '40px',
       cursor: 'pointer',
       textTransform: 'uppercase' as const,
-      boxShadow: '0 0 30px rgba(255,0,0,0.2)'
+      boxShadow: '0 0 30px rgba(229,9,20,0.2)'
     }
   };
 

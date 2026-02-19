@@ -79,7 +79,7 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
         const y = (e.clientY - rect.top) * scaleY;
 
         ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
+        ctx.fillStyle = "rgba(229, 9, 20, 0.5)";
         ctx.beginPath();
         ctx.arc(x, y, (brushSize * scaleX) / 2, 0, Math.PI * 2);
         ctx.fill();
@@ -211,12 +211,12 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
             {/* 1. HEADER */}
             <div style={{ height: '50px', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', backgroundColor: '#0A0A0A' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Terminal size={16} color="#FF0000" />
+                    <Terminal size={16} color="#E50914" />
                     <span style={{ fontWeight: 'bold', letterSpacing: '2px' }}>VFX_INPAINT_TERMINAL</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Zap size={12} color="#FF0000" />
+                        <Zap size={12} color="#E50914" />
                         <span style={{ fontSize: '12px' }}>{credits ?? 0} TOKENS</span>
                     </div>
                     {/* CLOSE BUTTON */}
@@ -254,11 +254,11 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                         <button onClick={handleRedo} disabled={historyStep >= history.length - 1} style={{ background: 'none', border: 'none', color: historyStep < history.length - 1 ? 'white' : '#444', cursor: 'pointer' }}><Redo2 size={16} /></button>
                     </div>
                 </div >
-                <div style={{ ...panelStyle, borderColor: outputImage ? '#FF0000' : '#222' }}>
-                    <div style={{ ...badgeStyle, color: outputImage ? '#FF0000' : '#666' }}>{isProcessing ? 'RENDERING...' : outputImage ? 'FINAL RENDER' : 'AWAITING INPUT'}</div>
+                <div style={{ ...panelStyle, borderColor: outputImage ? '#E50914' : '#222' }}>
+                    <div style={{ ...badgeStyle, color: outputImage ? '#E50914' : '#666' }}>{isProcessing ? 'RENDERING...' : outputImage ? 'FINAL RENDER' : 'AWAITING INPUT'}</div>
                     {isProcessing ? (
                         <div style={{ textAlign: 'center' }}>
-                            <Loader2 className="animate-spin" size={40} color="#FF0000" />
+                            <Loader2 className="animate-spin" size={40} color="#E50914" />
                             <div style={{ marginTop: '10px', fontSize: '10px', letterSpacing: '2px' }}>PROCESSING...</div>
                         </div>
                     ) : outputImage ? (
@@ -275,7 +275,7 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '5px', color: '#888' }}>
                         <span>BRUSH SIZE</span><span>{brushSize}px</span>
                     </div>
-                    <input type="range" min="5" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} style={{ width: '100%', accentColor: '#FF0000' }} />
+                    <input type="range" min="5" max="100" value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} style={{ width: '100%', accentColor: '#E50914' }} />
                 </div>
 
                 {/* UPDATED REFERENCE IMAGES SECTION */}
@@ -365,7 +365,7 @@ export const InpaintEditor = ({ src, onSave, onClose, onApply }: InpaintEditorPr
                 </div >
 
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={handleGenerateFix} disabled={isProcessing} style={{ height: '40px', padding: '0 25px', backgroundColor: '#FF0000', color: '#FFF', border: 'none', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', cursor: isProcessing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: isProcessing ? 0.5 : 1 }}>
+                    <button onClick={handleGenerateFix} disabled={isProcessing} style={{ height: '40px', padding: '0 25px', backgroundColor: '#E50914', color: '#FFF', border: 'none', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px', cursor: isProcessing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: isProcessing ? 0.5 : 1 }}>
                         <Sparkles size={14} /> {isProcessing ? 'WORKING...' : 'GENERATE'}
                     </button>
 

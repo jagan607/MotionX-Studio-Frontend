@@ -79,7 +79,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                         value={colors}
                         onChange={(e) => onChange('colors', e.target.value)}
                         className="w-full bg-[#111] border border-[#333] p-3 text-xs text-white focus:border-red-600 focus:outline-none transition-colors"
-                        placeholder="e.g. #FF0000, Matte Black, White..."
+                        placeholder="e.g. #E50914, Matte Black, White..."
                     />
                 </div>
             </div>

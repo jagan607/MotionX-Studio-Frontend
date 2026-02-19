@@ -34,12 +34,12 @@ export const AssetCard: React.FC<AssetCardProps> = ({
         return (
             <div
                 onClick={onCreate}
-                className="aspect-[3/4] border border-dashed border-neutral-800 rounded-xl bg-neutral-900/20 flex flex-col items-center justify-center p-4 hover:border-neutral-600 hover:bg-neutral-900/40 transition-all cursor-pointer group animate-in fade-in zoom-in duration-300"
+                className="aspect-[3/4] border border-dashed border-white/[0.08] rounded-xl bg-white/[0.02] flex flex-col items-center justify-center p-4 hover:border-[#E50914]/40 hover:bg-[#E50914]/5 transition-all cursor-pointer group animate-in fade-in zoom-in duration-300"
             >
-                <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-white group-hover:text-black transition-all shadow-lg">
+                <div className="w-12 h-12 rounded-full bg-white/[0.04] flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-[#E50914] group-hover:text-white transition-all shadow-lg border border-white/[0.06]">
                     <Plus size={24} />
                 </div>
-                <span className="text-[10px] font-bold tracking-widest text-neutral-500 group-hover:text-white transition-colors uppercase">
+                <span className="text-[10px] font-bold tracking-widest text-neutral-600 group-hover:text-white transition-colors uppercase">
                     {label || "ADD NEW"}
                 </span>
             </div>
@@ -50,7 +50,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     if (!asset) return null; // Safety check
 
     return (
-        <div id={!isGenerating ? tourId : undefined} className="group relative aspect-[3/4] bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden hover:border-neutral-600 transition-all">
+        <div id={!isGenerating ? tourId : undefined} className="group relative aspect-[3/4] bg-[#0A0A0A] border border-white/[0.06] rounded-xl overflow-hidden hover:border-white/[0.12] transition-all">
 
             {/* --- 1. VISUAL LAYER --- */}
             <div
@@ -62,8 +62,8 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                 {isGenerating && (
                     <div className="absolute inset-0 z-20 bg-black/80 backdrop-blur-[2px] flex flex-col items-center justify-center animate-in fade-in duration-300">
                         <Loader2 className="w-8 h-8 text-motion-red animate-spin mb-2" />
-                        <span className="text-[9px] font-mono text-motion-red tracking-widest animate-pulse">
-                            GENERATING...
+                        <span className="text-[9px] text-[#E50914] tracking-widest animate-pulse">
+                            Generating...
                         </span>
                     </div>
                 )}
@@ -80,7 +80,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                         {!isGenerating && (
                             <>
                                 <Wand2 className="text-neutral-700 mb-2" size={24} />
-                                <span className="text-[9px] font-mono text-neutral-600">NO VISUAL</span>
+                                <span className="text-[9px] text-neutral-600">No visual</span>
                             </>
                         )}
                     </div>
@@ -93,7 +93,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                             e.stopPropagation();
                             onDelete(asset.id, asset.type);
                         }}
-                        className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-red-900/80 text-white/50 hover:text-white rounded-md opacity-0 group-hover:opacity-100 transition-all z-10"
+                        className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-red-900/80 text-white/50 hover:text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all z-10"
                     >
                         <Trash2 size={12} />
                     </button>
@@ -101,8 +101,8 @@ export const AssetCard: React.FC<AssetCardProps> = ({
 
                 {/* AUDIO BADGE */}
                 {asset.type === 'character' && (asset as CharacterProfile).voice_config?.voice_id && (
-                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 backdrop-blur rounded text-[8px] font-bold text-green-400 flex items-center gap-1 z-10">
-                        <Play size={8} fill="currentColor" /> VOICE LINKED
+                    <div className="absolute top-2 left-2 px-2 py-1 bg-black/50 backdrop-blur rounded-md text-[8px] font-bold text-[#ff6b6b] flex items-center gap-1 z-10">
+                        <Play size={8} fill="currentColor" /> Voice Linked
                     </div>
                 )}
             </div>
@@ -120,9 +120,9 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                             onGenerate && onGenerate(asset);
                         }}
                         disabled={isGenerating}
-                        className="flex items-center justify-center gap-1.5 py-2 bg-white/10 hover:bg-motion-red text-white rounded text-[9px] font-bold tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center justify-center gap-1.5 py-2 bg-white/10 hover:bg-[#E50914] text-white rounded-md text-[9px] font-bold tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Sparkles size={10} /> {asset.image_url ? "REGEN" : "GENERATE"}
+                        <Sparkles size={10} /> {asset.image_url ? "Regen" : "Generate"}
                     </button>
 
                     <button
@@ -131,9 +131,9 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                             onConfig && onConfig(asset);
                         }}
                         disabled={isGenerating}
-                        className="flex items-center justify-center gap-1.5 py-2 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white rounded text-[9px] font-bold tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center justify-center gap-1.5 py-2 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white rounded-md text-[9px] font-bold tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Settings size={10} /> CONFIG
+                        <Settings size={10} /> Configure
                     </button>
                 </div>
             </div>

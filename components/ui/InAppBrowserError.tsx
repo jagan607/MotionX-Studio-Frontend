@@ -19,8 +19,8 @@ export default function InAppBrowserError() {
             width: '100%',
             padding: '25px',
             backgroundColor: '#1a0505', // Deep red/black background
-            border: '1px solid #FF0000',
-            color: '#FF0000',
+            border: '1px solid #E50914',
+            color: '#E50914',
             fontFamily: 'monospace',
             fontSize: '11px',
             lineHeight: '1.6',
@@ -31,7 +31,7 @@ export default function InAppBrowserError() {
             gap: '15px',
             alignItems: 'center',
             textAlign: 'center' as const,
-            boxShadow: '0 0 20px rgba(255, 0, 0, 0.1)'
+            boxShadow: '0 0 20px rgba(229, 9, 20, 0.1)'
         },
         header: {
             display: 'flex',
@@ -39,7 +39,7 @@ export default function InAppBrowserError() {
             gap: '10px',
             fontSize: '13px',
             fontWeight: 'bold',
-            borderBottom: '1px solid rgba(255,0,0,0.3)',
+            borderBottom: '1px solid rgba(229,9,20,0.3)',
             paddingBottom: '10px',
             width: '100%',
             justifyContent: 'center'
@@ -48,9 +48,9 @@ export default function InAppBrowserError() {
             color: '#ff6b6b' // Slightly lighter red for readability
         },
         copyBtn: {
-            background: 'rgba(255, 0, 0, 0.1)',
-            border: '1px solid #FF0000',
-            color: '#FF0000',
+            background: 'rgba(229, 9, 20, 0.1)',
+            border: '1px solid #E50914',
+            color: '#E50914',
             padding: '8px 16px',
             fontSize: '10px',
             fontFamily: 'monospace',

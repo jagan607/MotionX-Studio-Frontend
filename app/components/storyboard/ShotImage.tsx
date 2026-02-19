@@ -79,10 +79,10 @@ export const ShotImage = ({
                     position: 'absolute', inset: 0, zIndex: 10, backgroundColor: 'rgba(5,5,5,0.9)',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
                 }}>
-                    <Loader2 className="force-spin" size={32} color="#FF0000" />
+                    <Loader2 className="force-spin" size={32} color="#E50914" />
                     {isAnimating && (
                         <div style={{ marginTop: '15px', textAlign: 'center' }}>
-                            <p style={{ color: '#FF0000', fontSize: '10px', fontWeight: 'bold', letterSpacing: '2px', animation: 'pulse 1.5s infinite' }}>
+                            <p style={{ color: '#E50914', fontSize: '10px', fontWeight: 'bold', letterSpacing: '2px', animation: 'pulse 1.5s infinite' }}>
                                 ANIMATING...
                             </p>
                         </div>
@@ -136,7 +136,7 @@ export const ShotImage = ({
                         onClick={(e) => { e.stopPropagation(); setViewMode('video'); }}
                         style={{
                             padding: '4px 10px', borderRadius: '15px', border: 'none',
-                            backgroundColor: viewMode === 'video' ? '#FF0000' : 'transparent',
+                            backgroundColor: viewMode === 'video' ? '#E50914' : 'transparent',
                             color: viewMode === 'video' ? 'white' : '#888',
                             fontSize: '9px', fontWeight: 'bold', cursor: 'pointer',
                             display: 'flex', alignItems: 'center', gap: '4px',

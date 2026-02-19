@@ -128,7 +128,7 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                     right: currentStep.arrowSide === "right" ? "20px" : "auto",
                     left: currentStep.arrowSide !== "right" ? "20px" : "auto",
                     borderWidth: "0 8px 8px 8px",
-                    borderColor: "transparent transparent #FF0000 transparent",
+                    borderColor: "transparent transparent #E50914 transparent",
                 };
             case "top":
                 return {
@@ -137,7 +137,7 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                     right: currentStep.arrowSide === "right" ? "20px" : "auto",
                     left: currentStep.arrowSide !== "right" ? "20px" : "auto",
                     borderWidth: "8px 8px 0 8px",
-                    borderColor: "#FF0000 transparent transparent transparent",
+                    borderColor: "#E50914 transparent transparent transparent",
                 };
             case "left":
                 return {
@@ -145,7 +145,7 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                     right: "-8px",
                     top: "20px",
                     borderWidth: "8px 0 8px 8px",
-                    borderColor: "transparent transparent transparent #FF0000",
+                    borderColor: "transparent transparent transparent #E50914",
                 };
             case "right":
                 return {
@@ -153,7 +153,7 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                     left: "-8px",
                     top: "20px",
                     borderWidth: "8px 8px 8px 0",
-                    borderColor: "transparent #FF0000 transparent transparent",
+                    borderColor: "transparent #E50914 transparent transparent",
                 };
         }
     };
@@ -186,7 +186,7 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                     top: tooltipPos?.top ?? -9999,
                     left: tooltipPos?.left ?? -9999,
                     width: "300px",
-                    backgroundColor: "#FF0000",
+                    backgroundColor: "#E50914",
                     color: "white",
                     padding: "20px",
                     borderRadius: "2px",
@@ -254,7 +254,7 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                     style={{
                         marginTop: "15px",
                         backgroundColor: "white",
-                        color: "#FF0000",
+                        color: "#E50914",
                         border: "none",
                         padding: "8px 16px",
                         fontWeight: "bold",

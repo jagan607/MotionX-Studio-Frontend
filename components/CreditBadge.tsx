@@ -16,12 +16,13 @@ export default function CreditBadge() {
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            backgroundColor: 'rgba(5, 5, 5, 0.85)', // Dark Glass
-            backdropFilter: 'blur(10px)',
-            border: '1px solid #333',
+            backgroundColor: 'rgba(10, 10, 10, 0.75)',
+            backdropFilter: 'blur(16px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             padding: '10px 20px',
-            borderRadius: '0px', // Square edges for brutalist look
-            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            borderRadius: '10px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
             fontFamily: 'monospace',
             transition: 'all 0.3s ease',
             cursor: 'default',
@@ -36,13 +37,13 @@ export default function CreditBadge() {
         value: {
             fontSize: '14px',
             fontWeight: 'bold',
-            color: credits !== null && credits > 0 ? '#FFF' : '#FF0000', // Red if 0
+            color: credits !== null && credits > 0 ? '#FFF' : '#E50914',
         },
         iconBox: {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: credits !== null && credits > 0 ? '#00FF41' : '#FF0000', // Green if has credits
+            color: credits !== null && credits > 0 ? '#00FF41' : '#E50914',
         }
     };
 
@@ -66,8 +67,8 @@ export default function CreditBadge() {
             {/* Optional: Visual "Indicator" Light */}
             <div style={{
                 width: '6px', height: '6px', borderRadius: '50%',
-                backgroundColor: credits && credits > 0 ? '#00FF41' : '#FF0000',
-                boxShadow: credits && credits > 0 ? '0 0 8px #00FF41' : '0 0 8px #FF0000'
+                backgroundColor: credits && credits > 0 ? '#00FF41' : '#E50914',
+                boxShadow: credits && credits > 0 ? '0 0 8px #00FF41' : '0 0 8px #E50914'
             }} />
         </div>
     );

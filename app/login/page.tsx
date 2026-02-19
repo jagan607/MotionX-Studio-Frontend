@@ -86,29 +86,29 @@ export default function LoginPage() {
     gridBg: { position: 'absolute' as const, inset: 0, backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.5, zIndex: 0 },
     loginBox: { position: 'relative' as const, zIndex: 10, width: '100%', maxWidth: '420px' },
     header: { marginBottom: '40px' },
-    logoMark: { backgroundColor: '#FF0000', color: 'black', fontFamily: 'Anton', padding: '4px 8px', fontSize: '14px', display: 'inline-block', marginBottom: '15px' },
+    logoMark: { backgroundColor: '#E50914', color: 'white', fontFamily: 'Anton', padding: '4px 10px', fontSize: '14px', display: 'inline-block', marginBottom: '15px', borderRadius: '4px' },
     h1: { fontFamily: 'Anton', fontSize: '42px', textTransform: 'uppercase' as const, marginBottom: '10px', lineHeight: 1 },
     p: { fontSize: '13px', color: '#666', lineHeight: '1.5' },
-    card: { border: '1px solid #222', backgroundColor: '#0A0A0A', padding: '5px' },
-    cardInner: { border: '1px solid #222', padding: '30px', backgroundColor: '#080808' },
+    card: { border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#0A0A0A', padding: '5px', borderRadius: '12px' },
+    cardInner: { border: '1px solid rgba(255,255,255,0.06)', padding: '30px', backgroundColor: '#080808', borderRadius: '10px' },
     statusRow: { display: 'flex', gap: '15px', marginBottom: '25px', fontSize: '9px', fontFamily: 'monospace', color: '#555', textTransform: 'uppercase' as const },
     dot: { width: '6px', height: '6px', backgroundColor: '#00FF41', borderRadius: '50%', display: 'inline-block', marginRight: '6px' },
-    errorDot: { width: '6px', height: '6px', backgroundColor: '#FF0000', borderRadius: '50%', display: 'inline-block', marginRight: '6px' },
-    btn: { width: '100%', padding: '18px', backgroundColor: isHovered ? '#FF0000' : '#FFF', color: isHovered ? '#FFF' : '#000', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: 'all 0.2s ease', boxShadow: isHovered ? '0 0 20px rgba(255,0,0,0.4)' : 'none' },
-    errorBox: { width: '100%', padding: '20px', backgroundColor: '#1a0505', border: '1px solid #FF0000', color: '#FF0000', fontFamily: 'monospace', fontSize: '10px', lineHeight: '1.6', letterSpacing: '1px', textTransform: 'uppercase' as const, display: 'flex', flexDirection: 'column' as const, gap: '10px', alignItems: 'center', textAlign: 'center' as const },
-    footer: { marginTop: '30px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontFamily: 'monospace', color: '#444', textTransform: 'uppercase' as const },
-    backBtn: { position: 'absolute' as const, top: '30px', left: '30px', zIndex: 50, display: 'flex', alignItems: 'center', gap: '8px', color: '#666', textDecoration: 'none', fontSize: '10px', fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: '2px', transition: 'color 0.2s' }
+    errorDot: { width: '6px', height: '6px', backgroundColor: '#E50914', borderRadius: '50%', display: 'inline-block', marginRight: '6px' },
+    btn: { width: '100%', padding: '18px', backgroundColor: isHovered ? '#E50914' : '#FFF', color: isHovered ? '#FFF' : '#000', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: 'all 0.3s ease', boxShadow: isHovered ? '0 0 25px rgba(229,9,20,0.35)' : 'none', borderRadius: '8px' },
+    errorBox: { width: '100%', padding: '20px', backgroundColor: 'rgba(229, 9, 20, 0.06)', border: '1px solid rgba(229, 9, 20, 0.3)', color: '#E50914', fontFamily: 'Inter', fontSize: '11px', lineHeight: '1.6', letterSpacing: '1px', textTransform: 'uppercase' as const, display: 'flex', flexDirection: 'column' as const, gap: '10px', alignItems: 'center', textAlign: 'center' as const, borderRadius: '8px' },
+    footer: { marginTop: '30px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontFamily: 'Inter', color: '#444', textTransform: 'uppercase' as const, letterSpacing: '1px' },
+    backBtn: { position: 'absolute' as const, top: '30px', left: '30px', zIndex: 50, display: 'flex', alignItems: 'center', gap: '8px', color: '#666', textDecoration: 'none', fontSize: '11px', fontFamily: 'Inter', fontWeight: 600, letterSpacing: '1px', transition: 'color 0.2s' }
   };
 
   return (
     <div style={styles.container}>
       <div style={styles.leftPanel}>
-        <Link href="/" style={styles.backBtn}><ArrowLeft size={14} /> ABORT / BACK TO HOME</Link>
+        <Link href="/" style={styles.backBtn}><ArrowLeft size={14} /> Back</Link>
         <img src="https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=2940&auto=format&fit=crop" style={styles.bgImage} />
         <div style={styles.overlay} />
         <div style={{ padding: '40px', ...styles.hudText, display: 'flex', justifyContent: 'space-between' }}>
-          <div><div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFF', marginBottom: '5px' }}><Disc size={12} fill="#FF0000" color="#FF0000" className="animate-pulse" /> REC [00:04:12:09]</div><div>CAM: ARRI ALEXA 65</div></div>
-          <div style={{ textAlign: 'right' }}><div>ISO 800</div><div>WB 5600K</div></div>
+          <div><div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFF', marginBottom: '5px' }}><Disc size={10} fill="#E50914" color="#E50914" className="animate-pulse" /> MOTIONX STUDIO</div><div style={{ fontSize: '9px', color: '#555' }}>CINEMATIC AI PLATFORM</div></div>
+          <div style={{ textAlign: 'right', color: '#555' }}><div>SECURE</div><div>ENCRYPTED</div></div>
         </div>
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '200px', height: '120px', border: '1px solid rgba(255,255,255,0.1)', zIndex: 5 }}>
           <div style={{ position: 'absolute', top: '-5px', left: '50%', height: '10px', width: '1px', background: 'white' }} />
@@ -124,15 +124,15 @@ export default function LoginPage() {
         <div style={styles.loginBox}>
           <div style={styles.header}>
             <div style={styles.logoMark}>MX</div>
-            <div style={{ fontSize: '10px', fontFamily: 'monospace', letterSpacing: '3px', color: '#555', marginBottom: '10px' }}>SECURE ACCESS V1.0</div>
+            <div style={{ fontSize: '11px', fontFamily: 'Inter', letterSpacing: '2px', color: '#555', marginBottom: '10px', fontWeight: 600 }}>SIGN IN</div>
             <h1 style={styles.h1}>Welcome Back</h1>
-            <p style={styles.p}>Authenticate to access the production mainframe.</p>
+            <p style={styles.p}>Sign in to your MotionX Studio account.</p>
           </div>
           <div style={styles.card}>
             <div style={styles.cardInner}>
               <div style={styles.statusRow}>
                 {isRestrictedBrowser ? (
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#FF0000' }}><span style={styles.errorDot} /> SECURITY ALERT</span>
+                  <span style={{ display: 'flex', alignItems: 'center', color: '#E50914' }}><span style={styles.errorDot} /> SECURITY ALERT</span>
                 ) : (
                   <span style={{ display: 'flex', alignItems: 'center' }}><span style={styles.dot} /> SYSTEM ONLINE</span>
                 )}
@@ -142,8 +142,8 @@ export default function LoginPage() {
               {isRestrictedBrowser ? (
                 <div style={styles.errorBox}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 'bold' }}><AlertTriangle size={16} /> ACCESS RESTRICTED</div>
-                  <div>EMBEDDED VIEWER DETECTED.</div>
-                  <div>PROTOCOL: TAP <strong>...</strong> AND SELECT <strong>OPEN IN SYSTEM BROWSER</strong>.</div>
+                  <div>IN-APP BROWSER DETECTED.</div>
+                  <div>Please tap <strong>...</strong> and select <strong>Open in Browser</strong>.</div>
                 </div>
               ) : (
                 <button
@@ -153,10 +153,10 @@ export default function LoginPage() {
                   onMouseLeave={() => setIsHovered(false)}
                   style={{ ...styles.btn, opacity: isLoading ? 0.7 : 1 }}
                 >
-                  {isLoading ? <><Activity size={16} className="animate-spin" /> AUTHENTICATING...</> : <> INITIALIZE SESSION <ArrowRight size={16} strokeWidth={3} /> </>}
+                  {isLoading ? <><Activity size={16} className="animate-spin" /> SIGNING IN...</> : <> CONTINUE WITH GOOGLE <ArrowRight size={16} strokeWidth={3} /> </>}
                 </button>
               )}
-              <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '9px', fontFamily: 'monospace', color: '#444' }}>SECURED BY GOOGLE IDENTITY</div>
+              <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '9px', fontFamily: 'Inter', color: '#444', letterSpacing: '1px' }}>SECURED BY GOOGLE IDENTITY</div>
             </div>
           </div>
           <div style={styles.footer}><div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>ID: 884-291</div><div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}><Globe size={10} /> REGION: GLOBAL</div></div>

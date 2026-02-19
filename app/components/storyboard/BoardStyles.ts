@@ -12,7 +12,7 @@ export const styles = {
     title: { fontFamily: 'Anton, sans-serif', fontSize: '48px', textTransform: 'uppercase' as const, color: '#FFF' },
     subtitle: { fontSize: '12px', color: '#888', letterSpacing: '2px', textTransform: 'uppercase' as const, marginTop: '10px' },
     tabRow: { display: 'flex', gap: '40px' },
-    tabBtn: (isActive: boolean) => ({ paddingBottom: '30px', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '2px', cursor: 'pointer', color: isActive ? '#FF0000' : '#666', borderBottom: isActive ? '3px solid #FF0000' : '3px solid transparent', textTransform: 'uppercase' as const, display: 'flex', alignItems: 'center', gap: '8px' }),
+    tabBtn: (isActive: boolean) => ({ paddingBottom: '30px', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '2px', cursor: 'pointer', color: isActive ? '#E50914' : '#666', borderBottom: isActive ? '3px solid #E50914' : '3px solid transparent', textTransform: 'uppercase' as const, display: 'flex', alignItems: 'center', gap: '8px' }),
 
     // --- GRID LAYOUTS ---
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '30px' },
@@ -245,9 +245,9 @@ export const styles = {
     // --- INPUTS & BUTTONS INSIDE SHOTS ---
     select: { width: '100%', backgroundColor: '#111', border: '1px solid #333', color: 'white', padding: '10px', fontSize: '12px', marginBottom: '15px', outline: 'none' },
     textArea: { width: '100%', backgroundColor: '#111', border: '1px solid #333', color: 'white', padding: '10px', fontSize: '12px', marginBottom: '15px', minHeight: '80px', resize: 'none' as const },
-    renderBtn: { width: '100%', backgroundColor: '#FF0000', color: 'white', border: 'none', padding: '12px', fontSize: '11px', fontWeight: 'bold' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
+    renderBtn: { width: '100%', backgroundColor: '#E50914', color: 'white', border: 'none', padding: '12px', fontSize: '11px', fontWeight: 'bold' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
     renderBtnLoading: { width: '100%', backgroundColor: '#FFF', color: 'black', border: 'none', padding: '12px', fontSize: '11px', fontWeight: 'bold' as const, cursor: 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
-    charToggle: (active: boolean) => ({ fontSize: '10px', padding: '6px 12px', border: '1px solid #333', backgroundColor: active ? '#FF0000' : 'transparent', color: active ? 'white' : '#666', cursor: 'pointer', marginRight: '5px', marginBottom: '5px' }),
+    charToggle: (active: boolean) => ({ fontSize: '10px', padding: '6px 12px', border: '1px solid #333', backgroundColor: active ? '#E50914' : 'transparent', color: active ? 'white' : '#666', cursor: 'pointer', marginRight: '5px', marginBottom: '5px' }),
 
     // --- ASSETS ---
     assetCard: { backgroundColor: '#0A0A0A', border: '1px solid #222', padding: '0', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', overflow: 'hidden' },
@@ -258,7 +258,7 @@ export const styles = {
 
     // --- UTILS & OVERLAYS ---
     terminalOverlay: { position: 'fixed' as const, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(5, 5, 5, 0.98)', zIndex: 999, display: 'flex', flexDirection: 'column' as const, justifyContent: 'center', padding: '100px' },
-    terminalBox: { borderLeft: '2px solid #FF0000', paddingLeft: '30px', color: '#FFF', fontFamily: 'monospace', fontSize: '16px' },
+    terminalBox: { borderLeft: '2px solid #E50914', paddingLeft: '30px', color: '#FFF', fontFamily: 'monospace', fontSize: '16px' },
     terminalLine: { marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center', letterSpacing: '2px' },
     zoomOverlay: { position: 'fixed' as const, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.95)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' },
     zoomImg: { maxWidth: '90%', maxHeight: '90%', border: '1px solid #333', boxShadow: '0 0 50px rgba(0,0,0,0.8)' },
@@ -277,8 +277,8 @@ export const styles = {
     actionToolbar: { display: 'flex', gap: '10px' },
     actionBtn: (active: boolean) => ({ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: active ? '#FFF' : '#888', padding: '4px 8px', border: '1px solid #333', backgroundColor: active ? '#222' : 'transparent', borderRadius: '4px' }),
     toggleRow: { display: 'flex', marginBottom: '30px', borderBottom: '1px solid #222' },
-    toggleBtn: (active: boolean) => ({ flex: 1, padding: '15px', textAlign: 'center' as const, cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '1px', color: active ? 'white' : '#444', borderBottom: active ? '2px solid #FF0000' : 'none' }),
+    toggleBtn: (active: boolean) => ({ flex: 1, padding: '15px', textAlign: 'center' as const, cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '1px', color: active ? 'white' : '#444', borderBottom: active ? '2px solid #E50914' : 'none' }),
     uploadBox: { border: '1px dashed #333', padding: '50px', textAlign: 'center' as const, color: '#666', cursor: 'pointer', marginBottom: '20px' },
     textareaInput: { width: '100%', backgroundColor: '#111', border: '1px solid #333', padding: '15px', color: '#EEE', fontSize: '14px', marginBottom: '20px', resize: 'none' as const },
-    primaryBtn: { width: '100%', padding: '20px', backgroundColor: '#FF0000', color: 'white', border: 'none', fontWeight: 'bold' as const, cursor: 'pointer', letterSpacing: '2px', fontSize: '14px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' },
+    primaryBtn: { width: '100%', padding: '20px', backgroundColor: '#E50914', color: 'white', border: 'none', fontWeight: 'bold' as const, cursor: 'pointer', letterSpacing: '2px', fontSize: '14px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' },
 };

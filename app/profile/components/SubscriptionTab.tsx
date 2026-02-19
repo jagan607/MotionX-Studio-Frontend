@@ -116,9 +116,9 @@ export default function SubscriptionTab({ plan, credits }: SubscriptionTabProps)
         statusIcon = <TrendingUp size={14} className="text-[#00FF41]" />;
         statusColor = "#00FF41";
     } else if (isLowBalance) {
-        barColor = '#FF0000';
+        barColor = '#E50914';
         statusText = "CRITICAL: LOW TOKEN BALANCE";
-        statusIcon = <AlertTriangle size={14} className="text-[#FF0000]" />;
+        statusIcon = <AlertTriangle size={14} className="text-[#E50914]" />;
         statusColor = "#FF8888";
     }
 
@@ -198,7 +198,7 @@ export default function SubscriptionTab({ plan, credits }: SubscriptionTabProps)
             padding: '8px 16px',
             border: '1px solid #330000',
             color: '#FF4444',
-            backgroundColor: 'rgba(255,0,0,0.05)',
+            backgroundColor: 'rgba(229,9,20,0.05)',
             textTransform: 'uppercase' as const,
             cursor: 'pointer',
             transition: 'all 0.2s',
@@ -212,7 +212,7 @@ export default function SubscriptionTab({ plan, credits }: SubscriptionTabProps)
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <style jsx>{`
                 .manage-btn:hover { border-color: #666 !important; color: white !important; }
-                .cancel-btn:hover { background-color: rgba(255,0,0,0.15) !important; border-color: #FF0000 !important; }
+                .cancel-btn:hover { background-color: rgba(229,9,20,0.15) !important; border-color: #E50914 !important; }
             `}</style>
 
             {/* --- MODALS --- */}
@@ -323,7 +323,7 @@ export default function SubscriptionTab({ plan, credits }: SubscriptionTabProps)
             <div style={styles.card}>
                 <div className="flex justify-between items-end mb-3">
                     <div className="flex items-center gap-2">
-                        <Zap size={16} className={isLowBalance ? "text-[#FF0000]" : "text-[#00FF41]"} />
+                        <Zap size={16} className={isLowBalance ? "text-[#E50914]" : "text-[#00FF41]"} />
                         <div>
                             <h2 style={{ ...styles.sectionTitle, fontSize: '16px' }}>Token Usage</h2>
                         </div>
@@ -356,7 +356,7 @@ export default function SubscriptionTab({ plan, credits }: SubscriptionTabProps)
                         {/* 4. BUTTON TO OPEN MODAL */}
                         <button
                             onClick={() => setShowTopUpModal(true)}
-                            className="text-[10px] text-[#FF0000] underline hover:text-white transition-colors font-mono uppercase bg-transparent border-none cursor-pointer"
+                            className="text-[10px] text-[#E50914] underline hover:text-white transition-colors font-mono uppercase bg-transparent border-none cursor-pointer"
                         >
                             + TOP UP
                         </button>

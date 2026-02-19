@@ -194,7 +194,7 @@ export default function SeriesDetail() {
     backLink: { display: 'flex', alignItems: 'center', gap: '8px', color: '#666', fontSize: '10px', fontWeight: 'bold' as const, letterSpacing: '2px', textDecoration: 'none', marginBottom: '30px' },
     header: { borderBottom: '1px solid #333', paddingBottom: '20px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' },
     title: { fontFamily: 'Anton, sans-serif', fontSize: '80px', lineHeight: '0.9', textTransform: 'uppercase' as const, color: '#FFF', marginBottom: '10px' },
-    metaRow: { display: 'flex', gap: '30px', fontSize: '11px', color: '#FF0000', fontFamily: 'monospace', textTransform: 'uppercase' as const },
+    metaRow: { display: 'flex', gap: '30px', fontSize: '11px', color: '#E50914', fontFamily: 'monospace', textTransform: 'uppercase' as const },
     addButton: { backgroundColor: '#EDEDED', color: '#050505', border: 'none', padding: '15px 30px', fontSize: '12px', fontWeight: 'bold' as const, letterSpacing: '2px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', textTransform: 'uppercase' as const, boxShadow: '0 0 20px rgba(255,255,255,0.1)' },
     sectionTitle: { fontSize: '12px', color: '#666', fontWeight: 'bold' as const, letterSpacing: '4px', marginBottom: '20px', textTransform: 'uppercase' as const, paddingLeft: '2px', marginTop: '40px' },
     episodeGrid: { display: 'flex', flexDirection: 'column' as const, gap: '10px' },
@@ -214,12 +214,12 @@ export default function SeriesDetail() {
     deck: { width: '900px', height: '600px', backgroundColor: '#050505', border: '1px solid #333', display: 'flex', boxShadow: '0 0 100px rgba(0,0,0,0.8)', position: 'relative' as const, overflow: 'hidden' },
     deckSidebar: { width: '260px', borderRight: '1px solid #222', padding: '30px', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between', backgroundColor: '#080808', zIndex: 20 },
     deckContent: { flex: 1, padding: '40px', display: 'flex', flexDirection: 'column' as const, position: 'relative' as const, zIndex: 20, backgroundColor: 'rgba(5,5,5,0.95)' },
-    menuItem: (active: boolean) => ({ display: 'flex', alignItems: 'center', gap: '12px', padding: '15px', marginBottom: '8px', backgroundColor: active ? '#111' : 'transparent', border: active ? '1px solid #333' : '1px solid transparent', color: active ? '#FFF' : '#666', fontSize: '11px', fontWeight: 'bold' as const, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s', borderLeft: active ? '2px solid #FF0000' : '2px solid transparent' }),
+    menuItem: (active: boolean) => ({ display: 'flex', alignItems: 'center', gap: '12px', padding: '15px', marginBottom: '8px', backgroundColor: active ? '#111' : 'transparent', border: active ? '1px solid #333' : '1px solid transparent', color: active ? '#FFF' : '#666', fontSize: '11px', fontWeight: 'bold' as const, letterSpacing: '1px', cursor: 'pointer', transition: 'all 0.2s', borderLeft: active ? '2px solid #E50914' : '2px solid transparent' }),
     input: { width: '100%', backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid #333', padding: '15px 0', color: 'white', fontSize: '24px', fontFamily: 'Anton', outline: 'none', marginBottom: '30px', textTransform: 'uppercase' as const },
     textAreaTerm: { width: '100%', flex: 1, backgroundColor: '#090909', border: '1px solid #222', color: '#00FF41', fontFamily: 'monospace', fontSize: '12px', padding: '20px', outline: 'none', resize: 'none' as const, lineHeight: '1.6' },
     textAreaSyn: { width: '100%', flex: 1, backgroundColor: '#090909', border: '1px solid #333', color: '#DDD', fontFamily: 'Inter, sans-serif', fontSize: '14px', padding: '20px', outline: 'none', resize: 'none' as const, lineHeight: '1.6' },
     uploadBox: { flex: 1, border: '1px dashed #333', display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', gap: '20px', color: '#444', cursor: 'pointer', backgroundColor: '#090909', transition: 'all 0.2s' },
-    executeBtn: { marginTop: '20px', width: '100%', padding: '20px', backgroundColor: '#FF0000', color: 'white', border: 'none', fontWeight: 'bold' as const, letterSpacing: '2px', fontSize: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }
+    executeBtn: { marginTop: '20px', width: '100%', padding: '20px', backgroundColor: '#E50914', color: 'white', border: 'none', fontWeight: 'bold' as const, letterSpacing: '2px', fontSize: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }
   };
 
   if (loading) return <div style={styles.container}>INITIALIZING...</div>;
@@ -228,13 +228,13 @@ export default function SeriesDetail() {
     <main style={styles.container}>
       <Toaster position="bottom-right" reverseOrder={false} />
       <style>{`
-        .ep-card:hover { border-color: #FF0000 !important; background-color: #0E0E0E !important; transform: translateY(-2px); }
+        .ep-card:hover { border-color: #E50914 !important; background-color: #0E0E0E !important; transform: translateY(-2px); }
         /* Cyan Hover Effect for Drafts */
         .draft-card:hover { border-color: #06B6D4 !important; background-color: rgba(6, 182, 212, 0.1) !important; transform: translateY(-2px); }
         .menu-hover:hover { color: #FFF !important; background-color: #0c0c0c !important; }
         .upload-hover:hover { border-color: #666 !important; background-color: #111 !important; }
-        .animate-scanline { background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(255,0,0,0.1) 50%, rgba(255,0,0,0.1)); background-size: 100% 4px; pointer-events: none; position: absolute; inset: 0; z-index: 10; opacity: 0.15; }
-        .glow-text { text-shadow: 0 0 10px rgba(255,0,0,0.5); }
+        .animate-scanline { background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(229,9,20,0.1) 50%, rgba(229,9,20,0.1)); background-size: 100% 4px; pointer-events: none; position: absolute; inset: 0; z-index: 10; opacity: 0.15; }
+        .glow-text { text-shadow: 0 0 10px rgba(229,9,20,0.5); }
       `}</style>
 
       <Link href="/dashboard" style={styles.backLink}> <ArrowLeft size={14} /> TERMINAL ROOT </Link>
@@ -312,7 +312,7 @@ export default function SeriesDetail() {
                 <div style={{ fontSize: '9px', color: '#444', fontWeight: 'bold', marginBottom: '20px', letterSpacing: '2px' }}>INPUT PROTOCOL</div>
                 <div style={styles.menuItem(inputMethod === 'upload')} onClick={() => setInputMethod('upload')} className="menu-hover"><Upload size={14} /> DATA UPLOAD</div>
                 <div style={styles.menuItem(inputMethod === 'paste')} onClick={() => setInputMethod('paste')} className="menu-hover"><Terminal size={14} /> TERMINAL PASTE</div>
-                <div style={styles.menuItem(inputMethod === 'synopsis')} onClick={() => setInputMethod('synopsis')} className="menu-hover"><Sparkles size={14} color={inputMethod === 'synopsis' ? '#FF0000' : '#666'} /> AI GENERATION</div>
+                <div style={styles.menuItem(inputMethod === 'synopsis')} onClick={() => setInputMethod('synopsis')} className="menu-hover"><Sparkles size={14} color={inputMethod === 'synopsis' ? '#E50914' : '#666'} /> AI GENERATION</div>
               </div>
               <div onClick={() => setIsUploadModalOpen(false)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', color: '#666', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' }}><X size={14} /> ABORT SEQUENCE</div>
             </div>
@@ -325,7 +325,7 @@ export default function SeriesDetail() {
                   <input type="file" ref={fileInputRef} hidden onChange={handleFileSelect} accept=".pdf,.docx,.txt" />
                   {selectedFile ? (
                     <>
-                      <Disc size={40} color="#FF0000" className="force-spin" style={{ animationDuration: '3s' }} />
+                      <Disc size={40} color="#E50914" className="force-spin" style={{ animationDuration: '3s' }} />
                       <div style={{ textAlign: 'center' }}><div style={{ color: 'white', fontWeight: 'bold', letterSpacing: '1px' }}>{selectedFile.name}</div><div style={{ fontSize: '10px', marginTop: '5px', color: '#666' }}>READY FOR DECRYPTION</div></div>
                     </>
                   ) : (
@@ -339,13 +339,13 @@ export default function SeriesDetail() {
               {inputMethod === 'synopsis' && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <textarea style={styles.textAreaSyn} placeholder="Describe the scene sequence... (e.g., A cyberpunk detective chases a rogue android through a neon market...)" value={synopsisText} onChange={(e) => setSynopsisText(e.target.value)} disabled={isUploading} />
-                  <div style={{ fontSize: '10px', color: '#FF0000', marginTop: '10px', display: 'flex', gap: '6px', alignItems: 'center' }}><Cpu size={12} /> AI AGENT ACTIVE: STORY_ENGINE_V2</div>
+                  <div style={{ fontSize: '10px', color: '#E50914', marginTop: '10px', display: 'flex', gap: '6px', alignItems: 'center' }}><Cpu size={12} /> AI AGENT ACTIVE: STORY_ENGINE_V2</div>
                 </div>
               )}
 
               <div style={{ marginTop: 'auto' }}>
                 {isUploading && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontFamily: 'monospace', color: '#FF0000', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontFamily: 'monospace', color: '#E50914', marginBottom: '10px' }}>
                     <span className="glow-text">STATUS: {uploadStatus}</span><span className="force-spin">///</span>
                   </div>
                 )}

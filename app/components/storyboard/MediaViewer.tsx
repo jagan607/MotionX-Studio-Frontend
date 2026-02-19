@@ -148,8 +148,8 @@ export const MediaViewer = () => {
                         onClick={() => setActiveMode('video')}
                         style={{
                             padding: '10px 24px', borderRadius: '30px',
-                            border: activeMode === 'video' ? '1px solid #FF0000' : '1px solid #333',
-                            backgroundColor: activeMode === 'video' ? '#FF0000' : 'transparent',
+                            border: activeMode === 'video' ? '1px solid #E50914' : '1px solid #333',
+                            backgroundColor: activeMode === 'video' ? '#E50914' : 'transparent',
                             color: activeMode === 'video' ? '#FFF' : '#888',
                             fontSize: '11px', fontWeight: 'bold', display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer',
                             transition: 'all 0.2s'

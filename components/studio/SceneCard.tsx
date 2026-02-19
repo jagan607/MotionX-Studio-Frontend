@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Film, Clock, Pencil, GripVertical, Trash2 } from "lucide-react";
+import { Clapperboard, Clock, Pencil, GripVertical, Trash2 } from "lucide-react";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { EntityStatusChip } from "./EntityStatusChip";
@@ -106,18 +106,18 @@ export const SceneCard: React.FC<SceneCardProps> = ({
             id={isFirstCard ? "tour-studio-scene-card" : undefined}
             ref={setNodeRef}
             style={editingStyle}
-            className={`group relative bg-[#090909] border rounded-xl flex flex-col justify-between 
+            className={`group relative bg-[#0A0A0A] border rounded-xl flex flex-col justify-between 
             transition-all duration-300 cursor-default h-full
             ${isEditing
                     ? ''
-                    : 'border-[#222] hover:border-neutral-500 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)]'
+                    : 'border-white/[0.06] hover:border-white/[0.12]'
                 }`}
         >
             {/* CARD CONTENT (Padded) */}
             <div className="p-4 flex-1 flex flex-col">
 
                 {/* HEADER */}
-                <div className="flex justify-between items-center mb-4 border-b border-[#1a1a1a] pb-3">
+                <div className="flex justify-between items-center mb-4 border-b border-white/[0.04] pb-3">
                     <div className="flex items-center gap-2">
                         <div
                             {...attributes}
@@ -127,12 +127,12 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                         >
                             <GripVertical size={14} />
                         </div>
-                        <span className="text-[11px] font-mono text-red-500 font-bold tracking-widest bg-red-500/10 px-2 py-1 rounded">
-                            SCENE {displaySceneNumber}
+                        <span className="text-[11px] font-semibold tracking-widest text-[#ff6b6b] bg-[#E50914]/10 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                            <Clapperboard size={11} /> SCENE {displaySceneNumber}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5 text-[9px] text-neutral-400 font-mono bg-[#111] px-2 py-1 rounded border border-[#222]">
+                        <div className="flex items-center gap-1.5 text-[9px] text-neutral-500 bg-white/[0.03] px-2.5 py-1 rounded-md border border-white/[0.06]">
                             <Clock size={10} />
                             {scene.time || "N/A"}
                         </div>
@@ -144,7 +144,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                                 e.stopPropagation();
                                 onEdit(scene);
                             }}
-                            className="p-1.5 rounded bg-[#111] border border-[#222] text-[#666] hover:text-white hover:border-[#444] hover:bg-[#222] transition-colors"
+                            className="p-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-neutral-600 hover:text-white hover:border-white/[0.12] hover:bg-white/[0.06] transition-colors"
                             title="Edit Scene"
                         >
                             <Pencil size={12} />
@@ -156,7 +156,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                                 e.stopPropagation();
                                 onDelete(scene.id);
                             }}
-                            className="p-1.5 rounded bg-[#111] border border-[#222] text-[#666] hover:text-red-500 hover:border-red-900/50 hover:bg-red-500/10 transition-colors"
+                            className="p-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-neutral-600 hover:text-red-400 hover:border-red-800/50 hover:bg-red-900/15 transition-colors"
                             title="Delete Scene"
                         >
                             <Trash2 size={12} />
@@ -256,12 +256,12 @@ export const SceneCard: React.FC<SceneCardProps> = ({
             <button
                 id={isFirstCard ? "tour-studio-open-sb" : undefined}
                 onClick={() => onOpenStoryboard(scene)}
-                className="w-full border-t border-[#222] bg-[#111] text-neutral-400 
-                hover:bg-neutral-800 hover:text-white 
+                className="w-full border-t border-white/[0.04] bg-gradient-to-t from-[#0A0A0A] to-transparent text-neutral-500 
+                hover:text-[#ff6b6b] hover:from-[#E50914]/5
                 py-3 px-4 rounded-b-xl text-[10px] font-bold tracking-[0.15em] uppercase 
-                flex items-center justify-center gap-2 transition-all duration-200 group-hover:border-[#333]"
+                flex items-center justify-center gap-2 transition-all duration-300"
             >
-                <Film size={12} className="group-hover:scale-110 transition-transform" />
+                <Clapperboard size={12} className="group-hover:scale-110 transition-transform" />
                 Open Storyboard
             </button>
         </div>

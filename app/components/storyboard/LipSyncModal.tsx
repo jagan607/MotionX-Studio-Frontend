@@ -170,7 +170,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
         const ws = WaveSurfer.create({
             container: waveformContainerRef.current,
             waveColor: '#444',
-            progressColor: '#FF0000',
+            progressColor: '#E50914',
             cursorColor: '#FFF',
             barWidth: 2,
             barGap: 1,
@@ -190,7 +190,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
             wsRegions.addRegion({
                 start: 0,
                 end: duration,
-                color: 'rgba(255, 0, 0, 0.2)',
+                color: 'rgba(229, 9, 20, 0.2)',
                 drag: true,
                 resize: true,
             });
@@ -431,8 +431,8 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
                     </div>
 
                     <div style={{ display: 'flex', borderBottom: '1px solid #222' }}>
-                        <button onClick={() => setMode('tts')} style={{ flex: 1, padding: '15px', backgroundColor: mode === 'tts' ? '#111' : 'transparent', color: mode === 'tts' ? 'white' : '#666', borderBottom: mode === 'tts' ? '2px solid #FF0000' : 'none', fontSize: '10px', fontWeight: 'bold' }}>TEXT TO SPEECH</button>
-                        <button onClick={() => setMode('upload')} style={{ flex: 1, padding: '15px', backgroundColor: mode === 'upload' ? '#111' : 'transparent', color: mode === 'upload' ? 'white' : '#666', borderBottom: mode === 'upload' ? '2px solid #FF0000' : 'none', fontSize: '10px', fontWeight: 'bold' }}>UPLOAD AUDIO</button>
+                        <button onClick={() => setMode('tts')} style={{ flex: 1, padding: '15px', backgroundColor: mode === 'tts' ? '#111' : 'transparent', color: mode === 'tts' ? 'white' : '#666', borderBottom: mode === 'tts' ? '2px solid #E50914' : 'none', fontSize: '10px', fontWeight: 'bold' }}>TEXT TO SPEECH</button>
+                        <button onClick={() => setMode('upload')} style={{ flex: 1, padding: '15px', backgroundColor: mode === 'upload' ? '#111' : 'transparent', color: mode === 'upload' ? 'white' : '#666', borderBottom: mode === 'upload' ? '2px solid #E50914' : 'none', fontSize: '10px', fontWeight: 'bold' }}>UPLOAD AUDIO</button>
                     </div>
 
                     <div style={{ flex: 1, padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto' }}>
@@ -442,7 +442,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
                                     <label style={{ fontSize: '9px', color: '#666', fontWeight: 'bold', marginBottom: '8px', display: 'block' }}>EMOTION</label>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                         {EMOTIONS.map(emo => (
-                                            <button key={emo} onClick={() => setSelectedEmotion(emo)} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '4px', border: selectedEmotion === emo ? '1px solid #FF0000' : '1px solid #333', backgroundColor: selectedEmotion === emo ? 'rgba(255,0,0,0.1)' : 'transparent', color: selectedEmotion === emo ? '#FFF' : '#888' }}>{emo}</button>
+                                            <button key={emo} onClick={() => setSelectedEmotion(emo)} style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '4px', border: selectedEmotion === emo ? '1px solid #E50914' : '1px solid #333', backgroundColor: selectedEmotion === emo ? 'rgba(229,9,20,0.1)' : 'transparent', color: selectedEmotion === emo ? '#FFF' : '#888' }}>{emo}</button>
                                         ))}
                                     </div>
                                 </div>
@@ -486,7 +486,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <button onClick={(e) => { e.stopPropagation(); toggleVoicePreview(voice); }} style={{ background: 'none', border: 'none', color: previewingVoiceId === voice.voice_id ? '#FF0000' : '#444', cursor: 'pointer' }}>
+                                                        <button onClick={(e) => { e.stopPropagation(); toggleVoicePreview(voice); }} style={{ background: 'none', border: 'none', color: previewingVoiceId === voice.voice_id ? '#E50914' : '#444', cursor: 'pointer' }}>
                                                             {previewingVoiceId === voice.voice_id ? <Pause size={12} /> : <Play size={12} />}
                                                         </button>
                                                     </div>
@@ -555,7 +555,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
                     </div>
 
                     <div style={{ padding: '20px', borderTop: '1px solid #222', backgroundColor: '#080808' }}>
-                        <button onClick={handleExecuteSync} disabled={isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile)} style={{ width: '100%', padding: '15px', backgroundColor: '#FF0000', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', display: 'flex', justifyContent: 'center', gap: '10px', opacity: (isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile)) ? 0.5 : 1 }}>
+                        <button onClick={handleExecuteSync} disabled={isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile)} style={{ width: '100%', padding: '15px', backgroundColor: '#E50914', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', display: 'flex', justifyContent: 'center', gap: '10px', opacity: (isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile)) ? 0.5 : 1 }}>
                             {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
                             {mode === 'upload' && trimRange && (Math.abs(trimRange.end - trimRange.start - audioDuration) > 0.1) ? 'TRIM & SYNC' : 'EXECUTE SYNC'}
                         </button>

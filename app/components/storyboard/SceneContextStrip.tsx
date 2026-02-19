@@ -93,7 +93,7 @@ export const SceneContextStrip: React.FC<SceneContextStripProps> = ({
                 <div style={{ color: '#666', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' }}>
                     {seriesName} <span style={{ color: '#444' }}>/</span> {episodeTitle}
                 </div>
-                <div style={{ color: '#FF0000', fontFamily: 'Anton, sans-serif', fontSize: '32px', letterSpacing: '1px', lineHeight: '1' }}>
+                <div style={{ color: '#E50914', fontFamily: 'Anton, sans-serif', fontSize: '32px', letterSpacing: '1px', lineHeight: '1' }}>
                     SCENE {sceneNumber}
                 </div>
             </div>

@@ -185,7 +185,7 @@ const TaggingPanel = ({ shot, clusters, onClose, onSave }: { shot: AdaptationSho
             <div className="fixed inset-y-0 right-0 w-[500px] bg-[#0A0A0A] border-l border-[#333] z-[70] flex flex-col shadow-2xl slide-in-from-right duration-300">
                 <div className="h-16 border-b border-[#222] flex items-center justify-between px-6 bg-[#111]">
                     <h3 className="font-anton uppercase tracking-wide text-lg flex items-center gap-2 text-white">
-                        <MousePointer2 size={18} className="text-[#FF0000]" /> Tagging Mode
+                        <MousePointer2 size={18} className="text-[#E50914]" /> Tagging Mode
                     </h3>
                     <button onClick={onClose} className="hover:text-white text-[#666]"><X size={20} /></button>
                 </div>
@@ -196,7 +196,7 @@ const TaggingPanel = ({ shot, clusters, onClose, onSave }: { shot: AdaptationSho
                             <div
                                 key={i}
                                 onClick={(e) => { e.stopPropagation(); setSelectedTagIndex(i); }}
-                                className={`absolute w-4 h-4 -ml-2 -mt-2 border-2 rounded-full cursor-pointer z-10 transition-all ${selectedTagIndex === i ? 'border-[#FF0000] bg-white scale-125' : 'border-white bg-black/50 hover:scale-110'}`}
+                                className={`absolute w-4 h-4 -ml-2 -mt-2 border-2 rounded-full cursor-pointer z-10 transition-all ${selectedTagIndex === i ? 'border-[#E50914] bg-white scale-125' : 'border-white bg-black/50 hover:scale-110'}`}
                                 style={{ left: `${tag.x * 100}%`, top: `${tag.y * 100}%` }}
                             />
                         ))}
@@ -206,9 +206,9 @@ const TaggingPanel = ({ shot, clusters, onClose, onSave }: { shot: AdaptationSho
                         {selectedTagIndex !== null ? (
                             <div className="grid grid-cols-2 gap-2">
                                 {clusters.map(c => (
-                                    <button key={c.id} onClick={() => handleAssign(c.label_id)} className="flex items-center gap-3 p-2 bg-[#111] border border-[#333] hover:border-[#FF0000] hover:bg-[#1a1a1a] rounded-sm transition-all text-left group">
+                                    <button key={c.id} onClick={() => handleAssign(c.label_id)} className="flex items-center gap-3 p-2 bg-[#111] border border-[#333] hover:border-[#E50914] hover:bg-[#1a1a1a] rounded-sm transition-all text-left group">
                                         <div className="w-8 h-8 bg-black rounded-sm overflow-hidden shrink-0 border border-white/10">{c.new_face_url ? <img src={c.new_face_url} className="w-full h-full object-cover" /> : <User className="w-full h-full p-2 text-gray-600" />}</div>
-                                        <div className="flex flex-col"><span className="text-[10px] font-bold text-white font-mono group-hover:text-[#FF0000]">CHAR #{c.label_id}</span></div>
+                                        <div className="flex flex-col"><span className="text-[10px] font-bold text-white font-mono group-hover:text-[#E50914]">CHAR #{c.label_id}</span></div>
                                     </button>
                                 ))}
                                 <button onClick={() => handleRemove(selectedTagIndex)} className="col-span-2 mt-2 bg-red-900/20 text-red-500 text-xs py-2 rounded border border-red-900/50">DELETE MARKER</button>
@@ -220,7 +220,7 @@ const TaggingPanel = ({ shot, clusters, onClose, onSave }: { shot: AdaptationSho
                 </div>
                 <div className="p-6 border-t border-[#222] bg-[#111] flex justify-end gap-3">
                     <button onClick={onClose} className="px-4 py-2 text-xs font-bold text-[#666]">CANCEL</button>
-                    <button onClick={handleSave} className="bg-[#FF0000] text-black px-6 py-2 rounded-sm text-xs font-bold">SAVE & CLOSE</button>
+                    <button onClick={handleSave} className="bg-[#E50914] text-black px-6 py-2 rounded-sm text-xs font-bold">SAVE & CLOSE</button>
                 </div>
             </div>
         </>
@@ -273,7 +273,7 @@ const SideBySideCard = ({ shot, index, onDelete, onRegenerate, onOpenTagging, on
                 {/* Right: Adaptation */}
                 <div className="relative flex-1 bg-black border border-[#222] flex items-center justify-center overflow-hidden group">
                     {shot.status === 'rendering' ? (
-                        <div className="flex flex-col items-center gap-3"><Loader2 className="animate-spin text-[#FF0000]" size={24} /><span className="text-[9px] text-[#666] animate-pulse font-mono tracking-widest">GENERATING</span></div>
+                        <div className="flex flex-col items-center gap-3"><Loader2 className="animate-spin text-[#E50914]" size={24} /><span className="text-[9px] text-[#666] animate-pulse font-mono tracking-widest">GENERATING</span></div>
                     ) : shot.video_url ? (
                         <>
                             <img src={shot.video_url} className="w-full h-full object-contain" />
@@ -287,7 +287,7 @@ const SideBySideCard = ({ shot, index, onDelete, onRegenerate, onOpenTagging, on
                     ) : (
                         <div className="text-[9px] text-[#333] font-mono flex flex-col items-center gap-2"><div className="w-10 h-10 rounded-full border border-[#222] bg-[#0A0A0A] flex items-center justify-center text-[#222]"><Film size={16} /></div>WAITING</div>
                     )}
-                    {shot.status === 'rendered' && <div className="absolute top-2 left-2 bg-[#FF0000] text-black text-[8px] font-bold px-1.5 py-0.5 font-mono rounded-sm shadow-lg">ADAPTATION</div>}
+                    {shot.status === 'rendered' && <div className="absolute top-2 left-2 bg-[#E50914] text-black text-[8px] font-bold px-1.5 py-0.5 font-mono rounded-sm shadow-lg">ADAPTATION</div>}
 
                     <button onClick={onRegenerate} disabled={shot.status === 'rendering'} className="absolute bottom-3 bg-black/60 hover:bg-white text-white hover:text-black backdrop-blur-md px-3 py-1.5 rounded-sm text-[9px] font-bold transition-all flex items-center gap-2 disabled:opacity-0 border border-white/10 hover:border-transparent uppercase tracking-wider"><Wand2 size={10} /> {shot.video_url ? "Regenerate" : "Generate"}</button>
                 </div>
@@ -514,7 +514,7 @@ export default function AdaptationPage() {
 
             <div className="h-16 border-b border-[#222] flex items-center justify-between px-8 bg-[#0A0A0A] shrink-0">
                 <div className="flex items-center gap-3">
-                    {isProjectRendering ? <SplitSquareHorizontal className="text-[#FF0000] animate-pulse" size={20} /> : <User className="text-[#FF0000]" size={20} />}
+                    {isProjectRendering ? <SplitSquareHorizontal className="text-[#E50914] animate-pulse" size={20} /> : <User className="text-[#E50914]" size={20} />}
                     <h1 className="font-anton uppercase text-xl tracking-wide">{isProjectRendering ? "Live Production" : "Digital Casting"}</h1>
                 </div>
                 <div className="flex items-center gap-6">
@@ -531,7 +531,7 @@ export default function AdaptationPage() {
                         </div>
                     )}
                     {!isProjectRendering && <button onClick={handleRetryDetection} className="flex items-center gap-2 text-[10px] font-mono text-[#666] hover:text-white border border-[#222] hover:border-[#666] px-3 py-1 rounded-sm transition-colors" title="Re-run Face Detection"><Scan size={12} /> RETRY DETECTION</button>}
-                    {isProjectRendering && <button onClick={handleReset} className="flex items-center gap-2 text-[10px] font-mono text-[#444] hover:text-[#FF0000] border border-[#222] hover:border-[#FF0000] px-3 py-1 rounded-sm transition-colors" title="Force Reset Status"><RefreshCw size={10} /> RESET STATUS</button>}
+                    {isProjectRendering && <button onClick={handleReset} className="flex items-center gap-2 text-[10px] font-mono text-[#444] hover:text-[#E50914] border border-[#222] hover:border-[#E50914] px-3 py-1 rounded-sm transition-colors" title="Force Reset Status"><RefreshCw size={10} /> RESET STATUS</button>}
                     <div className="flex gap-6 text-xs font-mono text-[#666]"><span>CLUSTERS: <span className="text-white">{clusters.length}</span></span><span>SHOTS: <span className="text-white">{shots.length}</span></span></div>
                 </div>
             </div>
@@ -545,7 +545,7 @@ export default function AdaptationPage() {
                                 <button onClick={() => handleDeleteCluster(cluster)} disabled={isDeletingCluster === cluster.id} className="absolute -top-2 -right-2 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 hover:scale-110 transition-all z-20 shadow-lg" title="Delete Character"><X size={12} /></button>
                                 <div className="w-16 h-16 bg-black border border-[#222] rounded-sm overflow-hidden shrink-0"><img src={cluster.original_face_url} className="w-full h-full object-cover" /></div>
                                 <div className="text-[#444] text-xs">→</div>
-                                <div className="flex-1 h-16 border border-dashed border-[#333] bg-[#0A0A0A] rounded-sm flex flex-col items-center justify-center relative hover:border-[#FF0000] hover:bg-[#150505] transition-all cursor-pointer overflow-hidden">{uploadingCast === cluster.id ? <Loader2 className="animate-spin text-[#FF0000]" /> : cluster.new_face_url ? <img src={cluster.new_face_url} className="w-full h-full object-cover opacity-80" /> : <div className="text-[8px] font-mono uppercase text-[#666]">Assign Actor</div>}<input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" disabled={!!uploadingCast} onChange={(e) => { if (e.target.files?.[0]) handleCastUpload(cluster.id, e.target.files[0]); }} /></div>
+                                <div className="flex-1 h-16 border border-dashed border-[#333] bg-[#0A0A0A] rounded-sm flex flex-col items-center justify-center relative hover:border-[#E50914] hover:bg-[#150505] transition-all cursor-pointer overflow-hidden">{uploadingCast === cluster.id ? <Loader2 className="animate-spin text-[#E50914]" /> : cluster.new_face_url ? <img src={cluster.new_face_url} className="w-full h-full object-cover opacity-80" /> : <div className="text-[8px] font-mono uppercase text-[#666]">Assign Actor</div>}<input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" disabled={!!uploadingCast} onChange={(e) => { if (e.target.files?.[0]) handleCastUpload(cluster.id, e.target.files[0]); }} /></div>
                             </div>
                         ))}
                     </div>
@@ -554,7 +554,7 @@ export default function AdaptationPage() {
                 <div>
                     <h3 className="text-xs font-bold text-[#666] uppercase tracking-[2px] mb-4 flex items-center gap-2 border-t border-[#222] pt-8"><Film size={12} /> {isProjectRendering ? "Render Output" : "Scene Breakdown"}</h3>
                     {isLoadingShots ? (
-                        <div className="flex justify-center p-12"><Loader2 className="animate-spin text-[#FF0000]" /></div>
+                        <div className="flex justify-center p-12"><Loader2 className="animate-spin text-[#E50914]" /></div>
                     ) : (
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                             {shots.map((shot, i) => (
@@ -576,7 +576,7 @@ export default function AdaptationPage() {
             </div>
 
             {/* {!isProjectRendering && (
-                <div className="p-6 border-t border-[#222] bg-[#0A0A0A] flex justify-end"><button onClick={handleStartRender} disabled={isStartingRender || shots.length === 0} className="bg-[#FF0000] text-black font-anton uppercase px-8 py-3 hover:bg-white transition-colors flex items-center gap-2 disabled:opacity-50">{isStartingRender ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} fill="currentColor" />} CONFIRM CAST & RENDER</button></div>
+                <div className="p-6 border-t border-[#222] bg-[#0A0A0A] flex justify-end"><button onClick={handleStartRender} disabled={isStartingRender || shots.length === 0} className="bg-[#E50914] text-black font-anton uppercase px-8 py-3 hover:bg-white transition-colors flex items-center gap-2 disabled:opacity-50">{isStartingRender ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} fill="currentColor" />} CONFIRM CAST & RENDER</button></div>
             )} */}
         </div>
     );

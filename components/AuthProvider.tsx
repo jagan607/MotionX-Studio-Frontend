@@ -74,7 +74,7 @@ function FullScreenLoader() {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .spin-loader { animation: spin 1s linear infinite; }
       `}</style>
-      <Loader2 className="spin-loader" size={48} color="#FF0000" />
+      <Loader2 className="spin-loader" size={48} color="#E50914" />
     </div>
   );
 }

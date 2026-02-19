@@ -33,26 +33,27 @@ export default function GlobalHeader() {
     const styles = {
         header: {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            borderBottom: '1px solid #1F1F1F', padding: '16px 40px',
-            backgroundColor: '#050505',
+            borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '16px 40px',
+            backgroundColor: 'rgba(5, 5, 5, 0.85)',
+            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
             position: 'sticky' as const, top: 0, zIndex: 50
         },
-        logo: { fontSize: '24px', fontFamily: 'Anton, sans-serif', textTransform: 'uppercase' as const, lineHeight: '1', letterSpacing: '1px', color: '#FFF' },
-        subLogo: { fontSize: '9px', color: '#FF0000', letterSpacing: '3px', fontWeight: 'bold' as const, marginTop: '4px', textTransform: 'uppercase' as const },
+        logo: { fontSize: '24px', fontFamily: 'Anton, sans-serif', textTransform: 'uppercase' as const, lineHeight: '1', letterSpacing: '0.5px', color: '#FFF' },
+        subLogo: { fontSize: '9px', color: '#999', letterSpacing: '3px', fontWeight: 'bold' as const, marginTop: '4px', textTransform: 'uppercase' as const },
         creditsWrapper: { display: 'flex', alignItems: 'center', gap: '16px', marginRight: '32px' },
         creditsValue: { fontSize: '13px', color: '#FFF', fontWeight: 'bold' as const, fontFamily: 'monospace', letterSpacing: '0.5px' },
-        creditsLabel: { fontSize: '8px', color: '#FFF', fontFamily: 'monospace', textTransform: 'uppercase' as const, display: 'block', lineHeight: 1, marginBottom: '2px' },
+        creditsLabel: { fontSize: '8px', color: '#999', fontFamily: 'monospace', textTransform: 'uppercase' as const, display: 'block', lineHeight: 1, marginBottom: '2px' },
         topUpBtn: {
-            backgroundColor: 'rgba(255, 0, 0, 0.1)', border: '1px solid rgba(255, 0, 0, 0.3)',
+            backgroundColor: 'rgba(229, 9, 20, 0.1)', border: '1px solid rgba(229, 9, 20, 0.3)',
             color: '#FFF', padding: '6px 14px', fontSize: '9px', fontWeight: 'bold' as const,
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-            textTransform: 'uppercase' as const, transition: 'all 0.3s ease', borderRadius: '2px',
-            boxShadow: '0 0 10px rgba(255, 0, 0, 0.1)'
+            textTransform: 'uppercase' as const, transition: 'all 0.3s ease', borderRadius: '6px',
+            boxShadow: '0 0 10px rgba(229, 9, 20, 0.08)'
         },
         operatorBtn: {
             display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: 'transparent',
-            border: '1px solid #1F1F1F', padding: '7px 16px', cursor: 'pointer',
-            transition: 'all 0.2s ease', textDecoration: 'none', borderRadius: '4px'
+            border: '1px solid rgba(255,255,255,0.08)', padding: '7px 16px', cursor: 'pointer',
+            transition: 'all 0.2s ease', textDecoration: 'none', borderRadius: '8px'
         }
     };
 
@@ -61,15 +62,15 @@ export default function GlobalHeader() {
             <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
             <div style={styles.header}>
                 <style jsx>{`
-                    .topup-btn:hover { background-color: rgba(255, 0, 0, 0.2) !important; border-color: #FF0000 !important; box-shadow: 0 0 15px rgba(255, 0, 0, 0.3) !important; }
-                    .header-btn:hover { border-color: #333 !important; background-color: rgba(255,255,255,0.05) !important; }
+                    .topup-btn:hover { background-color: rgba(229, 9, 20, 0.25) !important; border-color: #E50914 !important; box-shadow: 0 0 20px rgba(229, 9, 20, 0.2) !important; }
+                    .header-btn:hover { border-color: rgba(255,255,255,0.15) !important; background-color: rgba(255,255,255,0.04) !important; }
                     .op-text { color: #FFF !important; opacity: 1 !important; }
                 `}</style>
 
                 <Link href="/dashboard" style={{ textDecoration: 'none' }}>
                     <div>
-                        <h1 style={styles.logo}>Motion X <span style={{ color: '#FF0000' }}>Studio</span></h1>
-                        <p style={styles.subLogo}>/// PRODUCTION_TERMINAL_V1</p>
+                        <h1 style={styles.logo}>Motion X <span style={{ color: '#E50914' }}>Studio</span></h1>
+                        <p style={styles.subLogo}>Creative Studio</p>
                     </div>
                 </Link>
 
@@ -85,7 +86,7 @@ export default function GlobalHeader() {
                     </div>
 
                     <Link href="/project/new">
-                        <button className="flex items-center gap-2 bg-[#1A1A1A] border border-[#333] text-xs font-bold tracking-[2px] text-white px-6 py-3 uppercase hover:bg-[#222] transition-colors mr-4">
+                        <button className="flex items-center gap-2 bg-[#1A1A1A] border border-[#222] text-xs font-bold tracking-[2px] text-white px-6 py-3 uppercase hover:bg-[#222] transition-colors mr-4 rounded-md">
                             <Plus className="w-3 h-3" strokeWidth={3} /> New Project
                         </button>
                     </Link>

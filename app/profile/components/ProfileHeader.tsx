@@ -57,7 +57,7 @@ export default function ProfileHeader({
             backgroundColor: isActive ? '#111' : 'transparent',
             color: isActive ? '#FFF' : '#666',
             border: 'none',
-            borderTop: isActive ? '2px solid #FF0000' : '2px solid transparent',
+            borderTop: isActive ? '2px solid #E50914' : '2px solid transparent',
             fontFamily: 'monospace',
             fontSize: '12px',
             cursor: 'pointer',
@@ -73,7 +73,7 @@ export default function ProfileHeader({
         <div>
             <style jsx>{`
                 .nav-link:hover { color: #FFF !important; }
-                .logout-link:hover { color: #FF0000 !important; }
+                .logout-link:hover { color: #E50914 !important; }
             `}</style>
 
             {/* TOP ROW: TITLE & NAVIGATION */}

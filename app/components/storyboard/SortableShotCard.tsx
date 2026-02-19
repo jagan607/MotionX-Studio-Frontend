@@ -187,7 +187,7 @@ export const SortableShotCard = ({
     // --- STYLES ---
     let borderColor = '1px solid #222';
     if (isFinalized) borderColor = `1px solid rgba(255, 255, 255, 0.5)`;
-    if (isMorphedByPrev) borderColor = `1px solid #FF0000`;
+    if (isMorphedByPrev) borderColor = `1px solid #E50914`;
 
     const dragStyle = {
         transform: CSS.Transform.toString(transform),
@@ -198,7 +198,7 @@ export const SortableShotCard = ({
         scale: isDragging ? "1.02" : "1",
         border: borderColor,
         backgroundColor: isFinalized ? "rgba(255, 255, 255, 0.05)" : "#0A0A0A",
-        boxShadow: (isLinked || isMorphedByPrev) ? '0 0 0 1px #FF0000' : 'none'
+        boxShadow: (isLinked || isMorphedByPrev) ? '0 0 0 1px #E50914' : 'none'
     };
 
     const labelStyle: React.CSSProperties = { fontSize: '9px', color: isMorphedByPrev ? '#555' : '#666', marginBottom: '6px', display: 'block', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase' };
@@ -213,8 +213,8 @@ export const SortableShotCard = ({
 
     const toggleStyle = (active: boolean) => ({
         flex: 1, padding: '6px', fontSize: '9px', fontWeight: 'bold',
-        border: active ? '1px solid #FF0000' : '1px solid #333',
-        backgroundColor: active ? 'rgba(255, 0, 0, 0.1)' : 'transparent',
+        border: active ? '1px solid #E50914' : '1px solid #333',
+        backgroundColor: active ? 'rgba(229, 9, 20, 0.1)' : 'transparent',
         color: active ? '#FFF' : '#666',
         cursor: isBusy || isMorphedByPrev ? 'not-allowed' : 'pointer',
         borderRadius: '3px',
@@ -229,9 +229,9 @@ export const SortableShotCard = ({
             {isMorphedByPrev && (
                 <div style={{
                     position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
-                    backgroundColor: '#FF0000', color: 'black', fontSize: '9px', fontWeight: 'bold',
+                    backgroundColor: '#E50914', color: 'white', fontSize: '9px', fontWeight: 'bold',
                     padding: '2px 8px', borderRadius: '4px', zIndex: 60, display: 'flex', alignItems: 'center', gap: '4px',
-                    boxShadow: '0 0 10px rgba(255,0,0,0.5)'
+                    boxShadow: '0 0 10px rgba(229,9,20,0.4)'
                 }}>
                     <Link2 size={10} /> LINKED SEQUENCE
                 </div>
@@ -243,7 +243,7 @@ export const SortableShotCard = ({
                     {isLinked && (
                         <div style={{
                             position: 'absolute', top: '50%', right: '-30px', width: '40px', height: '2px',
-                            backgroundColor: '#FF0000', zIndex: 40, transform: 'translateY(-50%)', boxShadow: '0 0 8px #FF0000'
+                            backgroundColor: '#E50914', zIndex: 40, transform: 'translateY(-50%)', boxShadow: '0 0 8px #E50914'
                         }} />
                     )}
                     <div
@@ -252,11 +252,11 @@ export const SortableShotCard = ({
                         style={{
                             position: 'absolute', top: '50%', right: '-14px', transform: 'translateY(-50%)', zIndex: 50,
                             width: '28px', height: '28px', borderRadius: '50%',
-                            backgroundColor: isLinked ? '#FF0000' : '#111',
+                            backgroundColor: isLinked ? '#E50914' : '#111',
                             border: isLinked ? '2px solid #000' : '1px solid #333',
                             color: isLinked ? 'white' : '#666',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                            boxShadow: isLinked ? '0 0 15px rgba(255,0,0,0.6)' : '0 2px 5px rgba(0,0,0,0.5)',
+                            boxShadow: isLinked ? '0 0 15px rgba(229,9,20,0.5)' : '0 2px 5px rgba(0,0,0,0.5)',
                             transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
                         }}
                     >
@@ -269,7 +269,7 @@ export const SortableShotCard = ({
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div {...attributes} {...listeners} style={{ cursor: 'grab', color: '#666', padding: '4px' }}><GripVertical size={18} /></div>
-                    <span style={{ color: (isFinalized || isLinked || isMorphedByPrev) ? '#FF0000' : '#FF0000', fontWeight: 'bold', fontSize: '12px', letterSpacing: '1px' }}>
+                    <span style={{ color: '#E50914', fontWeight: 'bold', fontSize: '12px', letterSpacing: '1px' }}>
                         SHOT {String(index + 1).padStart(2, '0')} {isFinalized && "⭐"}
                     </span>
                 </div>
@@ -326,7 +326,7 @@ export const SortableShotCard = ({
                                     style={{
                                         fontSize: '10px', padding: '4px 10px', borderRadius: '4px', opacity: isMorphedByPrev ? 0.5 : 1,
                                         border: '1px solid #333',
-                                        backgroundColor: isActive ? '#FF0000' : 'transparent',
+                                        backgroundColor: isActive ? '#E50914' : 'transparent',
                                         color: isActive ? 'white' : '#666',
                                         cursor: 'pointer',
                                         display: 'flex', alignItems: 'center', gap: '4px'
@@ -359,7 +359,7 @@ export const SortableShotCard = ({
                                     ...baseStyle,
                                     fontSize: '10px', padding: '4px 10px', borderRadius: '4px', opacity: isMorphedByPrev ? 0.5 : 1,
                                     border: '1px solid #333',
-                                    backgroundColor: isActive ? '#FF0000' : 'transparent',
+                                    backgroundColor: isActive ? '#E50914' : 'transparent',
                                     color: isActive ? 'white' : '#666',
                                     cursor: 'pointer'
                                 }}
@@ -501,7 +501,7 @@ export const SortableShotCard = ({
                     >
                         <Sparkles size={14} /> {hasImage ? "RE-GEN" : "GENERATE"}
                     </button>
-                    <button onClick={onFinalize} disabled={!hasImage || isBusy} style={{ padding: '10px', backgroundColor: isFinalized ? 'rgba(245, 11, 11, 0.1)' : '#1a1a1a', border: isFinalized ? '1px solid #FF0000' : '1px solid #333', color: isFinalized ? '#FFF' : (hasImage ? '#FFF' : '#444'), fontSize: '10px', fontWeight: 'bold', cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px' }}>
+                    <button onClick={onFinalize} disabled={!hasImage || isBusy} style={{ padding: '10px', backgroundColor: isFinalized ? 'rgba(229, 9, 20, 0.1)' : '#1a1a1a', border: isFinalized ? '1px solid #E50914' : '1px solid #333', color: isFinalized ? '#FFF' : (hasImage ? '#FFF' : '#444'), fontSize: '10px', fontWeight: 'bold', cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px' }}>
                         {isFinalized ? <CheckCircle2 size={14} /> : <Wand2 size={14} />}
                         {isFinalized ? "DONE" : "FINALIZE"}
                     </button>
@@ -548,8 +548,8 @@ export const SortableShotCard = ({
                         disabled={!hasImage || isBusy}
                         style={{
                             flex: 1, padding: '10px',
-                            backgroundColor: isLinked ? '#FF0000' : (hasImage ? '#1a1a1a' : '#111'),
-                            border: isLinked ? '1px solid #FF0000' : (hasImage ? '1px solid #333' : '1px solid #222'),
+                            backgroundColor: isLinked ? '#E50914' : (hasImage ? '#1a1a1a' : '#111'),
+                            border: isLinked ? '1px solid #E50914' : (hasImage ? '1px solid #333' : '1px solid #222'),
                             color: isLinked ? '#FFF' : (hasImage ? '#FFF' : '#444'),
                             fontSize: '10px', fontWeight: 'bold', cursor: (!hasImage || isBusy) ? 'not-allowed' : 'pointer',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '4px', transition: 'all 0.2s'

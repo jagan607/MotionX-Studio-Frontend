@@ -60,7 +60,7 @@ export const DownloadModal = ({ shot, onClose, onDownload }: DownloadModalProps)
                 </button>
 
                 <button
-                    style={{ ...btnStyle, backgroundColor: '#FF0000', color: 'white', border: 'none' }}
+                    style={{ ...btnStyle, backgroundColor: '#E50914', color: 'white', border: 'none' }}
                     onClick={() => onDownload('both')}
                 >
                     <span style={{ display: 'flex', gap: '10px' }}><Layers size={16} /> DOWNLOAD PACK</span>

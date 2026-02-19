@@ -50,13 +50,13 @@ export default function PricingPage() {
 
     const terminalToast = (message: string, type: "success" | "error") => {
         toast(message, {
-            icon: type === "success" ? "🟩" : "🟥",
+            icon: type === "success" ? "✓" : "✕",
             style: {
-                borderRadius: "0px",
-                background: "#000",
-                color: type === "success" ? "#00FF00" : "#FF0000",
-                border: `1px solid ${type === "success" ? "#00FF00" : "#FF0000"}`,
-                fontFamily: "monospace",
+                borderRadius: "8px",
+                background: "#0A0A0A",
+                color: type === "success" ? "#00FF00" : "#E50914",
+                border: `1px solid ${type === "success" ? "rgba(0,255,0,0.2)" : "rgba(229,9,20,0.3)"}`,
+                fontFamily: "Inter, sans-serif",
                 fontSize: "12px",
             },
         });
@@ -97,23 +97,23 @@ export default function PricingPage() {
     }, [subscribe, loading, router, currency]);
 
     return (
-        <div className="min-h-screen bg-[#050505] text-[#EDEDED] flex flex-col font-sans selection:bg-[#FF0000] selection:text-white">
+        <div className="min-h-screen bg-[#050505] text-[#EDEDED] flex flex-col font-sans selection:bg-[#E50914] selection:text-white">
             <Toaster position="bottom-right" />
 
             {/* --- HEADER --- */}
-            <div className="flex justify-between items-end px-6 md:px-10 py-6 border-b border-[#1F1F1F] bg-[#030303] sticky top-0 z-50">
+            <div className="flex justify-between items-end px-6 md:px-10 py-6 border-b border-white/[0.06] bg-[#030303]/85 backdrop-blur-xl sticky top-0 z-50">
                 <Link href="/dashboard" className="no-underline group">
                     <div>
-                        <h1 className="font-anton text-2xl uppercase leading-none tracking-[1px] text-white group-hover:opacity-80 transition-opacity">
-                            Motion X <span className="text-[#FF0000]">Studio</span>
+                        <h1 className="font-anton text-2xl uppercase leading-none tracking-[0.5px] text-white group-hover:opacity-80 transition-opacity">
+                            Motion X <span className="text-[#E50914]">Studio</span>
                         </h1>
-                        <p className="text-[9px] text-[#FF0000] tracking-[3px] font-bold mt-1.5 uppercase">
-                            /// PRODUCTION_TERMINAL_V1
+                        <p className="text-[9px] text-[#999] tracking-[3px] font-bold mt-1.5 uppercase">
+                            Plans & Pricing
                         </p>
                     </div>
                 </Link>
                 <Link href="/dashboard">
-                    <button className="bg-[#111] border border-[#333] text-[#EDEDED] px-5 py-2 text-[10px] font-bold tracking-[2px] hover:bg-[#222] hover:border-[#666] transition-all uppercase flex items-center gap-2">
+                    <button className="bg-[#111] border border-[#222] text-[#EDEDED] px-5 py-2 text-[10px] font-bold tracking-[2px] hover:bg-[#1A1A1A] hover:border-[#444] transition-all uppercase flex items-center gap-2 rounded-md">
                         Dashboard <ArrowRight size={14} className="text-[#666]" />
                     </button>
                 </Link>
@@ -123,11 +123,11 @@ export default function PricingPage() {
             <div className="flex-1 flex flex-col items-center py-16 px-4 md:px-8 relative">
                 {/* ... (Title Section) ... */}
                 <div className="text-center mb-16 max-w-3xl z-10">
-                    <p className="text-[#FF0000] text-[10px] font-bold tracking-[3px] mb-4 uppercase animate-pulse">
-                        /// STUDIO INFRASTRUCTURE
+                    <p className="text-[#E50914] text-[10px] font-semibold tracking-[3px] mb-4 uppercase">
+                        PLANS & PRICING
                     </p>
                     <h1 className="text-5xl md:text-7xl text-white mb-6 uppercase tracking-tight font-anton">
-                        PRODUCTION CAPACITY
+                        Choose Your Plan
                     </h1>
                 </div>
 
@@ -190,14 +190,14 @@ export default function PricingPage() {
 
                 {/* ... (Footer Section) ... */}
                 <div className="w-full max-w-[1400px] mt-12 z-10">
-                    <div className="border border-[#333] bg-[#080808] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF0000] opacity-5 blur-[100px] rounded-full pointer-events-none group-hover:opacity-10 transition-opacity" />
+                    <div className="border border-[#222] bg-[#080808] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group rounded-lg">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#E50914] opacity-5 blur-[100px] rounded-full pointer-events-none group-hover:opacity-10 transition-opacity" />
                         {/* ...Enterprise Content... */}
                         <div className="text-left">
                             <h2 className="text-3xl md:text-4xl text-white font-anton uppercase mb-2">Enterprise</h2>
                             <p className="text-[#888] text-sm max-w-xl">Dedicated GPU clusters, custom AI model fine-tuning, and API access.</p>
                         </div>
-                        <a href="https://calendly.com/jagan-motionx/30min" target="_blank" rel="noreferrer" className="bg-[#EDEDED] text-black px-8 py-4 font-bold text-xs tracking-[2px] uppercase hover:bg-white transition-all flex items-center gap-2">
+                        <a href="https://calendly.com/jagan-motionx/30min" target="_blank" rel="noreferrer" className="bg-[#EDEDED] text-black px-8 py-4 font-bold text-xs tracking-[2px] uppercase hover:bg-white transition-all flex items-center gap-2 rounded-md">
                             <MessageSquare size={16} /> Contact Sales
                         </a>
                     </div>

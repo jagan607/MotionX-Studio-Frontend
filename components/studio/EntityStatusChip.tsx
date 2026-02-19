@@ -27,10 +27,10 @@ export const EntityStatusChip: React.FC<EntityStatusChipProps> = ({
     const isLinked = status === 'linked';
     const Icon = type === 'character' ? User : type === 'product' ? Package : MapPin;
 
-    const baseStyles = "flex items-center gap-1.5 px-2 py-1 rounded text-[8px] font-bold tracking-wider uppercase border transition-all cursor-pointer select-none";
+    const baseStyles = "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[8px] font-bold tracking-wider uppercase border transition-all cursor-pointer select-none";
     const variantStyles = isLinked
-        ? "bg-green-900/20 border-green-800 text-green-400 hover:bg-green-900/40 hover:border-green-600"
-        : "bg-red-900/20 border-red-800 text-red-400 hover:bg-red-900/40 hover:border-red-600";
+        ? "bg-[#E50914]/10 border-[#E50914]/25 text-[#ff6b6b] hover:bg-[#E50914]/15 hover:border-[#E50914]/40"
+        : "bg-neutral-800/40 border-neutral-700/50 text-neutral-500 hover:bg-neutral-700/30 hover:border-neutral-600";
 
     const ChipContent = (
         <div onClick={onClick} className={`${baseStyles} ${variantStyles}`}>
@@ -56,7 +56,7 @@ export const EntityStatusChip: React.FC<EntityStatusChipProps> = ({
                             <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
                             <div className="absolute bottom-0 w-full p-2 bg-gradient-to-t from-black via-black/80 to-transparent">
                                 <p className="text-[9px] text-white font-bold uppercase">{name}</p>
-                                <p className="text-[8px] text-neutral-500 font-mono">ASSET LINKED</p>
+                                <p className="text-[8px] text-neutral-500">Linked</p>
                             </div>
                         </div>
                     </TooltipContent>
