@@ -30,6 +30,8 @@ export default function Dashboard() {
     const [activeAnnouncementIdx, setActiveAnnouncementIdx] = useState(0);
     const [announcementFading, setAnnouncementFading] = useState(false);
     const [showWhatsNew, setShowWhatsNew] = useState(false);
+    const [modalSlideIdx, setModalSlideIdx] = useState(0);
+    const [modalFading, setModalFading] = useState(false);
     const whatsNewShownRef = useRef(false);
     const { step: tourStep, nextStep: tourNext, completeTour } = useTour("dashboard_tour");
 
@@ -112,6 +114,33 @@ export default function Dashboard() {
             setActiveAnnouncementIdx(0);
         }
     }, [visibleAnnouncements.length, activeAnnouncementIdx]);
+
+    // Auto-rotate modal slides every 5s
+    useEffect(() => {
+        if (!showWhatsNew || visibleAnnouncements.length <= 1) return;
+        const timer = setInterval(() => {
+            setModalFading(true);
+            setTimeout(() => {
+                setModalSlideIdx(prev => (prev + 1) % visibleAnnouncements.length);
+                setModalFading(false);
+            }, 250);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, [showWhatsNew, visibleAnnouncements.length]);
+
+    // Reset modal slide when opening
+    useEffect(() => {
+        if (showWhatsNew) setModalSlideIdx(0);
+    }, [showWhatsNew]);
+
+    const modalGoTo = (idx: number) => {
+        if (idx === modalSlideIdx) return;
+        setModalFading(true);
+        setTimeout(() => {
+            setModalSlideIdx(idx);
+            setModalFading(false);
+        }, 250);
+    };
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -570,66 +599,105 @@ export default function Dashboard() {
                 </div>
             )}
             {/* WHAT'S NEW MODAL */}
-            {showWhatsNew && visibleAnnouncements.length > 0 && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={closeWhatsNew}>
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" style={{ animation: 'fadeIn 0.3s ease' }} />
-                    <div
-                        className="relative z-10 w-full max-w-lg mx-4 bg-[#0a0a0a] border border-[#222] rounded-xl overflow-hidden shadow-2xl"
-                        onClick={e => e.stopPropagation()}
-                        style={{ animation: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}
-                    >
-                        {/* Header glow */}
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#E50914] via-[#ff6b35] to-[#E50914]" />
+            {showWhatsNew && visibleAnnouncements.length > 0 && (() => {
+                const a = visibleAnnouncements[modalSlideIdx] || visibleAnnouncements[0];
+                if (!a) return null;
+                const config = ANNOUNCEMENT_TYPES[a.type] || ANNOUNCEMENT_TYPES.update;
+                const Icon = config.icon;
+                const isVid = a.media_url?.match(/\.(mp4|webm|mov)(\?|$)/i);
+                const total = visibleAnnouncements.length;
+                return (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={closeWhatsNew}>
+                        <div className="absolute inset-0 bg-black/85 backdrop-blur-md" style={{ animation: 'fadeIn 0.3s ease' }} />
+                        <div
+                            className="relative z-10 w-full max-w-[520px] mx-4 rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(229,9,20,0.15)]"
+                            onClick={e => e.stopPropagation()}
+                            style={{ animation: 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                        >
+                            {/* Full card with media as background */}
+                            <div className="relative min-h-[420px] flex flex-col" style={{
+                                transition: 'opacity 0.3s ease',
+                                opacity: modalFading ? 0 : 1,
+                            }}>
+                                {/* Background: media or gradient */}
+                                {a.media_url ? (
+                                    <div className="absolute inset-0">
+                                        {isVid ? (
+                                            <video key={a.id} src={a.media_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                                        ) : (
+                                            <img key={a.id} src={a.media_url} alt="" className="w-full h-full object-cover" />
+                                        )}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/20" />
+                                    </div>
+                                ) : (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#111] to-[#0a0a0a]">
+                                        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                                    </div>
+                                )}
 
-                        <div className="p-8">
-                            <div className="flex items-center gap-3 mb-1">
-                                <Megaphone size={20} className="text-[#E50914]" />
-                                <span className="text-[10px] font-mono text-[#E50914] uppercase tracking-[4px] font-bold">What's New</span>
-                            </div>
-                            <h2 className="font-anton text-3xl text-white uppercase tracking-wide mb-6">Latest Updates</h2>
+                                {/* Top bar */}
+                                <div className="relative z-10 flex items-center justify-between p-5">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-2 h-2 bg-[#E50914] rounded-full animate-pulse shadow-[0_0_8px_#E50914]" />
+                                        <span className="text-[9px] font-mono text-white/60 uppercase tracking-[3px] font-bold">What's New</span>
+                                    </div>
+                                    <button onClick={closeWhatsNew} className="text-white/30 hover:text-white text-xs transition-colors cursor-pointer">✕</button>
+                                </div>
 
-                            <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-1">
-                                {visibleAnnouncements.map(a => {
-                                    const config = ANNOUNCEMENT_TYPES[a.type] || ANNOUNCEMENT_TYPES.update;
-                                    const Icon = config.icon;
-                                    const isVid = a.media_url?.match(/\.(mp4|webm|mov)(\?|$)/i);
-                                    return (
-                                        <div key={a.id} className="bg-[#111] rounded-lg overflow-hidden border border-[#1a1a1a] hover:border-[#333] transition-colors">
-                                            {/* Media hero */}
-                                            {a.media_url && (
-                                                <div className="w-full aspect-video bg-black">
-                                                    {isVid ? (
-                                                        <video src={a.media_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <img src={a.media_url} alt="" className="w-full h-full object-cover" />
-                                                    )}
-                                                </div>
-                                            )}
-                                            <div className="p-4">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <Icon size={14} style={{ color: config.color }} />
-                                                    <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded" style={{ background: `${config.color}20`, color: config.color }}>
-                                                        {config.label}
-                                                    </span>
-                                                </div>
-                                                <h3 className="font-anton text-xl text-white uppercase tracking-wide">{a.title}</h3>
-                                                <p className="text-[12px] text-[#888] mt-1 leading-relaxed">{a.body}</p>
+                                {/* Centered content */}
+                                <div className="relative z-10 flex-1 flex flex-col justify-end p-8 pt-16">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Icon size={16} style={{ color: config.color }} />
+                                        <span className="text-[9px] font-bold uppercase tracking-[2px] px-2.5 py-1 rounded-full" style={{ background: `${config.color}25`, color: config.color, border: `1px solid ${config.color}30` }}>
+                                            {config.label}
+                                        </span>
+                                    </div>
+                                    <h2 className="font-anton text-4xl text-white uppercase tracking-wide leading-tight mb-3 drop-shadow-lg">{a.title}</h2>
+                                    <p className="text-[13px] text-white/70 leading-relaxed max-w-[90%]">{a.body}</p>
+                                </div>
+
+                                {/* Bottom bar: navigation + CTA */}
+                                <div className="relative z-10 p-5 flex items-center gap-4">
+                                    {total > 1 && (
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => modalGoTo((modalSlideIdx - 1 + total) % total)}
+                                                className="w-8 h-8 rounded-full border border-white/15 flex items-center justify-center text-white/40 hover:text-white hover:border-white/40 transition-all cursor-pointer backdrop-blur-sm"
+                                            >
+                                                <ChevronLeft size={14} />
+                                            </button>
+                                            <div className="flex items-center gap-1.5">
+                                                {visibleAnnouncements.map((_, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => modalGoTo(idx)}
+                                                        className={`rounded-full transition-all duration-300 cursor-pointer ${idx === modalSlideIdx
+                                                            ? 'w-5 h-1.5 bg-[#E50914]'
+                                                            : 'w-1.5 h-1.5 bg-white/20 hover:bg-white/40'
+                                                            }`}
+                                                    />
+                                                ))}
                                             </div>
+                                            <button
+                                                onClick={() => modalGoTo((modalSlideIdx + 1) % total)}
+                                                className="w-8 h-8 rounded-full border border-white/15 flex items-center justify-center text-white/40 hover:text-white hover:border-white/40 transition-all cursor-pointer backdrop-blur-sm"
+                                            >
+                                                <ChevronRight size={14} />
+                                            </button>
                                         </div>
-                                    );
-                                })}
+                                    )}
+                                    <button
+                                        onClick={closeWhatsNew}
+                                        className="ml-auto bg-white/10 hover:bg-[#E50914] border border-white/15 hover:border-[#E50914] text-white px-6 py-2.5 text-[10px] font-bold uppercase tracking-[2px] transition-all rounded-lg cursor-pointer backdrop-blur-sm"
+                                    >
+                                        Got It
+                                    </button>
+                                </div>
                             </div>
-
-                            <button
-                                onClick={closeWhatsNew}
-                                className="w-full mt-6 bg-[#E50914] hover:bg-[#ff1a25] text-white py-3 text-[11px] font-bold uppercase tracking-[3px] transition-colors rounded-md cursor-pointer"
-                            >
-                                Got It
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
             <TourOverlay step={tourStep} steps={DASHBOARD_TOUR_STEPS} onNext={tourNext} onComplete={completeTour} />
         </main>
     );
