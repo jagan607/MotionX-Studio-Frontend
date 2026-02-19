@@ -284,7 +284,7 @@ export const fetchGlobalFeed = async () => {
             collectionGroup(db, 'shots'),
             where("status", "==", "rendered"),
             orderBy("created_at", "desc"),
-            limit(50)
+            limit(200)
         );
 
         const snap = await getDocs(q);

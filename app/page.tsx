@@ -1,10 +1,256 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { fetchGlobalFeed } from "@/lib/api";
 import { ChevronRight, Check, Play, Aperture, Film, Sparkles, Layers, Clapperboard, ArrowRight } from "lucide-react";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HERO: TYPING EFFECT HOOK
+// ─────────────────────────────────────────────────────────────────────────────
+
+const useTypingEffect = (text: string, speed = 70, delay = 800) => {
+  const [displayText, setDisplayText] = useState('');
+  const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    setDisplayText('');
+    setIsComplete(false);
+    let i = 0;
+    const timeout = setTimeout(() => {
+      const interval = setInterval(() => {
+        if (i < text.length) {
+          setDisplayText(text.slice(0, i + 1));
+          i++;
+        } else {
+          setIsComplete(true);
+          clearInterval(interval);
+        }
+      }, speed);
+    }, delay);
+    return () => clearTimeout(timeout);
+  }, [text, speed, delay]);
+
+  return { displayText, isComplete };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HERO: VIEWFINDER CORNER BRACKET
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ViewfinderCorner = ({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' }) => {
+  const isRight = position === 'tr' || position === 'br';
+  const isBottom = position === 'bl' || position === 'br';
+  return (
+    <div className="absolute z-20 pointer-events-none" style={{
+      ...(isBottom ? { bottom: 28 } : { top: 28 }),
+      ...(isRight ? { right: 28 } : { left: 28 }),
+      width: 48, height: 48,
+    }}>
+      {/* Horizontal line */}
+      <div className="absolute" style={{
+        [isBottom ? 'bottom' : 'top']: 0,
+        [isRight ? 'right' : 'left']: 0,
+        width: 48, height: 1,
+        background: 'rgba(255,255,255,0.3)',
+      }} />
+      {/* Vertical line */}
+      <div className="absolute" style={{
+        [isBottom ? 'bottom' : 'top']: 0,
+        [isRight ? 'right' : 'left']: 0,
+        width: 1, height: 48,
+        background: 'rgba(255,255,255,0.3)',
+      }} />
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HERO: MOSAIC CELL (video or image fallback)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MosaicCell = ({ shot }: { shot: { video_url?: string; image_url?: string } }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  return (
+    <div className="mosaic-cell relative rounded-lg overflow-hidden" style={{ aspectRatio: '3/4' }}>
+      {shot.video_url ? (
+        <video
+          ref={videoRef}
+          src={shot.video_url}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <img src={shot.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HERO SECTION COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+const HeroSection = ({ cmsData }: { cmsData: any }) => {
+  const { displayText, isComplete } = useTypingEffect(cmsData.headline, 80, 600);
+  const [feedShots, setFeedShots] = useState<any[]>([]);
+
+  // Fetch global feed for mosaic
+  useEffect(() => {
+    fetchGlobalFeed().then(shots => {
+      // Prefer shots with video, then fill with images
+      const withVideo = shots.filter((s: any) => s.video_url);
+      const withImage = shots.filter((s: any) => !s.video_url && s.image_url);
+      setFeedShots([...withVideo, ...withImage].slice(0, 30));
+    });
+  }, []);
+
+  // Build 5 columns, duplicate for seamless loop
+  const columns = Array.from({ length: 5 }, (_, colIdx) => {
+    if (feedShots.length === 0) return [];
+    const colShots: any[] = [];
+    for (let r = 0; r < 6; r++) {
+      colShots.push(feedShots[(colIdx * 6 + r) % feedShots.length]);
+    }
+    return [...colShots, ...colShots]; // duplicate for seamless loop
+  });
+
+  return (
+    <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
+
+      {/* ── Mosaic Grid Background ── */}
+      {feedShots.length > 0 && (
+        <div className="absolute inset-0 z-0 flex gap-2 px-2 opacity-50"
+          style={{ transform: 'rotate(-4deg) scale(1.4)', transformOrigin: 'center center' }}
+        >
+          {columns.map((col, colIdx) => (
+            <div
+              key={colIdx}
+              className="mosaic-column flex-1 flex flex-col gap-2"
+              style={{ animationDelay: `${colIdx * -6}s` }}
+            >
+              {col.map((shot, rowIdx) => (
+                <MosaicCell key={rowIdx} shot={shot} />
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Dark Overlays ── */}
+      <div className="absolute inset-0 z-[1] bg-[#050505]/65" />
+      <div className="absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,transparent_15%,#050505_75%)]" />
+      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#050505] to-transparent z-[2]" />
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#050505] to-transparent z-[2]" />
+
+      {/* ── Viewfinder Frame ── */}
+      <ViewfinderCorner position="tl" />
+      <ViewfinderCorner position="tr" />
+      <ViewfinderCorner position="bl" />
+      <ViewfinderCorner position="br" />
+
+      {/* Crosshair Center */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none"
+        style={{ animation: 'viewfinder-pulse 3s ease-in-out infinite' }}
+      >
+        <div className="w-[1px] h-8 bg-white/10 absolute left-1/2 -top-4 -translate-x-1/2" />
+        <div className="w-[1px] h-8 bg-white/10 absolute left-1/2 top-4 -translate-x-1/2" />
+        <div className="h-[1px] w-8 bg-white/10 absolute top-1/2 -left-4 -translate-y-1/2" />
+        <div className="h-[1px] w-8 bg-white/10 absolute top-1/2 left-4 -translate-y-1/2" />
+      </div>
+
+      {/* Viewfinder Metadata — Top Left (below nav) */}
+      <div className="absolute top-[76px] left-8 z-20 pointer-events-none flex items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-[#E50914]" style={{ animation: 'rec-blink 1.5s ease-in-out infinite' }} />
+          <span className="text-[9px] font-bold tracking-[0.25em] text-[#E50914] uppercase">Rec</span>
+        </div>
+        <div className="w-[1px] h-3 bg-white/10" />
+        <span className="text-[9px] tracking-[0.2em] text-white/25 font-mono">SCENE 01</span>
+      </div>
+
+      {/* Viewfinder Metadata — Top Right (below nav) */}
+      <div className="absolute top-[76px] right-8 z-20 pointer-events-none flex items-center gap-4">
+        <span className="text-[9px] tracking-[0.15em] text-white/20 font-mono">24FPS</span>
+        <span className="text-[9px] tracking-[0.15em] text-white/20 font-mono">4K</span>
+        <span className="text-[9px] tracking-[0.15em] text-white/20 font-mono">S-LOG3</span>
+      </div>
+
+      {/* Viewfinder Metadata — Bottom Left */}
+      <div className="absolute bottom-14 left-8 z-20 pointer-events-none">
+        <span className="text-[9px] tracking-[0.15em] text-white/15 font-mono">F/2.8 · ISO 800 · 1/48s</span>
+      </div>
+
+      {/* Viewfinder Metadata — Bottom Right */}
+      <div className="absolute bottom-14 right-8 z-20 pointer-events-none">
+        <span className="text-[9px] tracking-[0.15em] text-white/15 font-mono">ARRI ALEXA 65</span>
+      </div>
+
+
+
+      {/* ── Hero Content ── */}
+      <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
+        {/* Subhead Badge */}
+        <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#E50914]/20 bg-[#E50914]/5 mb-8">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#E50914]" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
+          <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[#ff6b6b]">
+            {cmsData.subhead}
+          </span>
+        </div>
+
+        {/* Typing Headline */}
+        <h1
+          style={{
+            fontFamily: 'Anton, sans-serif',
+            fontSize: 'clamp(48px, 10vw, 130px)',
+            lineHeight: 0.9,
+            textTransform: 'uppercase',
+            letterSpacing: '-2px',
+            color: 'white',
+            minHeight: 'clamp(48px, 10vw, 130px)',
+          }}
+        >
+          {displayText}
+          <span
+            className="inline-block w-[3px] ml-1 bg-[#E50914] align-middle"
+            style={{
+              height: 'clamp(40px, 8vw, 100px)',
+              animation: 'typing-cursor 0.8s step-end infinite',
+              opacity: isComplete ? 0 : 1,
+              transition: 'opacity 0.5s',
+            }}
+          />
+        </h1>
+
+        {/* CTAs */}
+        <div className="animate-fade-up-delay-2 flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
+          <Link href="/login"
+            className="px-8 py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_30px_rgba(229,9,20,0.3)] flex items-center gap-2"
+          >
+            <Play size={14} fill="currentColor" /> Start Creating
+          </Link>
+          <a href="#showcase"
+            className="px-8 py-4 border border-white/20 hover:border-white/40 text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all flex items-center gap-2 hover:bg-white/[0.04]"
+          >
+            Watch Showreel
+          </a>
+        </div>
+      </div>
+
+      {/* Bottom Accent Line */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-3">
+        <div className="w-[1px] h-8 bg-gradient-to-b from-transparent to-white/20" />
+      </div>
+    </section>
+  );
+};
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRICING CARD
@@ -89,7 +335,7 @@ export default function LandingPage() {
   const [cmsData, setCmsData] = useState({
     headline: "Direct Everything",
     subhead: "AI CINEMA ENGINE",
-    heroVideoUrl: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media&token=8b2fd5b3-3280-48b5-b141-1f399daf00ac"
+    heroVideoUrl: ""
   });
 
   const [scrolled, setScrolled] = useState(false);
@@ -101,7 +347,7 @@ export default function LandingPage() {
         setCmsData({
           headline: data.headline || "Direct Everything",
           subhead: data.subhead || "AI CINEMA ENGINE",
-          heroVideoUrl: data.heroVideoUrl || "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media&token=8b2fd5b3-3280-48b5-b141-1f399daf00ac"
+          heroVideoUrl: data.heroVideoUrl || ""
         });
       }
     });
@@ -113,8 +359,6 @@ export default function LandingPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const isImage = (url: string) => url.match(/\.(jpeg|jpg|gif|png)$/) != null;
 
   const castingImages = [
     "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-1%20(1).png?alt=media&token=4125c260-6236-49d0-abb5-d06b20278eb0",
@@ -144,6 +388,22 @@ export default function LandingPage() {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
+        @keyframes mosaic-drift {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(-50%); }
+        }
+        @keyframes typing-cursor {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+        @keyframes viewfinder-pulse {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 1; }
+        }
+        @keyframes rec-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.2; }
+        }
         .animate-fade-up { animation: fade-up 0.8s ease-out forwards; }
         .animate-fade-up-delay { animation: fade-up 0.8s ease-out 0.2s forwards; opacity: 0; }
         .animate-fade-up-delay-2 { animation: fade-up 0.8s ease-out 0.4s forwards; opacity: 0; }
@@ -152,6 +412,25 @@ export default function LandingPage() {
           animation: marquee-scroll 30s linear infinite;
         }
         .landing-marquee:hover { animation-play-state: paused; }
+        .mosaic-column {
+          animation: mosaic-drift 40s linear infinite;
+        }
+        .mosaic-column:nth-child(even) {
+          animation-duration: 55s;
+          animation-direction: reverse;
+        }
+        .mosaic-column:nth-child(3n) {
+          animation-duration: 48s;
+        }
+        .mosaic-cell {
+          filter: saturate(0.3) brightness(0.6);
+          transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .mosaic-cell:hover {
+          filter: saturate(1) brightness(1);
+          transform: scale(1.05);
+          z-index: 10;
+        }
       `}</style>
 
       {/* ──────── FILM GRAIN OVERLAY ──────── */}
@@ -164,11 +443,10 @@ export default function LandingPage() {
       {/* 1. NAVIGATION                                                      */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${scrolled
-          ? 'py-3 bg-[#050505]/80 backdrop-blur-xl border-b border-white/[0.04]'
-          : 'py-5 bg-transparent'
+        ? 'py-3 bg-[#050505]/80 backdrop-blur-xl border-b border-white/[0.04]'
+        : 'py-5 bg-transparent'
         }`}>
         <div className="max-w-[1400px] mx-auto px-6 md:px-10 flex items-center justify-between">
-          {/* Wordmark */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-2 h-2 rounded-full bg-[#E50914] shadow-[0_0_8px_#E50914]"
               style={{ animation: 'pulse-dot 2.5s ease-in-out infinite' }}
@@ -177,8 +455,6 @@ export default function LandingPage() {
               Motion X
             </span>
           </Link>
-
-          {/* Nav Links */}
           <div className="flex items-center gap-8">
             <Link href="/pricing" className="text-[11px] font-semibold tracking-[0.15em] uppercase text-neutral-500 hover:text-white transition-colors">
               Pricing
@@ -194,66 +470,9 @@ export default function LandingPage() {
 
 
       {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* 2. HERO                                                            */}
+      {/* 2. HERO — CINEMATIC VIEWFINDER                                     */}
       {/* ════════════════════════════════════════════════════════════════════ */}
-      <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
-
-        {/* Video / Image Background */}
-        {isImage(cmsData.heroVideoUrl) ? (
-          <img src={cmsData.heroVideoUrl} alt="Hero"
-            className="absolute inset-0 w-full h-full object-cover opacity-50"
-            style={{ filter: 'contrast(1.1) saturate(0.3)' }}
-          />
-        ) : (
-          <video autoPlay loop muted playsInline key={cmsData.heroVideoUrl}
-            className="absolute inset-0 w-full h-full object-cover opacity-50"
-            style={{ filter: 'contrast(1.1) saturate(0.3)' }}
-          >
-            <source src={cmsData.heroVideoUrl} type="video/mp4" />
-          </video>
-        )}
-
-        {/* Vignette + Bottom Fade */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_20%,#050505_100%)] z-[1]" />
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#050505] to-transparent z-[2]" />
-
-        {/* Hero Content */}
-        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
-          {/* Subhead Badge */}
-          <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#E50914]/20 bg-[#E50914]/5 mb-8">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#E50914]" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
-            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase text-[#ff6b6b]">
-              {cmsData.subhead}
-            </span>
-          </div>
-
-          {/* Headline */}
-          <h1
-            className="animate-fade-up-delay"
-            style={{ fontFamily: 'Anton, sans-serif', fontSize: 'clamp(48px, 10vw, 120px)', lineHeight: 0.9, textTransform: 'uppercase', letterSpacing: '-2px', mixBlendMode: 'exclusion', color: 'white' }}
-            dangerouslySetInnerHTML={{ __html: cmsData.headline.replace(/\n/g, '<br/>') }}
-          />
-
-          {/* CTAs */}
-          <div className="animate-fade-up-delay-2 flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
-            <Link href="/login"
-              className="px-8 py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_30px_rgba(229,9,20,0.3)] flex items-center gap-2"
-            >
-              <Play size={14} fill="currentColor" /> Start Creating
-            </Link>
-            <a href="#showcase"
-              className="px-8 py-4 border border-white/20 hover:border-white/40 text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all flex items-center gap-2 hover:bg-white/[0.04]"
-            >
-              Watch Showreel
-            </a>
-          </div>
-        </div>
-
-        {/* Bottom Accent Line */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-3">
-          <div className="w-[1px] h-8 bg-gradient-to-b from-transparent to-white/20" />
-        </div>
-      </section>
+      <HeroSection cmsData={cmsData} />
 
 
       {/* ════════════════════════════════════════════════════════════════════ */}
@@ -337,7 +556,6 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Scrolling Strip */}
         <div className="relative">
           <div className="landing-marquee">
             {[...castingImages, ...castingImages].map((src, i) => (
@@ -367,9 +585,7 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          {/* Interface Container */}
           <div className="border border-white/[0.06] bg-[#0A0A0A] rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-[350px_1fr] h-auto md:h-[550px]">
-            {/* Script Panel */}
             <div className="border-b md:border-b-0 md:border-r border-white/[0.06] p-6 md:p-8 flex flex-col">
               <div className="flex items-center gap-3 pb-4 mb-6 border-b border-white/[0.04]">
                 <div className="w-2.5 h-2.5 rounded-full bg-neutral-800" />
@@ -391,7 +607,6 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Viewport Panel */}
             <div className="flex flex-col">
               <div className="h-10 border-b border-white/[0.06] flex items-center px-5 gap-5 text-neutral-600">
                 <Film size={14} />
@@ -471,7 +686,6 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════════════════════════════════ */}
       <footer className="bg-[#020202] pt-20 pb-10 px-6 md:px-10">
         <div className="max-w-[1400px] mx-auto">
-          {/* Watermark + Links */}
           <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-16">
             <h1 style={{ fontFamily: 'Anton, sans-serif' }}
               className="text-[80px] md:text-[120px] leading-[0.8] uppercase text-[#111] select-none"
@@ -501,7 +715,6 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Bottom Bar */}
           <div className="border-t border-white/[0.04] pt-6 flex flex-col sm:flex-row justify-between text-[10px] text-neutral-700 tracking-wider">
             <span>© 2026 MOTIONX STUDIO. ALL RIGHTS RESERVED.</span>
             <span>BUILT WITH AI</span>
