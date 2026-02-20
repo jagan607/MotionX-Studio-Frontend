@@ -32,6 +32,7 @@ export default function Dashboard() {
     const [showWhatsNew, setShowWhatsNew] = useState(false);
     const [modalSlideIdx, setModalSlideIdx] = useState(0);
     const [modalFading, setModalFading] = useState(false);
+    const [modalVideoReady, setModalVideoReady] = useState(false);
     const whatsNewShownRef = useRef(false);
     const { step: tourStep, nextStep: tourNext, completeTour } = useTour("dashboard_tour");
 
@@ -63,10 +64,10 @@ export default function Dashboard() {
             const active = all.filter((a: any) => a.active);
             setAnnouncements(active);
 
-            // Show What's New modal on first load if there are active announcements
+            // Defer What's New modal by 1.5s so main content loads first
             if (!whatsNewShownRef.current && active.length > 0) {
-                setShowWhatsNew(true);
                 whatsNewShownRef.current = true;
+                setTimeout(() => setShowWhatsNew(true), 1500);
             }
         }, (err) => {
             console.error('Announcements listener error', err);
@@ -128,10 +129,18 @@ export default function Dashboard() {
         return () => clearInterval(timer);
     }, [showWhatsNew, visibleAnnouncements.length]);
 
-    // Reset modal slide when opening
+    // Reset modal slide and video ready state when opening
     useEffect(() => {
-        if (showWhatsNew) setModalSlideIdx(0);
+        if (showWhatsNew) {
+            setModalSlideIdx(0);
+            setModalVideoReady(false);
+        }
     }, [showWhatsNew]);
+
+    // Reset video ready state when slide changes
+    useEffect(() => {
+        setModalVideoReady(false);
+    }, [modalSlideIdx]);
 
     const modalGoTo = (idx: number) => {
         if (idx === modalSlideIdx) return;
@@ -361,7 +370,7 @@ export default function Dashboard() {
                                     {a.media_url && (
                                         <div className="w-10 h-10 rounded overflow-hidden shrink-0 border border-[#222]">
                                             {isVideo ? (
-                                                <video src={a.media_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                                                <video src={a.media_url} autoPlay loop muted playsInline preload="none" className="w-full h-full object-cover" />
                                             ) : (
                                                 <img src={a.media_url} alt="" className="w-full h-full object-cover" />
                                             )}
@@ -636,9 +645,27 @@ export default function Dashboard() {
                                 >
                                     {/* Media card */}
                                     {a.media_url && (
-                                        <div className="w-full aspect-video rounded-lg overflow-hidden border border-[#222] mb-4 bg-black">
+                                        <div className="w-full aspect-video rounded-lg overflow-hidden border border-[#222] mb-4 bg-black relative">
                                             {isVid ? (
-                                                <video key={a.id} src={a.media_url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                                                <>
+                                                    {!modalVideoReady && (
+                                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a0a] z-10">
+                                                            <Loader2 className="animate-spin text-[#E50914] mb-2" size={28} />
+                                                            <span className="text-[9px] font-mono text-[#444] uppercase tracking-widest">Loading Preview...</span>
+                                                        </div>
+                                                    )}
+                                                    <video
+                                                        key={a.id}
+                                                        src={a.media_url}
+                                                        autoPlay
+                                                        loop
+                                                        muted
+                                                        playsInline
+                                                        preload="auto"
+                                                        onCanPlay={() => setModalVideoReady(true)}
+                                                        className={`w-full h-full object-cover transition-opacity duration-300 ${modalVideoReady ? 'opacity-100' : 'opacity-0'}`}
+                                                    />
+                                                </>
                                             ) : (
                                                 <img key={a.id} src={a.media_url} alt="" className="w-full h-full object-cover" />
                                             )}
