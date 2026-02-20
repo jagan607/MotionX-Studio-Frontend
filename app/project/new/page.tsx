@@ -201,7 +201,7 @@ export default function NewProjectPage() {
             className={`
                 relative flex-1 p-4 border transition-all duration-300 flex flex-col justify-between h-24 group rounded-sm
                 ${active
-                    ? 'border-red-600 bg-[#1A0505]'
+                    ? 'border-red-800/80 bg-[#110303]'
                     : 'border-[#222] bg-[#0E0E0E] hover:border-[#444]'}
             `}
         >
@@ -330,7 +330,7 @@ export default function NewProjectPage() {
                                                 onClick={() => setFormData({ ...formData, aspect_ratio: opt.id as "16:9" | "21:9" | "9:16" | "4:5" })}
                                                 className={`relative p-3 border transition-all duration-300 flex flex-col items-center justify-center gap-2 group rounded-sm h-20
                                                     ${formData.aspect_ratio === opt.id
-                                                        ? 'border-red-600 bg-[#1A0505]'
+                                                        ? 'border-red-800/80 bg-[#110303]'
                                                         : 'border-[#222] bg-[#0E0E0E] hover:border-[#444]'}
                                                 `}
                                             >
@@ -376,7 +376,7 @@ export default function NewProjectPage() {
                                                 onClick={() => setFormData({ ...formData, style: s.id as "realistic" | "anime" })}
                                                 className={`py-4 border rounded-sm text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300
                                                     ${formData.style === s.id
-                                                        ? 'border-red-600 bg-[#1A0505] text-red-500'
+                                                        ? 'border-red-800/80 bg-[#110303] text-red-500'
                                                         : 'border-[#222] bg-[#0E0E0E] text-[#555] hover:border-[#444] hover:text-white'}
                                                 `}
                                             >
