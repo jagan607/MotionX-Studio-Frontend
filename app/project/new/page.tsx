@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
@@ -509,10 +510,14 @@ export default function NewProjectPage() {
                                                                 : 'border-transparent opacity-40 hover:opacity-100 hover:border-[#444]'}
                                                         `}
                                                     >
-                                                        <img
+                                                        <Image
                                                             src={option.image_url}
                                                             alt={option.label}
-                                                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                                            fill
+                                                            sizes="(max-width: 768px) 50vw, 200px"
+                                                            quality={75}
+                                                            loading="lazy"
+                                                            className="object-cover transition-transform duration-700 group-hover:scale-105"
                                                         />
                                                         <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent transition-opacity ${isSelected ? 'opacity-80' : 'opacity-60 group-hover:opacity-80'}`} />
                                                         <div className="absolute bottom-0 left-0 w-full p-2 flex justify-between items-end">

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import { doc, onSnapshot, collection, query, orderBy, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { api } from "@/lib/api";
@@ -123,7 +124,7 @@ const MoodboardSidebar = ({
                                             const isSelected = currentVal === option.label;
                                             return (
                                                 <button key={option.id} onClick={() => onSelect(type!, option.label)} className={`relative aspect-[16/10] group overflow-hidden transition-all duration-200 rounded-sm border ${isSelected ? 'border-red-600 z-10 opacity-100 ring-1 ring-red-600 shadow-[0_0_15px_rgba(220,38,38,0.3)]' : 'border-transparent opacity-50 hover:opacity-100 hover:border-[#444]'}`}>
-                                                    <img src={option.image_url} alt={option.label} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                                    <Image src={option.image_url} alt={option.label} fill sizes="(max-width: 768px) 50vw, 200px" quality={75} loading="lazy" className="object-cover transition-transform duration-700 group-hover:scale-105" />
                                                     <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent transition-opacity ${isSelected ? 'opacity-80' : 'opacity-60 group-hover:opacity-80'}`} />
                                                     <div className="absolute bottom-0 left-0 w-full p-2 flex justify-between items-end">
                                                         <div className="text-left w-full"><div className={`text-[7px] font-mono mb-0.5 ${isSelected ? 'text-red-500' : 'text-[#888]'}`}>{option.id}</div><div className="text-[9px] font-bold uppercase text-white tracking-wider truncate">{option.label}</div></div>
