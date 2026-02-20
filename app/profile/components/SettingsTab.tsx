@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { User, Loader2, LogOut } from "lucide-react";
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 
 interface SettingsTabProps {
     user: any;
@@ -19,138 +21,72 @@ export default function SettingsTab({
     handleLogout,
     isSaving
 }: SettingsTabProps) {
-
-    // --- STYLES ---
-    const styles = {
-        card: {
-            backgroundColor: '#0A0A0A',
-            border: '1px solid #222',
-            padding: '24px', // Compact padding
-            marginTop: '20px', // Compact margin
-            position: 'relative' as const
-        },
-        sectionTitle: {
-            fontFamily: 'Anton, sans-serif',
-            fontSize: '20px', // Reduced font size
-            textTransform: 'uppercase' as const,
-            marginBottom: '20px',
-            color: '#EDEDED'
-        },
-        inputGroup: {
-            marginBottom: '20px'
-        },
-        label: {
-            display: 'block',
-            fontFamily: 'monospace',
-            fontSize: '9px', // Smaller label
-            color: '#666',
-            marginBottom: '6px',
-            textTransform: 'uppercase' as const
-        },
-        input: {
-            width: '100%',
-            backgroundColor: '#050505',
-            border: '1px solid #333',
-            padding: '10px 12px', // Tighter padding
-            color: 'white',
-            fontFamily: 'monospace',
-            fontSize: '12px', // Smaller input font
-            outline: 'none',
-            transition: 'border-color 0.2s'
-        },
-        saveBtn: {
-            backgroundColor: '#FFF',
-            color: '#000',
-            padding: '10px 20px',
-            border: 'none',
-            fontWeight: 'bold' as const,
-            cursor: isSaving ? 'not-allowed' : 'pointer',
-            marginTop: '5px',
-            fontSize: '11px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontFamily: 'monospace',
-            opacity: isSaving ? 0.7 : 1
-        },
-        dangerBtn: {
-            border: '1px solid #333', // Milder border (was #330000)
-            color: '#EF4444', // Softer Red
-            backgroundColor: 'transparent',
-            padding: '10px 20px',
-            fontSize: '11px',
-            fontWeight: 'bold' as const,
-            fontFamily: 'monospace',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s'
-        }
-    };
+    const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <style jsx>{`
-                input:focus {
-                    border-color: #666 !important;
-                }
-                .danger-btn:hover {
-                    background-color: #1A0505 !important;
-                    border-color: #E50914 !important;
-                }
-            `}</style>
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-5 mt-6">
+            {showSignOutConfirm && (
+                <DeleteConfirmModal
+                    title="Sign Out"
+                    message="Are you sure you want to sign out? You'll need to sign in again to access your account."
+                    isDeleting={false}
+                    onConfirm={handleLogout}
+                    onCancel={() => setShowSignOutConfirm(false)}
+                />
+            )}
+            {/* PROFILE CARD */}
+            <div className="bg-[#0A0A0A] border border-[#1a1a1a] rounded-lg p-6 hover:border-[#333] transition-colors">
+                <h2 className="text-xl font-anton uppercase text-white mb-5">Profile</h2>
 
-            {/* IDENTITY CARD */}
-            <div style={styles.card}>
-                <h2 style={styles.sectionTitle}>Operator Identity</h2>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-[11px] text-[#555] font-medium mb-1.5">
+                            Display Name
+                        </label>
+                        <input
+                            type="text"
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            className="w-full bg-[#080808] border border-[#222] rounded-md px-3.5 py-2.5 text-[13px] text-white outline-none focus:border-[#444] transition-colors placeholder:text-[#333]"
+                            placeholder="Enter your name"
+                            disabled={isSaving}
+                        />
+                    </div>
 
-                <div style={styles.inputGroup}>
-                    <label style={styles.label}>DISPLAY NAME</label>
-                    <input
-                        type="text"
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        style={styles.input}
-                        placeholder="ENTER CALLSIGN"
-                        disabled={isSaving}
-                    />
-                </div>
-
-                <div style={styles.inputGroup}>
-                    <label style={styles.label}>EMAIL ADDRESS (LOCKED)</label>
-                    <input
-                        type="text"
-                        value={user?.email || ""}
-                        disabled
-                        style={{ ...styles.input, opacity: 0.5, cursor: 'not-allowed' }}
-                    />
+                    <div>
+                        <label className="block text-[11px] text-[#555] font-medium mb-1.5">
+                            Email
+                        </label>
+                        <input
+                            type="text"
+                            value={user?.email || ""}
+                            disabled
+                            className="w-full bg-[#080808] border border-[#222] rounded-md px-3.5 py-2.5 text-[13px] text-[#555] outline-none cursor-not-allowed"
+                        />
+                    </div>
                 </div>
 
                 <button
                     onClick={handleUpdateProfile}
                     disabled={isSaving}
-                    style={styles.saveBtn}
+                    className="mt-5 flex items-center gap-2 bg-white text-black px-5 py-2.5 text-[11px] font-bold tracking-wide rounded-md hover:bg-[#eee] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                     {isSaving ? <Loader2 className="animate-spin" size={14} /> : <User size={14} />}
-                    {isSaving ? "SAVING..." : "UPDATE IDENTITY"}
+                    {isSaving ? "Saving..." : "Save Changes"}
                 </button>
             </div>
 
-            {/* DANGER ZONE CARD */}
-            {/* Removed the red border color to "mild" it down */}
-            <div style={styles.card}>
-                {/* Kept title red but slightly softer hue or kept standard red */}
-                <h2 style={{ ...styles.sectionTitle, color: '#EF4444' }}>Danger Zone</h2>
-                <p className="text-[10px] text-gray-500 font-mono mb-4">
-                    TERMINATING YOUR SESSION WILL REQUIRE RE-AUTHENTICATION.
+            {/* SIGN OUT CARD */}
+            <div className="bg-[#0A0A0A] border border-[#1a1a1a] rounded-lg p-6 hover:border-[#333] transition-colors">
+                <h2 className="text-base font-anton uppercase text-white mb-1.5">Sign Out</h2>
+                <p className="text-[11px] text-[#555] mb-4">
+                    You'll need to sign in again to access your account.
                 </p>
                 <button
-                    onClick={handleLogout}
-                    className="danger-btn"
-                    style={styles.dangerBtn}
+                    onClick={() => setShowSignOutConfirm(true)}
+                    className="flex items-center gap-2 text-[11px] font-semibold px-4 py-2.5 border border-[#222] text-[#999] bg-transparent rounded-md hover:border-[#E50914] hover:text-[#E50914] hover:bg-[rgba(229,9,20,0.04)] transition-all cursor-pointer"
                 >
-                    <LogOut size={14} /> TERMINATE SESSION
+                    <LogOut size={14} /> Sign Out
                 </button>
             </div>
         </div>

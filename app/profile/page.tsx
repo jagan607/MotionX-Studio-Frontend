@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react";
 import { auth, db } from "@/lib/firebase";
 import { updateProfile, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useCredits } from "@/hooks/useCredits";
 import { Loader2 } from "lucide-react";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 // --- COMPONENT IMPORTS ---
 import ProfileHeader from "./components/ProfileHeader";
@@ -20,32 +19,20 @@ export default function ProfilePage() {
 
     // --- STATE ---
     const [user, setUser] = useState<any>(null);
-    const [plan, setPlan] = useState<string>("free");
     const [activeTab, setActiveTab] = useState<"subscription" | "settings">("subscription");
     const [loading, setLoading] = useState(true);
 
-    // Form State (Managed here to persist across tab switches if needed)
+    // Form State
     const [displayName, setDisplayName] = useState("");
     const [isSaving, setIsSaving] = useState(false);
 
-    // --- 1. DATA FETCHING ---
+    // --- DATA FETCHING ---
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged(async (u) => {
             if (u) {
                 setUser(u);
                 setDisplayName(u.displayName || "");
-
-                try {
-                    const userDocRef = doc(db, "users", u.uid);
-                    const userDocSnap = await getDoc(userDocRef);
-                    if (userDocSnap.exists()) {
-                        setPlan(userDocSnap.data().plan || "free");
-                    }
-                } catch (error) {
-                    console.error("Error fetching user plan:", error);
-                } finally {
-                    setLoading(false);
-                }
+                setLoading(false);
             } else {
                 router.push("/login");
             }
@@ -53,16 +40,16 @@ export default function ProfilePage() {
         return () => unsubscribe();
     }, [router]);
 
-    // --- 2. ACTION HANDLERS ---
+    // --- ACTION HANDLERS ---
     const handleUpdateProfile = async () => {
         if (!user) return;
         setIsSaving(true);
         try {
             await updateProfile(user, { displayName: displayName });
-            toast.success("OPERATOR ID UPDATED");
+            toast.success("Profile updated");
         } catch (error) {
             console.error(error);
-            toast.error("UPDATE FAILED");
+            toast.error("Update failed");
         } finally {
             setIsSaving(false);
         }
@@ -77,25 +64,18 @@ export default function ProfilePage() {
         }
     };
 
-    // --- 3. RENDER ---
+    // --- RENDER ---
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#030303] flex items-center justify-center text-[#444]">
-                <Loader2 className="animate-spin" />
+            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+                <Loader2 className="animate-spin text-[#333]" size={28} />
             </div>
         );
     }
 
     return (
-        <main style={{ minHeight: '100vh', backgroundColor: '#030303', padding: '40px 20px' }}>
-            <Toaster
-                position="bottom-right"
-                toastOptions={{
-                    style: { background: '#111', color: '#FFF', borderRadius: '0', border: '1px solid #333', fontFamily: 'monospace' }
-                }}
-            />
-
-            <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+        <main className="min-h-screen bg-[#050505] py-14 px-5">
+            <div className="max-w-[880px] mx-auto">
 
                 {/* HEADER & NAV */}
                 <ProfileHeader
@@ -107,10 +87,7 @@ export default function ProfilePage() {
 
                 {/* CONTENT AREA */}
                 {activeTab === "subscription" ? (
-                    <SubscriptionTab
-                        plan={plan}
-                        credits={credits}
-                    />
+                    <SubscriptionTab credits={credits} />
                 ) : (
                     <SettingsTab
                         user={user}
