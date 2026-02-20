@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { Clapperboard, Clock, Pencil, GripVertical, Trash2 } from "lucide-react";
+import { Clapperboard, Clock, Timer, Pencil, GripVertical, Trash2 } from "lucide-react";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { EntityStatusChip } from "./EntityStatusChip";
-import { Asset } from "@/lib/types";
+import { Asset, SceneDialogue } from "@/lib/types";
 
 export interface SceneData {
     id: string;
@@ -23,6 +23,8 @@ export interface SceneData {
     summary: string;       // Scene description / visual action
     cast_ids: string[];    // Character IDs for cast management
     location_id: string;   // Location asset ID for linking
+    dialogues?: SceneDialogue[];           // NEW – structured dialogues
+    estimated_duration_seconds?: number;   // NEW – scene duration estimate
     [key: string]: any;    // Allow extra Firestore fields
 }
 
@@ -55,6 +57,15 @@ export const SceneCard: React.FC<SceneCardProps> = ({
     isEditing = false,
     isFirstCard = false
 }) => {
+    // --- DURATION HELPER ---
+    const formatDuration = (seconds?: number) => {
+        if (!seconds) return null;
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+    const durationLabel = formatDuration(scene.estimated_duration_seconds);
+
     // --- DRAG & DROP ---
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: scene.id });
     const dragStyle = {
@@ -73,15 +84,34 @@ export const SceneCard: React.FC<SceneCardProps> = ({
         else if (type === 'location') list = projectAssets.locations;
         else if (type === 'product') list = projectAssets.products || [];
 
-        if (!list) return null;
+        if (!list || list.length === 0) return null;
 
-        const normalize = (s: string) => s.toLowerCase().replace(/_/g, ' ').trim();
+        // Aggressive normalize: strip prefixes, all non-alphanumeric, lowercase
+        const normalize = (s: string) =>
+            s.toLowerCase()
+                .replace(/\b(int|ext|i\/e)\.?\s*/gi, '')  // strip INT./EXT./I/E. prefixes
+                .replace(/[^a-z0-9]/g, '');                // strip ALL non-alphanumeric
+
         const searchVal = normalize(storedValue);
+        if (!searchVal) return null;
 
-        return list.find(a =>
-            normalize(a.id || "") === searchVal ||
-            normalize(a.name || "") === searchVal
+        // 1. Exact match on normalized id or name
+        let match = list.find(a =>
+            normalize(a.id || '') === searchVal ||
+            normalize(a.name || '') === searchVal
         );
+        if (match) return match;
+
+        // 2. Contains match (handles partial refs or extra words)
+        match = list.find(a => {
+            const nId = normalize(a.id || '');
+            const nName = normalize(a.name || '');
+            return (
+                (nId && (searchVal.includes(nId) || nId.includes(searchVal))) ||
+                (nName && (searchVal.includes(nName) || nName.includes(searchVal)))
+            );
+        });
+        return match || null;
     };
 
     // [Display Logic] Handle 0 or undefined scene numbers
@@ -136,6 +166,14 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                             <Clock size={10} />
                             {scene.time || "N/A"}
                         </div>
+
+                        {/* DURATION BADGE */}
+                        {durationLabel && (
+                            <div className="flex items-center gap-1.5 text-[9px] text-emerald-400 bg-emerald-500/[0.08] px-2.5 py-1 rounded-md border border-emerald-500/[0.15]">
+                                <Timer size={10} />
+                                {durationLabel}
+                            </div>
+                        )}
 
                         {/* EDIT BUTTON */}
                         <button
@@ -224,8 +262,8 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                         </div>
                     )}
 
-                    {/* [NEW] PRODUCTS ROW (Only for Ads) */}
-                    {projectType === 'ad' && scene.products && scene.products.length > 0 && (
+                    {/* PRODUCTS / PROPS ROW (All project types) */}
+                    {scene.products && scene.products.length > 0 && (
                         <div className="flex flex-col gap-1.5">
                             <span className="text-[8px] text-neutral-600 font-bold uppercase tracking-wider">
                                 PRODUCTS

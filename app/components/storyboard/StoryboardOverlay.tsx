@@ -20,6 +20,8 @@ import { SceneContextStrip } from "./SceneContextStrip";
 import { LipSyncModal } from "./LipSyncModal";
 import { DownloadModal } from "./DownloadModal";
 import { ShotEditorPanel } from "./ShotEditorPanel";
+import dynamic from 'next/dynamic';
+const ParticleField = dynamic(() => import('./ParticleField'), { ssr: false });
 import { styles } from "./BoardStyles";
 
 // --- GLOBAL UI IMPORTS ---
@@ -735,33 +737,117 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     />
                 )}
 
-                {/* TERMINAL OVERLAY */}
+                {/* AI DIRECTOR OVERLAY */}
                 {shotMgr.isAutoDirecting && (
                     <div style={{
-                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 9999,
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'monospace'
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: '#000', zIndex: 9999,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        overflow: 'hidden',
                     }}>
-                        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.3, pointerEvents: 'none' }} />
-                        <div style={{ position: 'relative', width: '600px', maxWidth: '90%' }}>
-                            <div style={{ marginBottom: '40px', borderBottom: '1px solid #333', paddingBottom: '20px' }}>
-                                <h2 style={{ color: '#FFF', fontSize: '24px', fontWeight: 'bold', letterSpacing: '2px', margin: 0 }}>AI DIRECTOR ACTIVE</h2>
-                                <p style={{ color: '#666', fontSize: '12px', margin: '5px 0 0 0', letterSpacing: '1px' }}>ANALYZING SCENE CONTEXT & GENERATING SHOT LIST</p>
+                        {/* Particle Vortex Background */}
+                        <ParticleField />
+
+                        {/* Floating Content — no card, text over particles */}
+                        <div style={{
+                            position: 'relative', zIndex: 2,
+                            display: 'flex', flexDirection: 'column', alignItems: 'center',
+                            gap: '40px', width: '100%', maxWidth: '600px', padding: '0 20px',
+                        }}>
+
+                            {/* Title */}
+                            <div style={{ textAlign: 'center' }}>
+                                <h2 style={{
+                                    color: '#FFF', fontSize: '28px', margin: 0,
+                                    fontFamily: 'Anton, sans-serif', textTransform: 'uppercase',
+                                    letterSpacing: '4px',
+                                    textShadow: '0 0 40px rgba(229, 9, 20, 0.3), 0 0 80px rgba(229, 9, 20, 0.1)',
+                                }}>
+                                    AI Director
+                                </h2>
+                                <p style={{ color: '#555', fontSize: '11px', margin: '8px 0 0', letterSpacing: '0.5px' }}>
+                                    Scene {currentScene?.scene_number || '—'} · {(currentScene?.header || currentScene?.slugline || 'Processing...').substring(0, 50)}
+                                </p>
                             </div>
-                            <div style={{ backgroundColor: '#050505', border: '1px solid #222', borderRadius: '4px', padding: '20px', height: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', boxShadow: '0 0 50px rgba(0,0,0,0.5)', fontFamily: 'monospace' }}>
-                                {shotMgr.terminalLog.map((log: string, i: number) => (
-                                    <div key={i} style={{ color: log.includes('ERROR') ? '#ff4444' : '#00ff41', fontSize: '12px', display: 'flex', gap: '12px', opacity: 0.8 }}>
-                                        <span style={{ color: '#444', minWidth: '80px' }}>[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
-                                        <span>{`> ${log}`}</span>
+
+                            {/* Progress Bar — Minimal */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '280px' }}>
+                                {[0, 1, 2, 3].map((i) => {
+                                    const logCount = shotMgr.terminalLog.length;
+                                    const activeStage = logCount <= 2 ? 0 : logCount <= 5 ? 1 : logCount <= 8 ? 2 : 3;
+                                    const isActive = i === activeStage;
+                                    const isComplete = i < activeStage;
+                                    return (
+                                        <div key={i} style={{
+                                            flex: 1, height: '3px', borderRadius: '2px',
+                                            transition: 'all 0.8s ease',
+                                            backgroundColor: isComplete ? 'rgba(229, 9, 20, 0.6)' : isActive ? 'rgba(229, 9, 20, 0.3)' : 'rgba(255,255,255,0.06)',
+                                            boxShadow: isActive ? '0 0 12px rgba(229, 9, 20, 0.4)' : 'none',
+                                        }} />
+                                    );
+                                })}
+                            </div>
+
+                            {/* Log — Floating Stack */}
+                            <div style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                gap: '0px', minHeight: '160px', justifyContent: 'flex-end',
+                            }}>
+                                {/* Previous log lines — fading stack */}
+                                {shotMgr.terminalLog.slice(0, -1).map((log: string, i: number) => {
+                                    const total = shotMgr.terminalLog.length - 1;
+                                    const distFromEnd = total - i;
+                                    if (distFromEnd > 4) return null; // Only show last 4
+                                    // Strip timestamps like [19:35:53] and > prefix
+                                    const clean = log.replace(/^\[[\d:]+\]\s*/g, '').replace(/^>\s*/g, '').trim();
+                                    return (
+                                        <div key={i} style={{
+                                            fontSize: '12px', color: '#444',
+                                            opacity: Math.max(0.15, 1 - distFromEnd * 0.25),
+                                            transform: `translateY(${-distFromEnd * 2}px) scale(${1 - distFromEnd * 0.02})`,
+                                            transition: 'all 0.5s ease',
+                                            textAlign: 'center',
+                                            lineHeight: '2',
+                                            whiteSpace: 'nowrap',
+                                        }}>
+                                            {clean}
+                                        </div>
+                                    );
+                                })}
+
+                                {/* Current / Latest Line — Prominent */}
+                                {shotMgr.terminalLog.length > 0 && (() => {
+                                    const raw = shotMgr.terminalLog[shotMgr.terminalLog.length - 1];
+                                    const clean = raw.replace(/^\[[\d:]+\]\s*/g, '').replace(/^>\s*/g, '').trim();
+                                    return (
+                                        <div style={{
+                                            fontSize: '15px', color: '#fff', fontWeight: 500,
+                                            textAlign: 'center', lineHeight: '2.2',
+                                            textShadow: '0 0 20px rgba(229, 9, 20, 0.2)',
+                                            display: 'flex', alignItems: 'center', gap: '10px',
+                                        }}>
+                                            <Loader2 size={14} className="animate-spin" style={{ color: '#E50914', opacity: 0.7 }} />
+                                            {clean}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            {/* Stage Label */}
+                            {(() => {
+                                const logCount = shotMgr.terminalLog.length;
+                                const stages = ['Analyzing Scene', 'Planning Shots', 'Generating Shot List', 'Finalizing'];
+                                const activeStage = logCount <= 2 ? 0 : logCount <= 5 ? 1 : logCount <= 8 ? 2 : 3;
+                                return (
+                                    <div style={{
+                                        fontSize: '9px', fontWeight: 600, letterSpacing: '2px',
+                                        textTransform: 'uppercase', color: '#E50914',
+                                        opacity: 0.6,
+                                    }}>
+                                        {stages[activeStage]}
                                     </div>
-                                ))}
-                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: 'auto' }}>
-                                    <span style={{ color: '#444', minWidth: '80px' }}>[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
-                                    <span style={{ color: '#00ff41', display: 'flex', alignItems: 'center' }}>{`> PROCESSING`} <TerminalSpinner /></span>
-                                </div>
-                            </div>
-                            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', color: '#333', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                <span>System: ONLINE</span><span>Model: GEMINI-1.5-PRO</span><span>Queue: PROCESSING</span>
-                            </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 )}

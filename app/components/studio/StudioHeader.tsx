@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
     ArrowLeft,
-    Plus, ChevronDown, Check, Wand2, Loader2, FileText, Database
+    Plus, ChevronDown, Check, Wand2, Loader2, FileText, Database, RefreshCw
 } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import CreditModal from "@/app/components/modals/CreditModal";
@@ -22,6 +22,8 @@ interface StudioHeaderProps {
     onAutoExtend?: () => void;
     isExtending?: boolean;
     onEditScript?: () => void;
+    onRegenerateScenes?: () => void;
+    isRegenerating?: boolean;
     className?: string;
 }
 
@@ -34,6 +36,8 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
     onAutoExtend,
     isExtending = false,
     onEditScript,
+    onRegenerateScenes,
+    isRegenerating = false,
     className = ""
 }) => {
     const router = useRouter();
@@ -186,6 +190,17 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                         className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md"
                                     >
                                         <FileText size={14} /> Script
+                                    </button>
+                                )}
+                                {onRegenerateScenes && (
+                                    <button
+                                        onClick={onRegenerateScenes}
+                                        disabled={isRegenerating || isExtending}
+                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-amber-600/50 text-[12px] font-semibold text-[#EEE] hover:text-amber-400 uppercase tracking-wide transition-colors rounded-md disabled:opacity-50"
+                                        title="Re-process the current script to regenerate all scenes"
+                                    >
+                                        {isRegenerating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                                        {isRegenerating ? "Regenerating..." : "Regenerate"}
                                     </button>
                                 )}
                                 {onOpenAssets && (

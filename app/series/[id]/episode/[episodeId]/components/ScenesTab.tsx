@@ -1,5 +1,12 @@
 import React from 'react';
-import { Film, MapPin, User, Clock } from 'lucide-react';
+import { Film, MapPin, User, Clock, Timer } from 'lucide-react';
+
+const formatDuration = (seconds?: number) => {
+    if (!seconds) return null;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+};
 
 interface ScenesTabProps {
     scenes: any[];
@@ -54,6 +61,22 @@ export const ScenesTab: React.FC<ScenesTabProps> = ({ scenes, onOpenStoryboard, 
                         <div style={styles.timeBadge}>
                             {scene.time || 'DAY'}
                         </div>
+
+                        {/* Duration Badge */}
+                        {formatDuration(scene.estimated_duration_seconds) && (
+                            <div style={{
+                                ...styles.timeBadge,
+                                color: '#34d399',
+                                borderColor: 'rgba(52, 211, 153, 0.15)',
+                                backgroundColor: 'rgba(52, 211, 153, 0.06)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                            }}>
+                                <Timer size={10} />
+                                {formatDuration(scene.estimated_duration_seconds)}
+                            </div>
+                        )}
                     </div>
 
                     {/* 4. CHARACTERS (Compact List) */}

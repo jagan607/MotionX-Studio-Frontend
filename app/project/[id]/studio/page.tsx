@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { v4 as uuidv4 } from 'uuid';
+import { toastError, toastSuccess } from "@/lib/toast";
 
 // --- API & TYPES ---
 import {
@@ -12,7 +13,8 @@ import {
     fetchProject,
     fetchProjectAssets,
     fetchEpisodes,
-    fetchUserCredits
+    fetchUserCredits,
+    checkJobStatus
 } from "@/lib/api";
 import { Project, Asset } from "@/lib/types";
 import { SceneData } from "@/components/studio/SceneCard";
@@ -62,6 +64,7 @@ export default function StudioPage() {
     // AI State
     const [isProcessing, setIsProcessing] = useState(false);
     const [isExtending, setIsExtending] = useState(false);
+    const [isRegenerating, setIsRegenerating] = useState(false);
     const { step: tourStep, nextStep: tourNext, completeTour: tourComplete } = useTour("studio_tour");
 
 
@@ -535,6 +538,63 @@ export default function StudioPage() {
         setProject(updatedProject);
     };
 
+    // REGENERATE SCENES
+    const handleRegenerateScenes = async () => {
+        const activeEp = episodes.find(e => e.id === activeEpisodeId);
+        if (!activeEp?.script_preview) {
+            toastError("No script found for this episode. Use the Script button to add one first.");
+            return;
+        }
+
+        setIsRegenerating(true);
+        try {
+            const formData = new FormData();
+            formData.append("project_id", projectId);
+            formData.append("script_title", activeEp.title || project?.title || "Untitled");
+            formData.append("episode_id", activeEpisodeId);
+            if (activeEp.runtime) formData.append("runtime", String(activeEp.runtime));
+
+            // Re-send the existing script as a text file
+            const blob = new Blob([activeEp.script_preview], { type: "text/plain" });
+            formData.append("file", new File([blob], "regenerate.txt"));
+
+            const res = await api.post("/api/v1/script/upload-script", formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+
+            const jobId = res.data.job_id;
+            toastSuccess("Regenerating scenes...");
+
+            // Poll for completion
+            const pollInterval = setInterval(async () => {
+                try {
+                    const job = await checkJobStatus(jobId);
+
+                    if (job.status === "completed") {
+                        clearInterval(pollInterval);
+                        toastSuccess("Scenes regenerated successfully!");
+                        // Reload scenes and assets
+                        await loadScenes(activeEpisodeId);
+                        await initializeStudio();
+                        setIsRegenerating(false);
+                    } else if (job.status === "failed") {
+                        clearInterval(pollInterval);
+                        toastError(job.error || "Regeneration failed");
+                        setIsRegenerating(false);
+                    }
+                } catch (e) {
+                    clearInterval(pollInterval);
+                    toastError("Failed to check regeneration status");
+                    setIsRegenerating(false);
+                }
+            }, 1500);
+        } catch (e: any) {
+            console.error("Regenerate Error:", e);
+            toastError(e.response?.data?.detail || "Failed to start regeneration");
+            setIsRegenerating(false);
+        }
+    };
+
     if (loading || !project) {
         return (
             <div className="fixed inset-0 bg-[#050505] flex flex-col items-center justify-center gap-4 text-red-600">
@@ -556,6 +616,8 @@ export default function StudioPage() {
                 onAutoExtend={handleAutoExtend}
                 isExtending={isExtending}
                 onEditScript={() => handleEditEpisode(activeEpisodeId)}
+                onRegenerateScenes={handleRegenerateScenes}
+                isRegenerating={isRegenerating}
             />
 
             {/* MAIN CONTENT ROW */}

@@ -167,7 +167,7 @@ export default function ScriptLab() {
     };
 
     // --- STYLES ---
-    const containerStyle = { backgroundColor: '#030303', minHeight: '100vh', padding: '40px 60px', color: '#EEE', fontFamily: 'Inter, sans-serif' };
+    const containerStyle = { backgroundColor: '#030303', minHeight: '100vh', padding: '40px 60px', color: '#EEE' };
 
     return (
         <div style={containerStyle}>
@@ -265,7 +265,7 @@ export default function ScriptLab() {
                                     style={{
                                         width: '100%', height: '120px', backgroundColor: '#111',
                                         border: '1px solid #333', color: 'white', padding: '15px',
-                                        fontSize: '13px', fontFamily: 'Inter, sans-serif', marginBottom: '20px',
+                                        fontSize: '13px', marginBottom: '20px',
                                         outline: 'none', resize: 'none', lineHeight: '1.5'
                                     }}
                                 />
@@ -343,14 +343,13 @@ function SortableSceneCard({ scene, index, isActive, onEdit }: any) {
                 <div style={{
                     fontSize: '10px',
                     color: isActive ? '#E50914' : '#666',
-                    fontFamily: 'monospace', marginBottom: '8px', fontWeight: 'bold', letterSpacing: '1px'
+                    fontFamily: 'var(--font-roboto-mono), monospace', marginBottom: '8px', fontWeight: 'bold', letterSpacing: '1px'
                 }}>
                     SCENE {index + 1} // {scene.header} // {scene.time}
                 </div>
                 <div style={{
                     fontSize: '14px', lineHeight: '1.6',
-                    color: isActive ? '#FFF' : '#CCC',
-                    fontFamily: 'Inter, sans-serif'
+                    color: isActive ? '#FFF' : '#CCC'
                 }}>
                     {scene.summary}
                 </div>

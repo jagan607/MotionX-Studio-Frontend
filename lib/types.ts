@@ -130,6 +130,11 @@ export interface Project {
 }
 
 // --- 6. SCENE & SHOT INTERFACES ---
+export interface SceneDialogue {
+    speaker: string;
+    line: string;
+}
+
 export interface Scene {
     id: string;
     scene_number: number;
@@ -143,6 +148,8 @@ export interface Scene {
     time: string;
     visual_prompt: string;
     dialogue?: Record<string, string>;
+    dialogues?: SceneDialogue[];                // NEW – structured dialogues
+    estimated_duration_seconds?: number;        // NEW – scene duration estimate
     status: "draft" | "approved";
 }
 

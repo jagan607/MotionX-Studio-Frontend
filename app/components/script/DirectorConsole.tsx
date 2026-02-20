@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import {
     MapPin, Users, Loader2, Sparkles, X,
-    Save, Clock, AlertTriangle, Plus, Check, ChevronDown
+    Save, Clock, AlertTriangle, Plus, Check, ChevronDown, MessageSquareQuote
 } from "lucide-react";
 import { SceneData } from "@/components/studio/SceneCard"; // Use unified type
 import { ContextReference } from "./ContextSelectorModal";
@@ -260,6 +260,26 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                     />
                 </div>
 
+                {/* 2.5 DIALOGUES (Read-only) */}
+                {activeScene.dialogues && activeScene.dialogues.length > 0 && (
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-bold text-[#666] uppercase tracking-widest flex items-center gap-1.5">
+                                <MessageSquareQuote size={12} className="text-[#555]" /> Dialogue
+                            </label>
+                            <span className="text-[9px] font-mono text-[#444]">{activeScene.dialogues.length} Lines</span>
+                        </div>
+                        <div className="space-y-1 bg-[#0A0A0A] border border-[#1A1A1A] rounded-md p-3 max-h-40 overflow-y-auto">
+                            {activeScene.dialogues.map((d: any, idx: number) => (
+                                <div key={idx} className="text-[11px] leading-relaxed">
+                                    <span className="font-bold text-amber-400/80 uppercase text-[10px] tracking-wide">{d.speaker}:</span>
+                                    <span className="text-[#BBB] ml-1.5 font-serif italic">"{d.line}"</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* 3. CAST */}
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -296,8 +316,8 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                     </div>
                 </div>
 
-                {/* 4. PRODUCTS (Ad Only) */}
-                {projectType === 'ad' && (
+                {/* 4. PRODUCTS (All project types) */}
+                {availableProducts.length > 0 && (
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <label className="text-[10px] font-bold text-[#666] uppercase tracking-widest block">Products</label>
