@@ -151,7 +151,7 @@ export const useShotManager = (
         handleAutoDirect: ai.handleAutoDirect,
 
         // Image
-        handleRenderShot: (shot: any, scene: any, refFile?: File | null, provider?: 'gemini' | 'seedream') => imageGen.handleRenderShot(shot, aspectRatio, refFile, provider),
+        handleRenderShot: (shot: any, scene: any, refFile?: File | null, provider?: 'gemini' | 'seedream', continuityRefId?: string | null) => imageGen.handleRenderShot(shot, aspectRatio, refFile, provider, continuityRefId),
         handleFinalizeShot: imageGen.handleFinalizeShot,
         handleInpaintShot: imageGen.handleInpaintShot,
         handleShotImageUpload, // <--- EXPOSED HERE

@@ -4,55 +4,34 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { doc, getDoc } from "firebase/firestore";
+
 import { onAuthStateChanged, User } from "firebase/auth";
-import { db, auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { api, invalidateDashboardCache } from "@/lib/api";
 import {
-    ArrowLeft, Film, Tv, Clapperboard, Layers,
-    RectangleHorizontal, RectangleVertical, Monitor, Loader2, Aperture, ChevronRight,
-    Megaphone, // [NEW] Icon for Ad
-    BrainCircuit, UploadCloud, FileVideo, AlertTriangle
-
+    ArrowLeft, Film, Tv, ChevronRight, ChevronLeft, Loader2,
+    Megaphone, BrainCircuit, UploadCloud, FileVideo, AlertTriangle
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-// --- DESIGN SYSTEM IMPORTS ---
-import { StudioLayout } from "@/components/ui/StudioLayout";
-import { MotionButton } from "@/components/ui/MotionButton";
-
-// --- TYPES ---
-type MoodOption = {
-    id: string;
-    label: string;
-    sub_label: string;
-    image_url: string;
-};
-
-type MoodAxis = {
-    id: string;
-    code_prefix: string;
-    label: string;
-    description: string;
-    options: MoodOption[];
-};
-
-type Manifest = {
-    version: number;
-    axes: MoodAxis[];
-};
-
 type ProjectType = "movie" | "micro_drama" | "adaptation" | "ad";
+
+const FORMAT_OPTIONS = [
+    { id: "movie" as ProjectType, label: "Feature Film", desc: "Full-length cinematic narrative", icon: Film, img: "/img/formats/film.png" },
+    { id: "micro_drama" as ProjectType, label: "Micro Series", desc: "Short-form episodic content", icon: Tv, img: "/img/formats/series.png" },
+    { id: "ad" as ProjectType, label: "Commercial", desc: "Brand & product advertising", icon: Megaphone, img: "/img/formats/commercial.png" },
+];
+
+const ASPECT_OPTIONS = [
+    { id: "16:9" as const, label: "16:9", desc: "Cinema" },
+    { id: "21:9" as const, label: "21:9", desc: "Wide" },
+    { id: "9:16" as const, label: "9:16", desc: "Vertical" },
+    { id: "4:5" as const, label: "4:5", desc: "Portrait" },
+];
 
 export default function NewProjectPage() {
     const router = useRouter();
-
-    // 1. Loading State
-    const [loadingManifest, setLoadingManifest] = useState(true);
     const [creating, setCreating] = useState(false);
-    const [manifest, setManifest] = useState<Manifest | null>(null);
-
-    // 2. Form State
     const [formData, setFormData] = useState({
         title: "",
         genre: "",
@@ -60,496 +39,319 @@ export default function NewProjectPage() {
         aspect_ratio: "16:9" as "16:9" | "21:9" | "9:16" | "4:5",
         style: "realistic" as "realistic" | "anime",
     });
-
-    // [NEW] Adaptation File State & Error State
     const [adaptationFile, setAdaptationFile] = useState<File | null>(null);
     const [isSizeError, setIsSizeError] = useState(false);
-
-    // [NEW] User Auth State for Access Control
     const [currentUser, setCurrentUser] = useState<User | null>(null);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setCurrentUser(user);
-        });
+        const unsubscribe = onAuthStateChanged(auth, (user) => setCurrentUser(user));
         return () => unsubscribe();
     }, []);
 
-    // 3. Mood Selection State
-    const [moodSelection, setMoodSelection] = useState<Record<string, string>>({});
-
-    // --- [NEW] AUTO-ASPECT RATIO LOGIC ---
     useEffect(() => {
-        if (formData.type === 'ad') {
-            setFormData(prev => ({ ...prev, aspect_ratio: '9:16' }));
-        } else if (formData.type === 'movie') {
-            setFormData(prev => ({ ...prev, aspect_ratio: '16:9' }));
-        }
-        // Micro-drama usually keeps 16:9 or 9:16 depending on platform, leaving as is or defaulting to 9:16 if you prefer vertical series.
+        if (formData.type === 'ad') setFormData(prev => ({ ...prev, aspect_ratio: '9:16' }));
+        else if (formData.type === 'movie') setFormData(prev => ({ ...prev, aspect_ratio: '16:9' }));
     }, [formData.type]);
 
-    // --- FETCH MANIFEST (Dynamic based on Style) ---
-    useEffect(() => {
-        let isMounted = true;
-
-        async function fetchConfig() {
-            if (formData.type === 'adaptation') {
-                setLoadingManifest(false);
-                return;
-            }
-
-            setLoadingManifest(true);
-            setMoodSelection({});
-
-            try {
-                const configId = formData.style === 'anime' ? "moodboard_manifest_anime" : "moodboard_manifest";
-                const docRef = doc(db, "configs", configId);
-                const snap = await getDoc(docRef);
-
-                if (isMounted && snap.exists()) {
-                    const data = snap.data() as Manifest;
-                    setManifest(data);
-                    const initialSelection: Record<string, string> = {};
-                    data.axes.forEach((axis) => {
-                        if (axis.options.length > 0) initialSelection[axis.code_prefix] = axis.options[0].id;
-                    });
-                    setMoodSelection(initialSelection);
-                } else if (isMounted) {
-                    setManifest(null);
-                }
-            } catch (e) {
-                console.error("Config Error:", e);
-                toast.error("Failed to load creative assets.");
-            } finally {
-                if (isMounted) setLoadingManifest(false);
-            }
-        }
-
-        fetchConfig();
-        return () => { isMounted = false; };
-    }, [formData.style, formData.type]);
-
-    // --- HANDLERS ---
-    const handleMoodSelect = (prefix: string, option: MoodOption) => {
-        setMoodSelection((prev) => ({ ...prev, [prefix]: option.id }));
-    };
-
     const handleSubmit = async () => {
-        if (!formData.title) {
-            return toast.error("Please enter a Project Title");
-        }
-
+        if (!formData.title) return toast.error("Please enter a project title");
         setCreating(true);
-
         try {
             if (formData.type === 'adaptation') {
-                if (!adaptationFile) {
-                    setCreating(false);
-                    return toast.error("Please upload a source video");
-                }
-
+                if (!adaptationFile) { setCreating(false); return toast.error("Please upload a source video"); }
                 const uploadData = new FormData();
                 uploadData.append("title", formData.title);
                 uploadData.append("file", adaptationFile);
-
                 const res = await api.post("/api/v1/adaptation/create_adaptation", uploadData, {
-                    headers: { "Content-Type": "multipart/form-data" },
-                    timeout: 120000
+                    headers: { "Content-Type": "multipart/form-data" }, timeout: 120000
                 });
-
                 router.push(`/project/${res.data.project_id}/adaptation`);
                 return;
             }
-
-            if (!formData.genre) {
-                setCreating(false);
-                return toast.error("Please fill in Genre/Logline");
-            }
-
-            const moodboardList: { title: string; option: string }[] = [];
-            manifest?.axes.forEach(axis => {
-                const selectedId = moodSelection[axis.code_prefix];
-                const option = axis.options.find(o => o.id === selectedId);
-                if (option) {
-                    moodboardList.push({ title: axis.label, option: option.label });
-                }
+            if (!formData.genre) { setCreating(false); return toast.error("Please describe the genre and tone"); }
+            const res = await api.post("/api/v1/project/create", {
+                title: formData.title, genre: formData.genre,
+                type: formData.type, aspect_ratio: formData.aspect_ratio, style: formData.style,
             });
-
-            const payload = {
-                title: formData.title,
-                genre: formData.genre,
-                type: formData.type,
-                aspect_ratio: formData.aspect_ratio,
-                style: formData.style,
-                moodboard: moodboardList
-            };
-
-            const res = await api.post("/api/v1/project/create", payload);
-            if (auth.currentUser) invalidateDashboardCache(auth.currentUser.uid); // Clear cache
+            if (auth.currentUser) invalidateDashboardCache(auth.currentUser.uid);
             router.push(`/project/${res.data.id}/script`);
-
         } catch (e: any) {
             console.error("Creation failed", e);
-            toast.error(e.response?.data?.detail || "Failed to initialize project.");
+            toast.error(e.response?.data?.detail || "Failed to create project.");
             setCreating(false);
         }
     };
 
-    const FormatSelector = ({ active, onClick, icon: Icon, label, subLabel }: any) => (
-        <button
-            onClick={onClick}
-            className={`
-                relative flex-1 p-4 border transition-all duration-300 flex flex-col justify-between h-24 group rounded-sm
-                ${active
-                    ? 'border-red-800/80 bg-[#110303]'
-                    : 'border-[#222] bg-[#0E0E0E] hover:border-[#444]'}
-            `}
-        >
-            <div className="flex justify-between items-start w-full">
-                <Icon className={`w-5 h-5 ${active ? 'text-red-500' : 'text-[#444] group-hover:text-[#666]'}`} />
-                <div className="text-center">
-                    <div className={`text-[9px] font-mono tracking-widest uppercase mb-1 ${active ? 'text-red-400' : 'text-[#555]'}`}>{subLabel}</div>
-                    <div className={`text-xs font-bold tracking-wider uppercase ${active ? 'text-white' : 'text-[#777] group-hover:text-white'}`}>{label}</div>
-                </div>
-            </div>
-        </button>
-    );
-
     const isAdaptation = formData.type === 'adaptation';
+    const selectedFormat = FORMAT_OPTIONS.find(f => f.id === formData.type);
+    const selectedFormatIdx = FORMAT_OPTIONS.findIndex(f => f.id === formData.type);
+
+    const cycleFormat = (dir: 1 | -1) => {
+        const idx = (selectedFormatIdx + dir + FORMAT_OPTIONS.length) % FORMAT_OPTIONS.length;
+        setFormData({ ...formData, type: FORMAT_OPTIONS[idx].id });
+    };
 
     return (
-        <StudioLayout>
+        <div className="h-screen bg-[#030303] text-white overflow-hidden flex">
             <style jsx global>{`
-                @keyframes shake {
-                    0%, 100% { transform: translateX(0); }
-                    25% { transform: translateX(-5px); }
-                    75% { transform: translateX(5px); }
-                }
-                .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
-                .dark-scrollbar::-webkit-scrollbar { width: 4px; }
-                .dark-scrollbar::-webkit-scrollbar-track { background: #050505; }
-                .dark-scrollbar::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
-                .dark-scrollbar::-webkit-scrollbar-thumb:hover { background: #444; }
+                @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes imgCrossfade { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes slideLabel { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes scanDrift { 0% { top: 15%; } 100% { top: 85%; } }
+                .fade-up { animation: fadeUp 0.5s ease both; }
+                .fade-up-1 { animation: fadeUp 0.5s ease 0.05s both; }
+                .fade-up-2 { animation: fadeUp 0.5s ease 0.1s both; }
+                .fade-up-3 { animation: fadeUp 0.5s ease 0.15s both; }
+                .img-fade { animation: imgCrossfade 0.7s ease both; }
+                .label-slide { animation: slideLabel 0.4s ease 0.1s both; }
             `}</style>
 
-            <div className="h-screen bg-[#050505] text-[#EEE] font-sans flex flex-col lg:flex-row overflow-hidden">
+            {/* ═══════════════════ LEFT: COMPACT FORM  ═══════════════════ */}
+            <div className="w-[480px] shrink-0 flex flex-col h-full border-r border-white/[0.04] bg-[#050505]">
+                {/* Top bar */}
+                <div className="shrink-0 h-12 flex items-center px-8 border-b border-white/[0.04]">
+                    <Link href="/dashboard" className="flex items-center gap-2 text-[10px] font-semibold tracking-[3px] text-neutral-600 hover:text-white transition-colors uppercase group">
+                        <ArrowLeft size={11} className="group-hover:-translate-x-0.5 transition-transform" /> Studio
+                    </Link>
+                </div>
 
-                {/* --- LEFT: CONTROL TERMINAL --- */}
-                <div className={`flex flex-col border-r border-[#222] bg-[#080808] relative z-10 transition-all duration-500 ${isAdaptation ? 'w-full lg:w-full max-w-4xl mx-auto border-r-0' : 'w-full lg:w-7/12'}`}>
+                {/* Form body */}
+                <div className="flex-1 flex flex-col justify-center px-8 py-6 gap-5">
 
-                    <div className="p-8 pb-4 border-b border-[#222]">
-                        <Link href="/dashboard" className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] text-[#555] hover:text-white mb-6 transition-colors group">
-                            <ArrowLeft size={10} className="group-hover:-translate-x-1 transition-transform" /> BACK TO STUDIO
-                        </Link>
-                        <h1 className="text-3xl font-display font-bold uppercase tracking-tighter text-white leading-none mb-2">
-                            New <span className="text-red-600">Production</span>
+                    {/* Hero */}
+                    <div className="fade-up">
+                        <h1 className="text-4xl font-display uppercase tracking-tight leading-[0.95] mb-1">
+                            New <span className="text-[#E50914]">Production</span>
                         </h1>
-                        <p className="text-[10px] font-mono text-[#444] tracking-widest">SESSION_ID: {new Date().getTime().toString().slice(-6)}</p>
+                        <p className="text-[11px] text-neutral-600">Set up your project, then upload your script.</p>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-8 space-y-6 dark-scrollbar pb-32">
+                    {/* ── TITLE ── */}
+                    <div className="space-y-1.5 fade-up-1">
+                        <label className="text-[9px] font-semibold tracking-[3px] uppercase text-neutral-500">
+                            Title <span className="text-[#E50914]">*</span>
+                        </label>
+                        <input
+                            type="text" autoFocus value={formData.title}
+                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-4 py-3 text-[14px] font-bold uppercase tracking-wider text-white placeholder-neutral-700 focus:outline-none focus:border-[#E50914]/50 transition-all"
+                            placeholder="UNTITLED PROJECT"
+                            autoComplete="off"
+                        />
+                    </div>
 
-                        {/* --- 01. FORMAT SELECTION --- */}
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">01</span>
-                                <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">Format Selection</span>
+                    {!isAdaptation ? (
+                        <>
+                            {/* ── ASPECT + ENGINE (side-by-side) ── */}
+                            <div className="grid grid-cols-2 gap-4 fade-up-2">
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-semibold tracking-[3px] uppercase text-neutral-500">Aspect Ratio</label>
+                                    <div className="grid grid-cols-2 gap-1.5">
+                                        {ASPECT_OPTIONS.map(opt => {
+                                            const active = formData.aspect_ratio === opt.id;
+                                            return (
+                                                <button key={opt.id} onClick={() => setFormData({ ...formData, aspect_ratio: opt.id })}
+                                                    className={`py-2 rounded-lg border transition-all duration-200 cursor-pointer text-center
+                                                        ${active
+                                                            ? 'border-[#E50914]/50 bg-[#E50914]/[0.08]'
+                                                            : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]'}`}
+                                                >
+                                                    <div className={`text-[12px] font-bold font-mono ${active ? 'text-white' : 'text-neutral-500'}`}>{opt.label}</div>
+                                                    <div className={`text-[8px] uppercase tracking-wider ${active ? 'text-[#E50914]/60' : 'text-neutral-700'}`}>{opt.desc}</div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-semibold tracking-[3px] uppercase text-neutral-500">Engine</label>
+                                    <div className="space-y-1.5">
+                                        {[
+                                            { id: 'realistic' as const, label: 'Realistic', desc: 'Photorealistic' },
+                                            { id: 'anime' as const, label: 'Animation', desc: 'Anime style' }
+                                        ].map(s => {
+                                            const active = formData.style === s.id;
+                                            return (
+                                                <button key={s.id} onClick={() => setFormData({ ...formData, style: s.id })}
+                                                    className={`w-full py-2.5 px-3 rounded-lg border transition-all duration-200 text-left cursor-pointer
+                                                        ${active
+                                                            ? 'border-[#E50914]/50 bg-[#E50914]/[0.08]'
+                                                            : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]'}`}
+                                                >
+                                                    <div className={`text-[11px] font-bold uppercase tracking-wider ${active ? 'text-white' : 'text-neutral-500'}`}>{s.label}</div>
+                                                    <div className={`text-[8px] ${active ? 'text-neutral-400' : 'text-neutral-700'}`}>{s.desc}</div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </div>
-                            <div className="grid grid-cols-3 gap-2">
-                                <FormatSelector
-                                    active={formData.type === 'movie'}
-                                    onClick={() => setFormData({ ...formData, type: 'movie' })}
-                                    icon={Film}
-                                    label="Feature Film"
-                                    subLabel="Linear"
+
+                            {/* ── LOGLINE ── */}
+                            <div className="space-y-1.5 fade-up-3">
+                                <label className="text-[9px] font-semibold tracking-[3px] uppercase text-neutral-500">
+                                    Genre & Logline <span className="text-[#E50914]">*</span>
+                                </label>
+                                <textarea
+                                    value={formData.genre}
+                                    onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
+                                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-4 py-3 text-[12px] text-neutral-300 placeholder-neutral-700 focus:outline-none focus:border-[#E50914]/50 transition-all resize-none h-20 leading-relaxed"
+                                    placeholder={formData.type === 'ad'
+                                        ? "High-energy sports drink commercial, neon lights..."
+                                        : "A sci-fi thriller in 2089. Dark, cyberpunk tone..."}
                                 />
-                                <FormatSelector
-                                    active={formData.type === 'micro_drama'}
-                                    onClick={() => setFormData({ ...formData, type: 'micro_drama' })}
-                                    icon={Tv}
-                                    label="Micro Series"
-                                    subLabel="Episodic"
+                            </div>
+                        </>
+                    ) : (
+                        /* ── ADAPTATION ── */
+                        <div className="space-y-3 fade-up-2">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[9px] font-semibold tracking-[3px] uppercase text-neutral-500">Source Video</label>
+                                {isSizeError && <span className="text-[#E50914] text-[9px] font-bold flex items-center gap-1 animate-pulse"><AlertTriangle size={9} /> TOO LARGE</span>}
+                            </div>
+                            <div className={`border border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-center relative transition-all
+                                ${isSizeError ? 'border-[#E50914] bg-[#E50914]/[0.04]' : adaptationFile ? 'border-[#E50914]/50 bg-[#E50914]/[0.03]' : 'border-white/[0.1] bg-white/[0.02] hover:border-white/[0.2]'}`}
+                            >
+                                <input type="file" accept="video/mp4,video/mov" className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0] || null;
+                                        if (file && file.size > 350 * 1024 * 1024) { setIsSizeError(true); setAdaptationFile(null); toast.error("File exceeds 350MB"); }
+                                        else { setIsSizeError(false); setAdaptationFile(file); }
+                                    }}
                                 />
-                                <FormatSelector
-                                    active={formData.type === 'ad'}
-                                    onClick={() => setFormData({ ...formData, type: 'ad' })}
-                                    icon={Megaphone}
-                                    label="Commercial"
-                                    subLabel="Short Form"
-                                />
-                                {currentUser?.email?.endsWith('@motionx.in') && (
-                                    <FormatSelector
-                                        active={formData.type === 'adaptation'}
-                                        onClick={() => setFormData({ ...formData, type: 'adaptation' })}
-                                        icon={BrainCircuit}
-                                        label="Adaptation"
-                                        subLabel="AI Remix"
-                                    />
+                                {adaptationFile ? (
+                                    <>
+                                        <FileVideo size={32} className="text-[#E50914] mb-2" />
+                                        <span className="text-white font-bold text-[12px]">{adaptationFile.name}</span>
+                                        <span className="text-[9px] text-[#E50914]/70 mt-1 uppercase tracking-widest">Ready</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <UploadCloud size={32} className="mb-2 text-neutral-600" />
+                                        <span className="text-[12px] font-semibold text-neutral-400">Drop source video here</span>
+                                        <span className="text-[9px] text-neutral-600 mt-0.5">MP4 / MOV • Max 350MB</span>
+                                    </>
                                 )}
                             </div>
                         </div>
-
-                        {/* --- 02. PROJECT TITLE --- */}
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">02</span>
-                                <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">
-                                    Project Title <span className="text-red-500">*</span>
-                                </span>
-                            </div>
-                            <div className="relative group">
-                                <input
-                                    type="text"
-                                    autoFocus
-                                    value={formData.title}
-                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    className="w-full bg-[#0E0E0E] border border-[#222] rounded-sm px-4 py-4 text-base font-bold uppercase tracking-wider text-white placeholder-[#333] focus:outline-none focus:border-red-600 transition-colors"
-                                    placeholder={isAdaptation ? "EX: THE MATRIX REMIX" : "ENTER PROJECT TITLE..."}
-                                    autoComplete="off"
-                                />
-                            </div>
-                        </div>
-
-                        {!isAdaptation ? (
-                            <>
-                                {/* --- 03. ASPECT RATIO --- */}
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">03</span>
-                                        <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">Aspect Ratio</span>
-                                    </div>
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {[
-                                            { id: '16:9', label: '16:9', sub: 'Cinema', icon: RectangleHorizontal },
-                                            { id: '21:9', label: '21:9', sub: 'Wide', icon: Monitor },
-                                            { id: '9:16', label: '9:16', sub: 'Vertical', icon: RectangleVertical },
-                                            { id: '4:5', label: '4:5', sub: 'Portrait', icon: RectangleVertical },
-                                        ].map((opt) => (
-                                            <button
-                                                key={opt.id}
-                                                onClick={() => setFormData({ ...formData, aspect_ratio: opt.id as "16:9" | "21:9" | "9:16" | "4:5" })}
-                                                className={`relative p-3 border transition-all duration-300 flex flex-col items-center justify-center gap-2 group rounded-sm h-20
-                                                    ${formData.aspect_ratio === opt.id
-                                                        ? 'border-red-800/80 bg-[#110303]'
-                                                        : 'border-[#222] bg-[#0E0E0E] hover:border-[#444]'}
-                                                `}
-                                            >
-                                                <opt.icon size={16} className={formData.aspect_ratio === opt.id ? 'text-red-500' : 'text-[#444] group-hover:text-[#666]'} />
-                                                <div className="text-center">
-                                                    <div className={`text-[9px] font-mono tracking-widest uppercase mb-0.5 ${formData.aspect_ratio === opt.id ? 'text-red-400' : 'text-[#555]'}`}>{opt.sub}</div>
-                                                    <div className={`text-xs font-bold tracking-wider ${formData.aspect_ratio === opt.id ? 'text-white' : 'text-[#777] group-hover:text-white'}`}>{opt.label}</div>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* --- 04. LOGLINE & GENRE --- */}
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">04</span>
-                                        <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">
-                                            Logline & Genre <span className="text-red-500">*</span>
-                                        </span>
-                                    </div>
-                                    <textarea
-                                        value={formData.genre}
-                                        onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-                                        className="w-full bg-[#0E0E0E] border border-[#222] rounded-sm px-4 py-4 text-sm font-medium text-[#CCC] placeholder-[#333] focus:outline-none focus:border-red-600 resize-none h-24 leading-relaxed transition-colors"
-                                        placeholder={formData.type === 'ad' ? "E.g. High energy sports drink commercial, neon lights..." : "Describe the story setting, genre, and tone..."}
-                                    />
-                                </div>
-
-                                {/* --- 05. RENDER ENGINE --- */}
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">05</span>
-                                        <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">Render Engine</span>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {[
-                                            { id: 'realistic', label: 'REALISTIC' },
-                                            { id: 'anime', label: 'ANIMATION' }
-                                        ].map((s) => (
-                                            <button
-                                                key={s.id}
-                                                onClick={() => setFormData({ ...formData, style: s.id as "realistic" | "anime" })}
-                                                className={`py-4 border rounded-sm text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300
-                                                    ${formData.style === s.id
-                                                        ? 'border-red-800/80 bg-[#110303] text-red-500'
-                                                        : 'border-[#222] bg-[#0E0E0E] text-[#555] hover:border-[#444] hover:text-white'}
-                                                `}
-                                            >
-                                                {s.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-[10px] font-mono font-bold text-red-500 bg-red-950/40 border border-red-900/30 px-2 py-0.5 rounded">03</span>
-                                        <span className="text-[10px] font-mono tracking-[0.2em] text-[#555] uppercase">Source Material</span>
-                                    </div>
-                                    {isSizeError && <span className="text-red-500 text-[10px] font-bold flex items-center gap-1 animate-pulse"><AlertTriangle size={10} /> TOO LARGE</span>}
-                                </div>
-
-                                <div className={`
-                                        border border-dashed p-10 flex flex-col items-center justify-center text-center relative transition-all duration-300 rounded-sm
-                                        ${isSizeError ? 'border-red-600 bg-red-950/20 animate-shake' : adaptationFile ? 'border-red-600 bg-[#1A0505]' : 'border-[#333] bg-[#0E0E0E] hover:border-[#666] hover:text-white'}
-                                    `}>
-                                    <input
-                                        type="file"
-                                        accept="video/mp4,video/mov"
-                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0] || null;
-                                            if (file && file.size > 350 * 1024 * 1024) {
-                                                setIsSizeError(true);
-                                                setAdaptationFile(null);
-                                                toast.error("File exceeds 350MB limit");
-                                            } else {
-                                                setIsSizeError(false);
-                                                setAdaptationFile(file);
-                                            }
-                                        }}
-                                    />
-
-                                    {adaptationFile ? (
-                                        <>
-                                            <FileVideo size={48} className="text-red-500 mb-4" />
-                                            <span className="text-white font-bold font-mono">{adaptationFile.name}</span>
-                                            <span className="text-[10px] text-red-400 mt-2 uppercase tracking-widest">Ready for Analysis</span>
-                                            <span className="text-[10px] text-[#666] mt-1">{(adaptationFile.size / (1024 * 1024)).toFixed(1)} MB</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <UploadCloud size={48} className={`mb-4 ${isSizeError ? 'text-red-600' : 'text-[#333]'}`} />
-                                            <h3 className={`text-sm font-bold uppercase tracking-wider mb-1 ${isSizeError ? 'text-red-500' : 'text-[#888]'}`}>
-                                                {isSizeError ? "Video Too Heavy" : "Upload Source Video"}
-                                            </h3>
-                                            <p className="text-[10px] text-[#555] font-mono">MP4 / MOV • Max 350MB</p>
-                                        </>
-                                    )}
-                                </div>
-
-                                <div className="p-4 bg-[#0E0E0E] border border-[#222] rounded-sm text-[10px] text-[#666] font-mono leading-relaxed">
-                                    <strong className="text-white block mb-1">HOW ADAPTATION WORKS:</strong>
-                                    1. Upload an existing video clip.<br />
-                                    2. Our engine detects cuts and clusters characters.<br />
-                                    3. You assign new actors to detected clusters.<br />
-                                    4. We render a frame-perfect adaptation.
-                                </div>
-                            </div>
-                        )}
-
-                    </div>
-
-                    {/* MOVED CTA TO RIGHT COLUMN, but kept here for Adaptation flow if needed or hidden */}
-                    {/* For Adaptation, we might still want it here or also move it. User asked to place init system primary cta in right block.
-                        Assuming this applies to the main flow. Let's conditionally render it here ONLY if adaptation? 
-                         actually the user request was general. Let's move it to the right column area entirely for the standard flow.
-                    */}
-                    {isAdaptation && (
-                        <div className="p-6 border-t border-[#222] bg-[#050505] z-30 flex justify-end">
-                            <MotionButton
-                                onClick={handleSubmit}
-                                loading={creating}
-                                disabled={isSizeError || !adaptationFile}
-                                className={`w-full py-6 text-sm tracking-[0.25em] font-bold rounded-sm shadow-lg shadow-red-900/20 hover:shadow-red-900/40 transition-all ${isSizeError ? 'bg-[#222] text-[#444] cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
-                            >
-                                {isSizeError ? "REDUCE FILE SIZE" : "START ADAPTATION ENGINE"}
-                                <BrainCircuit size={16} className="ml-2" />
-                            </MotionButton>
-                        </div>
                     )}
+
+                    {/* ── CTA ── */}
+                    <button
+                        onClick={handleSubmit}
+                        disabled={creating || (isAdaptation && (isSizeError || !adaptationFile))}
+                        className={`w-full py-3.5 rounded-lg text-[11px] font-bold uppercase tracking-[3px] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer
+                            ${creating || (isAdaptation && (isSizeError || !adaptationFile))
+                                ? 'bg-white/[0.04] text-neutral-600 border border-white/[0.06] cursor-not-allowed'
+                                : 'bg-[#E50914] hover:bg-[#ff1a25] text-white shadow-[0_4px_24px_rgba(229,9,20,0.25)] hover:shadow-[0_4px_32px_rgba(229,9,20,0.4)]'
+                            }`}
+                    >
+                        {creating ? <><Loader2 size={14} className="animate-spin" /> Creating...</>
+                            : isAdaptation ? <><BrainCircuit size={13} /> Start Adaptation</>
+                                : <>Create Project <ChevronRight size={13} /></>}
+                    </button>
                 </div>
 
-                {/* --- RIGHT: VISUAL MATRIX & CTA --- */}
-                {!isAdaptation && (
-                    <div className="w-full lg:w-5/12 bg-[#050505] flex flex-col relative animate-in fade-in duration-500 border-l border-[#222]">
-                        <div className="h-16 border-b border-[#222] flex items-center justify-between px-8 bg-[#050505]/95 backdrop-blur-sm z-20 sticky top-0">
-                            <div className="flex items-center gap-3">
-                                <Aperture className="text-red-600 animate-spin-slow" size={16} />
-                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white">Visual Matrix</span>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="text-[9px] font-mono text-[#444]">
-                                    VECTOR: <span className="text-red-500">{moodSelection["A"] || "--"}-{moodSelection["B"] || "--"}-{moodSelection["C"] || "--"}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-8 space-y-10 dark-scrollbar">
-                            {loadingManifest ? (
-                                <div className="h-full flex flex-col items-center justify-center opacity-50">
-                                    <Loader2 className="animate-spin text-red-600 mb-4" size={24} />
-                                    <span className="text-[10px] font-mono tracking-widest text-[#666]">ACCESSING DATABASE...</span>
-                                </div>
-                            ) : (
-                                manifest?.axes.map((axis) => (
-                                    <div key={axis.id} className="space-y-3">
-                                        <div className="flex items-end gap-3 border-b border-[#1A1A1A] pb-2">
-                                            <span className="text-sm font-bold uppercase text-white tracking-widest">{axis.label}</span>
-                                            <span className="text-[9px] font-mono text-[#444] mb-0.5">{'//'} {axis.description}</span>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                            {axis.options.map((option) => {
-                                                const isSelected = moodSelection[axis.code_prefix] === option.id;
-                                                return (
-                                                    <button
-                                                        key={option.id}
-                                                        onClick={() => handleMoodSelect(axis.code_prefix, option)}
-                                                        className={`
-                                                            relative aspect-[16/10] group overflow-hidden transition-all duration-300 rounded-sm border
-                                                            ${isSelected
-                                                                ? 'border-red-600 z-10 opacity-100 ring-1 ring-red-600'
-                                                                : 'border-transparent opacity-40 hover:opacity-100 hover:border-[#444]'}
-                                                        `}
-                                                    >
-                                                        <Image
-                                                            src={option.image_url}
-                                                            alt={option.label}
-                                                            fill
-                                                            sizes="(max-width: 768px) 50vw, 200px"
-                                                            quality={75}
-                                                            loading="lazy"
-                                                            className="object-cover transition-transform duration-700 group-hover:scale-105"
-                                                        />
-                                                        <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent transition-opacity ${isSelected ? 'opacity-80' : 'opacity-60 group-hover:opacity-80'}`} />
-                                                        <div className="absolute bottom-0 left-0 w-full p-2 flex justify-between items-end">
-                                                            <div className="text-left w-full">
-                                                                <div className={`text-[7px] font-mono mb-0.5 ${isSelected ? 'text-red-500' : 'text-[#888]'}`}>{option.id}</div>
-                                                                <div className="text-[9px] font-bold uppercase text-white tracking-wider truncate">{option.label}</div>
-                                                            </div>
-                                                            {isSelected && <div className="h-1 w-1 bg-red-600 rounded-full shadow-[0_0_5px_#EF4444] mb-1 mr-1" />}
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-
-                        {/* PRIMARY CTA IN RIGHT COLUMN */}
-                        <div className="p-6 border-t border-[#222] bg-[#050505] z-30">
-                            <MotionButton
-                                onClick={handleSubmit}
-                                loading={creating}
-                                className="w-full py-6 text-sm tracking-[0.25em] font-bold rounded-sm shadow-lg shadow-red-900/20 hover:shadow-red-900/40 transition-all bg-red-600 hover:bg-red-700 text-white"
-                            >
-                                INITIALIZE SYSTEM
-                                <ChevronRight size={12} className="ml-2" />
-                            </MotionButton>
-                        </div>
+                {/* Adaptation internal badge */}
+                {currentUser?.email?.endsWith('@motionx.in') && (
+                    <div className="shrink-0 px-8 py-3 border-t border-white/[0.04]">
+                        <button onClick={() => setFormData({ ...formData, type: isAdaptation ? 'movie' : 'adaptation' })}
+                            className={`w-full py-2 rounded-lg border text-[9px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
+                                ${isAdaptation ? 'border-[#E50914]/40 text-[#E50914] bg-[#E50914]/[0.05]' : 'border-white/[0.06] text-neutral-600 hover:text-neutral-400 hover:border-white/[0.1]'}`}
+                        >
+                            <BrainCircuit size={11} className="inline mr-1.5 -mt-0.5" />
+                            {isAdaptation ? 'Switch to Standard' : 'Adaptation Mode'}
+                        </button>
                     </div>
                 )}
             </div>
-        </StudioLayout>
+
+            {/* ═════════════════ RIGHT: IMMERSIVE FORMAT SELECTOR ═════════════════ */}
+            {!isAdaptation && (
+                <div className="flex-1 flex flex-col relative overflow-hidden">
+
+                    {/* ── Full-bleed hero image ── */}
+                    {selectedFormat && (
+                        <div key={selectedFormat.id} className="absolute inset-0 img-fade">
+                            <Image src={selectedFormat.img} alt={selectedFormat.label} fill className="object-cover" priority />
+                            {/* Cinematic overlays */}
+                            <div className="absolute inset-0 bg-black/40" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-[#030303]/60" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#030303] via-transparent to-transparent" />
+                        </div>
+                    )}
+
+                    {/* ── Viewfinder frame ── */}
+                    <div className="absolute inset-0 z-10 pointer-events-none">
+                        {/* Corner brackets */}
+                        <div className="absolute top-8 left-8 w-10 h-10 border-t-[1.5px] border-l-[1.5px] border-white/[0.08]" />
+                        <div className="absolute top-8 right-8 w-10 h-10 border-t-[1.5px] border-r-[1.5px] border-white/[0.08]" />
+                        <div className="absolute bottom-28 left-8 w-10 h-10 border-b-[1.5px] border-l-[1.5px] border-white/[0.08]" />
+                        <div className="absolute bottom-28 right-8 w-10 h-10 border-b-[1.5px] border-r-[1.5px] border-white/[0.08]" />
+
+                        {/* Animated scan line */}
+                        <div className="absolute left-10 right-10 h-[1px] bg-gradient-to-r from-transparent via-[#E50914]/20 to-transparent"
+                            style={{ animation: 'scanDrift 5s ease-in-out infinite alternate' }} />
+
+                        {/* Top right HUD */}
+                        <div className="absolute top-10 right-14 text-right">
+                            <div className="text-[8px] font-mono text-white/15 uppercase tracking-[3px]">MotionX Studio</div>
+                            <div className="text-[8px] font-mono text-[#E50914]/30 mt-0.5 tracking-wider">{formData.aspect_ratio} • {formData.style}</div>
+                        </div>
+                    </div>
+
+                    {/* ── Center: Format label + navigation ── */}
+                    <div className="relative z-20 flex-1 flex flex-col items-center justify-center px-12">
+                        {selectedFormat && (
+                            <div key={selectedFormat.id} className="label-slide text-center">
+                                <selectedFormat.icon size={28} className="text-white/30 mx-auto mb-4" />
+                                <h2 className="text-5xl font-display uppercase tracking-tight text-white leading-none mb-2">
+                                    {selectedFormat.label}
+                                </h2>
+                                <p className="text-[12px] text-white/40 tracking-wide">{selectedFormat.desc}</p>
+                            </div>
+                        )}
+
+                        {/* Navigation arrows */}
+                        <div className="flex gap-4 mt-8">
+                            <button onClick={() => cycleFormat(-1)}
+                                className="w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.03] backdrop-blur-sm flex items-center justify-center hover:border-white/[0.25] hover:bg-white/[0.06] transition-all cursor-pointer group">
+                                <ChevronLeft size={16} className="text-white/40 group-hover:text-white transition-colors" />
+                            </button>
+                            <button onClick={() => cycleFormat(1)}
+                                className="w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.03] backdrop-blur-sm flex items-center justify-center hover:border-white/[0.25] hover:bg-white/[0.06] transition-all cursor-pointer group">
+                                <ChevronRight size={16} className="text-white/40 group-hover:text-white transition-colors" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ── Bottom: Filmstrip thumbnails ── */}
+                    <div className="relative z-20 shrink-0 border-t border-white/[0.04] bg-[#030303]/80 backdrop-blur-md">
+                        <div className="flex h-24">
+                            {FORMAT_OPTIONS.map((opt, idx) => {
+                                const active = formData.type === opt.id;
+                                return (
+                                    <button key={opt.id} onClick={() => setFormData({ ...formData, type: opt.id })}
+                                        className={`flex-1 relative overflow-hidden transition-all duration-300 cursor-pointer group
+                                            ${active ? 'opacity-100' : 'opacity-40 hover:opacity-70'}
+                                            ${idx > 0 ? 'border-l border-white/[0.04]' : ''}`}
+                                    >
+                                        <Image src={opt.img} alt={opt.label} fill className={`object-cover transition-all duration-500 ${active ? 'scale-100' : 'scale-110 group-hover:scale-105'}`} />
+                                        <div className="absolute inset-0 bg-black/50" />
+                                        {/* Active indicator */}
+                                        {active && <div className="absolute bottom-0 inset-x-0 h-[2px] bg-[#E50914]" />}
+                                        {/* Label */}
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                            <opt.icon size={14} className={`mb-1 ${active ? 'text-[#E50914]' : 'text-white/40'}`} />
+                                            <span className={`text-[10px] font-bold uppercase tracking-wider ${active ? 'text-white' : 'text-white/50'}`}>{opt.label}</span>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }

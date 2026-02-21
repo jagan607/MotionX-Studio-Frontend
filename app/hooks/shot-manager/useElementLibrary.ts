@@ -231,14 +231,11 @@ export const useElementLibrary = (projectId: string) => {
     };
 
     const registerKlingAsset = async (assetType: 'character' | 'product' | 'location', assetId: string) => {
-        // Skip if this element is already registered
+        // Check if this element is already registered — if so, use force=true to re-register
         const existing = elements.find(
             el => String(el.local_id) === String(assetId) || String(el.id) === String(assetId)
         );
-        if (existing && !existing.needs_registration && existing.registration_status === 'complete') {
-            console.log(`[registerKlingAsset] Already registered: ${assetId} → ${existing.id}`);
-            return existing.id;
-        }
+        const isReRegistration = existing && !existing.needs_registration && existing.registration_status === 'complete';
 
         setIsLoading(true);
         try {
@@ -254,7 +251,8 @@ export const useElementLibrary = (projectId: string) => {
             // Recursive poll — backend is idempotent, same POST handles create + status check
             const poll = async (attempt: number = 1, maxAttempts: number = 20): Promise<string | undefined> => {
                 console.log(`[registerKlingAsset] Poll attempt ${attempt}/${maxAttempts} for ${assetId}`);
-                const res = await api.post(`/api/v1/assets/${projectId}/${assetType}/${assetId}/register_kling`);
+                const forceParam = isReRegistration ? '?force=true' : '';
+                const res = await api.post(`/api/v1/assets/${projectId}/${assetType}/${assetId}/register_kling${forceParam}`);
                 const data = res.data;
                 console.log(`[registerKlingAsset] Response:`, data);
 

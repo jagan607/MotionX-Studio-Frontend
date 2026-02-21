@@ -419,7 +419,7 @@ export default function DraftPage() {
             });
 
             toast.success("Sequence Approved");
-            router.push(`/project/${projectId}/assets?onboarding=true`);
+            router.push(`/project/${projectId}/moodboard?onboarding=true`);
 
         } catch (e: any) {
             console.error(e);

@@ -40,7 +40,8 @@ export const useShotAI = (
             scene_action: sceneAction,
             characters: sceneChars,
             location: sceneLocationName,
-            products: sceneProductsString // Send product context to Gemini
+            products: sceneProductsString,
+            scene_duration: currentScene.estimated_duration_seconds || 0
         };
 
         try {
@@ -80,7 +81,8 @@ export const useShotAI = (
                         visual_action: shot.image_prompt || shot.description || "",
                         video_prompt: shot.video_prompt || "",
                         characters: charArray,
-                        products: productArray, // Accurate assignment
+                        products: productArray,
+                        estimated_duration: shot.estimated_duration || 0,
 
                         // Prefer AI-returned shot location, fallback to scene location
                         location: shot.location || sceneLocationName,

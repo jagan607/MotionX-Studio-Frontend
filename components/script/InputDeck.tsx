@@ -286,7 +286,9 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     clearInterval(pollInterval);
                     addLog("Sequence complete. Redirecting...");
                     if (job.redirect_url) {
-                        setTimeout(() => onSuccess(job.redirect_url), 800);
+                        // Redirect to moodboard selection instead of assets
+                        const moodboardUrl = job.redirect_url.replace('/assets', '/moodboard');
+                        setTimeout(() => onSuccess(moodboardUrl), 800);
                     } else {
                         toast.error("Redirect coordinates missing.");
                         setIsUploading(false);
