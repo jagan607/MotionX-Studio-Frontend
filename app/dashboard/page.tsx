@@ -304,11 +304,11 @@ export default function Dashboard() {
                             {activeProject || myProjects.length === 0 ? (
                                 <>
                                     {activeProject?.previewVideo ? (
-                                        <video key={activeProject.id} autoPlay loop muted playsInline className="w-full h-full object-cover opacity-90" src={activeProject.previewVideo} />
+                                        <video key={activeProject.id} autoPlay loop muted playsInline preload="none" className="w-full h-full object-cover opacity-90" src={activeProject.previewVideo} />
                                     ) : activeProject?.previewImage ? (
                                         <div className="w-full h-full bg-cover bg-center opacity-80" style={{ backgroundImage: `url(${activeProject.previewImage})` }} />
                                     ) : (
-                                        <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-30 grayscale" src={DEFAULT_SHOWREEL} />
+                                        <video autoPlay loop muted playsInline preload="none" className="w-full h-full object-cover opacity-30 grayscale" src={DEFAULT_SHOWREEL} />
                                     )}
 
                                     <div className="absolute bottom-0 left-0 p-8 w-full z-30 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
@@ -522,7 +522,13 @@ export default function Dashboard() {
                         ) : (
                             filteredGlobal.map((shot, i) => (
                                 <div key={shot.id + i} className="bg-[#0A0A0A] border border-[#222] group hover:border-[#333] transition-all rounded-md overflow-hidden shrink-0 relative"
-                                    onMouseEnter={() => videoRefs.current[shot.id + i]?.play().catch(() => { })}
+                                    onMouseEnter={() => {
+                                        const vid = videoRefs.current[shot.id + i];
+                                        if (vid) {
+                                            if (!vid.src) vid.src = shot.video_url;
+                                            vid.play().catch(() => { });
+                                        }
+                                    }}
                                     onMouseLeave={() => {
                                         const vid = videoRefs.current[shot.id + i];
                                         if (vid) { vid.pause(); vid.currentTime = 0; }
@@ -538,10 +544,10 @@ export default function Dashboard() {
                                         {shot.video_url && (
                                             <video
                                                 ref={el => { if (el) videoRefs.current[shot.id + i] = el }}
-                                                src={shot.video_url}
                                                 loop
                                                 muted
                                                 playsInline
+                                                preload="none"
                                                 className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                                             />
                                         )}
@@ -661,7 +667,7 @@ export default function Dashboard() {
                                                         loop
                                                         muted
                                                         playsInline
-                                                        preload="auto"
+                                                        preload="metadata"
                                                         onCanPlay={() => setModalVideoReady(true)}
                                                         className={`w-full h-full object-cover transition-opacity duration-300 ${modalVideoReady ? 'opacity-100' : 'opacity-0'}`}
                                                     />

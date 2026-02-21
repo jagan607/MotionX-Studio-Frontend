@@ -390,8 +390,8 @@ export default function AssetManagerPage() {
                         </div>
                         <div className="space-y-1">
 
-                            {/* [CHANGED] Products Tab First (If Ad) */}
-                            {project?.type === 'ad' && (
+                            {/* Products Tab — show for ads always, others if products exist */}
+                            {(project?.type === 'ad' || assets.products.length > 0) && (
                                 <TabButton
                                     active={activeTab === 'products'}
                                     onClick={() => setActiveTab('products')}

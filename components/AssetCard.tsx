@@ -1,6 +1,6 @@
 import React from "react";
-import { Trash2, Loader2, Wand2, Play, Sparkles, Settings, Plus, Video } from "lucide-react";
-import { Asset, CharacterProfile } from "@/lib/types";
+import { Trash2, Loader2, Wand2, Play, Sparkles, Settings, Plus, Video, ShoppingBag } from "lucide-react";
+import { Asset, CharacterProfile, ProductProfile } from "@/lib/types";
 
 interface AssetCardProps {
     variant?: 'default' | 'create'; // <--- NEW PROP
@@ -107,13 +107,45 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                         <Play size={8} fill="currentColor" /> Voice Linked
                     </div>
                 )}
+
+                {/* CHARACTER TYPE BADGE */}
+                {asset.type === 'character' && (() => {
+                    const rawType = (asset as CharacterProfile).character_type;
+                    const charType = (!rawType || rawType === 'primary') ? 'human' : rawType;
+                    const typeConfig: Record<string, { icon: string; color: string }> = {
+                        human: { icon: '👤', color: 'text-blue-300 bg-blue-500/15 border-blue-500/20' },
+                        animal: { icon: '🐾', color: 'text-green-300 bg-green-500/15 border-green-500/20' },
+                        creature: { icon: '👹', color: 'text-purple-300 bg-purple-500/15 border-purple-500/20' },
+                        robot: { icon: '🤖', color: 'text-cyan-300 bg-cyan-500/15 border-cyan-500/20' },
+                    };
+                    const cfg = typeConfig[charType] || typeConfig.human;
+                    return (
+                        <div className={`absolute top-2 left-2 px-2 py-1 backdrop-blur rounded-md text-[8px] font-bold flex items-center gap-1 z-10 border ${cfg.color} ${(asset as CharacterProfile).voice_config?.voice_id ? 'top-9' : 'top-2'}`}>
+                            <span className="text-[10px]">{cfg.icon}</span> {charType}
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* --- 2. CONTROLS LAYER --- */}
             <div className="absolute bottom-0 left-0 w-full p-3 bg-gradient-to-t from-black via-black/90 to-transparent z-10 flex flex-col justify-end min-h-[50%]">
-                <h3 className="text-sm font-display uppercase text-white truncate mb-2 pl-1">
+                <h3 className="text-sm font-display uppercase text-white truncate mb-1 pl-1">
                     {asset.name}
                 </h3>
+
+                {/* Product: category badge + description */}
+                {asset.type === 'product' && (
+                    <div className="mb-2 pl-1 space-y-1">
+                        <span className="inline-block text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-600/20 text-amber-400 border border-amber-600/20">
+                            {(asset as ProductProfile).category || (asset as ProductProfile).product_metadata?.category || 'other'}
+                        </span>
+                        {(asset as ProductProfile).description && (
+                            <p className="text-[9px] text-neutral-400 line-clamp-2 leading-relaxed">
+                                {(asset as ProductProfile).description}
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-2 mb-2">
                     <button
@@ -140,12 +172,19 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                 </div>
 
                 {/* KLING ENABLE VIDEO BUTTON */}
-                {asset.type !== 'location' && (
+                {(
                     <div className="w-full">
                         {asset.kling_element_id ? (
-                            <div className="w-full py-1.5 bg-[#00ff41]/10 border border-[#00ff41]/30 rounded-md flex items-center justify-center gap-1.5 text-[#00ff41] text-[9px] font-bold tracking-widest uppercase cursor-default">
-                                <Video size={10} /> Video Ready
-                            </div>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); onRegisterKling?.(asset); }}
+                                disabled={isGenerating || !onRegisterKling}
+                                className="w-full py-1.5 bg-[#00ff41]/10 hover:bg-amber-500/15 border border-[#00ff41]/30 hover:border-amber-500/40 rounded-md flex items-center justify-center gap-1.5 text-[#00ff41] hover:text-amber-400 text-[9px] font-bold tracking-widest uppercase transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Re-register as Kling Element"
+                            >
+                                <Video size={10} />
+                                <span className="group-hover:hidden">Video Ready</span>
+                                <span className="hidden group-hover:inline">Re-Register</span>
+                            </button>
                         ) : (
                             <button
                                 onClick={(e) => { e.stopPropagation(); onRegisterKling?.(asset); }}

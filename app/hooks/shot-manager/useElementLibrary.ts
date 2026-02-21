@@ -16,7 +16,7 @@ export interface KlingElement {
 
     // Auto-Registration Support
     local_id?: string;          // The underlying Asset ID
-    asset_type?: 'character' | 'product';
+    asset_type?: 'character' | 'product' | 'location';
     needs_registration?: boolean; // True if no Kling ID exists yet
 
     // Pending Registration Tracking
@@ -38,7 +38,7 @@ export const useElementLibrary = (projectId: string) => {
         try {
             // 1. Fetch Standalone Elements (User's library)
             try {
-                const resElements = await api.get("/api/v1/elements");
+                const resElements = await api.get("/api/v1/production/elements");
                 userElements = (resElements.data.elements || []).map((e: any) => ({ ...e, source: 'user' }));
                 console.log(`[useElementLibrary] Fetched ${userElements.length} user elements`);
             } catch (err) {
@@ -103,6 +103,35 @@ export const useElementLibrary = (projectId: string) => {
                                 asset_type: 'product',
                                 needs_registration: !hasKlingId,
                                 kling_task_id: p.kling_element_data?.task_id,
+                                registration_status: regStatus
+                            });
+                        }
+                    });
+                }
+
+                // Process Locations
+                if (assetsData.locations) {
+                    assetsData.locations.forEach((l: any) => {
+                        if (l.image_url) {
+                            const hasKlingId = !!l.kling_element_id;
+                            const hasPendingTask = !hasKlingId && !!l.kling_element_data?.task_id;
+
+                            let regStatus: 'none' | 'pending' | 'complete' = 'none';
+                            if (hasKlingId) regStatus = 'complete';
+                            else if (hasPendingTask) regStatus = 'pending';
+
+                            projectElements.push({
+                                id: hasKlingId ? String(l.kling_element_id) : l.id,
+                                name: l.name,
+                                description: "Location",
+                                image_url: l.image_url,
+                                type: 'image_refer',
+                                source: 'project',
+
+                                local_id: l.id,
+                                asset_type: 'location',
+                                needs_registration: !hasKlingId,
+                                kling_task_id: l.kling_element_data?.task_id,
                                 registration_status: regStatus
                             });
                         }
@@ -201,7 +230,7 @@ export const useElementLibrary = (projectId: string) => {
         }
     };
 
-    const registerKlingAsset = async (assetType: 'character' | 'product', assetId: string) => {
+    const registerKlingAsset = async (assetType: 'character' | 'product' | 'location', assetId: string) => {
         // Skip if this element is already registered
         const existing = elements.find(
             el => String(el.local_id) === String(assetId) || String(el.id) === String(assetId)

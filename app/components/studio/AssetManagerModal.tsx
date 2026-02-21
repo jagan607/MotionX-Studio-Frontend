@@ -286,7 +286,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
     const handleRegisterKling = async (asset: Asset) => {
         const toastId = toast.loading("Enabling for video...");
         try {
-            const res = await api.post(`/api/v1/projects/${projectId}/${asset.type}/${asset.id}/register_kling`);
+            const res = await api.post(`/api/v1/assets/${projectId}/${asset.type}/${asset.id}/register_kling`);
             if (res.data.status === 'success') {
                 toast.success("Asset enabled for video", { id: toastId });
 

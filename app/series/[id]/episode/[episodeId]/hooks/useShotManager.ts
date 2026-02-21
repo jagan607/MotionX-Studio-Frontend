@@ -190,6 +190,8 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         const sceneAction = overrideSummary || currentScene.description || currentScene.summary || "";
         const sceneLocation = currentScene.header || currentScene.location_id || "Unknown";
         let sceneChars = Array.isArray(currentScene.characters) ? currentScene.characters.join(", ") : (currentScene.characters || "None");
+        const sceneProductsArray = currentScene.products || [];
+        const sceneProductsString = Array.isArray(sceneProductsArray) ? sceneProductsArray.join(", ") : "";
 
         const formData = new FormData();
         formData.append("series_id", seriesId);
@@ -198,6 +200,9 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         formData.append("scene_action", sceneAction);
         formData.append("characters", sceneChars);
         formData.append("location", sceneLocation);
+        if (sceneProductsString) {
+            formData.append("products", sceneProductsString);
+        }
 
         try {
             const idToken = await auth.currentUser?.getIdToken();
@@ -223,13 +228,31 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                         charArray = shot.characters;
                     }
 
+                    // Handle products from AI response
+                    let productArray: string[] = [];
+                    if (Array.isArray(shot.products)) {
+                        productArray = shot.products.map((p: string) => p.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase());
+                    }
+                    // Fallback: inherit scene products when AI doesn't return them
+                    else if (sceneProductsArray.length > 0) {
+                        productArray = sceneProductsArray.map((p: string) => p.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase());
+                    }
+
+                    // Prefer AI-returned shot location, fallback to scene location
+                    const shotLocation = shot.location || sceneLocation;
+                    const shotLocationId = shot.location
+                        ? shot.location.replace(/[\s.]+/g, '_').toUpperCase()
+                        : (currentScene.location_id || "");
+
                     const payload = {
                         id: newShotId,
                         shot_type: shot.shot_type,
                         visual_action: shot.image_prompt || shot.description || "",
                         video_prompt: shot.video_prompt || "",
                         characters: charArray,
-                        location: sceneLocation,
+                        products: productArray,
+                        location: shotLocation,
+                        location_id: shotLocationId,
                         status: "draft",
                         order: index
                     };
@@ -303,7 +326,11 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         formData.append("shot_prompt", (shot.visual_action + " " + style).trim());
         formData.append("shot_type", shot.shot_type || "Wide Shot");
         formData.append("characters", Array.isArray(shot.characters) ? shot.characters.join(",") : "");
+        formData.append("products", Array.isArray(shot.products) ? shot.products.join(",") : (shot.products || ""));
         formData.append("location", shot.location || "");
+        if (shot.location_id) {
+            formData.append("location_id", shot.location_id);
+        }
         formData.append("aspect_ratio", aspectRatio);
         formData.append("image_provider", imageProvider); // <--- Pass Provider to Backend
 

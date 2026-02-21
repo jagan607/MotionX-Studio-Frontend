@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { fetchGlobalFeed } from "@/lib/api";
@@ -72,18 +72,33 @@ const ViewfinderCorner = ({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' })
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MosaicCell = ({ shot }: { shot: { video_url?: string; image_url?: string } }) => {
+  const cellRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const el = cellRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.disconnect(); } },
+      { rootMargin: '200px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="mosaic-cell relative rounded-lg overflow-hidden" style={{ aspectRatio: '3/4' }}>
-      {shot.video_url ? (
+    <div ref={cellRef} className="mosaic-cell relative rounded-lg overflow-hidden" style={{ aspectRatio: '3/4' }}>
+      {shot.video_url && isVisible ? (
         <video
           ref={videoRef}
           src={shot.video_url}
+          poster={shot.image_url}
           autoPlay
           loop
           muted
           playsInline
+          preload="none"
           className="w-full h-full object-cover"
         />
       ) : (
@@ -107,7 +122,7 @@ const HeroSection = ({ cmsData }: { cmsData: any }) => {
       // Prefer shots with video, then fill with images
       const withVideo = shots.filter((s: any) => s.video_url);
       const withImage = shots.filter((s: any) => !s.video_url && s.image_url);
-      setFeedShots([...withVideo, ...withImage].slice(0, 30));
+      setFeedShots([...withVideo, ...withImage].slice(0, 20));
     });
   }, []);
 
@@ -619,6 +634,7 @@ export default function LandingPage() {
                 <video autoPlay loop muted playsInline
                   className="w-full max-w-[90%] rounded-lg shadow-2xl shadow-black/50"
                   src="https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/Demo.mp4?alt=media&token=bd3499d7-b714-4b3d-9c78-8c2fe113abba"
+                  preload="none"
                 />
               </div>
             </div>

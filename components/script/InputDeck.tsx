@@ -9,6 +9,7 @@ import {
 import { toast } from "react-hot-toast";
 import { api, checkJobStatus } from "@/lib/api";
 import { MotionButton } from "@/components/ui/MotionButton";
+import ScriptProcessingLoader from "@/components/script/ScriptProcessingLoader";
 import { ContextReference } from "@/app/components/script/ContextSelectorModal";
 
 interface InputDeckProps {
@@ -714,21 +715,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             <div className="shrink-0 p-4 border-t border-neutral-800 bg-black/30 min-h-[5.5rem] flex flex-col justify-center rounded-b-xl">
                 {
                     isUploading ? (
-                        <div className="w-full h-32 bg-black border border-neutral-800 rounded p-4 font-mono text-[10px] overflow-hidden flex flex-col ring-1 ring-white/5" >
-                            <div className="flex items-center justify-between text-neutral-500 mb-2 pb-2 border-b border-neutral-900">
-                                <span className="flex items-center gap-2 text-white"><Loader2 className="animate-spin text-motion-red" size={12} /> Processing your script...</span>
-                            </div>
-                            <div ref={logsContainerRef} className="flex-1 overflow-y-auto space-y-1.5 scrollbar-hide">
-                                {logs.map((log, i) => (
-                                    <div key={i} className="flex gap-2 text-neutral-400">
-                                        <span className="text-neutral-700">➜</span>
-                                        <span className={i === logs.length - 1 ? "text-green-400 font-bold" : ""}>
-                                            {log}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        <ScriptProcessingLoader logs={logs} />
                     ) : (
                         <div className="flex gap-3">
                             {isModal && (

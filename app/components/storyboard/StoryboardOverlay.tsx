@@ -887,6 +887,14 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     projectId={seriesId}
                     shot={shotMgr.shots.find((s: any) => s.id === editingShotId) || null}
                     isOpen={!!editingShotId}
+                    isLinked={(() => {
+                        const idx = shotMgr.shots.findIndex((s: any) => s.id === editingShotId);
+                        return idx >= 0 && shotMgr.shots[idx]?.morph_to_next === true;
+                    })()}
+                    nextShotImage={(() => {
+                        const idx = shotMgr.shots.findIndex((s: any) => s.id === editingShotId);
+                        return idx >= 0 ? shotMgr.shots[idx + 1]?.image_url : undefined;
+                    })()}
                     onClose={() => setEditingShotId(null)}
                     onUpdateShot={shotMgr.updateShot}
                     onAnimate={(provider, endFrameUrl, options) => {

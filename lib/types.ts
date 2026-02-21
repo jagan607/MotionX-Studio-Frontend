@@ -32,6 +32,7 @@ export interface CharacterProfile {
     id: string;
     name: string;
     type: "character";
+    character_type?: "human" | "animal" | "creature" | "robot" | "primary"; // "primary" is legacy, treat as "human"
     project_id: string;
 
     image_url?: string;
@@ -53,7 +54,7 @@ export interface CharacterProfile {
     prompt?: string;
     base_prompt?: string;
     created_at?: any;
-    kling_element_id?: string; // [NEW] Kling 3.0 Element ID
+    kling_element_id?: string;
 }
 
 export interface LocationProfile {
@@ -70,6 +71,7 @@ export interface LocationProfile {
     prompt?: string;
     base_prompt?: string;
     created_at?: any;
+    kling_element_id?: string;
 }
 
 // [FIXED] Product Profile - Added 'prompt' and 'product_metadata'
@@ -80,6 +82,7 @@ export interface ProductProfile {
     project_id: string;
 
     description?: string;
+    category?: string; // top-level category (weapon, vehicle, tool, etc.) — defaults to "other"
     brand_guidelines?: string;
 
     image_url?: string;

@@ -8,6 +8,7 @@ interface ProductTabProps {
     // Flattened props for easy binding
     brandName: string;
     category: string;
+    description: string;
     materials: string;
     colors: string;
     features: string;
@@ -17,7 +18,7 @@ interface ProductTabProps {
 
 export const ProductTab: React.FC<ProductTabProps> = ({
     editableName, onNameChange,
-    brandName, category, materials, colors, features,
+    brandName, category, description, materials, colors, features,
     onChange
 }) => {
     return (
@@ -55,6 +56,15 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                         onChange={(e) => onChange('category', e.target.value)}
                         className="w-full bg-[#111] border border-[#333] p-3 text-xs text-white focus:border-red-600 focus:outline-none transition-colors"
                         placeholder="e.g. Footwear, Beverage, Tech..."
+                    />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[9px] uppercase text-neutral-400 font-mono">Description <span className="text-neutral-600">(visual sourcing detail)</span></label>
+                    <textarea
+                        value={description}
+                        onChange={(e) => onChange('description', e.target.value)}
+                        className="w-full h-16 bg-[#111] border border-[#333] p-3 text-xs text-white focus:border-red-600 focus:outline-none transition-colors resize-none"
+                        placeholder="e.g. A weathered steel machete with a leather-wrapped handle, blade nicked from heavy use..."
                     />
                 </div>
             </div>

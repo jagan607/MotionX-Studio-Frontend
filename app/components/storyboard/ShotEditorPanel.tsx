@@ -13,6 +13,8 @@ interface ShotEditorPanelProps {
     shot: Shot | null;
     projectId: string;
     isOpen: boolean;
+    isLinked?: boolean;
+    nextShotImage?: string;
     onClose: () => void;
     onUpdateShot: (id: string, field: string, value: any) => void;
     onAnimate: (provider: VideoProvider, endFrameUrl?: string | null, options?: AnimateOptions) => void;
@@ -25,6 +27,8 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     shot,
     projectId,
     isOpen,
+    isLinked = false,
+    nextShotImage,
     onClose,
     onUpdateShot,
     onAnimate,
@@ -81,7 +85,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         if (!shot) return;
 
         const newList = [...elementList];
-        if (!newList.includes(el.id) && newList.length < 3) {
+        if (!newList.includes(el.id) && newList.length < 6) {
             newList.push(el.id);
             setElementList(newList);
             setManualElements(prev => [...prev, el]);
@@ -142,7 +146,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                         <label className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Prompt</label>
                         <div className="relative">
                             <textarea
-                                value={shot.video_prompt || shot.visual_action || ""}
+                                value={shot.video_prompt ?? shot.visual_action ?? ""}
                                 onChange={(e) => onUpdateShot(shot.id, 'video_prompt', e.target.value)}
                                 placeholder="Describe the shot..."
                                 className="w-full h-32 bg-[#1a1a1a] border border-white/[0.1] rounded-lg px-3 py-3 text-xs text-white outline-none focus:border-white/[0.3] resize-none leading-relaxed"
@@ -167,7 +171,8 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                     hasImage={!!shot.image_url}
                                     hasVideo={!!shot.video_url}
                                     isBusy={isGenerating}
-                                    isLinked={false}
+                                    isLinked={isLinked}
+                                    nextShotImage={nextShotImage}
                                     onAnimate={handleAnimateWrapper}
                                     onLipSync={() => onLipSync(shot)}
                                     selectedElements={selectedElements}

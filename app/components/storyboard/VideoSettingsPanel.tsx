@@ -149,7 +149,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const addElement = (e?: React.MouseEvent) => {
         e?.preventDefault();
         const val = elementIdInput.trim();
-        if (val && elementList.length < 3 && !elementList.includes(val)) {
+        if (val && elementList.length < 6 && !elementList.includes(val)) {
             handleElementListChange([...elementList, val]);
             setElementIdInput('');
         }
@@ -331,8 +331,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 {/* Elements */}
                                 <div className={voiceList.length > 0 ? 'opacity-30 pointer-events-none' : ''}>
                                     <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex justify-between items-center">
-                                        <span>Elements (Max 3)</span>
-                                        <span className="text-neutral-500">{elementList.length}/3</span>
+                                        <span>Elements (Max 6)</span>
+                                        <span className="text-neutral-500">{elementList.length}/6</span>
                                     </label>
 
                                     {/* Element Grid */}
@@ -367,7 +367,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         })}
 
                                         {/* Add Button */}
-                                        {elementList.length < 3 && (
+                                        {elementList.length < 6 && (
                                             <button
                                                 type="button"
                                                 onClick={onOpenElementLibrary}

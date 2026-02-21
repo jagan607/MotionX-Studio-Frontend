@@ -132,7 +132,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
             initialData = {
                 brandName: meta.brand_name || "",
-                category: meta.category || "",
+                category: rawData.category || meta.category || "other",
+                description: rawData.description || "",
                 materials: Array.isArray(dna.materials) ? dna.materials.join(', ') : "",
                 colors: Array.isArray(dna.brand_colors) ? dna.brand_colors.join(', ') : "",
                 features: Array.isArray(mkt.key_features) ? mkt.key_features.join(', ') : ""
@@ -282,10 +283,12 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             payload = {
                 name: editableName,
                 type: 'product',
+                category: editableTraits.category || 'other',
+                description: editableTraits.description || '',
                 prompt: genPrompt,
                 product_metadata: {
                     brand_name: editableTraits.brandName,
-                    category: editableTraits.category,
+                    category: editableTraits.category || 'other',
                     visual_dna: {
                         materials: split(editableTraits.materials),
                         brand_colors: split(editableTraits.colors)
@@ -507,7 +510,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                         editableName={editableName}
                                         onNameChange={handleNameChange}
                                         brandName={editableTraits.brandName || ""}
-                                        category={editableTraits.category || ""}
+                                        category={editableTraits.category || "other"}
+                                        description={editableTraits.description || ""}
                                         materials={editableTraits.materials || ""}
                                         colors={editableTraits.colors || ""}
                                         features={editableTraits.features || ""}

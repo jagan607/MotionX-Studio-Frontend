@@ -69,11 +69,9 @@ export const useShotAI = (
                         productArray = shot.products.map((p: string) => simpleSanitize(p));
                     }
                     // ONLY fallback if the key is completely missing (undefined/null)
-                    // This prevents accidentally wiping products if an older AI model is used.
+                    // Inherit scene products so non-ad projects still propagate props to generate_shot
                     else if (sceneProductsArray.length > 0) {
-                        // Optional: You could fallback to inherit, or default to empty.
-                        // For Ads, safer to default to empty so users manually add products rather than polluting every shot.
-                        productArray = [];
+                        productArray = sceneProductsArray.map((p: string) => simpleSanitize(p));
                     }
 
                     batch.set(shotRef, {
@@ -84,9 +82,9 @@ export const useShotAI = (
                         characters: charArray,
                         products: productArray, // Accurate assignment
 
-                        // Strict Inheritance: Force Scene Location
-                        location: sceneLocationName,
-                        location_id: sceneLocationId,
+                        // Prefer AI-returned shot location, fallback to scene location
+                        location: shot.location || sceneLocationName,
+                        location_id: shot.location ? shot.location.replace(/[\s.]+/g, '_').toUpperCase() : sceneLocationId,
 
                         status: "draft",
                         order: index,
