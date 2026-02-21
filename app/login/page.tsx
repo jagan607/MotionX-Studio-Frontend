@@ -16,6 +16,11 @@ export default function LoginPage() {
   const [isHovered, setIsHovered] = useState(false);
   const [isRestrictedBrowser, setIsRestrictedBrowser] = useState(false);
 
+  // SSO Toggle State
+  const [isSSOView, setIsSSOView] = useState(false);
+  const [ssoInput, setSsoInput] = useState("");
+  const [ssoPayload, setSsoPayload] = useState<{ type: 'email' | 'workspace_slug'; value: string } | null>(null);
+
   // 1. DETECT IN-APP BROWSERS
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -75,6 +80,20 @@ export default function LoginPage() {
     }
   };
 
+  // SSO Continue Handler
+  const handleSSOContinue = () => {
+    const trimmed = ssoInput.trim();
+    if (!trimmed) {
+      toast.error("Please enter your email or workspace slug");
+      return;
+    }
+    const payload = trimmed.includes("@")
+      ? { type: "email" as const, value: trimmed }
+      : { type: "workspace_slug" as const, value: trimmed };
+    setSsoPayload(payload);
+    toast.success(`SSO lookup ready for: ${payload.value}`);
+  };
+
   const styles = {
     container: { display: 'flex', height: '100vh', width: '100vw', backgroundColor: '#050505', color: '#EDEDED', fontFamily: 'Inter, sans-serif', overflow: 'hidden' },
     leftPanel: { flex: '1.5', position: 'relative' as const, backgroundColor: '#000', borderRight: '1px solid #222', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between', overflow: 'hidden' },
@@ -97,7 +116,11 @@ export default function LoginPage() {
     btn: { width: '100%', padding: '18px', backgroundColor: isHovered ? '#E50914' : '#FFF', color: isHovered ? '#FFF' : '#000', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: 'all 0.3s ease', boxShadow: isHovered ? '0 0 25px rgba(229,9,20,0.35)' : 'none', borderRadius: '8px' },
     errorBox: { width: '100%', padding: '20px', backgroundColor: 'rgba(229, 9, 20, 0.06)', border: '1px solid rgba(229, 9, 20, 0.3)', color: '#E50914', fontFamily: 'Inter', fontSize: '11px', lineHeight: '1.6', letterSpacing: '1px', textTransform: 'uppercase' as const, display: 'flex', flexDirection: 'column' as const, gap: '10px', alignItems: 'center', textAlign: 'center' as const, borderRadius: '8px' },
     footer: { marginTop: '30px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontFamily: 'Inter', color: '#444', textTransform: 'uppercase' as const, letterSpacing: '1px' },
-    backBtn: { position: 'absolute' as const, top: '30px', left: '30px', zIndex: 50, display: 'flex', alignItems: 'center', gap: '8px', color: '#666', textDecoration: 'none', fontSize: '11px', fontFamily: 'Inter', fontWeight: 600, letterSpacing: '1px', transition: 'color 0.2s' }
+    backBtn: { position: 'absolute' as const, top: '30px', left: '30px', zIndex: 50, display: 'flex', alignItems: 'center', gap: '8px', color: '#666', textDecoration: 'none', fontSize: '11px', fontFamily: 'Inter', fontWeight: 600, letterSpacing: '1px', transition: 'color 0.2s' },
+    // SSO styles
+    ssoToggle: { width: '100%', padding: '12px', backgroundColor: 'transparent', border: 'none', color: '#666', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, cursor: 'pointer', textAlign: 'center' as const, marginTop: '12px', transition: 'color 0.2s ease' },
+    ssoInput: { width: '100%', padding: '16px 18px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#EDEDED', fontFamily: 'Inter, sans-serif', fontSize: '13px', outline: 'none', marginBottom: '12px', transition: 'border-color 0.2s ease', boxSizing: 'border-box' as const },
+    fadeIn: { animation: 'fadeSlideIn 0.3s ease-out' }
   };
 
   return (
@@ -145,24 +168,58 @@ export default function LoginPage() {
                   <div>IN-APP BROWSER DETECTED.</div>
                   <div>Please tap <strong>...</strong> and select <strong>Open in Browser</strong>.</div>
                 </div>
+              ) : isSSOView ? (
+                <div key="sso" style={styles.fadeIn}>
+                  <input
+                    type="text"
+                    value={ssoInput}
+                    onChange={(e) => setSsoInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSSOContinue()}
+                    placeholder="name@company.com or workspace-slug"
+                    style={styles.ssoInput}
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSSOContinue}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    style={styles.btn}
+                  >
+                    CONTINUE <ArrowRight size={16} strokeWidth={3} />
+                  </button>
+                  <button
+                    onClick={() => { setIsSSOView(false); setSsoInput(''); setSsoPayload(null); }}
+                    style={styles.ssoToggle}
+                  >
+                    ← Back to standard login
+                  </button>
+                </div>
               ) : (
-                <button
-                  onClick={handleGoogleLogin}
-                  disabled={isLoading}
-                  onMouseEnter={() => setIsHovered(true)}
-                  onMouseLeave={() => setIsHovered(false)}
-                  style={{ ...styles.btn, opacity: isLoading ? 0.7 : 1 }}
-                >
-                  {isLoading ? <><Activity size={16} className="animate-spin" /> SIGNING IN...</> : <> CONTINUE WITH GOOGLE <ArrowRight size={16} strokeWidth={3} /> </>}
-                </button>
+                <div key="standard" style={styles.fadeIn}>
+                  <button
+                    onClick={handleGoogleLogin}
+                    disabled={isLoading}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    style={{ ...styles.btn, opacity: isLoading ? 0.7 : 1 }}
+                  >
+                    {isLoading ? <><Activity size={16} className="animate-spin" /> SIGNING IN...</> : <> CONTINUE WITH GOOGLE <ArrowRight size={16} strokeWidth={3} /> </>}
+                  </button>
+                  <button
+                    onClick={() => setIsSSOView(true)}
+                    style={styles.ssoToggle}
+                  >
+                    Organization Login
+                  </button>
+                </div>
               )}
-              <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '9px', fontFamily: 'Inter', color: '#444', letterSpacing: '1px' }}>SECURED BY GOOGLE IDENTITY</div>
+              <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '9px', fontFamily: 'Inter', color: '#444', letterSpacing: '1px' }}>{isSSOView ? 'ENTERPRISE SINGLE SIGN-ON' : 'SECURED BY GOOGLE IDENTITY'}</div>
             </div>
           </div>
           <div style={styles.footer}><div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>ID: 884-291</div><div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}><Globe size={10} /> REGION: GLOBAL</div></div>
         </div>
       </div>
-      <style jsx global>{` @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } } .animate-pulse { animation: pulse 2s infinite; } .animate-spin { animation: spin 1s linear infinite; } @keyframes spin { 100% { transform: rotate(360deg); } } `}</style>
+      <style jsx global>{` @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } } .animate-pulse { animation: pulse 2s infinite; } .animate-spin { animation: spin 1s linear infinite; } @keyframes spin { 100% { transform: rotate(360deg); } } @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } } `}</style>
     </div>
   );
 }
