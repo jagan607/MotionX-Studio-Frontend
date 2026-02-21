@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film,
     ImagePlus, Link2, Plus, CheckCircle2,
-    Wand2, Loader2, Palette, XCircle, Upload, Settings
+    Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin
 } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 import type { VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
@@ -30,7 +30,8 @@ interface Shot {
     video_status?: string;
     status?: string;
     morph_to_next?: boolean;
-    prompt: string; // Ensure prompt is in interface as it's used
+    prompt: string;
+    estimated_duration?: number;
 }
 
 interface SortableShotCardProps {
@@ -52,6 +53,8 @@ interface SortableShotCardProps {
     onUploadImage: (file: File) => void;
     tourId?: string;
     children: React.ReactNode;
+    continuityRefId?: string | null;
+    onSetContinuityRef?: (id: string | null) => void;
 }
 
 const normalize = (str: string) => str ? str.toLowerCase().trim() : "";
@@ -75,7 +78,11 @@ export const SortableShotCard = ({
     onUploadImage,
     tourId,
     children,
+    continuityRefId,
+    onSetContinuityRef,
 }: SortableShotCardProps) => {
+
+    const isPinned = continuityRefId === shot.id;
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
 
@@ -256,9 +263,25 @@ export const SortableShotCard = ({
                         {isFinalized && <span className="ml-1.5 text-neutral-400">⭐</span>}
                     </span>
                 </div>
-                <button onClick={() => onDelete(shot.id)} className="bg-transparent border-none text-neutral-600 hover:text-red-500 cursor-pointer transition-colors p-1 rounded-md hover:bg-white/[0.05]">
-                    <Trash2 size={14} />
-                </button>
+                <div className="flex items-center gap-1">
+                    {/* Pin as continuity reference */}
+                    {onSetContinuityRef && (
+                        <button
+                            onClick={() => onSetContinuityRef(isPinned ? null : shot.id)}
+                            title={isPinned ? 'Remove as reference' : 'Use as character reference'}
+                            className={`p-1 rounded-md transition-all cursor-pointer
+                                ${isPinned
+                                    ? 'text-[#E50914] bg-[#E50914]/10 hover:bg-[#E50914]/20'
+                                    : 'text-neutral-600 hover:text-neutral-300 hover:bg-white/[0.05]'
+                                }`}
+                        >
+                            <Pin size={13} className={isPinned ? 'fill-[#E50914]' : ''} />
+                        </button>
+                    )}
+                    <button onClick={() => onDelete(shot.id)} className="bg-transparent border-none text-neutral-600 hover:text-red-500 cursor-pointer transition-colors p-1 rounded-md hover:bg-white/[0.05]">
+                        <Trash2 size={14} />
+                    </button>
+                </div>
             </div>
 
             {/* ── Preview ── */}
@@ -267,9 +290,52 @@ export const SortableShotCard = ({
                 className={`relative mb-3 rounded-lg overflow-hidden ${(hasImage || hasVideo) ? 'cursor-pointer' : ''}`}
             >
                 {isBusy && (
-                    <div className="absolute inset-0 z-10 bg-black/70 backdrop-blur-sm flex items-center justify-center flex-col gap-2">
-                        <Loader2 className="animate-spin text-[#E50914]" size={22} />
-                        <span className="text-[9px] font-semibold text-white/80 tracking-wide">{overlayText}</span>
+                    <div className="absolute inset-0 z-10 overflow-hidden rounded-lg">
+                        {/* Flowing gradient blobs — theme reds */}
+                        <div className="absolute inset-0 bg-black/40">
+                            <div className="absolute w-[60%] h-[60%] rounded-full bg-[#E50914]/30 blur-[40px]"
+                                style={{ animation: 'flowBlob1 4s ease-in-out infinite', top: '10%', left: '10%' }} />
+                            <div className="absolute w-[50%] h-[50%] rounded-full bg-[#ff4d4d]/15 blur-[40px]"
+                                style={{ animation: 'flowBlob2 5s ease-in-out infinite', top: '40%', right: '5%' }} />
+                            <div className="absolute w-[40%] h-[40%] rounded-full bg-[#E50914]/20 blur-[35px]"
+                                style={{ animation: 'flowBlob3 6s ease-in-out infinite', bottom: '5%', left: '30%' }} />
+                        </div>
+                        {/* Frosted glass layer */}
+                        <div className="absolute inset-0 backdrop-blur-xl bg-white/[0.03]" />
+                        {/* Label only */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[10px] font-semibold text-white/60 tracking-[3px] uppercase"
+                                style={{ animation: 'shimmerText 2s ease-in-out infinite' }}>
+                                {overlayText}
+                            </span>
+                        </div>
+                        <style jsx>{`
+                            @keyframes flowBlob1 {
+                                0%, 100% { transform: translate(0, 0) scale(1); }
+                                33% { transform: translate(30%, 20%) scale(1.2); }
+                                66% { transform: translate(-10%, 30%) scale(0.9); }
+                            }
+                            @keyframes flowBlob2 {
+                                0%, 100% { transform: translate(0, 0) scale(1); }
+                                33% { transform: translate(-30%, -20%) scale(1.1); }
+                                66% { transform: translate(10%, -10%) scale(1.3); }
+                            }
+                            @keyframes flowBlob3 {
+                                0%, 100% { transform: translate(0, 0) scale(1.1); }
+                                33% { transform: translate(20%, -30%) scale(0.8); }
+                                66% { transform: translate(-20%, 10%) scale(1.2); }
+                            }
+                            @keyframes shimmerText {
+                                0%, 100% { opacity: 0.6; }
+                                50% { opacity: 0.3; }
+                            }
+                        `}</style>
+                    </div>
+                )}
+                {/* Pinned REF badge */}
+                {isPinned && (
+                    <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-[#E50914] text-white text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md shadow-[0_0_8px_rgba(229,9,20,0.4)]">
+                        <Pin size={8} className="fill-white" /> REF
                     </div>
                 )}
                 {children}
@@ -293,6 +359,14 @@ export const SortableShotCard = ({
                         <option value="Medium Close Up">Medium Close Up</option>
                     </select>
                 </div>
+                {shot.estimated_duration ? (
+                    <div className="w-12 shrink-0">
+                        <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Dur.</label>
+                        <div className="w-full bg-white/[0.03] border border-white/[0.08] text-amber-400 text-[11px] px-2.5 py-2 rounded-lg text-center font-mono font-bold">
+                            {shot.estimated_duration}s
+                        </div>
+                    </div>
+                ) : null}
                 <div className="flex-1">
                     <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Location</label>
                     <select

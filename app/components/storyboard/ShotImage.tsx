@@ -73,22 +73,7 @@ export const ShotImage = ({
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor: '#000', overflow: 'hidden' }}>
 
-            {/* --- 1. LOADER --- */}
-            {isLoading && (
-                <div style={{
-                    position: 'absolute', inset: 0, zIndex: 10, backgroundColor: 'rgba(5,5,5,0.9)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-                }}>
-                    <Loader2 className="force-spin" size={32} color="#E50914" />
-                    {isAnimating && (
-                        <div style={{ marginTop: '15px', textAlign: 'center' }}>
-                            <p style={{ color: '#E50914', fontSize: '10px', fontWeight: 'bold', letterSpacing: '2px', animation: 'pulse 1.5s infinite' }}>
-                                ANIMATING...
-                            </p>
-                        </div>
-                    )}
-                </div>
-            )}
+            {/* Loader removed — SortableShotCard's flow blob overlay handles both generating & animating states */}
 
             {/* --- 2. EMPTY STATE --- */}
             {isEmpty && (

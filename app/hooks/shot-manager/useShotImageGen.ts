@@ -21,7 +21,8 @@ export const useShotImageGen = (
         shot: any,
         aspectRatio: string,
         referenceFile?: File | null,
-        provider: 'gemini' | 'seedream' = 'gemini'
+        provider: 'gemini' | 'seedream' = 'gemini',
+        continuityRefId?: string | null
     ) => {
         if (!sceneId) return;
 
@@ -76,6 +77,11 @@ export const useShotImageGen = (
         formData.append("image_provider", provider);
         formData.append("style", style);
         formData.append("genre", genre);
+
+        // [NEW] Continuity reference shot (overrides default N-1 behavior)
+        if (continuityRefId) {
+            formData.append("continuity_shot_id", continuityRefId);
+        }
 
         // 3. Append File if it exists
         if (referenceFile) {

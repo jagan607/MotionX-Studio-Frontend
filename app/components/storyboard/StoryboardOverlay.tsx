@@ -132,6 +132,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [shotToDownload, setShotToDownload] = useState<any>(null);
     const [editingShotId, setEditingShotId] = useState<string | null>(null);
+    const [continuityRefId, setContinuityRefId] = useState<string | null>(null);
     const [sceneList, setSceneList] = useState<any[]>([]);
 
     // Scene Selector Dropdown
@@ -665,9 +666,11 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                     onUpdateShot={shotMgr.updateShot}
                                                     onEdit={() => setEditingShotId(shot.id)}
                                                     onRender={(referenceFile, provider) =>
-                                                        shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider)
+                                                        shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider, continuityRefId)
                                                     }
                                                     isRendering={shotMgr.loadingShots.has(shot.id)}
+                                                    continuityRefId={continuityRefId}
+                                                    onSetContinuityRef={setContinuityRefId}
                                                     onFinalize={() => shotMgr.handleFinalizeShot(shot)}
                                                     onExpand={() => handleOpenViewer(index)}
                                                     nextShotImage={nextShotImage}

@@ -203,6 +203,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         if (sceneProductsString) {
             formData.append("products", sceneProductsString);
         }
+        formData.append("scene_duration", String(currentScene.estimated_duration_seconds || 0));
 
         try {
             const idToken = await auth.currentUser?.getIdToken();
@@ -251,6 +252,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                         video_prompt: shot.video_prompt || "",
                         characters: charArray,
                         products: productArray,
+                        estimated_duration: shot.estimated_duration || 0,
                         location: shotLocation,
                         location_id: shotLocationId,
                         status: "draft",
@@ -298,12 +300,13 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         cancelGenerationRef.current = false;
     };
 
-    // --- UPDATED: HANDLE RENDER SHOT WITH PROVIDER ---
+    // --- UPDATED: HANDLE RENDER SHOT WITH PROVIDER + CONTINUITY REF ---
     const handleRenderShot = async (
         shot: any,
         currentScene: any,
         referenceFile?: File | null,
-        imageProvider: string = 'gemini' // <--- Added Parameter
+        imageProvider: string = 'gemini',
+        continuityRefId?: string | null
     ) => {
         addLoadingShot(shot.id);
 
@@ -333,6 +336,11 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
         formData.append("aspect_ratio", aspectRatio);
         formData.append("image_provider", imageProvider); // <--- Pass Provider to Backend
+
+        // [NEW] Continuity reference shot (overrides default N-1 behavior)
+        if (continuityRefId) {
+            formData.append("continuity_shot_id", continuityRefId);
+        }
 
         if (referenceFile) {
             formData.append("reference_image", referenceFile);

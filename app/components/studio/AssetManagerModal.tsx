@@ -284,9 +284,10 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
     };
 
     const handleRegisterKling = async (asset: Asset) => {
-        const toastId = toast.loading("Enabling for video...");
+        const toastId = toast.loading(asset.kling_element_id ? "Re-registering element..." : "Enabling for video...");
         try {
-            const res = await api.post(`/api/v1/assets/${projectId}/${asset.type}/${asset.id}/register_kling`);
+            const forceParam = asset.kling_element_id ? '?force=true' : '';
+            const res = await api.post(`/api/v1/assets/${projectId}/${asset.type}/${asset.id}/register_kling${forceParam}`);
             if (res.data.status === 'success') {
                 toast.success("Asset enabled for video", { id: toastId });
 
@@ -300,6 +301,10 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                     } else if (asset.type === 'product') {
                         newState.products = prev.products.map(p =>
                             p.id === asset.id ? { ...p, kling_element_id: String(res.data.kling_element_id) } : p
+                        );
+                    } else if (asset.type === 'location') {
+                        newState.locations = prev.locations.map(l =>
+                            l.id === asset.id ? { ...l, kling_element_id: String(res.data.kling_element_id) } : l
                         );
                     }
                     return newState;
