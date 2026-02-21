@@ -19,7 +19,7 @@ interface ElementLibraryModalProps {
     onCreate: (name: string, desc: string, frontalUrl: string) => Promise<any>;
     onDelete: (id: string) => Promise<void>;
     onUpload: (file: File) => Promise<string | null>;
-    onRegister: (type: 'character' | 'product', id: string) => Promise<string | undefined>;
+    onRegister: (type: 'character' | 'product' | 'location', id: string) => Promise<string | undefined>;
 }
 
 export const ElementLibraryModal: React.FC<ElementLibraryModalProps> = ({
