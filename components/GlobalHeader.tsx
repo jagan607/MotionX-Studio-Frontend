@@ -13,96 +13,72 @@ export default function GlobalHeader() {
     const { credits } = useCredits();
     const [showTopUp, setShowTopUp] = useState(false);
 
-    // --- LOGIC UPDATE: Hide Header on "App Mode" Pages ---
-    // This prevents double-headers on the Script/Studio pages
+    // Hide Header on "App Mode" Pages
     const isEditorPage = pathname.includes('/project/') && (
         pathname.includes('/script') ||
         pathname.includes('/studio') ||
         pathname.includes('/draft') ||
         pathname.includes('/assets') ||
         pathname.includes('/new') ||
-        pathname.includes('/editor') // <--- ADDED THIS to hide on Scene Manager
+        pathname.includes('/editor') ||
+        pathname.includes('/moodboard')
     );
 
-    // If we are on Login, Landing, Pricing, OR an Editor Page -> Hide this header
     if (pathname === "/login" || pathname === "/" || pathname === "/pricing" || isEditorPage) {
         return null;
     }
 
-    // --- SHARED STYLES (Unchanged) ---
-    const styles = {
-        header: {
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '16px 40px',
-            backgroundColor: 'rgba(5, 5, 5, 0.85)',
-            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-            position: 'sticky' as const, top: 0, zIndex: 50
-        },
-        logo: { fontSize: '24px', fontFamily: 'Anton, sans-serif', textTransform: 'uppercase' as const, lineHeight: '1', letterSpacing: '0.5px', color: '#FFF' },
-        subLogo: { fontSize: '9px', color: '#999', letterSpacing: '3px', fontWeight: 'bold' as const, marginTop: '4px', textTransform: 'uppercase' as const },
-        creditsWrapper: { display: 'flex', alignItems: 'center', gap: '16px', marginRight: '32px' },
-        creditsValue: { fontSize: '13px', color: '#FFF', fontWeight: 'bold' as const, fontFamily: 'monospace', letterSpacing: '0.5px' },
-        creditsLabel: { fontSize: '8px', color: '#999', fontFamily: 'monospace', textTransform: 'uppercase' as const, display: 'block', lineHeight: 1, marginBottom: '2px' },
-        topUpBtn: {
-            backgroundColor: 'rgba(229, 9, 20, 0.1)', border: '1px solid rgba(229, 9, 20, 0.3)',
-            color: '#FFF', padding: '6px 14px', fontSize: '9px', fontWeight: 'bold' as const,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-            textTransform: 'uppercase' as const, transition: 'all 0.3s ease', borderRadius: '6px',
-            boxShadow: '0 0 10px rgba(229, 9, 20, 0.08)'
-        },
-        operatorBtn: {
-            display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: 'transparent',
-            border: '1px solid rgba(255,255,255,0.08)', padding: '7px 16px', cursor: 'pointer',
-            transition: 'all 0.2s ease', textDecoration: 'none', borderRadius: '8px'
-        }
-    };
-
     return (
         <>
             <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
-            <div style={styles.header}>
-                <style jsx>{`
-                    .topup-btn:hover { background-color: rgba(229, 9, 20, 0.25) !important; border-color: #E50914 !important; box-shadow: 0 0 20px rgba(229, 9, 20, 0.2) !important; }
-                    .header-btn:hover { border-color: rgba(255,255,255,0.15) !important; background-color: rgba(255,255,255,0.04) !important; }
-                    .op-text { color: #FFF !important; opacity: 1 !important; }
-                `}</style>
+            <header className="flex justify-between items-center border-b border-white/[0.06] px-4 sm:px-6 lg:px-10 py-3 sm:py-4 bg-[#050505]/85 backdrop-blur-xl sticky top-0 z-50">
 
-                <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-                    <div>
-                        <h1 style={styles.logo}>Motion X <span style={{ color: '#E50914' }}>Studio</span></h1>
-                        <p style={styles.subLogo}>Creative Studio</p>
-                    </div>
+                {/* ── LOGO ── */}
+                <Link href="/dashboard" className="no-underline shrink-0">
+                    <h1 className="text-lg sm:text-2xl font-['Anton'] uppercase leading-none tracking-[0.5px] text-white">
+                        Motion X <span className="text-[#E50914]">Studio</span>
+                    </h1>
+                    <p className="text-[8px] sm:text-[9px] text-[#999] tracking-[3px] font-bold mt-1 uppercase">Creative Studio</p>
                 </Link>
 
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <div id="tour-credits-target" style={styles.creditsWrapper}>
-                        <div style={{ textAlign: 'right' }}>
-                            <span style={styles.creditsLabel}>Credits</span>
-                            <div style={styles.creditsValue}>{credits !== null ? credits : '---'}</div>
+                {/* ── RIGHT CONTROLS ── */}
+                <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
+
+                    {/* Credits + Top Up */}
+                    <div id="tour-credits-target" className="flex items-center gap-2 sm:gap-3 lg:gap-4 mr-1 sm:mr-2 lg:mr-4">
+                        <div className="text-right">
+                            <span className="text-[7px] sm:text-[8px] text-[#999] font-mono uppercase block leading-none mb-0.5">Credits</span>
+                            <div className="text-xs sm:text-[13px] text-white font-bold font-mono tracking-[0.5px]">{credits !== null ? credits : '---'}</div>
                         </div>
-                        <button className="topup-btn" style={styles.topUpBtn} onClick={() => setShowTopUp(true)}>
-                            <Plus size={10} strokeWidth={4} /> TOP UP
+                        <button
+                            onClick={() => setShowTopUp(true)}
+                            className="flex items-center gap-1 sm:gap-1.5 bg-[#E50914]/10 border border-[#E50914]/30 text-white px-2 sm:px-3 py-1.5 sm:py-[6px] text-[8px] sm:text-[9px] font-bold uppercase rounded-md cursor-pointer transition-all hover:bg-[#E50914]/25 hover:border-[#E50914] hover:shadow-[0_0_20px_rgba(229,9,20,0.2)]"
+                        >
+                            <Plus size={9} strokeWidth={4} />
+                            <span className="hidden sm:inline">TOP UP</span>
                         </button>
                     </div>
 
-                    <Link href="/project/new">
-                        <button className="flex items-center gap-2 bg-[#1A1A1A] border border-[#222] text-xs font-bold tracking-[2px] text-white px-6 py-3 uppercase hover:bg-[#222] transition-colors mr-4 rounded-md">
+                    {/* New Project — hidden on small mobile */}
+                    <Link href="/project/new" className="hidden md:block">
+                        <button className="flex items-center gap-2 bg-[#1A1A1A] border border-[#222] text-[10px] sm:text-xs font-bold tracking-[2px] text-white px-3 sm:px-5 lg:px-6 py-2 sm:py-2.5 uppercase hover:bg-[#222] transition-colors rounded-md cursor-pointer">
                             <Plus className="w-3 h-3" strokeWidth={3} /> New Project
                         </button>
                     </Link>
 
-                    <Link href="/profile" style={{ textDecoration: 'none' }}>
-                        <div style={styles.operatorBtn} className="header-btn">
-                            <div style={{ width: '6px', height: '6px', backgroundColor: '#00FF41', borderRadius: '50%', boxShadow: '0 0 8px rgba(0, 255, 65, 0.4)' }}></div>
-                            <div style={{ textAlign: 'left' }}>
-                                <p className="op-text" style={{ fontSize: '8px', fontFamily: 'monospace', lineHeight: 1, marginBottom: '2px', textTransform: 'uppercase' }}>Operator</p>
-                                <p className="op-text" style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: 1 }}>{auth.currentUser?.displayName || 'OPERATOR_01'}</p>
+                    {/* Operator / Profile */}
+                    <Link href="/profile" className="no-underline">
+                        <div className="flex items-center gap-2 sm:gap-3 border border-white/[0.08] px-2.5 sm:px-3 lg:px-4 py-1.5 sm:py-[7px] rounded-lg hover:border-white/15 hover:bg-white/[0.04] transition-all">
+                            <div className="w-1.5 h-1.5 bg-[#00FF41] rounded-full shadow-[0_0_8px_rgba(0,255,65,0.4)]" />
+                            <div className="text-left hidden sm:block">
+                                <p className="text-[8px] font-mono text-white leading-none mb-0.5 uppercase">Operator</p>
+                                <p className="text-[11px] font-bold text-white leading-none truncate max-w-[100px] lg:max-w-[140px]">{auth.currentUser?.displayName || 'OPERATOR_01'}</p>
                             </div>
-                            <User size={14} color="#FFF" style={{ opacity: 1 }} />
+                            <User size={14} className="text-white" />
                         </div>
                     </Link>
                 </div>
-            </div>
+            </header>
         </>
     );
 }

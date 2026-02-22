@@ -65,6 +65,12 @@ export interface LocationProfile {
 
     image_url?: string;
     ref_image_url?: string;
+    image_views?: {
+        wide?: string;
+        front?: string;
+        left?: string;
+        right?: string;
+    };
 
     visual_traits: LocationVisualTraits;
     status?: "pending" | "processing" | "generating" | "active" | "failed";

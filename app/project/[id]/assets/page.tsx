@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
     Users, MapPin, Sparkles, Loader2, Plus,
-    LayoutGrid, Search, ArrowRight, CheckCircle2, Clapperboard,
-    ShoppingBag // [NEW] Icon for products
+    Search, ArrowRight, Clapperboard,
+    ShoppingBag
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -293,75 +293,69 @@ export default function AssetManagerPage() {
         return 'Product Inventory';
     };
 
-    // [NEW] Handle View Asset
+    // Handle View Asset — for locations, show all views
     const handleViewAsset = (asset: Asset) => {
-        // 1. Find index of clicked asset
+        if (asset.type === 'location') {
+            const loc = asset as LocationProfile;
+            const mediaItems: MediaItem[] = [];
+            if (loc.image_url) mediaItems.push({ id: `${loc.id}-wide`, type: 'image', imageUrl: loc.image_url, title: `${loc.name} — Wide`, description: loc.prompt || (loc as any).base_prompt });
+            if (loc.image_views?.front) mediaItems.push({ id: `${loc.id}-front`, type: 'image', imageUrl: loc.image_views.front, title: `${loc.name} — Front`, description: '' });
+            if (loc.image_views?.left) mediaItems.push({ id: `${loc.id}-left`, type: 'image', imageUrl: loc.image_views.left, title: `${loc.name} — Left`, description: '' });
+            if (loc.image_views?.right) mediaItems.push({ id: `${loc.id}-right`, type: 'image', imageUrl: loc.image_views.right, title: `${loc.name} — Right`, description: '' });
+            if (mediaItems.length > 0) openViewer(mediaItems, 0);
+            return;
+        }
+
         const index = displayedAssets.findIndex(a => a.id === asset.id);
         if (index === -1) return;
-
-        // 2. Map assets to MediaItems
         const mediaItems: MediaItem[] = displayedAssets.map(a => ({
             id: a.id,
-            type: 'image', // Default to image for now
-            imageUrl: a.image_url, // Main image
+            type: 'image',
+            imageUrl: a.image_url,
             title: a.name,
             description: a.prompt || (a as any).base_prompt,
-            // Future compatibility:
-            // videoUrl: a.video_url
-            // lipsyncUrl: a.voice_config?.sample
         }));
-
-        // 3. Open Viewer
         openViewer(mediaItems, index);
     };
 
+    // Search
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filteredAssets = searchQuery
+        ? displayedAssets.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        : displayedAssets;
+
+    // Counts
+    const allAssets = [...assets.characters, ...assets.locations, ...assets.products];
+    const readyCount = allAssets.filter(a => a.image_url).length;
+    const totalCount = allAssets.length;
+    const generatingCount = generatingIds.size;
+
     return (
         <StudioLayout>
-            <style jsx global>{`
-                div[class*="rounded-xl"], div[class*="bg-white"], div[class*="bg-zinc-900"] {
-                    border-radius: 0px !important;
-                    background-color: #0A0A0A !important;
-                    border: 1px solid #222 !important;
-                    box-shadow: none !important;
-                    transition: all 0.2s ease !important;
-                }
-                div[class*="rounded-xl"]:hover {
-                    border-color: #555 !important;
-                    background-color: #0F0F0F !important;
-                }
-                h3, p, span { color: #EEE !important; }
-                .text-muted-foreground { color: #666 !important; }
-            `}</style>
-
             {/* --- HEADER --- */}
             {isOnboarding ? (
-                <div className="h-20 border-b border-[#222] bg-[#080808] flex items-center justify-between px-8 shrink-0">
+                <div className="h-16 border-b border-[#222] bg-[#080808] flex items-center justify-between px-8 shrink-0">
                     <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 bg-red-600/10 border border-red-600/30 flex items-center justify-center rounded-sm">
-                            <Clapperboard className="text-red-500" size={20} />
+                        <div className="h-9 w-9 bg-red-600/10 border border-red-600/30 flex items-center justify-center rounded">
+                            <Clapperboard className="text-red-500" size={18} />
                         </div>
                         <div>
-                            <h1 className="text-lg font-bold text-white uppercase tracking-wider leading-none">
+                            <h1 className="text-sm font-bold text-white uppercase tracking-wider leading-none">
                                 Asset Registration
                             </h1>
-                            <div className="flex items-center gap-2 text-[10px] font-mono text-[#666] mt-1 uppercase tracking-widest">
-                                Phase 2: Visualization <span className="text-red-600">//</span> {project?.title || "Untitled"}
-                            </div>
+                            <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest">
+                                {project?.title || "Untitled"}
+                            </span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                        <div className="text-[10px] font-mono text-[#444] text-right hidden md:block">
-                            <div>PENDING: {assets.characters.filter(c => !c.image_url).length + assets.locations.filter(l => !l.image_url).length + assets.products.filter(p => !p.image_url).length}</div>
-                            <div>READY: {assets.characters.filter(c => c.image_url).length + assets.locations.filter(l => l.image_url).length + assets.products.filter(p => p.image_url).length}</div>
-                        </div>
-                        <MotionButton
-                            onClick={handleEnterStudio}
-                            className="w-48 bg-green-600 hover:bg-green-500 border-green-500/30 text-white"
-                        >
-                            ENTER STUDIO <ArrowRight size={14} className="ml-2" />
-                        </MotionButton>
-                    </div>
+                    <MotionButton
+                        onClick={handleEnterStudio}
+                        className="bg-green-600 hover:bg-green-500 border-green-500/30 text-white"
+                    >
+                        ENTER STUDIO <ArrowRight size={14} className="ml-2" />
+                    </MotionButton>
                 </div>
             ) : (
                 <StudioHeader
@@ -379,112 +373,122 @@ export default function AssetManagerPage() {
                 onUpdate={setProject}
             />
 
-            {/* --- MAIN CONTENT --- */}
-            <div className="flex-1 flex overflow-hidden relative z-40">
+            {/* --- MAIN CONTENT (no sidebar) --- */}
+            <div className="flex-1 flex flex-col overflow-hidden bg-[#020202]">
 
-                {/* SIDEBAR */}
-                <div className="w-[280px] bg-[#050505] border-r border-[#222] flex flex-col shrink-0">
-                    <div className="p-6 border-b border-[#222]">
-                        <div className="text-[10px] font-bold text-[#444] uppercase tracking-widest mb-4">
-                            Asset Categories
-                        </div>
-                        <div className="space-y-1">
+                {/* ── TAB BAR + SEARCH + ACTIONS ── */}
+                <div className="h-12 border-b border-white/[0.06] bg-[#080808] flex items-center justify-between px-6 shrink-0">
+                    <div className="flex items-center gap-1">
+                        <TabButton
+                            active={activeTab === 'cast'}
+                            onClick={() => setActiveTab('cast')}
+                            icon={<Users size={13} />}
+                            label="Cast"
+                            count={assets.characters.length}
+                        />
+                        <TabButton
+                            active={activeTab === 'locations'}
+                            onClick={() => setActiveTab('locations')}
+                            icon={<MapPin size={13} />}
+                            label="Locations"
+                            count={assets.locations.length}
+                        />
+                        {(project?.type === 'ad' || assets.products.length > 0) && (
+                            <TabButton
+                                active={activeTab === 'products'}
+                                onClick={() => setActiveTab('products')}
+                                icon={<ShoppingBag size={13} />}
+                                label="Products"
+                                count={assets.products.length}
+                            />
+                        )}
+                    </div>
 
-                            {/* Products Tab — show for ads always, others if products exist */}
-                            {(project?.type === 'ad' || assets.products.length > 0) && (
-                                <TabButton
-                                    active={activeTab === 'products'}
-                                    onClick={() => setActiveTab('products')}
-                                    icon={<ShoppingBag size={14} />}
-                                    label="PRODUCTS"
-                                    count={assets.products.length}
+                    <div className="flex items-center gap-3">
+                        {/* Progress */}
+                        <div className="flex items-center gap-2">
+                            <div className="w-24 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-emerald-500 rounded-full transition-all duration-700"
+                                    style={{ width: totalCount > 0 ? `${(readyCount / totalCount) * 100}%` : '0%' }}
                                 />
-                            )}
-
-                            {/* Cast List */}
-                            <TabButton
-                                active={activeTab === 'cast'}
-                                onClick={() => setActiveTab('cast')}
-                                icon={<Users size={14} />}
-                                label="CAST LIST"
-                                count={assets.characters.length}
-                            />
-
-                            {/* Locations */}
-                            <TabButton
-                                active={activeTab === 'locations'}
-                                onClick={() => setActiveTab('locations')}
-                                icon={<MapPin size={14} />}
-                                label="LOCATIONS"
-                                count={assets.locations.length}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Operations Section... */}
-                </div>
-
-                {/* GRID VIEW */}
-                <div className="flex-1 bg-[#020202] flex flex-col relative">
-                    <div className="h-12 border-b border-[#222] bg-[#080808] flex items-center justify-between px-6 shrink-0">
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-[#555] uppercase tracking-widest">
-                            <LayoutGrid size={14} />
-                            {getHeaderTitle()}
-                        </div>
-
-                        <div className="flex gap-2">
-                            <div className="flex items-center gap-2 px-3 py-1 bg-[#111] border border-[#222] text-[10px] font-mono text-[#666]">
-                                <Search size={10} /> SEARCH_DB
                             </div>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                            <button
-                                onClick={handleOpenDraft}
-                                className="group aspect-[3/4] bg-[#050505] border border-dashed border-[#333] hover:border-red-600 hover:bg-[#080808] flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden"
-                            >
-                                <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-[#333]" />
-                                <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-[#333]" />
-                                <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-[#333]" />
-                                <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-[#333]" />
-
-                                <div className="h-12 w-12 rounded-none bg-[#111] flex items-center justify-center border border-[#222] group-hover:bg-red-600 group-hover:border-red-600 group-hover:text-white text-[#444] transition-colors mb-4">
-                                    <Plus size={24} />
-                                </div>
-                                <span className="text-[10px] font-bold tracking-[0.2em] text-[#555] group-hover:text-white uppercase">
-                                    REGISTER NEW
+                            <span className="text-[9px] font-mono text-neutral-600">
+                                {readyCount}/{totalCount}
+                            </span>
+                            {generatingCount > 0 && (
+                                <span className="text-[9px] font-mono text-amber-500 flex items-center gap-1">
+                                    <Loader2 size={9} className="animate-spin" /> {generatingCount}
                                 </span>
-                            </button>
-
-                            {loading ? (
-                                <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-50">
-                                    <Loader2 className="animate-spin text-red-600 mb-4" size={24} />
-                                    <span className="text-xs font-mono tracking-widest">ACCESSING MAINFRAME...</span>
-                                </div>
-                            ) : displayedAssets.map((asset) => (
-                                <div key={asset.id} className="relative group">
-                                    <AssetCard
-                                        variant="default"
-                                        asset={asset}
-                                        projectId={projectId}
-                                        isGenerating={generatingIds.has(asset.id)}
-                                        onGenerate={(a: Asset) => handleGenerate(a, a.prompt || (a as any).base_prompt)}
-                                        onConfig={(a: Asset) => {
-                                            setSelectedAsset(a);
-                                            setGenPrompt(a.prompt || "");
-                                        }}
-                                        onDelete={handleDelete}
-                                        onView={handleViewAsset}
-                                    />
-                                    <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-red-600/0 group-hover:border-red-600 transition-colors pointer-events-none" />
-                                </div>
-                            ))}
+                            )}
                         </div>
+
+                        {/* Search */}
+                        <div className="relative">
+                            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-600" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search..."
+                                className="w-36 h-7 pl-7 pr-3 bg-white/[0.03] border border-white/[0.06] rounded text-[10px] text-white placeholder-neutral-600 focus:outline-none focus:border-white/[0.15] transition-colors"
+                            />
+                        </div>
+
+                        {/* Generate All */}
+                        <button
+                            onClick={handleGenerateAll}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/[0.06] hover:border-[#E50914]/50 hover:bg-[#E50914]/10 text-neutral-500 hover:text-[#ff6b6b] text-[9px] font-bold tracking-widest uppercase transition-all rounded cursor-pointer"
+                        >
+                            <Sparkles size={10} /> Generate All
+                        </button>
                     </div>
                 </div>
 
+                {/* ── ASSET GRID ── */}
+                <div className="flex-1 overflow-y-auto p-6">
+                    <div className={`grid gap-5 ${activeTab === 'locations' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+
+                        {/* Add New */}
+                        <AssetCard variant="create" onCreate={handleOpenDraft} label={"ADD " + (activeTab === 'cast' ? 'CHARACTER' : activeTab === 'locations' ? 'LOCATION' : 'PRODUCT')} />
+
+                        {/* Loading */}
+                        {loading ? (
+                            <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-50">
+                                <Loader2 className="animate-spin text-[#E50914] mb-3" size={22} />
+                                <span className="text-[10px] tracking-widest text-neutral-600 uppercase">Loading assets...</span>
+                            </div>
+                        ) : filteredAssets.map((asset) => (
+                            <AssetCard
+                                key={asset.id}
+                                variant="default"
+                                asset={asset}
+                                projectId={projectId}
+                                isGenerating={generatingIds.has(asset.id)}
+                                onGenerate={(a: Asset) => handleGenerate(a, a.prompt || (a as any).base_prompt)}
+                                onConfig={(a: Asset) => {
+                                    setSelectedAsset(a);
+                                    setGenPrompt(a.prompt || "");
+                                }}
+                                onDelete={handleDelete}
+                                onView={handleViewAsset}
+                            />
+                        ))}
+
+                        {/* Empty */}
+                        {!loading && filteredAssets.length === 0 && displayedAssets.length > 0 && (
+                            <div className="col-span-full flex flex-col items-center justify-center py-16 opacity-40">
+                                <span className="text-[10px] tracking-widest text-neutral-600 uppercase">No matches for "{searchQuery}"</span>
+                            </div>
+                        )}
+
+                        {!loading && displayedAssets.length === 0 && (
+                            <div className="col-span-full flex flex-col items-center justify-center py-16 opacity-40">
+                                <span className="text-[10px] tracking-widest text-neutral-600 uppercase">No assets yet — add one to get started</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {selectedAsset && (
@@ -501,9 +505,7 @@ export default function AssetManagerPage() {
                     genPrompt={genPrompt}
                     setGenPrompt={setGenPrompt}
                     isProcessing={selectedAsset.id !== "new" && generatingIds.has(selectedAsset.id)}
-
                     onGenerate={(prompt, useRef) => handleGenerate(selectedAsset, prompt, useRef)}
-
                     onCreateAndGenerate={handleCreateAndGenerate}
                     genre={(project as any)?.genre}
                     style={(project as any)?.style}
@@ -514,7 +516,7 @@ export default function AssetManagerPage() {
                         modal: {
                             background: '#050505',
                             border: '1px solid #333',
-                            borderRadius: '0px',
+                            borderRadius: '4px',
                             boxShadow: '0 0 100px rgba(0,0,0,0.9)'
                         }
                     }}
@@ -524,18 +526,20 @@ export default function AssetManagerPage() {
     );
 }
 
-const TabButton = ({ active, onClick, icon, label, count }: any) => (
+// ── Tab Button ──
+const TabButton = ({ active, onClick, icon, label, count }: {
+    active: boolean; onClick: () => void; icon: React.ReactNode; label: string; count: number;
+}) => (
     <button
         onClick={onClick}
-        className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-bold tracking-widest uppercase transition-all border border-transparent
-        ${active
-                ? "bg-[#111] text-white border-[#222] border-l-2 border-l-red-600"
-                : "text-[#555] hover:text-[#AAA] hover:bg-[#0A0A0A]"}`}
+        className={`flex items-center gap-2 px-4 py-2 text-[10px] font-bold tracking-widest uppercase transition-all rounded-md cursor-pointer
+            ${active
+                ? "bg-white/[0.06] text-white border border-white/[0.1]"
+                : "text-neutral-600 hover:text-neutral-400 hover:bg-white/[0.02] border border-transparent"}`}
     >
-        <div className="flex items-center gap-3">
-            {icon} {label}
-        </div>
-        <span className={`font-mono ${active ? "text-red-500" : "text-[#333]"}`}>
+        {icon}
+        {label}
+        <span className={`font-mono text-[9px] ${active ? "text-[#E50914]" : "text-neutral-700"}`}>
             {String(count).padStart(2, '0')}
         </span>
     </button>

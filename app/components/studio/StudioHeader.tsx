@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
     ArrowLeft,
-    Plus, ChevronDown, Check, Wand2, Loader2, FileText, Database, RefreshCw
+    Plus, ChevronDown, Check, Wand2, Loader2, FileText, Database, RefreshCw, Palette
 } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import CreditModal from "@/app/components/modals/CreditModal";
@@ -203,6 +203,12 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                         {isRegenerating ? "Regenerating..." : "Regenerate"}
                                     </button>
                                 )}
+                                <Link
+                                    href={`/project/${projectId}/moodboard${activeEpisodeId ? `?episode_id=${activeEpisodeId}` : ''}`}
+                                    className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md no-underline"
+                                >
+                                    <Palette size={14} /> Moodboard
+                                </Link>
                                 {onOpenAssets && (
                                     <button
                                         onClick={onOpenAssets}

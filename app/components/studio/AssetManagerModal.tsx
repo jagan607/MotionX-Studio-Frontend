@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import {
     X, Users, MapPin, ShoppingBag, Plus, Loader2,
-    LayoutGrid, Search, Sparkles
+    Search, Sparkles
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -38,7 +38,7 @@ interface AssetManagerModalProps {
     onClose: () => void;
     projectId: string;
     project: Project | null;
-    onAssetsUpdated?: () => void; // Callback to refresh parent data (e.g. scene tags)
+    onAssetsUpdated?: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -268,18 +268,27 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
     };
 
     const handleViewAsset = (asset: Asset) => {
-        const displayedAssets = getDisplayedAssets();
-        const index = displayedAssets.findIndex(a => a.id === asset.id);
-        if (index === -1) return;
+        if (asset.type === 'location') {
+            const loc = asset as LocationProfile;
+            const mediaItems: MediaItem[] = [];
+            if (loc.image_url) mediaItems.push({ id: `${loc.id}-wide`, type: 'image', imageUrl: loc.image_url, title: `${loc.name} — Wide`, description: loc.prompt || (loc as any).base_prompt });
+            if (loc.image_views?.front) mediaItems.push({ id: `${loc.id}-front`, type: 'image', imageUrl: loc.image_views.front, title: `${loc.name} — Front`, description: '' });
+            if (loc.image_views?.left) mediaItems.push({ id: `${loc.id}-left`, type: 'image', imageUrl: loc.image_views.left, title: `${loc.name} — Left`, description: '' });
+            if (loc.image_views?.right) mediaItems.push({ id: `${loc.id}-right`, type: 'image', imageUrl: loc.image_views.right, title: `${loc.name} — Right`, description: '' });
+            if (mediaItems.length > 0) openViewer(mediaItems, 0);
+            return;
+        }
 
-        const mediaItems: MediaItem[] = displayedAssets.map(a => ({
+        const displayed = getDisplayedAssets();
+        const index = displayed.findIndex(a => a.id === asset.id);
+        if (index === -1) return;
+        const mediaItems: MediaItem[] = displayed.map(a => ({
             id: a.id,
             type: 'image',
             imageUrl: a.image_url,
             title: a.name,
             description: a.prompt || (a as any).base_prompt,
         }));
-
         openViewer(mediaItems, index);
     };
 
@@ -291,7 +300,6 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             if (res.data.status === 'success') {
                 toast.success("Asset enabled for video", { id: toastId });
 
-                // Update local state
                 setAssets(prev => {
                     const newState = { ...prev };
                     if (asset.type === 'character') {
@@ -327,13 +335,19 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
         return [];
     };
 
-    const getHeaderTitle = () => {
-        if (activeTab === 'cast') return 'Cast';
-        if (activeTab === 'locations') return 'Locations';
-        return 'Products';
-    };
-
     const displayedAssets = getDisplayedAssets();
+
+    // Search
+    const [searchQuery, setSearchQuery] = useState("");
+    const filteredAssets = searchQuery
+        ? displayedAssets.filter(a => a.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        : displayedAssets;
+
+    // Counts
+    const allAssets = [...assets.characters, ...assets.locations, ...assets.products];
+    const readyCount = allAssets.filter(a => a.image_url).length;
+    const totalCount = allAssets.length;
+    const generatingCount = generatingIds.size;
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -348,33 +362,54 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                 onComplete={amTour.completeTour}
             />
 
-            {/* Modal Container — wider to accommodate the grid */}
+            {/* Modal Container */}
             <div className="w-[95vw] max-w-[1200px] h-[90vh] flex flex-col bg-[#050505] border border-white/[0.06] shadow-2xl shadow-black/80 relative overflow-hidden rounded-xl">
 
                 {/* ── HEADER ── */}
                 <div className="h-14 border-b border-white/[0.06] bg-[#0A0A0A] flex items-center justify-between px-6 shrink-0">
                     <div className="flex items-center gap-4">
-                        <h2 className="text-xl font-bold text-white uppercase tracking-tight">Assets</h2>
-                        <div className="text-[10px] text-neutral-600 flex items-center gap-3">
-                            <span>Ready: {assets.characters.filter(c => c.image_url).length + assets.locations.filter(l => l.image_url).length + assets.products.filter(p => p.image_url).length}</span>
-                            <span className="text-white/[0.08]">|</span>
-                            <span>Pending: {assets.characters.filter(c => !c.image_url).length + assets.locations.filter(l => !l.image_url).length + assets.products.filter(p => !p.image_url).length}</span>
+                        <h2 className="text-lg font-bold text-white uppercase tracking-tight">Assets</h2>
+                        <div className="flex items-center gap-2">
+                            <div className="w-20 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-emerald-500 rounded-full transition-all duration-700"
+                                    style={{ width: totalCount > 0 ? `${(readyCount / totalCount) * 100}%` : '0%' }}
+                                />
+                            </div>
+                            <span className="text-[9px] font-mono text-neutral-600">
+                                {readyCount}/{totalCount}
+                            </span>
+                            {generatingCount > 0 && (
+                                <span className="text-[9px] font-mono text-amber-500 flex items-center gap-1">
+                                    <Loader2 size={9} className="animate-spin" /> {generatingCount}
+                                </span>
+                            )}
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {/* Generate All */}
+                        <div className="relative">
+                            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-600" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search..."
+                                className="w-32 h-7 pl-7 pr-3 bg-white/[0.03] border border-white/[0.06] rounded text-[10px] text-white placeholder-neutral-600 focus:outline-none focus:border-white/[0.15] transition-colors"
+                            />
+                        </div>
+
                         <button
                             id="tour-am-generate-all"
                             onClick={handleGenerateAll}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/[0.08] hover:border-[#E50914]/50 hover:bg-[#E50914]/10 text-neutral-500 hover:text-[#ff6b6b] text-[10px] font-bold tracking-widest uppercase transition-all rounded-md"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/[0.08] hover:border-[#E50914]/50 hover:bg-[#E50914]/10 text-neutral-500 hover:text-[#ff6b6b] text-[9px] font-bold tracking-widest uppercase transition-all rounded cursor-pointer"
                         >
-                            <Sparkles size={11} /> Generate All
+                            <Sparkles size={10} /> Generate All
                         </button>
 
                         <button
                             onClick={onClose}
-                            className="w-8 h-8 flex items-center justify-center hover:bg-white/[0.04] text-neutral-600 hover:text-white transition-colors rounded-full"
+                            className="w-8 h-8 flex items-center justify-center hover:bg-white/[0.04] text-neutral-600 hover:text-white transition-colors rounded-full cursor-pointer"
                         >
                             <X size={18} />
                         </button>
@@ -383,111 +418,56 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
 
                 {/* ── TAB BAR ── */}
                 <div id="tour-am-cast-tab" className="h-11 border-b border-white/[0.06] bg-[#080808] flex items-center px-6 gap-1 shrink-0">
-                    {/* Products tab — shown first for ad projects */}
                     {project?.type === 'ad' && (
-                        <TabButton
-                            active={activeTab === 'products'}
-                            onClick={() => setActiveTab('products')}
-                            icon={<ShoppingBag size={12} />}
-                            label="Products"
-                            count={assets.products.length}
-                        />
+                        <TabButton active={activeTab === 'products'} onClick={() => setActiveTab('products')} icon={<ShoppingBag size={12} />} label="Products" count={assets.products.length} />
                     )}
-                    <TabButton
-                        active={activeTab === 'cast'}
-                        onClick={() => setActiveTab('cast')}
-                        icon={<Users size={12} />}
-                        label="Cast"
-                        count={assets.characters.length}
-                    />
-                    <TabButton
-                        active={activeTab === 'locations'}
-                        onClick={() => setActiveTab('locations')}
-                        icon={<MapPin size={12} />}
-                        label="Locations"
-                        count={assets.locations.length}
-                    />
-                    {/* Products tab for non-ad projects */}
+                    <TabButton active={activeTab === 'cast'} onClick={() => setActiveTab('cast')} icon={<Users size={12} />} label="Cast" count={assets.characters.length} />
+                    <TabButton active={activeTab === 'locations'} onClick={() => setActiveTab('locations')} icon={<MapPin size={12} />} label="Locations" count={assets.locations.length} />
                     {project?.type !== 'ad' && (
-                        <TabButton
-                            active={activeTab === 'products'}
-                            onClick={() => setActiveTab('products')}
-                            icon={<ShoppingBag size={12} />}
-                            label="Products"
-                            count={assets.products.length}
-                        />
+                        <TabButton active={activeTab === 'products'} onClick={() => setActiveTab('products')} icon={<ShoppingBag size={12} />} label="Products" count={assets.products.length} />
                     )}
-
-                    {/* Right side — section label + search placeholder */}
-                    <div className="ml-auto flex items-center gap-3">
-                        <div className="flex items-center gap-2 text-[10px] font-semibold text-neutral-600 uppercase tracking-widest">
-                            <LayoutGrid size={12} />
-                            {getHeaderTitle()}
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1 bg-white/[0.03] border border-white/[0.06] rounded-md text-[10px] text-neutral-600">
-                            <Search size={10} /> Search
-                        </div>
-                    </div>
                 </div>
 
                 {/* ── GRID ── */}
                 <div className="flex-1 overflow-y-auto p-6 bg-[#020202]">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
+                    <div className={`grid gap-5 ${activeTab === 'locations' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'}`}>
+                        <AssetCard variant="create" tourId="tour-am-register-new" onCreate={handleOpenDraft} label={"ADD " + (activeTab === 'cast' ? 'CHARACTER' : activeTab === 'locations' ? 'LOCATION' : 'PRODUCT')} />
 
-                        {/* Register New Card */}
-                        <button
-                            id="tour-am-register-new"
-                            onClick={handleOpenDraft}
-                            className="group aspect-[3/4] bg-white/[0.02] border border-dashed border-white/[0.08] hover:border-[#E50914]/40 hover:bg-[#E50914]/5 rounded-xl flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden"
-                        >
-                            <div className="h-12 w-12 rounded-full bg-white/[0.04] flex items-center justify-center border border-white/[0.06] group-hover:bg-[#E50914] group-hover:border-[#E50914] group-hover:text-white text-neutral-600 transition-colors mb-4">
-                                <Plus size={24} />
-                            </div>
-                            <span className="text-[10px] font-bold tracking-widest text-neutral-600 group-hover:text-white uppercase">
-                                Add New
-                            </span>
-                        </button>
-
-                        {/* Loading State */}
                         {loading ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-50">
-                                <Loader2 className="animate-spin text-[#E50914] mb-4" size={24} />
-                                <span className="text-xs tracking-widest text-neutral-600">Loading assets...</span>
+                                <Loader2 className="animate-spin text-[#E50914] mb-3" size={22} />
+                                <span className="text-[10px] tracking-widest text-neutral-600 uppercase">Loading assets...</span>
                             </div>
-                        ) : displayedAssets.map((asset, index) => (
-                            <div key={asset.id} className="relative group">
-                                <AssetCard
-                                    tourId={index === 0 ? "tour-am-asset-card" : undefined}
-                                    variant="default"
-                                    asset={asset}
-                                    projectId={projectId}
-                                    isGenerating={generatingIds.has(asset.id)}
-                                    onGenerate={(a: Asset) => handleGenerate(a, a.prompt || (a as any).base_prompt)}
-                                    onConfig={(a: Asset) => {
-                                        setSelectedAsset(a);
-                                        setGenPrompt(a.prompt || "");
-                                    }}
-                                    onDelete={handleDelete}
-                                    onView={handleViewAsset}
-                                    onRegisterKling={handleRegisterKling} // <--- PASS HANDLER
-                                />
-                                {/* Corner accent */}
-                            </div>
+                        ) : filteredAssets.map((asset, index) => (
+                            <AssetCard
+                                key={asset.id}
+                                tourId={index === 0 ? "tour-am-asset-card" : undefined}
+                                variant="default"
+                                asset={asset}
+                                projectId={projectId}
+                                isGenerating={generatingIds.has(asset.id)}
+                                onGenerate={(a: Asset) => handleGenerate(a, a.prompt || (a as any).base_prompt)}
+                                onConfig={(a: Asset) => { setSelectedAsset(a); setGenPrompt(a.prompt || ""); }}
+                                onDelete={handleDelete}
+                                onView={handleViewAsset}
+                                onRegisterKling={handleRegisterKling}
+                            />
                         ))}
 
-                        {/* Empty State */}
+                        {!loading && filteredAssets.length === 0 && displayedAssets.length > 0 && (
+                            <div className="col-span-full flex flex-col items-center justify-center py-16 opacity-40">
+                                <span className="text-[10px] tracking-widest text-neutral-600 uppercase">No matches for &quot;{searchQuery}&quot;</span>
+                            </div>
+                        )}
                         {!loading && displayedAssets.length === 0 && (
-                            <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-40">
-                                <div className="text-[10px] tracking-widest text-neutral-600 uppercase">
-                                    No assets yet — add one to get started
-                                </div>
+                            <div className="col-span-full flex flex-col items-center justify-center py-16 opacity-40">
+                                <span className="text-[10px] tracking-widest text-neutral-600 uppercase">No assets yet — add one to get started</span>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* ── ASSET CONFIG MODAL ── */}
             {selectedAsset && (
                 <AssetModal
                     isOpen={!!selectedAsset}
@@ -509,43 +489,29 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                     onUpload={() => { }}
                     onUpdateTraits={(data) => handleSaveAsset(selectedAsset, data)}
                     onLinkVoice={async () => { }}
-                    styles={{
-                        modal: {
-                            background: '#050505',
-                            border: '1px solid rgba(255,255,255,0.06)',
-                            borderRadius: '12px',
-                            boxShadow: '0 0 100px rgba(0,0,0,0.9)',
-                            zIndex: 70,
-                        }
-                    }}
+                    styles={{ modal: { background: '#050505', border: '1px solid #333', borderRadius: '4px', boxShadow: '0 0 100px rgba(0,0,0,0.9)' } }}
                 />
             )}
         </div>
     );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tab Button
-// ─────────────────────────────────────────────────────────────────────────────
-
-const TabButton = ({ active, onClick, icon, label, count }: {
-    active: boolean;
-    onClick: () => void;
-    icon: React.ReactNode;
-    label: string;
-    count: number;
-}) => (
-    <button
-        onClick={onClick}
-        className={`flex items-center gap-2 px-4 py-2 text-[10px] font-bold tracking-widest uppercase transition-all border-b-2 h-full
-        ${active
-                ? "border-[#E50914] text-white bg-white/[0.02]"
-                : "border-transparent text-neutral-600 hover:text-neutral-300 hover:bg-white/[0.02]"}`}
-    >
-        {icon}
-        {label}
-        <span className={`ml-1 ${active ? "text-[#E50914]" : "text-neutral-700"}`}>
-            {String(count).padStart(2, '0')}
-        </span>
-    </button>
-);
+function TabButton({ active, onClick, icon, label, count }: {
+    active: boolean; onClick: () => void; icon: React.ReactNode; label: string; count: number;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase transition-all rounded cursor-pointer
+                ${active
+                    ? "bg-white/[0.06] text-white border border-white/[0.1]"
+                    : "text-neutral-600 hover:text-neutral-400 hover:bg-white/[0.02] border border-transparent"}`}
+        >
+            {icon}
+            {label}
+            <span className={`font-mono text-[9px] ${active ? "text-[#E50914]" : "text-neutral-700"}`}>
+                {String(count).padStart(2, '0')}
+            </span>
+        </button>
+    );
+}

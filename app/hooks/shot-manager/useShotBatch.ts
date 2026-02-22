@@ -1,8 +1,13 @@
 import { useState, useRef } from "react";
+import { api } from "@/lib/api";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 export const useShotBatch = (
     shotsRef: React.MutableRefObject<any[]>,
-    handleRenderShot: (shot: any, aspectRatio: string) => Promise<void>
+    handleRenderShot: (shot: any, aspectRatio: string) => Promise<void>,
+    projectId: string,
+    episodeId: string,
+    activeSceneId: string | null
 ) => {
     const [isGeneratingAll, setIsGeneratingAll] = useState(false);
     const [isStopping, setIsStopping] = useState(false);
@@ -15,24 +20,60 @@ export const useShotBatch = (
 
     const handleGenerateAll = async (aspectRatio: string) => {
         const shots = shotsRef.current;
-        if (!shots.length) return;
+        if (!shots.length || !activeSceneId) return;
 
         setIsGeneratingAll(true);
         setIsStopping(false);
         cancelGenerationRef.current = false;
 
-        for (const shot of shots) {
-            if (cancelGenerationRef.current) break;
+        try {
+            // Use the batch scene generation endpoint
+            const formData = new FormData();
+            formData.append("project_id", projectId);
+            formData.append("episode_id", episodeId);
+            formData.append("scene_id", activeSceneId);
+            formData.append("image_provider", "gemini");
+            formData.append("aspect_ratio", aspectRatio);
+            formData.append("style", "");
 
-            const freshShot = shotsRef.current.find(s => s.id === shot.id);
-            if (freshShot && !freshShot.image_url) {
-                await handleRenderShot(freshShot, aspectRatio);
-                await new Promise(r => setTimeout(r, 1000));
+            const res = await api.post("/api/v1/images/generate_scene", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+
+            if (res.data.status === "queued") {
+                toastSuccess(`Generating ${res.data.shot_count || shots.length} shots...`);
+            } else {
+                toastError("Failed to queue scene generation");
             }
+        } catch (e: any) {
+            console.error("[BatchGen] Scene generation error:", e);
+            toastError(e.response?.data?.detail || "Scene generation failed");
         }
 
-        setIsGeneratingAll(false);
-        setIsStopping(false);
+        // The Firestore listener will update shot statuses in real-time
+        // We keep isGeneratingAll true until all shots have rendered
+        // Poll briefly to detect when shots are done
+        const waitForCompletion = async () => {
+            const maxWait = 300000; // 5 min max
+            const pollInterval = 3000;
+            let elapsed = 0;
+
+            while (elapsed < maxWait && !cancelGenerationRef.current) {
+                await new Promise(r => setTimeout(r, pollInterval));
+                elapsed += pollInterval;
+
+                const current = shotsRef.current;
+                const allDone = current.every(
+                    (s: any) => s.image_url || s.status === "rendered" || s.status === "error"
+                );
+                if (allDone) break;
+            }
+
+            setIsGeneratingAll(false);
+            setIsStopping(false);
+        };
+
+        waitForCompletion();
     };
 
     return { isGeneratingAll, isStopping, stopGeneration, handleGenerateAll };

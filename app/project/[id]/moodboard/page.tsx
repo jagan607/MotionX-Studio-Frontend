@@ -1,12 +1,17 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { collection, onSnapshot, QuerySnapshot, DocumentData } from "firebase/firestore";
+import { collection, onSnapshot, QuerySnapshot, DocumentData, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { api } from "@/lib/api";
-import { Loader2, Check, Palette, Sun, Layers, CloudFog, ChevronRight, ChevronLeft, RefreshCw, AlertCircle } from "lucide-react";
+import {
+    Loader2, Check, Palette, Sun, Layers, CloudFog,
+    ChevronRight, ChevronLeft, RefreshCw, AlertCircle,
+    ArrowLeft, SkipForward
+} from "lucide-react";
 import { toast } from "react-hot-toast";
+import Link from "next/link";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -24,108 +29,15 @@ interface MoodOption {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FILM GRAIN OVERLAY
-// ─────────────────────────────────────────────────────────────────────────────
-
-const FilmGrain = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        canvas.width = 256;
-        canvas.height = 256;
-
-        let animId: number;
-        const draw = () => {
-            const imageData = ctx.createImageData(256, 256);
-            for (let i = 0; i < imageData.data.length; i += 4) {
-                const v = Math.random() * 255;
-                imageData.data[i] = v;
-                imageData.data[i + 1] = v;
-                imageData.data[i + 2] = v;
-                imageData.data[i + 3] = 12; // very subtle
-            }
-            ctx.putImageData(imageData, 0, 0);
-            animId = requestAnimationFrame(draw);
-        };
-        draw();
-        return () => cancelAnimationFrame(animId);
-    }, []);
-
-    return (
-        <canvas
-            ref={canvasRef}
-            className="fixed inset-0 z-[100] pointer-events-none opacity-60 mix-blend-overlay"
-            style={{ width: "100%", height: "100%", imageRendering: "pixelated" }}
-        />
-    );
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PARTICLE CANVAS
-// ─────────────────────────────────────────────────────────────────────────────
-
-const ParticleCanvas = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        const particles: { x: number; y: number; vx: number; vy: number; size: number; alpha: number }[] = [];
-        for (let i = 0; i < 60; i++) {
-            particles.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                vx: (Math.random() - 0.5) * 0.3,
-                vy: (Math.random() - 0.5) * 0.3,
-                size: Math.random() * 2 + 0.5,
-                alpha: Math.random() * 0.4 + 0.1,
-            });
-        }
-
-        let animId: number;
-        const animate = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach((p) => {
-                p.x += p.vx; p.y += p.vy;
-                if (p.x < 0) p.x = canvas.width;
-                if (p.x > canvas.width) p.x = 0;
-                if (p.y < 0) p.y = canvas.height;
-                if (p.y > canvas.height) p.y = 0;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(229, 9, 20, ${p.alpha})`;
-                ctx.fill();
-            });
-            animId = requestAnimationFrame(animate);
-        };
-        animate();
-        return () => cancelAnimationFrame(animId);
-    }, []);
-
-    return <canvas ref={canvasRef} className="absolute inset-0 z-0 opacity-40" />;
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
 // ATTRIBUTE TAG
 // ─────────────────────────────────────────────────────────────────────────────
 
 const AttrTag = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
-    <div className="flex items-start gap-3 py-2">
-        <span className="text-[#E50914]/60 mt-0.5 shrink-0">{icon}</span>
+    <div className="flex items-start gap-3 py-2.5">
+        <span className="text-white/20 mt-0.5">{icon}</span>
         <div>
-            <div className="text-[8px] uppercase tracking-[3px] text-white/20 mb-0.5">{label}</div>
-            <div className="text-[11px] text-white/60 leading-snug">{value}</div>
+            <span className="text-[8px] font-mono text-white/25 uppercase tracking-[3px] block mb-1">{label}</span>
+            <span className="text-[12px] text-white/70 leading-relaxed">{value || "—"}</span>
         </div>
     </div>
 );
@@ -144,43 +56,42 @@ export default function MoodboardPage() {
 
     const assetsQuery = searchParams.toString();
     const assetsUrl = `/project/${projectId}/assets${assetsQuery ? `?${assetsQuery}` : ''}`;
+    const studioUrl = `/project/${projectId}/studio`;
+    const isOnboarding = searchParams.get("onboarding") === "true";
 
     // --- State ---
-    const [phase, setPhase] = useState<"loading" | "select" | "confirming" | "error">("loading");
+    const [phase, setPhase] = useState<"select" | "confirming" | "error">("select");
     const [moods, setMoods] = useState<MoodOption[]>([]);
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
-    const [loadingStatus, setLoadingStatus] = useState("Analyzing script tone...");
     const [isRegenerating, setIsRegenerating] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [firestoreLoaded, setFirestoreLoaded] = useState(false);
+    const [projectTitle, setProjectTitle] = useState("");
+    const [appliedMoodId, setAppliedMoodId] = useState<string | null>(null);
 
     const readyCount = moods.filter(m => m.status === "ready").length;
     const totalCount = moods.length;
     const selectedMood = moods[selectedIdx] || null;
+    const isApplied = selectedMood && appliedMoodId === selectedMood.id;
 
-    // --- Loader status rotation ---
+    // --- Fetch project doc for title & applied mood ---
     useEffect(() => {
-        if (phase !== "loading") return;
-        const statuses = [
-            "Analyzing script tone...",
-            "Extracting visual themes...",
-            "Generating cinematic palettes...",
-            "Composing mood references...",
-            "Rendering visual options...",
-        ];
-        let i = 0;
-        const interval = setInterval(() => {
-            i = (i + 1) % statuses.length;
-            setLoadingStatus(statuses[i]);
-        }, 5000);
-        return () => clearInterval(interval);
-    }, [phase]);
+        if (!projectId) return;
+        const unsub = onSnapshot(doc(db, "projects", projectId), (snap) => {
+            const data = snap.data();
+            if (data) {
+                setProjectTitle(data.title || "");
+                setAppliedMoodId(data.selected_mood_id || null);
+            }
+        });
+        return () => unsub();
+    }, [projectId]);
 
-    // --- Firestore real-time listener ---
+    // --- Firestore real-time listener for mood options ---
     useEffect(() => {
         if (!projectId) return;
         const colRef = collection(db, "projects", projectId, "moodboard_options");
         const unsub = onSnapshot(colRef, (snapshot: QuerySnapshot<DocumentData>) => {
-            if (snapshot.empty) return;
             const options: MoodOption[] = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
@@ -195,15 +106,14 @@ export default function MoodboardPage() {
                 };
             });
             setMoods(options);
-            if (options.length > 0) {
-                setPhase(prev => prev === "loading" ? "select" : prev);
-            }
+            setFirestoreLoaded(true);
         });
         return () => unsub();
     }, [projectId]);
 
     // --- Generate moods API ---
     const generateMoods = useCallback(async () => {
+        setIsRegenerating(true);
         try {
             const res = await api.post("/api/v1/shot/generate_moodboard", {
                 project_id: projectId,
@@ -214,8 +124,8 @@ export default function MoodboardPage() {
                     setMoods(res.data.mood_options.map((m: any) => ({
                         ...m, status: m.status || (m.image_url ? "ready" : "generating"),
                     })));
-                    setPhase("select");
                 }
+                toast.success("Generating moods...");
             } else {
                 setErrorMessage("Couldn't generate mood options. Please try again.");
                 setPhase("error");
@@ -224,34 +134,18 @@ export default function MoodboardPage() {
             console.error("[Moodboard] Generation error:", e);
             setErrorMessage(e.response?.data?.detail || "Generation failed. Please try again.");
             setPhase("error");
+        } finally {
+            setIsRegenerating(false);
         }
     }, [projectId, episodeId]);
-
-    useEffect(() => { generateMoods(); }, [generateMoods]);
 
     // --- Navigation ---
     const navigate = (dir: 1 | -1) => {
         setSelectedIdx(prev => (prev + dir + moods.length) % moods.length);
     };
 
-    const handleRegenerate = async () => {
-        setIsRegenerating(true);
-        setSelectedIdx(0);
-        try {
-            const res = await api.post("/api/v1/shot/generate_moodboard", {
-                project_id: projectId, episode_id: episodeId,
-            });
-            if (res.data.status === "success") toast.success("Regenerating moods...");
-            else toast.error("Failed to regenerate");
-        } catch (e: any) {
-            toast.error(e.response?.data?.detail || "Regeneration failed");
-        } finally {
-            setIsRegenerating(false);
-        }
-    };
-
     const handleRetry = () => {
-        setPhase("loading"); setErrorMessage(""); setLoadingStatus("Analyzing script tone...");
+        setPhase("select"); setErrorMessage("");
         generateMoods();
     };
 
@@ -263,6 +157,7 @@ export default function MoodboardPage() {
                 project_id: projectId, mood_option_id: selectedMood.id,
             });
             if (res.data.status === "success") {
+                setAppliedMoodId(selectedMood.id);
                 toast.success(`Mood "${res.data.selected_mood?.name || "selected"}" applied`);
                 router.push(assetsUrl);
             } else { toast.error("Failed to apply mood"); setPhase("select"); }
@@ -274,11 +169,11 @@ export default function MoodboardPage() {
 
     // Keyboard navigation
     useEffect(() => {
-        if (phase !== "select") return;
+        if (phase !== "select" || !selectedMood) return;
         const handler = (e: KeyboardEvent) => {
             if (e.key === "ArrowRight") navigate(1);
             if (e.key === "ArrowLeft") navigate(-1);
-            if (e.key === "Enter" && selectedMood) handleConfirm();
+            if (e.key === "Enter") handleConfirm();
         };
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
@@ -292,14 +187,10 @@ export default function MoodboardPage() {
         <main className="fixed inset-0 bg-[#020202] text-white overflow-hidden">
             <style jsx global>{`
                 @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-                @keyframes scaleIn { from { transform: scale(0); } to { transform: scale(1); } }
                 @keyframes heroFade { from { opacity: 0; } to { opacity: 1; } }
                 @keyframes labelReveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-                @keyframes progressPulse { 0% { width: 20%; opacity: 0.6; } 50% { width: 80%; opacity: 1; } 100% { width: 20%; opacity: 0.6; } }
                 @keyframes scanDrift { 0% { top: 10%; } 100% { top: 90%; } }
                 @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 20px rgba(229,9,20,0.15); } 50% { box-shadow: 0 0 40px rgba(229,9,20,0.3); } }
-                @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-                .shimmer-line { background: linear-gradient(90deg, transparent, rgba(229,9,20,0.06), transparent); animation: shimmer 2s infinite; }
                 @keyframes mbFlowBlob1 {
                     0%, 100% { transform: translate(0, 0) scale(1); }
                     33% { transform: translate(25%, 15%) scale(1.3); }
@@ -310,46 +201,62 @@ export default function MoodboardPage() {
                     33% { transform: translate(-20%, -15%) scale(1.15); }
                     66% { transform: translate(15%, -10%) scale(1.25); }
                 }
-                @keyframes mbFlowBlob3 {
-                    0%, 100% { transform: translate(0, 0) scale(1.1); }
-                    33% { transform: translate(20%, -25%) scale(0.85); }
-                    66% { transform: translate(-15%, 15%) scale(1.2); }
-                }
                 @keyframes mbPulseText {
                     0%, 100% { opacity: 0.5; }
                     50% { opacity: 0.25; }
                 }
             `}</style>
 
-            {/* Film grain overlay on everything */}
-            <FilmGrain />
-
-            {/* ══════════════════════ LOADING ══════════════════════ */}
-            {phase === "loading" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
-                    <ParticleCanvas />
-                    <div className="relative z-10 flex flex-col items-center">
-                        <div className="relative w-28 h-28 mb-8">
-                            <div className="absolute inset-0 rounded-full border border-[#E50914]/15" />
-                            <div className="absolute inset-2 rounded-full border border-[#E50914]/10" />
-                            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#E50914] animate-spin" style={{ animationDuration: "2.5s" }} />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Palette size={28} className="text-[#E50914]" />
-                            </div>
-                        </div>
-                        <h2 className="text-4xl uppercase tracking-wide mb-3 font-display">Visual Direction</h2>
-                        <p className="text-[11px] text-neutral-500 tracking-[4px] uppercase">{loadingStatus}</p>
-                        <div className="w-72 h-[1px] bg-white/[0.04] mt-10 rounded-full overflow-hidden">
-                            <div className="h-full bg-[#E50914]/60 rounded-full" style={{ animation: "progressPulse 3s ease-in-out infinite", width: "60%" }} />
-                        </div>
-                    </div>
+            {/* ══════════════════════ TOP BAR — always visible ══════════════════════ */}
+            <div className="absolute top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-6 bg-gradient-to-b from-black/80 to-transparent">
+                {/* Left: back + project name */}
+                <div className="flex items-center gap-4">
+                    <Link href={studioUrl} className="flex items-center gap-2 text-white/40 hover:text-white transition-colors no-underline group">
+                        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                        <span className="text-[10px] font-bold tracking-[2px] uppercase">Studio</span>
+                    </Link>
+                    {projectTitle && (
+                        <>
+                            <div className="w-px h-4 bg-white/10" />
+                            <span className="text-[10px] text-white/25 font-mono uppercase tracking-wider truncate max-w-[200px]">{projectTitle}</span>
+                        </>
+                    )}
                 </div>
-            )}
+
+                {/* Right: status + actions */}
+                <div className="flex items-center gap-4">
+                    {totalCount > 0 && readyCount < totalCount && (
+                        <div className="flex items-center gap-2">
+                            <Loader2 size={10} className="animate-spin text-[#E50914]/50" />
+                            <span className="text-[9px] font-mono text-white/25 uppercase tracking-wider">
+                                Rendering {readyCount}/{totalCount}
+                            </span>
+                        </div>
+                    )}
+
+                    {selectedMood && (
+                        <button onClick={generateMoods} disabled={isRegenerating}
+                            className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30">
+                            <RefreshCw size={12} className={isRegenerating ? "animate-spin" : ""} />
+                            Regenerate
+                        </button>
+                    )}
+
+                    {/* Close (from studio) — hidden during onboarding */}
+                    {!isOnboarding && (
+                        <Link href={studioUrl}
+                            className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all no-underline">
+                            <ArrowLeft size={12} />
+                            Close
+                        </Link>
+                    )}
+                </div>
+            </div>
 
             {/* ══════════════════════ ERROR ══════════════════════ */}
             {phase === "error" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
-                    <ParticleCanvas />
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-40">
+                    <div className="absolute inset-0 bg-[#030303]" />
                     <div className="relative z-10 flex flex-col items-center text-center max-w-md px-6">
                         <div className="w-20 h-20 rounded-full border border-[#E50914]/30 flex items-center justify-center mb-6">
                             <AlertCircle size={32} className="text-[#E50914]" />
@@ -364,6 +271,45 @@ export default function MoodboardPage() {
                 </div>
             )}
 
+            {/* ══════════════════════ NO MOODS YET ══════════════════════ */}
+            {phase === "select" && !selectedMood && (
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute inset-0 bg-[#030303] overflow-hidden">
+                        <div className="absolute w-[50%] h-[50%] rounded-full bg-[#E50914]/15 blur-[80px]"
+                            style={{ animation: 'mbFlowBlob1 6s ease-in-out infinite', top: '15%', left: '20%' }} />
+                        <div className="absolute w-[40%] h-[40%] rounded-full bg-[#ff4d4d]/8 blur-[60px]"
+                            style={{ animation: 'mbFlowBlob2 7s ease-in-out infinite', top: '40%', right: '15%' }} />
+                        <div className="absolute inset-0 backdrop-blur-3xl bg-white/[0.01]" />
+                    </div>
+
+                    <div className="absolute inset-0 flex flex-col items-center justify-center z-40">
+                        {!firestoreLoaded ? (
+                            <>
+                                <Loader2 size={24} className="text-[#E50914]/40 animate-spin mb-4" />
+                                <span className="text-[10px] text-white/20 tracking-[4px] uppercase">Loading moodboard...</span>
+                            </>
+                        ) : isRegenerating ? (
+                            <>
+                                <Loader2 size={24} className="text-[#E50914] animate-spin mb-4" />
+                                <span className="text-[10px] text-white/40 tracking-[4px] uppercase">Generating moods...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Palette size={36} className="text-[#E50914]/30 mb-6" />
+                                <h2 className="text-2xl sm:text-3xl uppercase tracking-wide mb-3 font-display text-white/80">Visual Direction</h2>
+                                <p className="text-[11px] text-white/30 tracking-[2px] uppercase mb-8">No moodboard generated yet</p>
+                                <button
+                                    onClick={generateMoods}
+                                    className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer"
+                                >
+                                    <Palette size={14} /> Generate Moodboard
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* ══════════════════════ SELECT — FULL IMMERSIVE ══════════════════════ */}
             {phase === "select" && selectedMood && (
                 <>
@@ -373,16 +319,11 @@ export default function MoodboardPage() {
                             <img src={selectedMood.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
                         ) : (
                             <div className="absolute inset-0 bg-[#050505] overflow-hidden">
-                                {/* Flowing red blobs */}
                                 <div className="absolute w-[55%] h-[55%] rounded-full bg-[#E50914]/25 blur-[60px]"
                                     style={{ animation: 'mbFlowBlob1 5s ease-in-out infinite', top: '10%', left: '15%' }} />
                                 <div className="absolute w-[45%] h-[45%] rounded-full bg-[#ff4d4d]/12 blur-[50px]"
                                     style={{ animation: 'mbFlowBlob2 6s ease-in-out infinite', top: '35%', right: '10%' }} />
-                                <div className="absolute w-[40%] h-[40%] rounded-full bg-[#E50914]/18 blur-[45px]"
-                                    style={{ animation: 'mbFlowBlob3 7s ease-in-out infinite', bottom: '10%', left: '35%' }} />
-                                {/* Frost */}
                                 <div className="absolute inset-0 backdrop-blur-2xl bg-white/[0.02]" />
-                                {/* Label */}
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <span className="text-[11px] font-semibold text-white/40 tracking-[4px] uppercase"
                                         style={{ animation: 'mbPulseText 2.5s ease-in-out infinite' }}>
@@ -391,14 +332,14 @@ export default function MoodboardPage() {
                                 </div>
                             </div>
                         )}
-                        {/* Cinematic overlays — light enough to let colors through */}
+                        {/* Cinematic overlays */}
                         <div className="absolute inset-0 bg-black/30" />
                         <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-[#020202]/40" />
                         <div className="absolute inset-0 bg-gradient-to-r from-[#020202]/70 via-transparent to-[#020202]/50" />
                     </div>
 
                     {/* ── LETTERBOX BARS ── */}
-                    <div className="absolute top-0 left-0 right-0 h-12 bg-[#020202] z-30" />
+                    <div className="absolute top-0 left-0 right-0 h-14 bg-gradient-to-b from-[#020202] to-transparent z-30" />
                     <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-[#020202] via-[#020202] to-transparent z-30" />
 
                     {/* ── VIEWFINDER FRAME ── */}
@@ -407,43 +348,24 @@ export default function MoodboardPage() {
                         <div className="absolute top-16 right-8 w-12 h-12 border-t border-r border-white/[0.06]" />
                         <div className="absolute bottom-40 left-8 w-12 h-12 border-b border-l border-white/[0.06]" />
                         <div className="absolute bottom-40 right-8 w-12 h-12 border-b border-r border-white/[0.06]" />
-                        {/* Scan line */}
                         <div className="absolute left-12 right-12 h-[1px] bg-gradient-to-r from-transparent via-[#E50914]/15 to-transparent"
                             style={{ animation: "scanDrift 6s ease-in-out infinite alternate" }} />
-                    </div>
-
-                    {/* ── TOP HUD ── */}
-                    <div className="absolute top-0 left-0 right-0 z-40 h-12 flex items-center justify-between px-8">
-                        <div className="flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-[#E50914] animate-pulse" />
-                            <span className="text-[9px] font-mono text-white/20 uppercase tracking-[4px]">MotionX Director Suite</span>
-                        </div>
-                        <div className="flex items-center gap-6">
-                            {totalCount > 0 && readyCount < totalCount && (
-                                <div className="flex items-center gap-2">
-                                    <Loader2 size={10} className="animate-spin text-[#E50914]/50" />
-                                    <span className="text-[9px] font-mono text-white/25 uppercase tracking-wider">
-                                        Rendering {readyCount}/{totalCount}
-                                    </span>
-                                </div>
-                            )}
-                            <button onClick={handleRegenerate} disabled={isRegenerating}
-                                className="flex items-center gap-1.5 text-[9px] font-mono text-white/25 uppercase tracking-[2px] hover:text-white/60 transition-colors cursor-pointer disabled:opacity-30">
-                                <RefreshCw size={10} className={isRegenerating ? "animate-spin" : ""} />
-                                Regenerate
-                            </button>
-                        </div>
                     </div>
 
                     {/* ── CENTER STAGE: MOOD INFO ── */}
                     <div className="absolute inset-0 z-30 flex items-center pointer-events-none">
                         <div key={selectedMood.id} className="ml-16 max-w-lg" style={{ animation: "labelReveal 0.5s ease both" }}>
-                            {/* Tiny index */}
+                            {/* Mood index + applied badge */}
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="h-[1px] w-10 bg-[#E50914]/40" />
                                 <span className="text-[9px] font-mono text-[#E50914]/60 uppercase tracking-[4px]">
                                     Mood {selectedIdx + 1} of {totalCount}
                                 </span>
+                                {isApplied && (
+                                    <span className="flex items-center gap-1 text-[8px] font-bold text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                                        <Check size={9} /> Applied
+                                    </span>
+                                )}
                             </div>
 
                             {/* Big name */}
@@ -470,16 +392,18 @@ export default function MoodboardPage() {
                     </div>
 
                     {/* ── NAVIGATION ARROWS ── */}
-                    <div className="absolute inset-y-0 left-0 right-0 z-40 flex items-center justify-between px-6 pointer-events-none">
-                        <button onClick={() => navigate(-1)}
-                            className="w-12 h-12 rounded-full border border-white/[0.08] bg-black/30 backdrop-blur-sm flex items-center justify-center hover:border-white/[0.2] hover:bg-black/50 transition-all cursor-pointer pointer-events-auto group">
-                            <ChevronLeft size={18} className="text-white/30 group-hover:text-white transition-colors" />
-                        </button>
-                        <button onClick={() => navigate(1)}
-                            className="w-12 h-12 rounded-full border border-white/[0.08] bg-black/30 backdrop-blur-sm flex items-center justify-center hover:border-white/[0.2] hover:bg-black/50 transition-all cursor-pointer pointer-events-auto group">
-                            <ChevronRight size={18} className="text-white/30 group-hover:text-white transition-colors" />
-                        </button>
-                    </div>
+                    {totalCount > 1 && (
+                        <div className="absolute inset-y-0 left-0 right-0 z-40 flex items-center justify-between px-6 pointer-events-none">
+                            <button onClick={() => navigate(-1)}
+                                className="w-12 h-12 rounded-full border border-white/[0.08] bg-black/30 backdrop-blur-sm flex items-center justify-center hover:border-white/[0.2] hover:bg-black/50 transition-all cursor-pointer pointer-events-auto group">
+                                <ChevronLeft size={18} className="text-white/30 group-hover:text-white transition-colors" />
+                            </button>
+                            <button onClick={() => navigate(1)}
+                                className="w-12 h-12 rounded-full border border-white/[0.08] bg-black/30 backdrop-blur-sm flex items-center justify-center hover:border-white/[0.2] hover:bg-black/50 transition-all cursor-pointer pointer-events-auto group">
+                                <ChevronRight size={18} className="text-white/30 group-hover:text-white transition-colors" />
+                            </button>
+                        </div>
+                    )}
 
                     {/* ── BOTTOM FILMSTRIP ── */}
                     <div className="absolute bottom-0 left-0 right-0 z-40">
@@ -494,6 +418,7 @@ export default function MoodboardPage() {
                             {moods.map((mood, idx) => {
                                 const active = idx === selectedIdx;
                                 const hasImage = mood.status === "ready" && mood.image_url;
+                                const isMoodApplied = mood.id === appliedMoodId;
                                 return (
                                     <button key={mood.id}
                                         onClick={() => setSelectedIdx(idx)}
@@ -501,7 +426,6 @@ export default function MoodboardPage() {
                                             ${idx > 0 ? 'border-l border-white/[0.03]' : ''}
                                             ${active ? 'flex-[1.8]' : 'opacity-40 hover:opacity-70'}`}
                                     >
-                                        {/* Image or placeholder */}
                                         {hasImage ? (
                                             <img src={mood.image_url!} alt={mood.name}
                                                 className={`absolute inset-0 w-full h-full object-cover transition-all duration-700
@@ -522,14 +446,24 @@ export default function MoodboardPage() {
                                         {/* Active indicator — red line */}
                                         {active && <div className="absolute top-0 inset-x-0 h-[2px] bg-[#E50914] shadow-[0_0_8px_rgba(229,9,20,0.5)]" />}
 
+                                        {/* Applied badge on thumbnail */}
+                                        {isMoodApplied && (
+                                            <div className="absolute top-2 right-2 bg-emerald-500/20 border border-emerald-500/30 rounded px-1.5 py-0.5">
+                                                <Check size={8} className="text-emerald-400" />
+                                            </div>
+                                        )}
+
                                         {/* Label */}
                                         <div className="absolute bottom-0 inset-x-0 p-2.5">
                                             <span className={`text-[9px] font-bold uppercase tracking-wider block truncate
                                                 ${active ? 'text-white' : 'text-white/50'}`}>
                                                 {mood.name}
                                             </span>
-                                            {active && hasImage && (
+                                            {active && hasImage && !isMoodApplied && (
                                                 <span className="text-[7px] text-[#E50914]/60 uppercase tracking-[2px] font-mono mt-0.5 block">Selected</span>
+                                            )}
+                                            {active && isMoodApplied && (
+                                                <span className="text-[7px] text-emerald-400/60 uppercase tracking-[2px] font-mono mt-0.5 block">Currently Applied</span>
                                             )}
                                             {!hasImage && (
                                                 <div className="flex items-center gap-1 mt-0.5">
@@ -554,13 +488,21 @@ export default function MoodboardPage() {
                         <div className="flex items-center justify-between px-8 py-3 bg-[#020202]">
                             <div className="flex items-center gap-2">
                                 <span className="text-[8px] font-mono text-white/10 uppercase tracking-[3px]">
-                                    ← → Navigate • Enter to Confirm
+                                    ← → Navigate • Enter to Apply
                                 </span>
                             </div>
                             <button onClick={handleConfirm}
-                                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#E50914] hover:bg-[#ff1a25] text-white text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer shadow-[0_0_20px_rgba(229,9,20,0.2)] hover:shadow-[0_0_30px_rgba(229,9,20,0.4)]"
-                                style={{ animation: "pulseGlow 2.5s ease-in-out infinite" }}>
-                                Confirm & Continue <ChevronRight size={13} />
+                                disabled={isApplied || false}
+                                className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
+                                    ${isApplied
+                                        ? 'bg-emerald-900/30 text-emerald-400/60 border border-emerald-500/20 cursor-default'
+                                        : 'bg-[#E50914] hover:bg-[#ff1a25] text-white shadow-[0_0_20px_rgba(229,9,20,0.2)] hover:shadow-[0_0_30px_rgba(229,9,20,0.4)]'}`}
+                                style={!isApplied ? { animation: "pulseGlow 2.5s ease-in-out infinite" } : undefined}>
+                                {isApplied ? (
+                                    <><Check size={13} /> Already Applied</>
+                                ) : (
+                                    <>Apply This Mood <ChevronRight size={13} /></>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -569,11 +511,21 @@ export default function MoodboardPage() {
 
             {/* ══════════════════════ CONFIRMING ══════════════════════ */}
             {phase === "confirming" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-50 bg-[#020202]">
-                    <Loader2 className="animate-spin text-[#E50914] mb-4" size={32} />
-                    <p className="text-[11px] text-neutral-500 uppercase tracking-[4px] font-mono">
-                        Applying visual direction...
-                    </p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
+                    {/* Keep the hero visible behind a frosted overlay */}
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
+                    <div className="relative z-10 flex flex-col items-center">
+                        <div className="relative w-16 h-16 mb-6">
+                            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#E50914] animate-spin" style={{ animationDuration: "1.5s" }} />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Palette size={22} className="text-[#E50914]" />
+                            </div>
+                        </div>
+                        <h3 className="text-lg uppercase tracking-[3px] font-display mb-2">Applying Mood</h3>
+                        <p className="text-[10px] text-white/30 uppercase tracking-[3px] font-mono">
+                            Setting visual direction for {projectTitle || "your project"}...
+                        </p>
+                    </div>
                 </div>
             )}
         </main>

@@ -1,7 +1,7 @@
 // hooks/useCredits.ts
 import { useState, useEffect } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase"; // Adjust path if your firebase.ts is elsewhere
+import { doc, onSnapshot, type Unsubscribe } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 export function useCredits() {
@@ -9,29 +9,40 @@ export function useCredits() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // 1. Listen for Auth Changes first
-        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // 2. If user exists, listen to their Firestore Document
-                const userRef = doc(db, "users", user.uid);
+        let unsubscribeSnapshot: Unsubscribe | null = null;
 
-                const unsubscribeSnapshot = onSnapshot(userRef, (doc) => {
-                    if (doc.exists()) {
-                        setCredits(doc.data().credits ?? 0);
+        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+            // Clean up any previous snapshot listener when auth state changes
+            if (unsubscribeSnapshot) {
+                unsubscribeSnapshot();
+                unsubscribeSnapshot = null;
+            }
+
+            if (user) {
+                const userRef = doc(db, "users", user.uid);
+                unsubscribeSnapshot = onSnapshot(userRef, (snap) => {
+                    if (snap.exists()) {
+                        setCredits(snap.data().credits ?? 0);
                     } else {
                         setCredits(0);
                     }
                     setLoading(false);
+                }, (error) => {
+                    console.error("[useCredits] Firestore listener error:", error);
+                    setLoading(false);
                 });
-
-                return () => unsubscribeSnapshot();
             } else {
                 setCredits(null);
                 setLoading(false);
             }
         });
 
-        return () => unsubscribeAuth();
+        return () => {
+            unsubscribeAuth();
+            if (unsubscribeSnapshot) {
+                unsubscribeSnapshot();
+            }
+        };
     }, []);
 
     return { credits, loading };

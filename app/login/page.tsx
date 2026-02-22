@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ArrowRight, Activity, Disc, Globe, ArrowLeft, AlertTriangle } from "lucide-react";
 import Link from "next/link";
-// [NEW] Import toast for feedback
 import { toast } from "react-hot-toast";
 
 export default function LoginPage() {
@@ -16,7 +15,6 @@ export default function LoginPage() {
   const [isHovered, setIsHovered] = useState(false);
   const [isRestrictedBrowser, setIsRestrictedBrowser] = useState(false);
 
-  // 1. DETECT IN-APP BROWSERS
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const ua = window.navigator.userAgent || window.navigator.vendor;
@@ -26,48 +24,29 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     if (isRestrictedBrowser) return;
-
     setIsLoading(true);
     try {
-      // 1. Firebase Client Login
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-
-      // 2. [EXISTING] Create User Doc if missing
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
-
       if (!userSnap.exists()) {
         await setDoc(userRef, {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-          credits: 10,
-          plan: "free",
-          createdAt: serverTimestamp()
+          uid: user.uid, email: user.email, displayName: user.displayName,
+          photoURL: user.photoURL, credits: 10, plan: "free", createdAt: serverTimestamp()
         });
       }
-
-      // 3. [NEW] Set Server Session Cookie
-      // We get the ID token from Firebase Client and send it to our Next.js Server
       const idToken = await user.getIdToken();
-
       const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
       });
-
       if (response.ok) {
-        // 4. Redirect only after cookie is set
         router.push("/dashboard");
       } else {
-        console.error("Session creation failed");
         toast.error("Login failed. Please try again.");
         setIsLoading(false);
       }
-
     } catch (error) {
       console.error("Login failed", error);
       toast.error("Authentication failed");
@@ -75,73 +54,81 @@ export default function LoginPage() {
     }
   };
 
-  const styles = {
-    container: { display: 'flex', height: '100vh', width: '100vw', backgroundColor: '#050505', color: '#EDEDED', fontFamily: 'Inter, sans-serif', overflow: 'hidden' },
-    leftPanel: { flex: '1.5', position: 'relative' as const, backgroundColor: '#000', borderRight: '1px solid #222', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between', overflow: 'hidden' },
-    bgImage: { position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' as const, opacity: 0.6, filter: 'grayscale(100%) contrast(120%)', zIndex: 0 },
-    overlay: { position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(to bottom, rgba(0,0,0,0.2), #000)', zIndex: 1 },
-    hudText: { zIndex: 10, fontFamily: 'monospace', fontSize: '10px', letterSpacing: '2px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase' as const, lineHeight: '1.6' },
-    heroTitle: { zIndex: 10, padding: '60px', fontFamily: 'Anton, sans-serif', fontSize: '80px', lineHeight: '0.9', textTransform: 'uppercase' as const, color: '#FFF', textShadow: '0 10px 30px rgba(0,0,0,0.8)' },
-    rightPanel: { flex: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' as const, backgroundColor: '#050505', padding: '40px' },
-    gridBg: { position: 'absolute' as const, inset: 0, backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.5, zIndex: 0 },
-    loginBox: { position: 'relative' as const, zIndex: 10, width: '100%', maxWidth: '420px' },
-    header: { marginBottom: '40px' },
-    logoMark: { backgroundColor: '#E50914', color: 'white', fontFamily: 'Anton', padding: '4px 10px', fontSize: '14px', display: 'inline-block', marginBottom: '15px', borderRadius: '4px' },
-    h1: { fontFamily: 'Anton', fontSize: '42px', textTransform: 'uppercase' as const, marginBottom: '10px', lineHeight: 1 },
-    p: { fontSize: '13px', color: '#666', lineHeight: '1.5' },
-    card: { border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#0A0A0A', padding: '5px', borderRadius: '12px' },
-    cardInner: { border: '1px solid rgba(255,255,255,0.06)', padding: '30px', backgroundColor: '#080808', borderRadius: '10px' },
-    statusRow: { display: 'flex', gap: '15px', marginBottom: '25px', fontSize: '9px', fontFamily: 'monospace', color: '#555', textTransform: 'uppercase' as const },
-    dot: { width: '6px', height: '6px', backgroundColor: '#00FF41', borderRadius: '50%', display: 'inline-block', marginRight: '6px' },
-    errorDot: { width: '6px', height: '6px', backgroundColor: '#E50914', borderRadius: '50%', display: 'inline-block', marginRight: '6px' },
-    btn: { width: '100%', padding: '18px', backgroundColor: isHovered ? '#E50914' : '#FFF', color: isHovered ? '#FFF' : '#000', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: 'all 0.3s ease', boxShadow: isHovered ? '0 0 25px rgba(229,9,20,0.35)' : 'none', borderRadius: '8px' },
-    errorBox: { width: '100%', padding: '20px', backgroundColor: 'rgba(229, 9, 20, 0.06)', border: '1px solid rgba(229, 9, 20, 0.3)', color: '#E50914', fontFamily: 'Inter', fontSize: '11px', lineHeight: '1.6', letterSpacing: '1px', textTransform: 'uppercase' as const, display: 'flex', flexDirection: 'column' as const, gap: '10px', alignItems: 'center', textAlign: 'center' as const, borderRadius: '8px' },
-    footer: { marginTop: '30px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontFamily: 'Inter', color: '#444', textTransform: 'uppercase' as const, letterSpacing: '1px' },
-    backBtn: { position: 'absolute' as const, top: '30px', left: '30px', zIndex: 50, display: 'flex', alignItems: 'center', gap: '8px', color: '#666', textDecoration: 'none', fontSize: '11px', fontFamily: 'Inter', fontWeight: 600, letterSpacing: '1px', transition: 'color 0.2s' }
-  };
-
   return (
-    <div style={styles.container}>
-      <div style={styles.leftPanel}>
-        <Link href="/" style={styles.backBtn}><ArrowLeft size={14} /> Back</Link>
-        <img src="https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=2940&auto=format&fit=crop" style={styles.bgImage} />
-        <div style={styles.overlay} />
-        <div style={{ padding: '40px', ...styles.hudText, display: 'flex', justifyContent: 'space-between' }}>
-          <div><div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFF', marginBottom: '5px' }}><Disc size={10} fill="#E50914" color="#E50914" className="animate-pulse" /> MOTIONX STUDIO</div><div style={{ fontSize: '9px', color: '#555' }}>CINEMATIC AI PLATFORM</div></div>
-          <div style={{ textAlign: 'right', color: '#555' }}><div>SECURE</div><div>ENCRYPTED</div></div>
+    <div className="flex flex-col lg:flex-row h-screen w-screen bg-[#050505] text-[#EDEDED] font-sans overflow-hidden">
+
+      {/* ── LEFT PANEL — hero (hidden on mobile) ── */}
+      <div className="hidden lg:flex flex-[1.5] relative bg-black border-r border-[#222] flex-col justify-between overflow-hidden">
+        <Link href="/" className="absolute top-6 left-6 z-50 flex items-center gap-2 text-[#666] no-underline text-[11px] font-semibold tracking-[1px] hover:text-white transition-colors">
+          <ArrowLeft size={14} /> Back
+        </Link>
+
+        <img
+          src="https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=2940&auto=format&fit=crop"
+          alt="" className="absolute inset-0 w-full h-full object-cover opacity-60 grayscale contrast-[1.2]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black z-[1]" />
+
+        {/* HUD top */}
+        <div className="relative z-10 p-10 flex justify-between font-mono text-[10px] tracking-[2px] uppercase leading-relaxed">
+          <div>
+            <div className="flex items-center gap-2 text-white mb-1"><Disc size={10} fill="#E50914" color="#E50914" className="animate-pulse" /> MOTIONX STUDIO</div>
+            <div className="text-[9px] text-[#555]">CINEMATIC AI PLATFORM</div>
+          </div>
+          <div className="text-right text-[#555]"><div>SECURE</div><div>ENCRYPTED</div></div>
         </div>
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '200px', height: '120px', border: '1px solid rgba(255,255,255,0.1)', zIndex: 5 }}>
-          <div style={{ position: 'absolute', top: '-5px', left: '50%', height: '10px', width: '1px', background: 'white' }} />
-          <div style={{ position: 'absolute', bottom: '-5px', left: '50%', height: '10px', width: '1px', background: 'white' }} />
-          <div style={{ position: 'absolute', left: '-5px', top: '50%', width: '10px', height: '1px', background: 'white' }} />
-          <div style={{ position: 'absolute', right: '-5px', top: '50%', width: '10px', height: '1px', background: 'white' }} />
+
+        {/* Viewfinder */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[120px] border border-white/10 z-[5]">
+          <div className="absolute -top-[5px] left-1/2 h-[10px] w-px bg-white" />
+          <div className="absolute -bottom-[5px] left-1/2 h-[10px] w-px bg-white" />
+          <div className="absolute -left-[5px] top-1/2 w-[10px] h-px bg-white" />
+          <div className="absolute -right-[5px] top-1/2 w-[10px] h-px bg-white" />
         </div>
-        <div style={styles.heroTitle}>Direct <br /> <span style={{ color: '#888' }}>The Impossible</span></div>
+
+        {/* Hero title */}
+        <div className="relative z-10 p-[60px] font-['Anton'] text-[80px] leading-[0.9] uppercase text-white" style={{ textShadow: '0 10px 30px rgba(0,0,0,0.8)' }}>
+          Direct <br /> <span className="text-[#888]">The Impossible</span>
+        </div>
       </div>
 
-      <div style={styles.rightPanel}>
-        <div style={styles.gridBg} />
-        <div style={styles.loginBox}>
-          <div style={styles.header}>
-            <div style={styles.logoMark}>MX</div>
-            <div style={{ fontSize: '11px', fontFamily: 'Inter', letterSpacing: '2px', color: '#555', marginBottom: '10px', fontWeight: 600 }}>SIGN IN</div>
-            <h1 style={styles.h1}>Welcome Back</h1>
-            <p style={styles.p}>Sign in to your MotionX Studio account.</p>
+      {/* ── RIGHT PANEL — login form ── */}
+      <div className="flex-1 flex items-center justify-center relative bg-[#050505] px-6 sm:px-10 py-10">
+        {/* Grid background */}
+        <div className="absolute inset-0 opacity-50 z-0"
+          style={{ backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)', backgroundSize: '40px 40px' }}
+        />
+
+        {/* Mobile back link (visible only on small screens) */}
+        <Link href="/" className="lg:hidden absolute top-6 left-6 z-50 flex items-center gap-2 text-[#666] no-underline text-[11px] font-semibold tracking-[1px] hover:text-white transition-colors">
+          <ArrowLeft size={14} /> Back
+        </Link>
+
+        <div className="relative z-10 w-full max-w-[420px]">
+          {/* Header */}
+          <div className="mb-10">
+            <div className="bg-[#E50914] text-white font-['Anton'] py-1 px-2.5 text-sm inline-block mb-4 rounded">MX</div>
+            <div className="text-[11px] font-semibold tracking-[2px] text-[#555] mb-2.5">SIGN IN</div>
+            <h1 className="font-['Anton'] text-[36px] sm:text-[42px] uppercase mb-2.5 leading-none">Welcome Back</h1>
+            <p className="text-[13px] text-[#666] leading-relaxed">Sign in to your MotionX Studio account.</p>
           </div>
-          <div style={styles.card}>
-            <div style={styles.cardInner}>
-              <div style={styles.statusRow}>
+
+          {/* Card */}
+          <div className="border border-white/[0.08] bg-[#0A0A0A] p-[5px] rounded-xl">
+            <div className="border border-white/[0.06] p-6 sm:p-[30px] bg-[#080808] rounded-[10px]">
+              {/* Status row */}
+              <div className="flex gap-4 mb-6 text-[9px] font-mono text-[#555] uppercase">
                 {isRestrictedBrowser ? (
-                  <span style={{ display: 'flex', alignItems: 'center', color: '#E50914' }}><span style={styles.errorDot} /> SECURITY ALERT</span>
+                  <span className="flex items-center text-[#E50914]"><span className="w-1.5 h-1.5 bg-[#E50914] rounded-full inline-block mr-1.5" /> SECURITY ALERT</span>
                 ) : (
-                  <span style={{ display: 'flex', alignItems: 'center' }}><span style={styles.dot} /> SYSTEM ONLINE</span>
+                  <span className="flex items-center"><span className="w-1.5 h-1.5 bg-[#00FF41] rounded-full inline-block mr-1.5" /> SYSTEM ONLINE</span>
                 )}
-                <span style={{ display: 'flex', alignItems: 'center' }}><span style={styles.dot} /> ENCRYPTED</span>
+                <span className="flex items-center"><span className="w-1.5 h-1.5 bg-[#00FF41] rounded-full inline-block mr-1.5" /> ENCRYPTED</span>
               </div>
 
               {isRestrictedBrowser ? (
-                <div style={styles.errorBox}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 'bold' }}><AlertTriangle size={16} /> ACCESS RESTRICTED</div>
+                <div className="w-full p-5 bg-[#E50914]/[0.06] border border-[#E50914]/30 text-[#E50914] text-[11px] leading-relaxed tracking-[1px] uppercase flex flex-col gap-2.5 items-center text-center rounded-lg">
+                  <div className="flex items-center gap-2 text-xs font-bold"><AlertTriangle size={16} /> ACCESS RESTRICTED</div>
                   <div>IN-APP BROWSER DETECTED.</div>
                   <div>Please tap <strong>...</strong> and select <strong>Open in Browser</strong>.</div>
                 </div>
@@ -151,18 +138,34 @@ export default function LoginPage() {
                   disabled={isLoading}
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
-                  style={{ ...styles.btn, opacity: isLoading ? 0.7 : 1 }}
+                  className="w-full py-4 sm:py-[18px] rounded-lg text-xs font-bold tracking-[2px] uppercase flex items-center justify-center gap-2.5 transition-all cursor-pointer border-none disabled:opacity-70"
+                  style={{
+                    backgroundColor: isHovered ? '#E50914' : '#FFF',
+                    color: isHovered ? '#FFF' : '#000',
+                    boxShadow: isHovered ? '0 0 25px rgba(229,9,20,0.35)' : 'none'
+                  }}
                 >
-                  {isLoading ? <><Activity size={16} className="animate-spin" /> SIGNING IN...</> : <> CONTINUE WITH GOOGLE <ArrowRight size={16} strokeWidth={3} /> </>}
+                  {isLoading ? <><Activity size={16} className="animate-spin" /> SIGNING IN...</> : <> CONTINUE WITH GOOGLE <ArrowRight size={16} strokeWidth={3} /></>}
                 </button>
               )}
-              <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '9px', fontFamily: 'Inter', color: '#444', letterSpacing: '1px' }}>SECURED BY GOOGLE IDENTITY</div>
+              <div className="text-center mt-4 text-[9px] text-[#444] tracking-[1px]">SECURED BY GOOGLE IDENTITY</div>
             </div>
           </div>
-          <div style={styles.footer}><div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>ID: 884-291</div><div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}><Globe size={10} /> REGION: GLOBAL</div></div>
+
+          {/* Footer */}
+          <div className="mt-7 flex justify-between text-[9px] text-[#444] uppercase tracking-[1px]">
+            <div className="flex gap-1.5 items-center">ID: 884-291</div>
+            <div className="flex gap-1.5 items-center"><Globe size={10} /> REGION: GLOBAL</div>
+          </div>
         </div>
       </div>
-      <style jsx global>{` @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } } .animate-pulse { animation: pulse 2s infinite; } .animate-spin { animation: spin 1s linear infinite; } @keyframes spin { 100% { transform: rotate(360deg); } } `}</style>
+
+      <style jsx global>{`
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .animate-pulse { animation: pulse 2s infinite; }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }

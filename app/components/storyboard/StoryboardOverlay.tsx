@@ -514,7 +514,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 {shotMgr.isStopping ? <Loader2 size={14} className="animate-spin" /> :
                                     shotMgr.isGeneratingAll ? <Square size={14} fill="currentColor" /> :
                                         <Layers size={14} />}
-                                {shotMgr.isStopping ? 'STOPPING...' : shotMgr.isGeneratingAll ? 'STOP' : 'GENERATE ALL'}
+                                {shotMgr.isStopping ? 'STOPPING...' : shotMgr.isGeneratingAll ? 'STOP' : 'GENERATE SCENE'}
                             </button>
                         )}
 

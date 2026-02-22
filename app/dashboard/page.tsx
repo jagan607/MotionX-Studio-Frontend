@@ -283,10 +283,10 @@ export default function Dashboard() {
         <main className="fixed inset-0 bg-[#050505] text-[#EDEDED] font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#E50914] selection:text-white">
 
             {/* MAIN WORKSPACE */}
-            <div className="flex-1 flex p-6 gap-6 min-h-0 overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row p-3 sm:p-4 lg:p-6 gap-4 lg:gap-6 min-h-0 overflow-hidden">
 
                 {/* LEFT PRODUCTION UNIT */}
-                <div className="flex-[3] flex flex-col min-w-0 h-full overflow-hidden gap-6">
+                <div className="flex-1 lg:flex-[3] flex flex-col min-w-0 h-full overflow-hidden gap-4 lg:gap-6">
 
                     {/* MONITOR */}
                     <div className="flex-[2] relative bg-black border border-[#222] group overflow-hidden shadow-2xl min-h-0 rounded-lg transition-colors hover:border-[#333]">
@@ -311,27 +311,27 @@ export default function Dashboard() {
                                         <video autoPlay loop muted playsInline preload="none" className="w-full h-full object-cover opacity-30 grayscale" src={DEFAULT_SHOWREEL} />
                                     )}
 
-                                    <div className="absolute bottom-0 left-0 p-8 w-full z-30 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
-                                        <div className="flex items-end justify-between">
+                                    <div className="absolute bottom-0 left-0 p-4 sm:p-6 lg:p-8 w-full z-30 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3 sm:gap-0">
                                             <div>
                                                 <span className="bg-[#E50914] text-white text-[9px] font-bold px-3 py-0.5 rounded-md mr-3 uppercase inline-block mb-2 tracking-wide">
                                                     {activeProject ? (activeProject.type === 'movie' ? "FEATURE FILM" : "SERIES") : "WELCOME"}
                                                 </span>
-                                                <h1 className="text-5xl font-anton uppercase text-white leading-none drop-shadow-md">
+                                                <h1 className="text-2xl sm:text-3xl lg:text-5xl font-anton uppercase text-white leading-none drop-shadow-md">
                                                     {activeProject ? activeProject.title : "WELCOME STUDIO"}
                                                 </h1>
                                             </div>
 
                                             {activeProject ? (
                                                 <Link href={projectType === 'adaptation' ? `/project/${activeProject.id}/adaptation` : `/project/${activeProject.id}/studio`}>
-                                                    <button className="bg-white text-black px-8 py-3 font-bold text-xs uppercase tracking-[2px] hover:bg-[#E50914] hover:text-white transition-colors duration-300 flex items-center gap-3 cursor-pointer rounded-md">
+                                                    <button className="bg-white text-black px-4 sm:px-8 py-2 sm:py-3 font-bold text-[10px] sm:text-xs uppercase tracking-[2px] hover:bg-[#E50914] hover:text-white transition-colors duration-300 flex items-center gap-2 sm:gap-3 cursor-pointer rounded-md">
                                                         ENTER PRODUCTION <Maximize size={14} />
                                                     </button>
                                                 </Link>
                                             ) : (
                                                 /* FIX #6: Better empty state for zero projects */
                                                 <Link href="/project/new">
-                                                    <button className="bg-[#E50914] text-white px-8 py-3 font-bold text-xs uppercase tracking-[2px] hover:bg-[#ff1a25] transition-colors duration-300 flex items-center gap-3 cursor-pointer rounded-md">
+                                                    <button className="bg-[#E50914] text-white px-4 sm:px-8 py-2 sm:py-3 font-bold text-[10px] sm:text-xs uppercase tracking-[2px] hover:bg-[#ff1a25] transition-colors duration-300 flex items-center gap-2 sm:gap-3 cursor-pointer rounded-md">
                                                         CREATE FIRST PROJECT <ArrowRight size={14} />
                                                     </button>
                                                 </Link>
@@ -493,8 +493,8 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* RIGHT FEED STREAM */}
-                <div className="w-[320px] border-l border-[#222] pl-6 flex flex-col shrink-0 h-full overflow-hidden">
+                {/* RIGHT FEED STREAM — hidden on mobile/tablet */}
+                <div className="hidden lg:flex w-[320px] border-l border-[#222] pl-6 flex-col shrink-0 h-full overflow-hidden">
                     <div className="flex items-center justify-between mb-4 shrink-0 h-8">
                         <span className="text-[10px] text-[#888] uppercase tracking-[2px] flex items-center gap-2 font-semibold"><Radio size={12} className={globalShots.length > 0 ? "text-[#E50914] animate-pulse" : "text-[#333]"} /> Community Feed</span>
                         {/* FIX #8: Readable filter labels instead of single letters */}
@@ -578,8 +578,8 @@ export default function Dashboard() {
             )}
             {/* ALL PROJECTS GRID OVERLAY */}
             {showAllProjects && (
-                <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex flex-col" onClick={() => setShowAllProjects(false)}>
-                    <div className="max-w-[1200px] w-full mx-auto p-8 flex-1 overflow-y-auto no-scrollbar" onClick={e => e.stopPropagation()}>
+                <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex flex-col" onClick={() => setShowAllProjects(false)}>
+                    <div className="max-w-[1200px] w-full mx-auto p-4 sm:p-8 pt-[72px] flex-1 overflow-y-auto no-scrollbar" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-2xl font-anton uppercase tracking-wide">All Projects ({myProjects.length})</h2>
                             <button onClick={() => setShowAllProjects(false)} className="text-[#666] hover:text-white text-sm cursor-pointer transition-colors">✕ Close</button>

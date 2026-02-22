@@ -92,8 +92,8 @@ export const useShotManager = (
 
     const audioGen = useShotAudioGen(projectId, episodeId, activeSceneId);
 
-    // Batch depends on ImageGen logic
-    const batch = useShotBatch(shotsRef, (shot, ar) => imageGen.handleRenderShot(shot, ar));
+    // Batch depends on Scene ID + project context
+    const batch = useShotBatch(shotsRef, (shot, ar) => imageGen.handleRenderShot(shot, ar), projectId, episodeId, activeSceneId);
 
     // --- MANUAL IMAGE UPLOAD (Integrated directly for now) ---
     const handleShotImageUpload = async (shot: any, file: File) => {
