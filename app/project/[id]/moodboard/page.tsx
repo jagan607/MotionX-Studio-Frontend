@@ -300,6 +300,25 @@ export default function MoodboardPage() {
                 @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 20px rgba(229,9,20,0.15); } 50% { box-shadow: 0 0 40px rgba(229,9,20,0.3); } }
                 @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
                 .shimmer-line { background: linear-gradient(90deg, transparent, rgba(229,9,20,0.06), transparent); animation: shimmer 2s infinite; }
+                @keyframes mbFlowBlob1 {
+                    0%, 100% { transform: translate(0, 0) scale(1); }
+                    33% { transform: translate(25%, 15%) scale(1.3); }
+                    66% { transform: translate(-15%, 25%) scale(0.9); }
+                }
+                @keyframes mbFlowBlob2 {
+                    0%, 100% { transform: translate(0, 0) scale(1); }
+                    33% { transform: translate(-20%, -15%) scale(1.15); }
+                    66% { transform: translate(15%, -10%) scale(1.25); }
+                }
+                @keyframes mbFlowBlob3 {
+                    0%, 100% { transform: translate(0, 0) scale(1.1); }
+                    33% { transform: translate(20%, -25%) scale(0.85); }
+                    66% { transform: translate(-15%, 15%) scale(1.2); }
+                }
+                @keyframes mbPulseText {
+                    0%, 100% { opacity: 0.5; }
+                    50% { opacity: 0.25; }
+                }
             `}</style>
 
             {/* Film grain overlay on everything */}
@@ -353,8 +372,23 @@ export default function MoodboardPage() {
                         {selectedMood.status === "ready" && selectedMood.image_url ? (
                             <img src={selectedMood.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
                         ) : (
-                            <div className="absolute inset-0 bg-[#080808]">
-                                <div className="absolute inset-0 shimmer-line" />
+                            <div className="absolute inset-0 bg-[#050505] overflow-hidden">
+                                {/* Flowing red blobs */}
+                                <div className="absolute w-[55%] h-[55%] rounded-full bg-[#E50914]/25 blur-[60px]"
+                                    style={{ animation: 'mbFlowBlob1 5s ease-in-out infinite', top: '10%', left: '15%' }} />
+                                <div className="absolute w-[45%] h-[45%] rounded-full bg-[#ff4d4d]/12 blur-[50px]"
+                                    style={{ animation: 'mbFlowBlob2 6s ease-in-out infinite', top: '35%', right: '10%' }} />
+                                <div className="absolute w-[40%] h-[40%] rounded-full bg-[#E50914]/18 blur-[45px]"
+                                    style={{ animation: 'mbFlowBlob3 7s ease-in-out infinite', bottom: '10%', left: '35%' }} />
+                                {/* Frost */}
+                                <div className="absolute inset-0 backdrop-blur-2xl bg-white/[0.02]" />
+                                {/* Label */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-[11px] font-semibold text-white/40 tracking-[4px] uppercase"
+                                        style={{ animation: 'mbPulseText 2.5s ease-in-out infinite' }}>
+                                        Rendering...
+                                    </span>
+                                </div>
                             </div>
                         )}
                         {/* Cinematic overlays — light enough to let colors through */}
@@ -474,8 +508,12 @@ export default function MoodboardPage() {
                                                     ${active ? 'scale-100 brightness-90' : 'scale-110 brightness-50 group-hover:brightness-75 group-hover:scale-105'}`}
                                             />
                                         ) : (
-                                            <div className="absolute inset-0 bg-[#0a0a0a]">
-                                                <div className="absolute inset-0 shimmer-line" />
+                                            <div className="absolute inset-0 bg-[#060606] overflow-hidden">
+                                                <div className="absolute w-[70%] h-[70%] rounded-full bg-[#E50914]/20 blur-[25px]"
+                                                    style={{ animation: 'mbFlowBlob1 4s ease-in-out infinite', top: '5%', left: '10%' }} />
+                                                <div className="absolute w-[50%] h-[50%] rounded-full bg-[#ff4d4d]/10 blur-[20px]"
+                                                    style={{ animation: 'mbFlowBlob2 5s ease-in-out infinite', bottom: '5%', right: '5%' }} />
+                                                <div className="absolute inset-0 backdrop-blur-xl bg-white/[0.02]" />
                                             </div>
                                         )}
 
