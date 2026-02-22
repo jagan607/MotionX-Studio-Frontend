@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import {
     Users, MapPin, Sparkles, Loader2, Plus,
-    Search, ArrowRight, ArrowLeft, Clapperboard,
+    Search, ArrowRight, Clapperboard,
     ShoppingBag
 } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -338,11 +337,6 @@ export default function AssetManagerPage() {
             {isOnboarding ? (
                 <div className="h-16 border-b border-[#222] bg-[#080808] flex items-center justify-between px-8 shrink-0">
                     <div className="flex items-center gap-4">
-                        <Link href={`/project/${projectId}/moodboard?onboarding=true`} className="flex items-center gap-2 text-neutral-500 hover:text-white transition-colors no-underline group">
-                            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-                            <span className="text-[10px] font-bold tracking-widest uppercase">Moodboard</span>
-                        </Link>
-                        <div className="w-px h-5 bg-white/[0.08]" />
                         <div className="h-9 w-9 bg-red-600/10 border border-red-600/30 flex items-center justify-center rounded">
                             <Clapperboard className="text-red-500" size={18} />
                         </div>
@@ -356,12 +350,12 @@ export default function AssetManagerPage() {
                         </div>
                     </div>
 
-                    <button
+                    <MotionButton
                         onClick={handleEnterStudio}
-                        className="shrink-0 flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#B91C1C] to-[#E50914] hover:from-[#DC2626] hover:to-[#EF4444] border border-red-500/20 text-white text-[10px] font-bold tracking-widest uppercase rounded-lg transition-all shadow-[0_0_15px_rgba(229,9,20,0.15)] hover:shadow-[0_0_30px_rgba(229,9,20,0.35)] cursor-pointer"
+                        className="bg-green-600 hover:bg-green-500 border-green-500/30 text-white"
                     >
-                        ENTER STUDIO <ArrowRight size={14} />
-                    </button>
+                        ENTER STUDIO <ArrowRight size={14} className="ml-2" />
+                    </MotionButton>
                 </div>
             ) : (
                 <StudioHeader
@@ -423,7 +417,7 @@ export default function AssetManagerPage() {
                                 {readyCount}/{totalCount}
                             </span>
                             {generatingCount > 0 && (
-                                <span className="text-[9px] font-mono text-[#E50914] flex items-center gap-1">
+                                <span className="text-[9px] font-mono text-amber-500 flex items-center gap-1">
                                     <Loader2 size={9} className="animate-spin" /> {generatingCount}
                                 </span>
                             )}

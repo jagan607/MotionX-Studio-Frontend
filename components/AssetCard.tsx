@@ -83,7 +83,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     // Status
     const isReady = !!asset.image_url;
     const statusBorder = isGenerating
-        ? 'border-[#E50914]/60 shadow-[0_0_12px_rgba(229,9,20,0.15)]'
+        ? 'border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
         : isReady
             ? 'border-emerald-500/30'
             : 'border-white/[0.06]';
@@ -101,8 +101,8 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                 {/* LOADING OVERLAY */}
                 {isGenerating && (
                     <div className="absolute inset-0 z-30 bg-black/70 backdrop-blur-[2px] flex flex-col items-center justify-center">
-                        <Loader2 className="w-7 h-7 text-[#E50914] animate-spin mb-2" />
-                        <span className="text-[9px] text-[#E50914]/80 tracking-[3px] uppercase font-mono animate-pulse">
+                        <Loader2 className="w-7 h-7 text-amber-500 animate-spin mb-2" />
+                        <span className="text-[9px] text-amber-500/80 tracking-[3px] uppercase font-mono animate-pulse">
                             Generating
                         </span>
                     </div>
@@ -215,7 +215,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                         {asset.name}
                     </h3>
                     <div className={`w-2 h-2 rounded-full shrink-0 ml-2 ${isGenerating
-                        ? 'bg-[#E50914] animate-pulse'
+                        ? 'bg-amber-500 animate-pulse'
                         : isReady
                             ? 'bg-emerald-500'
                             : 'bg-neutral-600'}`}
@@ -229,7 +229,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                             {asset.name}
                         </h3>
                         <div className={`w-2 h-2 rounded-full shrink-0 ml-2 ${isGenerating
-                            ? 'bg-[#E50914] animate-pulse'
+                            ? 'bg-amber-500 animate-pulse'
                             : isReady
                                 ? 'bg-emerald-500'
                                 : 'bg-neutral-600'}`}

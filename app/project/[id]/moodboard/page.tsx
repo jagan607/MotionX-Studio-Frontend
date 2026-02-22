@@ -55,10 +55,10 @@ export default function MoodboardPage() {
     const projectId = params.id as string;
     const episodeId = searchParams.get("episode_id") || "main";
 
-    const isOnboarding = searchParams.get("onboarding") === "true";
-    const assetsUrl = `/project/${projectId}/assets${isOnboarding ? '?onboarding=true' : ''}`;
+    const assetsQuery = searchParams.toString();
+    const assetsUrl = `/project/${projectId}/assets${assetsQuery ? `?${assetsQuery}` : ''}`;
     const studioUrl = `/project/${projectId}/studio`;
-    const scriptUrl = `/project/${projectId}/script`;
+    const isOnboarding = searchParams.get("onboarding") === "true";
 
     // --- State ---
     const [phase, setPhase] = useState<"select" | "confirming" | "error">("select");
@@ -224,9 +224,9 @@ export default function MoodboardPage() {
             <div className="absolute top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-6 bg-gradient-to-b from-black/80 to-transparent">
                 {/* Left: back + project name */}
                 <div className="flex items-center gap-4">
-                    <Link href={isOnboarding ? scriptUrl : studioUrl} className="flex items-center gap-2 text-white/40 hover:text-white transition-colors no-underline group">
+                    <Link href={studioUrl} className="flex items-center gap-2 text-white/40 hover:text-white transition-colors no-underline group">
                         <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-[10px] font-bold tracking-[2px] uppercase">{isOnboarding ? 'Script' : 'Studio'}</span>
+                        <span className="text-[10px] font-bold tracking-[2px] uppercase">Studio</span>
                     </Link>
                     {projectTitle && (
                         <>
