@@ -209,14 +209,18 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                 >
                                     <Palette size={14} /> Moodboard
                                 </Link>
-                                {onOpenAssets && (
-                                    <button
-                                        onClick={onOpenAssets}
-                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md"
-                                    >
-                                        <Database size={14} /> Assets
-                                    </button>
-                                )}
+                                <Link
+                                    href={`/project/${projectId}/assets`}
+                                    className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md no-underline"
+                                >
+                                    <Database size={14} /> Assets
+                                </Link>
+                                <Link
+                                    href={`/project/${projectId}/treatment`}
+                                    className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md no-underline cursor-pointer"
+                                >
+                                    <FileText size={14} /> Treatment
+                                </Link>
                             </div>
                             <div className="h-8 w-[1px] bg-[#222]" />
                         </>

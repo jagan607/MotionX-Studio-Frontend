@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database } from 'lucide-react';
+import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download } from 'lucide-react';
+import JSZip from 'jszip';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
 } from '@dnd-kit/core';
@@ -31,6 +32,7 @@ import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import CreditModal from "@/app/components/modals/CreditModal";
 import { AssetManagerModal } from "@/app/components/studio/AssetManagerModal";
 import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionModal";
+import Link from "next/link";
 
 // --- CONTEXT IMPORT ---
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
@@ -139,11 +141,14 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [showSceneDropdown, setShowSceneDropdown] = useState(false);
     const sceneDropdownRef = useRef<HTMLDivElement>(null);
 
-    // Close dropdown on outside click
+    // Close dropdowns on outside click
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (sceneDropdownRef.current && !sceneDropdownRef.current.contains(e.target as Node)) {
                 setShowSceneDropdown(false);
+            }
+            if (exportDropdownRef.current && !exportDropdownRef.current.contains(e.target as Node)) {
+                setShowExportDropdown(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -154,6 +159,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [showTopUp, setShowTopUp] = useState(false);
     const [showAssets, setShowAssets] = useState(false);
     const [showScript, setShowScript] = useState(false);
+    const [showExportDropdown, setShowExportDropdown] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+    const exportDropdownRef = useRef<HTMLDivElement>(null);
 
     // Data State (Episode Title Correction)
     const [realEpisodeTitle, setRealEpisodeTitle] = useState(episodeTitle);
@@ -373,6 +381,75 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         openViewer(mediaItems, initialIndex);
     };
 
+    // --- EXPORT SCENE ---
+    const handleExportScene = async (type: 'images' | 'videos' | 'all') => {
+        const shots = shotMgr.shots;
+        if (!shots || shots.length === 0) {
+            toastError("No shots to export.");
+            return;
+        }
+
+        setShowExportDropdown(false);
+        setIsExporting(true);
+        const toastId = toast.loading(`Preparing ${type} export...`);
+
+        try {
+            const zip = new JSZip();
+            const sceneNum = currentScene?.scene_number || '00';
+            const slugline = (currentScene?.slugline || 'SCENE').replace(/[^a-zA-Z0-9_\- ]/g, '').replace(/\s+/g, '_');
+            let fileCount = 0;
+
+            for (let i = 0; i < shots.length; i++) {
+                const shot = shots[i];
+                const prefix = `shot_${String(i + 1).padStart(2, '0')}`;
+
+                if ((type === 'images' || type === 'all') && shot.image_url) {
+                    try {
+                        const res = await fetch(shot.image_url);
+                        const blob = await res.blob();
+                        zip.file(`${prefix}_frame.jpg`, blob);
+                        fileCount++;
+                    } catch (e) { console.warn(`Failed to fetch image for shot ${i + 1}`, e); }
+                }
+
+                if ((type === 'videos' || type === 'all') && shot.video_url) {
+                    try {
+                        const res = await fetch(shot.video_url);
+                        const blob = await res.blob();
+                        zip.file(`${prefix}_motion.mp4`, blob);
+                        fileCount++;
+                    } catch (e) { console.warn(`Failed to fetch video for shot ${i + 1}`, e); }
+                }
+            }
+
+            if (fileCount === 0) {
+                toast.dismiss(toastId);
+                toastError(`No ${type === 'images' ? 'images' : type === 'videos' ? 'videos' : 'files'} found to export.`);
+                setIsExporting(false);
+                return;
+            }
+
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const zipName = `Scene_${sceneNum}_${slugline}_${type}.zip`;
+            const url = URL.createObjectURL(zipBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = zipName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            toast.dismiss(toastId);
+            toastSuccess(`Exported ${fileCount} file${fileCount > 1 ? 's' : ''} as ${zipName}`);
+        } catch (e) {
+            console.error('Export failed:', e);
+            toast.dismiss(toastId);
+            toastError('Export failed. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
     // --- DATA MAPPING ---
     const rawLoc = currentScene?.location || currentScene?.location_name || currentScene?.location_id;
     const foundLoc = locations.find(l => l.id === rawLoc || l.name === rawLoc);
@@ -579,6 +656,67 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         >
                             <Database size={14} /> ASSETS
                         </button>
+
+                        {/* TREATMENT */}
+                        <Link
+                            href={`/project/${seriesId}/treatment`}
+                            style={{
+                                height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
+                                border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                                transition: 'border-color 0.2s', textDecoration: 'none'
+                            }}
+                            onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#555'; }}
+                            onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#333'; }}
+                        >
+                            <FileText size={14} /> TREATMENT
+                        </Link>
+
+                        {/* EXPORT */}
+                        <div className="relative" ref={exportDropdownRef}>
+                            <button
+                                onClick={() => setShowExportDropdown(!showExportDropdown)}
+                                disabled={isExporting || shotMgr.shots.length === 0}
+                                style={{
+                                    height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
+                                    border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                                    transition: 'border-color 0.2s',
+                                    opacity: (isExporting || shotMgr.shots.length === 0) ? 0.5 : 1
+                                }}
+                                onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
+                                onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
+                            >
+                                {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                {isExporting ? 'EXPORTING...' : 'EXPORT'}
+                            </button>
+
+                            {showExportDropdown && (
+                                <div className="absolute top-full right-0 mt-1 w-48 bg-[#1A1A1A] border border-[#333] rounded-md shadow-2xl shadow-black/80 z-[9999] overflow-hidden">
+                                    <div className="px-4 py-2 border-b border-[#222] bg-[#111]">
+                                        <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Export Scene</span>
+                                    </div>
+                                    <button
+                                        onClick={() => handleExportScene('images')}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                                    >
+                                        <span className="text-[#666]">🖼</span> Export Images
+                                    </button>
+                                    <button
+                                        onClick={() => handleExportScene('videos')}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                                    >
+                                        <span className="text-[#666]">🎬</span> Export Videos
+                                    </button>
+                                    <button
+                                        onClick={() => handleExportScene('all')}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer border-t border-[#222]"
+                                    >
+                                        <span className="text-[#666]">📦</span> Export All
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
                         {/* DIVIDER */}
                         <div style={{ width: '1px', height: '32px', backgroundColor: '#222', margin: '0 16px' }} />

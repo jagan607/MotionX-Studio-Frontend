@@ -299,3 +299,30 @@ export const fetchGlobalFeed = async () => {
         return [];
     }
 };
+
+// --- 9. TREATMENT NOTES ---
+
+export const generateTreatment = async (projectId: string, episodeId: string) => {
+    const res = await api.post("/api/v1/shot/generate_treatment", {
+        project_id: projectId,
+        episode_id: episodeId,
+    });
+    return res.data;
+};
+
+export const updateTreatment = async (projectId: string, episodeId: string, sections: Record<string, string>) => {
+    const res = await api.put("/api/v1/shot/update_treatment", {
+        project_id: projectId,
+        episode_id: episodeId,
+        sections,
+    });
+    return res.data;
+};
+
+export const exportTreatmentPdf = async (projectId: string, episodeId: string) => {
+    const res = await api.post("/api/v1/shot/export_treatment_pdf", {
+        project_id: projectId,
+        episode_id: episodeId,
+    }, { responseType: 'blob' });
+    return res.data;
+};

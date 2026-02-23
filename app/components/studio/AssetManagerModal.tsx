@@ -380,7 +380,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                                 {readyCount}/{totalCount}
                             </span>
                             {generatingCount > 0 && (
-                                <span className="text-[9px] font-mono text-amber-500 flex items-center gap-1">
+                                <span className="text-[9px] font-mono text-[#E50914] flex items-center gap-1">
                                     <Loader2 size={9} className="animate-spin" /> {generatingCount}
                                 </span>
                             )}

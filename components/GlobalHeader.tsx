@@ -21,7 +21,8 @@ export default function GlobalHeader() {
         pathname.includes('/assets') ||
         pathname.includes('/new') ||
         pathname.includes('/editor') ||
-        pathname.includes('/moodboard')
+        pathname.includes('/moodboard') ||
+        pathname.includes('/treatment')
     );
 
     if (pathname === "/login" || pathname === "/" || pathname === "/pricing" || isEditorPage) {
