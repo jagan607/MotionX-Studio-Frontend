@@ -326,3 +326,15 @@ export const exportTreatmentPdf = async (projectId: string, episodeId: string) =
     }, { responseType: 'blob' });
     return res.data;
 };
+
+// --- 10. 4K UPSCALE ---
+
+export const upscaleShot = async (projectId: string, episodeId: string, sceneId: string, shotId: string) => {
+    const res = await api.post("/api/v1/shot/upscale_shot", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        shot_id: shotId,
+    });
+    return res.data;
+};

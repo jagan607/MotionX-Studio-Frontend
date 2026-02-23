@@ -152,7 +152,7 @@ export const useShotManager = (
 
         // Image
         handleRenderShot: (shot: any, scene: any, refFile?: File | null, provider?: 'gemini' | 'seedream', continuityRefId?: string | null) => imageGen.handleRenderShot(shot, aspectRatio, refFile, provider, continuityRefId),
-        handleFinalizeShot: imageGen.handleFinalizeShot,
+        handleUpscaleShot: imageGen.handleUpscaleShot,
         handleInpaintShot: imageGen.handleInpaintShot,
         handleShotImageUpload, // <--- EXPOSED HERE
 

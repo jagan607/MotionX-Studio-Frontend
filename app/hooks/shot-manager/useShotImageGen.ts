@@ -110,25 +110,24 @@ export const useShotImageGen = (
         }
     };
 
-    const handleFinalizeShot = async (shot: any) => {
-        if (!shot.image_url) return;
+    const handleUpscaleShot = async (shot: any) => {
+        if (!shot.image_url) {
+            toastError("Shot has no image to upscale");
+            return;
+        }
+        if (shot.is_upscaled) {
+            toastError("Shot is already upscaled to 4K");
+            return;
+        }
         addLoadingShot(shot.id);
 
         try {
-            const formData = new FormData();
-            formData.append("project_id", projectId);
-            formData.append("episode_id", episodeId);
-            formData.append("scene_id", sceneId!);
-            formData.append("shot_id", shot.id);
-            formData.append("image_url", shot.image_url);
-
-            await api.post("/api/v1/shot/finalize_shot", formData, {
-                headers: { "Content-Type": "multipart/form-data" }
-            });
-
-            toastSuccess("Shot Finalized");
+            const { upscaleShot } = await import("@/lib/api");
+            await upscaleShot(projectId, episodeId, sceneId!, shot.id);
+            toastSuccess("4K upscale started");
         } catch (e: any) {
-            toastError(getErrorMessage(e));
+            const msg = e.response?.data?.detail || e.response?.data?.message || getErrorMessage(e);
+            toastError(msg);
         } finally {
             removeLoadingShot(shot.id);
         }
@@ -178,5 +177,5 @@ export const useShotImageGen = (
         }
     };
 
-    return { handleRenderShot, handleFinalizeShot, handleInpaintShot };
+    return { handleRenderShot, handleUpscaleShot, handleInpaintShot };
 };

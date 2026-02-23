@@ -184,6 +184,12 @@ export interface Shot {
 
     morph_to_next?: boolean; // Added for UI logic
 
+    // 4K Upscale
+    is_upscaled?: boolean;
+    upscale_status?: 'processing' | 'completed' | 'error' | null;
+    upscale_error?: string;
+    image_url_original?: string;
+
     // [NEW] Persisted Video Settings
     video_settings?: {
         duration?: '3' | '5' | '10' | '15';

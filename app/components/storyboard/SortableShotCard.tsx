@@ -32,6 +32,10 @@ interface Shot {
     morph_to_next?: boolean;
     prompt: string;
     estimated_duration?: number;
+    is_upscaled?: boolean;
+    upscale_status?: string;
+    upscale_error?: string;
+    image_url_original?: string;
 }
 
 interface SortableShotCardProps {
@@ -45,7 +49,7 @@ interface SortableShotCardProps {
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
     onRender: (referenceFile?: File | null, provider?: 'gemini' | 'seedream') => void;
     onEdit: () => void;
-    onFinalize: () => void;
+    onUpscale: () => void;
     isRendering: boolean;
     onExpand: () => void;
     nextShotImage?: string;
@@ -70,7 +74,7 @@ export const SortableShotCard = ({
     onUpdateShot,
     onRender,
     onEdit,
-    onFinalize,
+    onUpscale,
     isRendering,
     onExpand,
     nextShotImage,
@@ -97,7 +101,8 @@ export const SortableShotCard = ({
     const isAnimating = ['animating', 'processing', 'queued', 'pending'].includes(shot.video_status || '');
     const isBusy = isGenerating || isAnimating;
     const overlayText = isAnimating ? "Animating..." : "Generating...";
-    const isFinalized = shot.status === 'finalized';
+    const isUpscaled = shot.is_upscaled === true;
+    const isUpscaling = shot.upscale_status === 'processing';
 
     // Validation
     const hasImage = Boolean(shot.image_url);
@@ -105,9 +110,9 @@ export const SortableShotCard = ({
     const canLink = hasImage && Boolean(nextShotImage) && !isMorphedByPrev;
 
     // --- Pricing ---
-    const { getImageCost, getFinalizeCost } = usePricing();
+    const { getImageCost } = usePricing();
     const imageCost = getImageCost();
-    const finalizeCost = getFinalizeCost();
+    const upscaleCost = 2;
 
     // --- Cast Toggle Logic ---
     const handleCharToggle = (charId: string) => {
@@ -218,7 +223,7 @@ export const SortableShotCard = ({
             style={dragStyle}
             className={`relative flex flex-col rounded-xl p-4
                 ${isDragging ? 'opacity-60 scale-[1.02]' : 'opacity-100'}
-                ${isFinalized ? 'bg-white/[0.04] border border-white/20' : 'bg-[#0A0A0A] border border-white/[0.08]'}
+                ${isUpscaled ? 'bg-white/[0.04] border border-white/20' : 'bg-[#0A0A0A] border border-white/[0.08]'}
                 ${isMorphedByPrev ? 'border-[#E50914]/60' : ''}
                 ${(isLinked || isMorphedByPrev) ? 'shadow-[0_0_0_1px_#E50914]' : ''}
             `}
@@ -260,7 +265,7 @@ export const SortableShotCard = ({
                     </div>
                     <span className="text-[11px] font-bold tracking-wide text-[#E50914]">
                         Shot {String(index + 1).padStart(2, '0')}
-                        {isFinalized && <span className="ml-1.5 text-neutral-400">⭐</span>}
+                        {isUpscaled && <span className="ml-1.5 text-[10px] font-bold text-cyan-400">4K</span>}
                     </span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -511,18 +516,20 @@ export const SortableShotCard = ({
                         <span className="opacity-50 text-[9px] font-normal">· {imageCost} cr</span>
                     </button>
                     <button
-                        onClick={onFinalize}
-                        disabled={!hasImage || isBusy}
+                        onClick={onUpscale}
+                        disabled={!hasImage || isBusy || isUpscaled || isUpscaling}
                         className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed
-                            ${isFinalized
-                                ? 'bg-green-500/15 text-white border border-green-500/60'
-                                : 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
+                            ${isUpscaled
+                                ? 'bg-cyan-500/15 text-white border border-cyan-500/60'
+                                : isUpscaling
+                                    ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30 animate-pulse'
+                                    : 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
                             }
                         `}
                     >
-                        {isFinalized ? <CheckCircle2 size={12} /> : <Wand2 size={12} />}
-                        {isFinalized ? "Finalized" : "Finalize"}
-                        {!isFinalized && <span className="opacity-50 text-[9px] font-normal">· {finalizeCost} cr</span>}
+                        {isUpscaling ? <Loader2 size={12} className="animate-spin" /> : isUpscaled ? <CheckCircle2 size={12} /> : <Wand2 size={12} />}
+                        {isUpscaling ? "Upscaling..." : isUpscaled ? "4K" : "Upscale 4K"}
+                        {!isUpscaled && !isUpscaling && <span className="opacity-50 text-[9px] font-normal">· {upscaleCost} cr</span>}
                     </button>
                 </div>
 
