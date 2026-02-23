@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShieldCheck, Building, RefreshCw, Activity, X, Info } from "lucide-react";
+import { ShieldCheck, Building, RefreshCw, Activity, X, Info, Mail, Copy } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { auth } from "@/lib/firebase";
 
@@ -25,6 +25,9 @@ export default function ConfigurePage() {
     const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
     const [protocol, setProtocol] = useState<Protocol>("OIDC");
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // IT Info modal state
+    const [infoModalOrg, setInfoModalOrg] = useState<Organization | null>(null);
 
     // OIDC fields
     const [providerName, setProviderName] = useState("");
@@ -244,16 +247,25 @@ export default function ConfigurePage() {
                                             <span className="text-[10px] text-yellow-400 bg-yellow-900/20 border border-yellow-900/30 px-2 py-1 uppercase tracking-widest font-bold animate-pulse">Pending IT Config</span>
                                         )}
                                     </td>
-                                    <td className="p-4 text-right">
-                                        <button
-                                            onClick={() => openModal(org)}
-                                            className={`text-[10px] px-4 py-2 font-bold uppercase tracking-widest transition-all ${org.provider_id
-                                                ? "bg-transparent text-[#666] border border-[#333] hover:border-[#555] hover:text-white"
-                                                : "bg-white text-black hover:bg-red-600 hover:text-white"
-                                                }`}
-                                        >
-                                            {org.provider_id ? "Edit" : "Configure SSO"}
-                                        </button>
+                                    <td className="p-4">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => setInfoModalOrg(org)}
+                                                title="View IT Instructions"
+                                                className="p-2 text-[#666] border border-[#333] hover:border-[#555] hover:text-white transition-colors"
+                                            >
+                                                <Mail size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => openModal(org)}
+                                                className={`text-[10px] px-4 py-2 font-bold uppercase tracking-widest transition-all ${org.provider_id
+                                                    ? "bg-transparent text-[#666] border border-[#333] hover:border-[#555] hover:text-white"
+                                                    : "bg-white text-black hover:bg-red-600 hover:text-white"
+                                                    }`}
+                                            >
+                                                {org.provider_id ? "Edit" : "Configure SSO"}
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -412,6 +424,94 @@ export default function ConfigurePage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* ═══ IT ONBOARDING INFO MODAL ═══ */}
+            {infoModalOrg && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setInfoModalOrg(null)} />
+
+                    <div className="relative z-10 w-full max-w-[600px] bg-[#080808] border border-[#222] shadow-2xl">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-[#222]">
+                            <div className="flex items-center gap-3">
+                                <Mail size={18} className="text-[#E50914]" />
+                                <h3 className="font-anton text-xl text-white uppercase tracking-wide">IT Onboarding Instructions</h3>
+                            </div>
+                            <button onClick={() => setInfoModalOrg(null)} className="text-[#666] hover:text-white transition-colors">
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            {/* Workspace Details */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-[#111] border border-[#222] p-4">
+                                    <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Organization Name</span>
+                                    <span className="text-sm font-mono text-white">{infoModalOrg.organization_name}</span>
+                                </div>
+                                <div className="bg-[#111] border border-[#222] p-4">
+                                    <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Workspace Slug</span>
+                                    <span className="text-sm font-mono text-white">{infoModalOrg.slug}</span>
+                                </div>
+                                <div className="bg-[#111] border border-[#222] p-4">
+                                    <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Tenant ID</span>
+                                    <span className="text-sm font-mono text-white">{infoModalOrg.tenant_id}</span>
+                                </div>
+                                <div className="bg-[#111] border border-[#222] p-4">
+                                    <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Organization ID</span>
+                                    <span className="text-sm font-mono text-white">{infoModalOrg.slug}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-2">Allowed Domains</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {infoModalOrg.allowed_domains.map((d) => (
+                                        <span key={d} className="text-[10px] font-mono text-green-400 bg-green-900/10 border border-green-900/30 px-3 py-1">{d}</span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Subject */}
+                            <div>
+                                <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Subject</span>
+                                <div className="bg-[#111] border border-[#333] p-3 text-xs font-mono text-[#CCC]">
+                                    MotionX Studio Enterprise SSO Provisioning - {infoModalOrg.organization_name}
+                                </div>
+                            </div>
+
+                            {/* Body */}
+                            <div>
+                                <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Body</span>
+                                <div className="bg-[#111] border border-[#333] p-4 text-xs font-mono text-[#AAA] space-y-3 whitespace-pre-wrap leading-relaxed">
+                                    <p>Hi IT Team,</p>
+                                    <p>We are setting up the enterprise workspace for <strong className="text-white">{infoModalOrg.organization_name}</strong> and need to configure your Single Sign-On (SSO) integration. We natively support Microsoft Entra ID, Okta, and Google Workspace (SAML 2.0 or OIDC).</p>
+                                    <p>To register MotionX Studio in your identity provider, please use our Service Provider details:</p>
+                                    <ul className="list-disc pl-5 space-y-1 text-white">
+                                        <li>Redirect URI / ACS URL: https://{process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "motionx-studio.firebaseapp.com"}/__/auth/handler</li>
+                                        <li>SP Entity ID: https://{process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "motionx-studio.firebaseapp.com"}</li>
+                                    </ul>
+                                    <p>Please reply with your Identity Provider credentials (SAML metadata or OIDC Issuer/Client ID).</p>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => {
+                                        const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "motionx-studio.firebaseapp.com";
+                                        const text = `Subject: MotionX Studio Enterprise SSO Provisioning - ${infoModalOrg.organization_name}\n\nHi IT Team,\n\nWe are setting up the enterprise workspace for ${infoModalOrg.organization_name} and need to configure your Single Sign-On (SSO) integration. We natively support Microsoft Entra ID, Okta, and Google Workspace (SAML 2.0 or OIDC).\n\nTo register MotionX Studio in your identity provider, please use our Service Provider details:\n• Redirect URI / ACS URL: https://${authDomain}/__/auth/handler\n• SP Entity ID: https://${authDomain}\n\nPlease reply with your Identity Provider credentials (SAML metadata or OIDC Issuer/Client ID).`;
+                                        navigator.clipboard.writeText(text);
+                                        toast.success("Instructions copied to clipboard!");
+                                    }}
+                                    className="flex items-center gap-2 bg-white text-black hover:bg-red-600 hover:text-white px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all"
+                                >
+                                    <Copy size={14} />
+                                    Copy Email
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

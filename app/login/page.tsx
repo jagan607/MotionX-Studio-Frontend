@@ -1,7 +1,7 @@
 "use client";
 
 import { auth, googleProvider, db } from "@/lib/firebase";
-import { signInWithPopup, signInWithRedirect, getRedirectResult, SAMLAuthProvider, OAuthProvider } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect, getRedirectResult, SAMLAuthProvider, OAuthProvider, GoogleAuthProvider } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -141,6 +141,8 @@ export default function LoginPage() {
         provider = new SAMLAuthProvider(provider_id);
       } else if (provider_id.startsWith("oidc.")) {
         provider = new OAuthProvider(provider_id);
+      } else if (provider_id === "google.com") {
+        provider = new GoogleAuthProvider();
       } else {
         console.error("Unsupported SSO provider format:", provider_id);
         toast.error("Invalid workspace configuration. Contact your admin.");
@@ -148,8 +150,26 @@ export default function LoginPage() {
         return;
       }
 
-      // 4. Redirect to corporate identity portal
-      await signInWithRedirect(auth, provider);
+      // 4. Sign in — use popup for Google, redirect for SAML/OIDC
+      if (provider_id === "google.com") {
+        const result = await signInWithPopup(auth, provider);
+        if (result?.user) {
+          const idToken = await result.user.getIdToken();
+          const loginRes = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken }),
+          });
+          if (loginRes.ok) {
+            router.push("/dashboard");
+          } else {
+            toast.error("Session creation failed.");
+            setSsoLoading(false);
+          }
+        }
+      } else {
+        await signInWithRedirect(auth, provider);
+      }
     } catch (error) {
       console.error("SSO redirect failed:", error);
       toast.error("SSO authentication failed. Please try again.");
