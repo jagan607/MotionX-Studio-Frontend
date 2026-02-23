@@ -1,7 +1,7 @@
 "use client";
 
 import { auth, googleProvider, db } from "@/lib/firebase";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect, getRedirectResult, SAMLAuthProvider, OAuthProvider } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -18,6 +18,7 @@ export default function LoginPage() {
   // SSO Toggle State
   const [isSSOView, setIsSSOView] = useState(false);
   const [ssoInput, setSsoInput] = useState("");
+  const [ssoLoading, setSsoLoading] = useState(false);
   const [ssoPayload, setSsoPayload] = useState<{ type: 'email' | 'workspace_slug'; value: string } | null>(null);
 
   // 1. DETECT IN-APP BROWSERS
@@ -27,6 +28,38 @@ export default function LoginPage() {
     const isInApp = /(LinkedInApp|FBAV|FBAN|Instagram|Line|Twitter|Snapchat)/i.test(ua);
     setIsRestrictedBrowser(isInApp);
   }, []);
+
+  // 2. HANDLE SSO REDIRECT CALLBACK
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          setIsLoading(true);
+
+          const idToken = await result.user.getIdToken();
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken }),
+          });
+
+          if (response.ok) {
+            router.push("/dashboard");
+          } else {
+            toast.error("Session creation failed during SSO.");
+            setIsLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error("SSO Redirect Callback Failed:", error);
+        toast.error("Failed to authenticate with your organization.");
+        setIsLoading(false);
+      }
+    };
+
+    handleRedirectResult();
+  }, [router]);
 
   const handleGoogleLogin = async () => {
     if (isRestrictedBrowser) return;
@@ -60,18 +93,68 @@ export default function LoginPage() {
     }
   };
 
-  // SSO Continue Handler
-  const handleSSOContinue = () => {
+  // SSO Continue Handler — resolves provider and redirects
+  const handleSSOContinue = async () => {
     const trimmed = ssoInput.trim();
     if (!trimmed) {
       toast.error("Please enter your email or workspace slug");
       return;
     }
+
+    // Parse input as email or workspace slug
     const payload = trimmed.includes("@")
       ? { type: "email" as const, value: trimmed }
       : { type: "workspace_slug" as const, value: trimmed };
     setSsoPayload(payload);
-    toast.success(`SSO lookup ready for: ${payload.value}`);
+    setSsoLoading(true);
+
+    try {
+      const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${BACKEND_URL}/api/auth/resolve-sso`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: payload.value }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        // FastAPI 422 returns detail as an array of objects; extract the message safely
+        const message = Array.isArray(errData?.detail)
+          ? errData.detail.map((e: any) => e.msg).join(", ")
+          : typeof errData?.detail === "string"
+            ? errData.detail
+            : "Organization not found. Please check your input.";
+        toast.error(message);
+        setSsoLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      const { provider_id, tenant_id } = data;
+
+      // 2. CRITICAL: Set tenant before provider instantiation
+      auth.tenantId = tenant_id;
+
+      // 3. Dynamically instantiate the correct provider
+      let provider;
+      if (provider_id.startsWith("saml.")) {
+        provider = new SAMLAuthProvider(provider_id);
+      } else if (provider_id.startsWith("oidc.")) {
+        provider = new OAuthProvider(provider_id);
+      } else {
+        console.error("Unsupported SSO provider format:", provider_id);
+        toast.error("Invalid workspace configuration. Contact your admin.");
+        setSsoLoading(false);
+        return;
+      }
+
+      // 4. Redirect to corporate identity portal
+      await signInWithRedirect(auth, provider);
+    } catch (error) {
+      console.error("SSO redirect failed:", error);
+      toast.error("SSO authentication failed. Please try again.");
+      setSsoLoading(false);
+    }
   };
 
   const styles = {
@@ -194,11 +277,12 @@ export default function LoginPage() {
                   />
                   <button
                     onClick={handleSSOContinue}
+                    disabled={ssoLoading}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
-                    style={styles.btn}
+                    style={{ ...styles.btn, opacity: ssoLoading ? 0.7 : 1 }}
                   >
-                    CONTINUE <ArrowRight size={16} strokeWidth={3} />
+                    {ssoLoading ? <><Activity size={16} className="animate-spin" /> RESOLVING...</> : <> CONTINUE <ArrowRight size={16} strokeWidth={3} /> </>}
                   </button>
                   <button
                     onClick={() => { setIsSSOView(false); setSsoInput(''); setSsoPayload(null); }}
