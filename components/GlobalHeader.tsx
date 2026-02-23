@@ -4,13 +4,13 @@ import { useState } from "react";
 import { auth } from "@/lib/firebase";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Plus, User } from "lucide-react";
+import { Plus, User, Building } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import CreditModal from "@/app/components/modals/CreditModal";
 
 export default function GlobalHeader() {
     const pathname = usePathname();
-    const { credits } = useCredits();
+    const { credits, isEnterprise } = useCredits();
     const [showTopUp, setShowTopUp] = useState(false);
 
     // Hide Header on "App Mode" Pages
@@ -49,7 +49,10 @@ export default function GlobalHeader() {
                     {/* Credits + Top Up */}
                     <div id="tour-credits-target" className="flex items-center gap-2 sm:gap-3 lg:gap-4 mr-1 sm:mr-2 lg:mr-4">
                         <div className="text-right">
-                            <span className="text-[7px] sm:text-[8px] text-[#999] font-mono uppercase block leading-none mb-0.5">Credits</span>
+                            <span className="text-[7px] sm:text-[8px] text-[#999] font-mono uppercase block leading-none mb-0.5 flex items-center gap-1">
+                                {isEnterprise && <Building size={8} className="text-[#E50914]" />}
+                                {isEnterprise ? 'Org Credits' : 'Credits'}
+                            </span>
                             <div className="text-xs sm:text-[13px] text-white font-bold font-mono tracking-[0.5px]">{credits !== null ? credits : '---'}</div>
                         </div>
                         <button
