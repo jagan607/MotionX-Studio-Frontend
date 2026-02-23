@@ -101,6 +101,7 @@ export default function LoginPage() {
       return;
     }
 
+    // Parse input as email or workspace slug
     const payload = trimmed.includes("@")
       ? { type: "email" as const, value: trimmed }
       : { type: "workspace_slug" as const, value: trimmed };
@@ -117,6 +118,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
+        // FastAPI 422 returns detail as an array of objects; extract the message safely
         const message = Array.isArray(errData?.detail)
           ? errData.detail.map((e: any) => e.msg).join(", ")
           : typeof errData?.detail === "string"
@@ -130,10 +132,10 @@ export default function LoginPage() {
       const data = await res.json();
       const { provider_id, tenant_id } = data;
 
-      // CRITICAL: Set tenant before provider instantiation
+      // 2. CRITICAL: Set tenant before provider instantiation
       auth.tenantId = tenant_id;
 
-      // Dynamically instantiate the correct provider
+      // 3. Dynamically instantiate the correct provider
       let provider;
       if (provider_id.startsWith("saml.")) {
         provider = new SAMLAuthProvider(provider_id);
@@ -146,13 +148,42 @@ export default function LoginPage() {
         return;
       }
 
-      // Redirect to corporate identity portal
+      // 4. Redirect to corporate identity portal
       await signInWithRedirect(auth, provider);
     } catch (error) {
       console.error("SSO redirect failed:", error);
       toast.error("SSO authentication failed. Please try again.");
       setSsoLoading(false);
     }
+  };
+
+  const styles = {
+    container: { display: 'flex', height: '100vh', width: '100vw', backgroundColor: '#050505', color: '#EDEDED', fontFamily: 'Inter, sans-serif', overflow: 'hidden' },
+    leftPanel: { flex: '1.5', position: 'relative' as const, backgroundColor: '#000', borderRight: '1px solid #222', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between', overflow: 'hidden' },
+    bgImage: { position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' as const, opacity: 0.6, filter: 'grayscale(100%) contrast(120%)', zIndex: 0 },
+    overlay: { position: 'absolute' as const, top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(to bottom, rgba(0,0,0,0.2), #000)', zIndex: 1 },
+    hudText: { zIndex: 10, fontFamily: 'monospace', fontSize: '10px', letterSpacing: '2px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase' as const, lineHeight: '1.6' },
+    heroTitle: { zIndex: 10, padding: '60px', fontFamily: 'Anton, sans-serif', fontSize: '80px', lineHeight: '0.9', textTransform: 'uppercase' as const, color: '#FFF', textShadow: '0 10px 30px rgba(0,0,0,0.8)' },
+    rightPanel: { flex: '1', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' as const, backgroundColor: '#050505', padding: '40px' },
+    gridBg: { position: 'absolute' as const, inset: 0, backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.5, zIndex: 0 },
+    loginBox: { position: 'relative' as const, zIndex: 10, width: '100%', maxWidth: '420px' },
+    header: { marginBottom: '40px' },
+    logoMark: { backgroundColor: '#E50914', color: 'white', fontFamily: 'Anton', padding: '4px 10px', fontSize: '14px', display: 'inline-block', marginBottom: '15px', borderRadius: '4px' },
+    h1: { fontFamily: 'Anton', fontSize: '42px', textTransform: 'uppercase' as const, marginBottom: '10px', lineHeight: 1 },
+    p: { fontSize: '13px', color: '#666', lineHeight: '1.5' },
+    card: { border: '1px solid rgba(255,255,255,0.08)', backgroundColor: '#0A0A0A', padding: '5px', borderRadius: '12px' },
+    cardInner: { border: '1px solid rgba(255,255,255,0.06)', padding: '30px', backgroundColor: '#080808', borderRadius: '10px' },
+    statusRow: { display: 'flex', gap: '15px', marginBottom: '25px', fontSize: '9px', fontFamily: 'monospace', color: '#555', textTransform: 'uppercase' as const },
+    dot: { width: '6px', height: '6px', backgroundColor: '#00FF41', borderRadius: '50%', display: 'inline-block', marginRight: '6px' },
+    errorDot: { width: '6px', height: '6px', backgroundColor: '#E50914', borderRadius: '50%', display: 'inline-block', marginRight: '6px' },
+    btn: { width: '100%', padding: '18px', backgroundColor: isHovered ? '#E50914' : '#FFF', color: isHovered ? '#FFF' : '#000', border: 'none', fontFamily: 'Inter, sans-serif', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: 'all 0.3s ease', boxShadow: isHovered ? '0 0 25px rgba(229,9,20,0.35)' : 'none', borderRadius: '8px' },
+    errorBox: { width: '100%', padding: '20px', backgroundColor: 'rgba(229, 9, 20, 0.06)', border: '1px solid rgba(229, 9, 20, 0.3)', color: '#E50914', fontFamily: 'Inter', fontSize: '11px', lineHeight: '1.6', letterSpacing: '1px', textTransform: 'uppercase' as const, display: 'flex', flexDirection: 'column' as const, gap: '10px', alignItems: 'center', textAlign: 'center' as const, borderRadius: '8px' },
+    footer: { marginTop: '30px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontFamily: 'Inter', color: '#444', textTransform: 'uppercase' as const, letterSpacing: '1px' },
+    backBtn: { position: 'absolute' as const, top: '30px', left: '30px', zIndex: 50, display: 'flex', alignItems: 'center', gap: '8px', color: '#666', textDecoration: 'none', fontSize: '11px', fontFamily: 'Inter', fontWeight: 600, letterSpacing: '1px', transition: 'color 0.2s' },
+    // SSO styles
+    ssoToggle: { width: '100%', padding: '12px', backgroundColor: 'transparent', border: 'none', color: '#666', fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, cursor: 'pointer', textAlign: 'center' as const, marginTop: '12px', transition: 'color 0.2s ease' },
+    ssoInput: { width: '100%', padding: '16px 18px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#EDEDED', fontFamily: 'Inter, sans-serif', fontSize: '13px', outline: 'none', marginBottom: '12px', transition: 'border-color 0.2s ease', boxSizing: 'border-box' as const },
+    fadeIn: { animation: 'fadeSlideIn 0.3s ease-out' }
   };
 
   return (
@@ -234,14 +265,14 @@ export default function LoginPage() {
                   <div>Please tap <strong>...</strong> and select <strong>Open in Browser</strong>.</div>
                 </div>
               ) : isSSOView ? (
-                <div key="sso" className="animate-[fadeSlideIn_0.3s_ease-out]">
+                <div key="sso" style={styles.fadeIn}>
                   <input
                     type="text"
                     value={ssoInput}
                     onChange={(e) => setSsoInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSSOContinue()}
                     placeholder="name@company.com or workspace-slug"
-                    className="w-full py-4 px-[18px] bg-[#111] border border-[#333] rounded-lg text-[#EDEDED] text-[13px] outline-none mb-3 transition-colors focus:border-red-600 box-border"
+                    style={styles.ssoInput}
                     autoFocus
                   />
                   <button
@@ -249,24 +280,19 @@ export default function LoginPage() {
                     disabled={ssoLoading}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
-                    className="w-full py-4 sm:py-[18px] rounded-lg text-xs font-bold tracking-[2px] uppercase flex items-center justify-center gap-2.5 transition-all cursor-pointer border-none disabled:opacity-70"
-                    style={{
-                      backgroundColor: isHovered ? '#E50914' : '#FFF',
-                      color: isHovered ? '#FFF' : '#000',
-                      boxShadow: isHovered ? '0 0 25px rgba(229,9,20,0.35)' : 'none'
-                    }}
+                    style={{ ...styles.btn, opacity: ssoLoading ? 0.7 : 1 }}
                   >
                     {ssoLoading ? <><Activity size={16} className="animate-spin" /> RESOLVING...</> : <> CONTINUE <ArrowRight size={16} strokeWidth={3} /> </>}
                   </button>
                   <button
                     onClick={() => { setIsSSOView(false); setSsoInput(''); setSsoPayload(null); }}
-                    className="w-full py-3 bg-transparent border-none text-[#666] text-[10px] font-semibold tracking-[1.5px] uppercase cursor-pointer text-center mt-3 transition-colors hover:text-white"
+                    style={styles.ssoToggle}
                   >
                     ← Back to standard login
                   </button>
                 </div>
               ) : (
-                <div key="standard" className="animate-[fadeSlideIn_0.3s_ease-out]">
+                <div key="standard" style={styles.fadeIn}>
                   <button
                     onClick={handleGoogleLogin}
                     disabled={isLoading}
@@ -283,7 +309,7 @@ export default function LoginPage() {
                   </button>
                   <button
                     onClick={() => setIsSSOView(true)}
-                    className="w-full py-3 bg-transparent border-none text-[#666] text-[10px] font-semibold tracking-[1.5px] uppercase cursor-pointer text-center mt-3 transition-colors hover:text-white"
+                    style={styles.ssoToggle}
                   >
                     Organization Login
                   </button>
@@ -305,8 +331,7 @@ export default function LoginPage() {
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         .animate-pulse { animation: pulse 2s infinite; }
         .animate-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } } @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </div>
   );
