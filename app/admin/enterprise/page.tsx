@@ -16,13 +16,15 @@ interface EnterpriseOnboardResponse {
 
 // --- Email Template Generator ---
 function generateEmailBody(orgName: string): string {
+    const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "motionx-studio.firebaseapp.com";
+
     return `Hi IT Team,
 
 We are setting up the enterprise workspace for ${orgName} and need to configure your Single Sign-On (SSO) integration. We natively support Microsoft Entra ID, Okta, and Google Workspace (SAML 2.0 or OIDC).
 
 To register MotionX Studio in your identity provider, please use our Service Provider details:
-• Redirect URI / ACS URL: https://motionx-studio.firebaseapp.com/__/auth/handler
-• SP Entity ID: https://motionx-studio.firebaseapp.com
+• Redirect URI / ACS URL: https://${authDomain}/__/auth/handler
+• SP Entity ID: https://${authDomain}
 
 Please reply with your Identity Provider credentials (SAML metadata or OIDC Issuer/Client ID).`;
 }
