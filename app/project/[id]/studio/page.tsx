@@ -552,7 +552,7 @@ export default function StudioPage() {
             formData.append("project_id", projectId);
             formData.append("script_title", activeEp.title || project?.title || "Untitled");
             formData.append("episode_id", activeEpisodeId);
-            if (activeEp.runtime) formData.append("runtime", String(activeEp.runtime));
+            if (activeEp.runtime) formData.append("runtime_seconds", String(activeEp.runtime));
 
             // Re-send the existing script as a text file
             const blob = new Blob([activeEp.script_preview], { type: "text/plain" });

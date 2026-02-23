@@ -67,7 +67,8 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 }) => {
     // --- STATE ---
     const [title, setTitle] = useState("");
-    const [runtime, setRuntime] = useState<string | number>("");
+    const [runtime, setRuntime] = useState<string | number>(""); // always stored as seconds
+    const [runtimeUnit, setRuntimeUnit] = useState<'sec' | 'min'>('sec');
 
     // Input Methods State
     const [activeTab, setActiveTab] = useState<InputMethod>('ai');
@@ -201,7 +202,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         formData.append("script_title", title || projectTitle);
 
         if (runtime) {
-            formData.append("runtime", String(runtime));
+            formData.append("runtime_seconds", String(runtime));
         }
 
         if (episodeId && episodeId !== "new_placeholder") {
@@ -482,32 +483,69 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     </div>
 
                     {/* RUNTIME INPUT */}
-                    <div className="w-[160px]">
+                    <div className="w-auto min-w-[160px]">
                         <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                             Runtime
                             {!runtime && (
                                 <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30">REQUIRED</span>
                             )}
                         </label>
+                        {/* Preset chips */}
+                        <div className="flex flex-wrap gap-1.5 mb-2.5">
+                            {[
+                                { label: "15s", val: 15 },
+                                { label: "30s", val: 30 },
+                                { label: "60s", val: 60 },
+                                { label: "2m", val: 120 },
+                                { label: "5m", val: 300 },
+                                { label: "10m", val: 600 },
+                            ].map(p => (
+                                <button
+                                    key={p.val}
+                                    type="button"
+                                    disabled={isUploading}
+                                    onClick={() => { setRuntime(p.val); setRuntimeUnit(p.val >= 120 ? 'min' : 'sec'); setRuntimeError(false); }}
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wide border transition-all cursor-pointer
+                                        ${Number(runtime) === p.val
+                                            ? 'bg-[#E50914]/20 border-[#E50914]/60 text-white'
+                                            : 'bg-white/[0.04] border-white/[0.08] text-neutral-500 hover:border-white/20 hover:text-neutral-300'
+                                        }
+                                    `}
+                                >
+                                    {p.label}
+                                </button>
+                            ))}
+                        </div>
                         <div className="relative">
                             <input
                                 type="number"
                                 min="1"
-                                className={`w-full bg-transparent border-b py-2 text-xl font-mono text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors
+                                step={runtimeUnit === 'min' ? '0.5' : '1'}
+                                className={`w-full bg-transparent border-b py-2 text-xl font-mono text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors pr-16
                                     ${runtimeError ? 'border-red-500/50 text-red-100' : 'border-neutral-700'}
                                 `}
-                                placeholder="mins"
-                                value={runtime}
+                                placeholder={runtimeUnit === 'min' ? 'minutes' : 'seconds'}
+                                value={runtimeUnit === 'min' ? (runtime ? (Number(runtime) / 60) : '') : runtime}
                                 onChange={(e) => {
-                                    const val = parseFloat(e.target.value);
-                                    if (!isNaN(val) && val < 0) return; // Prevent negative
-                                    setRuntime(e.target.value);
-                                    if (e.target.value) setRuntimeError(false);
+                                    const raw = e.target.value;
+                                    if (raw === '') { setRuntime(''); return; }
+                                    const val = parseFloat(raw);
+                                    if (isNaN(val) || val < 0) return;
+                                    // Convert to seconds internally
+                                    const secs = runtimeUnit === 'min' ? Math.round(val * 60) : val;
+                                    setRuntime(secs);
+                                    setRuntimeError(false);
                                 }}
                                 disabled={isUploading}
                             />
-                            {runtimeError && <AlertCircle className="absolute right-0 top-3 text-red-500 animate-pulse" size={14} />}
-                            <span className="absolute top-3 text-[10px] text-neutral-600 font-mono pointer-events-none right-6">MINS</span>
+                            {runtimeError && <AlertCircle className="absolute right-14 top-3 text-red-500 animate-pulse" size={14} />}
+                            <button
+                                type="button"
+                                onClick={() => setRuntimeUnit(prev => prev === 'sec' ? 'min' : 'sec')}
+                                className="absolute right-0 top-1.5 px-2 py-1 text-[10px] font-bold font-mono uppercase tracking-wider rounded border border-white/10 hover:border-white/30 text-neutral-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] transition-all cursor-pointer"
+                            >
+                                {runtimeUnit === 'sec' ? 'SEC' : 'MIN'}
+                            </button>
                         </div>
                     </div>
                 </div>
