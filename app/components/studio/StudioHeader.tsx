@@ -89,10 +89,6 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                         <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
                         <span className="text-[10px] font-bold tracking-[0.2em] uppercase">Dashboard</span>
                     </Link>
-
-                    <h1 style={{ fontFamily: 'Anton, sans-serif', fontSize: '28px', letterSpacing: '1px', color: '#fff', textTransform: 'uppercase', margin: 0, lineHeight: 1 }}>
-                        STUDIO
-                    </h1>
                 </div>
 
                 {/* --- RIGHT: PROJECT SWITCHER + NAV + CREDITS --- */}
@@ -209,12 +205,21 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                 >
                                     <Palette size={14} /> Moodboard
                                 </Link>
-                                <Link
-                                    href={`/project/${projectId}/assets`}
-                                    className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md no-underline"
-                                >
-                                    <Database size={14} /> Assets
-                                </Link>
+                                {onOpenAssets ? (
+                                    <button
+                                        onClick={onOpenAssets}
+                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md cursor-pointer"
+                                    >
+                                        <Database size={14} /> Assets
+                                    </button>
+                                ) : (
+                                    <Link
+                                        href={`/project/${projectId}/assets`}
+                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md no-underline"
+                                    >
+                                        <Database size={14} /> Assets
+                                    </Link>
+                                )}
                                 <Link
                                     href={`/project/${projectId}/treatment`}
                                     className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md no-underline cursor-pointer"
