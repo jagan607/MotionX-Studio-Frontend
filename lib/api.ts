@@ -338,3 +338,58 @@ export const upscaleShot = async (projectId: string, episodeId: string, sceneId:
     });
     return res.data;
 };
+
+// --- 11. UGC PIPELINE ---
+
+export const generateUGC = async (params: {
+    project_id: string;
+    episode_id: string;
+    video_provider?: string;
+    video_duration?: string;
+    video_mode?: string;
+    aspect_ratio?: string;
+    image_provider?: string;
+    style?: string;
+}) => {
+    const res = await api.post("/api/v1/ugc/generate", params);
+    return res.data;
+};
+
+export const animateShot = async (params: {
+    project_id: string;
+    episode_id: string;
+    scene_id: string;
+    shot_id: string;
+    image_url: string;
+    prompt?: string;
+    provider?: string;
+    duration?: string;
+    mode?: string;
+    aspect_ratio?: string;
+}) => {
+    const res = await api.post("/api/v1/shot/animate_shot", params);
+    return res.data;
+};
+
+export const fetchMusicLibrary = async () => {
+    const res = await api.get("/api/v1/ugc/music-library");
+    return res.data.tracks as {
+        id: string;
+        name: string;
+        description: string;
+        bpm: number;
+        mood: string;
+    }[];
+};
+
+export const exportUGC = async (params: {
+    project_id: string;
+    episode_id: string;
+    music_track: string;
+    music_volume: number;
+    transition_duration: number;
+    transition_type: "crossfade" | "fade_black" | "cut";
+}) => {
+    const res = await api.post("/api/v1/ugc/export", params);
+    return res.data;
+};

@@ -15,7 +15,7 @@ import { ContextReference } from "@/app/components/script/ContextSelectorModal";
 interface InputDeckProps {
     projectId: string;
     projectTitle: string;
-    projectType: "movie" | "micro_drama" | "ad";
+    projectType: "movie" | "micro_drama" | "ad" | "ugc";
     episodeId?: string | null;
 
     initialTitle?: string;
@@ -495,27 +495,26 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                             {[
                                 { label: "15s", val: 15 },
                                 { label: "30s", val: 30 },
+                                { label: "50s", val: 50 },
                                 { label: "60s", val: 60 },
                                 { label: "2m", val: 120 },
                                 { label: "5m", val: 300 },
                                 { label: "10m", val: 600 },
-                            ].map(p => (
+                            ].filter(p => projectType === 'ugc' ? p.val <= 50 : true).map(p => (
                                 <button
                                     key={p.val}
                                     type="button"
                                     disabled={isUploading}
                                     onClick={() => { setRuntime(p.val); setRuntimeUnit(p.val >= 120 ? 'min' : 'sec'); setRuntimeError(false); }}
-                                    className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wide border transition-all cursor-pointer
-                                        ${Number(runtime) === p.val
-                                            ? 'bg-[#E50914]/20 border-[#E50914]/60 text-white'
-                                            : 'bg-white/[0.04] border-white/[0.08] text-neutral-500 hover:border-white/20 hover:text-neutral-300'
-                                        }
-                                    `}
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wide border transition-all cursor-pointer ${Number(runtime) === p.val ? 'bg-[#E50914]/20 border-[#E50914]/60 text-white' : 'bg-white/[0.04] border-white/[0.08] text-neutral-500 hover:border-white/20 hover:text-neutral-300'}`}
                                 >
                                     {p.label}
                                 </button>
                             ))}
                         </div>
+                        {projectType === 'ugc' && (
+                            <p className="text-[9px] text-neutral-500 mb-1">Max 50 seconds for UGC reels</p>
+                        )}
                         <div className="relative">
                             <input
                                 type="number"
@@ -532,7 +531,9 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     const val = parseFloat(raw);
                                     if (isNaN(val) || val < 0) return;
                                     // Convert to seconds internally
-                                    const secs = runtimeUnit === 'min' ? Math.round(val * 60) : val;
+                                    let secs = runtimeUnit === 'min' ? Math.round(val * 60) : val;
+                                    // Cap at 50s for UGC projects
+                                    if (projectType === 'ugc' && secs > 50) secs = 50;
                                     setRuntime(secs);
                                     setRuntimeError(false);
                                 }}

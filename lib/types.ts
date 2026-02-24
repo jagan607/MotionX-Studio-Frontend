@@ -123,11 +123,12 @@ export type Asset = CharacterProfile | LocationProfile | ProductProfile;
 export interface Project {
     id: string;
     title: string;
-    type: 'movie' | 'micro_drama' | 'ad';
+    type: 'movie' | 'micro_drama' | 'ad' | 'ugc';
 
     default_episode_id?: string;
     aspect_ratio?: string;
     genre?: string;
+    ugc_setup?: 'podcast' | 'talking_head' | 'voiceover_broll' | 'tutorial' | 'vlog';
     moodboard?: Moodboard;
     created_at?: any;
     updated_at?: any;

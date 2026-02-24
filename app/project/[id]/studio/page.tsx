@@ -595,11 +595,20 @@ export default function StudioPage() {
         }
     };
 
-    if (loading || !project) {
+    // Redirect UGC projects to the dedicated UGC flow
+    useEffect(() => {
+        if (!loading && project && project.type === 'ugc') {
+            window.location.replace(`/project/${projectId}/ugc`);
+        }
+    }, [loading, project, projectId]);
+
+    if (loading || !project || project.type === 'ugc') {
         return (
             <div className="fixed inset-0 bg-[#050505] flex flex-col items-center justify-center gap-4 text-red-600">
                 <Loader2 className="animate-spin" size={32} />
-                <span className="text-xs tracking-widest text-neutral-600">Loading Studio...</span>
+                <span className="text-xs tracking-widest text-neutral-600">
+                    {project?.type === 'ugc' ? 'Redirecting to UGC Studio...' : 'Loading Studio...'}
+                </span>
             </div>
         );
     }

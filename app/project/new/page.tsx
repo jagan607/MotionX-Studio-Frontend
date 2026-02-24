@@ -10,16 +10,18 @@ import { auth } from "@/lib/firebase";
 import { api, invalidateDashboardCache } from "@/lib/api";
 import {
     ArrowLeft, Film, Tv, ChevronRight, ChevronLeft, Loader2,
-    Megaphone, BrainCircuit, UploadCloud, FileVideo, AlertTriangle
+    Megaphone, BrainCircuit, UploadCloud, FileVideo, AlertTriangle,
+    Mic, User as UserIcon, Camera, BookOpen, Backpack
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-type ProjectType = "movie" | "micro_drama" | "adaptation" | "ad";
+type ProjectType = "movie" | "micro_drama" | "adaptation" | "ad" | "ugc";
 
 const FORMAT_OPTIONS = [
     { id: "movie" as ProjectType, label: "Feature Film", desc: "Full-length cinematic narrative", icon: Film, img: "/img/formats/film.png" },
     { id: "micro_drama" as ProjectType, label: "Micro Series", desc: "Short-form episodic content", icon: Tv, img: "/img/formats/series.png" },
     { id: "ad" as ProjectType, label: "Commercial", desc: "Brand & product advertising", icon: Megaphone, img: "/img/formats/commercial.png" },
+    { id: "ugc" as ProjectType, label: "UGC / Reel", desc: "Social media short-form content", icon: FileVideo, img: "/img/formats/ugc.png" },
 ];
 
 const ASPECT_OPTIONS = [
@@ -32,13 +34,23 @@ const ASPECT_OPTIONS = [
 export default function NewProjectPage() {
     const router = useRouter();
     const [creating, setCreating] = useState(false);
+    type UGCSetup = "podcast" | "talking_head" | "voiceover_broll" | "tutorial" | "vlog";
     const [formData, setFormData] = useState({
         title: "",
         genre: "",
         type: "movie" as ProjectType,
         aspect_ratio: "16:9" as "16:9" | "21:9" | "9:16" | "4:5",
         style: "realistic" as "realistic" | "anime",
+        ugc_setup: "talking_head" as UGCSetup,
     });
+
+    const UGC_SETUP_OPTIONS: { id: UGCSetup; label: string; desc: string; Icon: React.ComponentType<any> }[] = [
+        { id: "podcast", label: "Podcast", desc: "Studio setup", Icon: Mic },
+        { id: "talking_head", label: "Talking Head", desc: "Person to camera", Icon: UserIcon },
+        { id: "voiceover_broll", label: "Faceless", desc: "Voiceover B-roll", Icon: Camera },
+        { id: "tutorial", label: "Tutorial", desc: "Step-by-step", Icon: BookOpen },
+        { id: "vlog", label: "Vlog", desc: "On-location", Icon: Backpack },
+    ];
     const [adaptationFile, setAdaptationFile] = useState<File | null>(null);
     const [isSizeError, setIsSizeError] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -49,7 +61,7 @@ export default function NewProjectPage() {
     }, []);
 
     useEffect(() => {
-        if (formData.type === 'ad') setFormData(prev => ({ ...prev, aspect_ratio: '9:16' }));
+        if (formData.type === 'ad' || formData.type === 'ugc') setFormData(prev => ({ ...prev, aspect_ratio: '9:16' }));
         else if (formData.type === 'movie') setFormData(prev => ({ ...prev, aspect_ratio: '16:9' }));
     }, [formData.type]);
 
@@ -69,10 +81,12 @@ export default function NewProjectPage() {
                 return;
             }
             if (!formData.genre) { setCreating(false); return toast.error("Please describe the genre and tone"); }
-            const res = await api.post("/api/v1/project/create", {
+            const payload: any = {
                 title: formData.title, genre: formData.genre,
                 type: formData.type, aspect_ratio: formData.aspect_ratio, style: formData.style,
-            });
+            };
+            if (formData.type === 'ugc') payload.ugc_setup = formData.ugc_setup;
+            const res = await api.post("/api/v1/project/create", payload);
             if (auth.currentUser) invalidateDashboardCache(auth.currentUser.uid);
             router.push(`/project/${res.data.id}/script`);
         } catch (e: any) {
@@ -187,6 +201,25 @@ export default function NewProjectPage() {
                                 </div>
                             </div>
 
+                            {/* ── UGC SETUP (only for UGC type) ── */}
+                            {formData.type === 'ugc' && (
+                                <div className="space-y-1.5 fade-up-2">
+                                    <label className="text-[9px] font-semibold tracking-[3px] uppercase text-neutral-500">Content Format</label>
+                                    <div className="grid grid-cols-5 gap-1.5">
+                                        {UGC_SETUP_OPTIONS.map(opt => {
+                                            const active = formData.ugc_setup === opt.id;
+                                            return (
+                                                <button key={opt.id} onClick={() => setFormData({ ...formData, ugc_setup: opt.id })} className={`py-2.5 px-1 rounded-lg border transition-all duration-200 cursor-pointer text-center ${active ? 'border-[#E50914]/50 bg-[#E50914]/[0.08]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]'}`}>
+                                                    <opt.Icon size={16} className={`mx-auto mb-1 ${active ? 'text-[#E50914]' : 'text-neutral-600'}`} />
+                                                    <div className={`text-[9px] font-bold ${active ? 'text-white' : 'text-neutral-500'}`}>{opt.label}</div>
+                                                    <div className={`text-[7px] uppercase tracking-wider ${active ? 'text-[#E50914]/60' : 'text-neutral-700'}`}>{opt.desc}</div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* ── LOGLINE ── */}
                             <div className="space-y-1.5 fade-up-3">
                                 <label className="text-[9px] font-semibold tracking-[3px] uppercase text-neutral-500">
@@ -196,9 +229,11 @@ export default function NewProjectPage() {
                                     value={formData.genre}
                                     onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
                                     className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-4 py-3 text-[12px] text-neutral-300 placeholder-neutral-700 focus:outline-none focus:border-[#E50914]/50 transition-all resize-none h-20 leading-relaxed"
-                                    placeholder={formData.type === 'ad'
-                                        ? "High-energy sports drink commercial, neon lights..."
-                                        : "A sci-fi thriller in 2089. Dark, cyberpunk tone..."}
+                                    placeholder={formData.type === 'ugc'
+                                        ? "Crypto education reel, energetic and informative..."
+                                        : formData.type === 'ad'
+                                            ? "High-energy sports drink commercial, neon lights..."
+                                            : "A sci-fi thriller in 2089. Dark, cyberpunk tone..."}
                                 />
                             </div>
                         </>
