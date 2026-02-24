@@ -663,13 +663,13 @@ export default function TreatmentPage() {
                                         {/* Images */}
                                         <SectionMedia images={images} sectionKey={key} accent={accent} isFirstWithImage={isFirstImage} />
 
-                                        {/* PROJECT ASSETS: Cast */}
-                                        {key === "cast" && castMembers.length > 0 && (
+                                        {/* PROJECT ASSETS: Cast (only if section_images doesn't already have them) */}
+                                        {key === "cast" && castMembers.length > 0 && (!images || images.length === 0) && (
                                             <PortraitGrid items={castMembers} accent={accent} />
                                         )}
 
-                                        {/* PROJECT ASSETS: Locations */}
-                                        {key === "locations" && locationAssets.length > 0 && (
+                                        {/* PROJECT ASSETS: Locations (only if section_images doesn't already have them) */}
+                                        {key === "locations" && locationAssets.length > 0 && (!images || images.length === 0) && (
                                             <PortraitGrid items={locationAssets} accent={accent} />
                                         )}
 
