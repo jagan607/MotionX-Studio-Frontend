@@ -174,7 +174,7 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
     const currentScenes = activeEpisodeId ? sceneCache[activeEpisodeId] : null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
 
             {/* MAIN CONTAINER */}
             <div className="w-[900px] h-[600px] bg-[#050505] border border-[#222] flex flex-col shadow-2xl shadow-black relative overflow-hidden">

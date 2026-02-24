@@ -593,6 +593,34 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                     </div>
                 )}
 
+                {/* --- CONTEXT CTA (shared across all tabs) --- */}
+                {onOpenContextModal && episodes && episodes.some((ep: any) => ep.script_preview) && (
+                    <div className="flex items-center justify-end gap-2 mb-2">
+                        {contextReferences.length > 0 && (
+                            <div className="flex items-center gap-1">
+                                {contextReferences.slice(0, 2).map(ref => (
+                                    <span key={ref.id} className="text-[8px] font-mono bg-blue-900/30 text-blue-200 px-1.5 py-0.5 rounded border border-blue-500/20">
+                                        {ref.sourceLabel}
+                                    </span>
+                                ))}
+                                {contextReferences.length > 2 && (
+                                    <span className="text-[8px] font-mono bg-blue-900/30 text-blue-200 px-1.5 py-0.5 rounded border border-blue-500/20">
+                                        +{contextReferences.length - 2}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                        <button
+                            onClick={onOpenContextModal}
+                            className="flex items-center gap-1.5 text-[9px] font-bold text-blue-400 hover:text-white bg-blue-950/40 hover:bg-blue-900/60 pl-2 pr-2.5 py-1 rounded-full border border-blue-900/30 transition-all uppercase"
+                            title="Configure AI Context Memory"
+                        >
+                            <Database size={10} />
+                            {contextReferences.length > 0 ? `Edit Context (${contextReferences.length})` : "Add Context"}
+                        </button>
+                    </div>
+                )}
+
                 {/* --- 2. INPUT TABS --- */}
                 {renderTabs()}
 
@@ -629,12 +657,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 <span className="text-[10px] text-neutral-400">
                                     Describe your story, characters, and setting. Our AI will generate a formatted screenplay.
                                 </span>
-                                {contextReferences.length > 0 && (
-                                    <div className="flex items-center gap-1 text-[9px] font-bold text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded border border-blue-900/50">
-                                        <Database size={10} />
-                                        {contextReferences.length} ACTIVE
-                                    </div>
-                                )}
                             </div>
                             <div className="relative h-[240px]">
                                 <textarea
@@ -646,34 +668,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     onChange={(e) => setSynopsisText(e.target.value)}
                                     disabled={isUploading}
                                 />
-
-                                {/* NEW CONTEXT MATRIX LOCATION - FLOATING ACTION */}
-                                {onOpenContextModal && (
-                                    <div className="absolute top-3 right-3 flex items-center gap-2">
-                                        {contextReferences.length > 0 && (
-                                            <div className="flex items-center gap-1">
-                                                {contextReferences.slice(0, 2).map(ref => (
-                                                    <span key={ref.id} className="text-[8px] font-mono bg-blue-900/30 text-blue-200 px-1.5 py-0.5 rounded border border-blue-500/20 backdrop-blur-sm">
-                                                        {ref.sourceLabel}
-                                                    </span>
-                                                ))}
-                                                {contextReferences.length > 2 && (
-                                                    <span className="text-[8px] font-mono bg-blue-900/30 text-blue-200 px-1.5 py-0.5 rounded border border-blue-500/20 backdrop-blur-sm">
-                                                        +{contextReferences.length - 2}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
-                                        <button
-                                            onClick={onOpenContextModal}
-                                            className="flex items-center gap-1.5 text-[9px] font-bold text-blue-400 hover:text-white bg-black/60 hover:bg-blue-900/60 pl-2 pr-2.5 py-1 rounded-full border border-blue-900/30 transition-all backdrop-blur-sm uppercase shadow-lg"
-                                            title="Configure AI Context Memory"
-                                        >
-                                            <Database size={10} />
-                                            {contextReferences.length > 0 ? "Edit Context" : "Add Context"}
-                                        </button>
-                                    </div>
-                                )}
                                 {/* Subtle branding */}
                                 <div className="absolute bottom-3 right-3 flex items-center gap-2 text-[9px] font-mono text-neutral-700">
                                     <Cpu size={10} /> AI_ENGINE_READY
