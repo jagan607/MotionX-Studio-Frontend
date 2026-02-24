@@ -108,7 +108,7 @@ export default function EnterprisePage() {
                     organization_name: orgName.trim(),
                     workspace_slug: slug.trim(),
                     allowed_domains: domainList,
-                    ...(adminEmail.trim() && { admin_email: adminEmail.trim() }),
+                    ...(adminEmail.trim() && { initial_admin_email: adminEmail.trim() }),
                 }),
             });
 
