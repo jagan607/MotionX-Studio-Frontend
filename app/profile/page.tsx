@@ -12,6 +12,7 @@ import toast from "react-hot-toast";
 import ProfileHeader from "./components/ProfileHeader";
 import SubscriptionTab from "./components/SubscriptionTab";
 import SettingsTab from "./components/SettingsTab";
+import OrganizationTab from "./components/OrganizationTab";
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -19,8 +20,9 @@ export default function ProfilePage() {
 
     // --- STATE ---
     const [user, setUser] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<"subscription" | "settings">("subscription");
+    const [activeTab, setActiveTab] = useState<"subscription" | "settings" | "organization">("subscription");
     const [loading, setLoading] = useState(true);
+    const [isEnterprise, setIsEnterprise] = useState(false);
 
     // Form State
     const [displayName, setDisplayName] = useState("");
@@ -32,6 +34,7 @@ export default function ProfilePage() {
             if (u) {
                 setUser(u);
                 setDisplayName(u.displayName || "");
+                setIsEnterprise(!!u.tenantId);
                 setLoading(false);
             } else {
                 router.push("/login");
@@ -83,11 +86,14 @@ export default function ProfilePage() {
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                     handleLogout={handleLogout}
+                    showOrgTab={isEnterprise}
                 />
 
                 {/* CONTENT AREA */}
                 {activeTab === "subscription" ? (
                     <SubscriptionTab credits={credits} />
+                ) : activeTab === "organization" ? (
+                    <OrganizationTab />
                 ) : (
                     <SettingsTab
                         user={user}

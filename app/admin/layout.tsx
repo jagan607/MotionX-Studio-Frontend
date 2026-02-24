@@ -22,20 +22,28 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
     try {
         // 2. Verify Session & Email
-        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+        // Skip revocation check in dev (avoids 25s network timeout to Google)
+        const checkRevocation = process.env.NODE_ENV === 'production';
+
+        const verifyPromise = adminAuth.verifySessionCookie(sessionCookie, checkRevocation);
+
+        // Fail fast with a 5-second timeout instead of hanging for 30s
+        const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Session verification timeout (5s)")), 5000)
+        );
+
+        const decodedClaims = await Promise.race([verifyPromise, timeoutPromise]);
 
         console.log("------------------------------------------------");
         console.log("🔍 Admin Access Attempt:");
         console.log("📧 Email Detected:", decodedClaims.email);
         console.log("✅ Is Allowed?", ALLOWED_ADMINS.includes(decodedClaims.email || ''));
         console.log("------------------------------------------------");
-        // ------------------------------------------------
 
         if (!decodedClaims.email || !ALLOWED_ADMINS.includes(decodedClaims.email)) {
             throw new Error("Unauthorized Access");
         }
     } catch (error) {
-        // If invalid, redirect to home (or show a 403 page)
         console.log("⛔ Access Denied:", error);
         redirect('/');
     }

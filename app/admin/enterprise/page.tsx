@@ -37,6 +37,7 @@ export default function EnterprisePage() {
     const [orgName, setOrgName] = useState("");
     const [slug, setSlug] = useState("");
     const [domains, setDomains] = useState("");
+    const [adminEmail, setAdminEmail] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [provisionedData, setProvisionedData] = useState<EnterpriseOnboardResponse | null>(null);
 
@@ -87,6 +88,11 @@ export default function EnterprisePage() {
             return;
         }
 
+        if (adminEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail.trim())) {
+            toast.error("Invalid admin email format");
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -102,6 +108,7 @@ export default function EnterprisePage() {
                     organization_name: orgName.trim(),
                     workspace_slug: slug.trim(),
                     allowed_domains: domainList,
+                    ...(adminEmail.trim() && { admin_email: adminEmail.trim() }),
                 }),
             });
 
@@ -136,6 +143,7 @@ export default function EnterprisePage() {
         setOrgName("");
         setSlug("");
         setDomains("");
+        setAdminEmail("");
     };
 
     const handleCopyEmail = async () => {
@@ -321,6 +329,24 @@ export default function EnterprisePage() {
                             <p className="text-[8px] text-[#444] pt-1 flex items-center gap-1">
                                 <Info size={10} className="shrink-0" />
                                 Separate multiple domains with a comma. Users with matching email domains will be routed to this workspace.
+                            </p>
+                        </div>
+
+                        {/* Initial Admin Email */}
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-mono uppercase text-[#666] tracking-widest">
+                                Initial Admin Email <span className="text-[#444]">(Optional)</span>
+                            </label>
+                            <input
+                                type="email"
+                                value={adminEmail}
+                                onChange={(e) => setAdminEmail(e.target.value)}
+                                placeholder="admin@pocketfm.com"
+                                className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors"
+                            />
+                            <p className="text-[8px] text-[#444] pt-1 flex items-center gap-1">
+                                <Info size={10} className="shrink-0" />
+                                This user will be seeded as the first Org Admin and can manage team settings.
                             </p>
                         </div>
 
