@@ -21,6 +21,10 @@ export default function LoginPage() {
   const [ssoLoading, setSsoLoading] = useState(false);
   const [ssoPayload, setSsoPayload] = useState<{ type: 'email' | 'workspace_slug'; value: string } | null>(null);
 
+  // Home Realm Discovery
+  const [hrdInput, setHrdInput] = useState("");
+  const [isResolving, setIsResolving] = useState(false);
+
   // 1. DETECT IN-APP BROWSERS
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -177,6 +181,72 @@ export default function LoginPage() {
     }
   };
 
+  // ── Home Realm Discovery: resolve tenant → auto-route ──
+  const handleHRDResolve = async () => {
+    const identifier = hrdInput.trim();
+    if (!identifier) { toast.error("Please enter your email or workspace slug"); return; }
+    setIsResolving(true);
+    try {
+      const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${BACKEND_URL}/api/auth/resolve-tenant?identifier=${encodeURIComponent(identifier)}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        const message = typeof errData?.detail === "string" ? errData.detail : "Workspace not found. Please check your email or slug.";
+        toast.error(message);
+        setIsResolving(false);
+        return;
+      }
+      const data = await res.json();
+      const ssoProvider = (data.sso_provider || "").toLowerCase();
+
+      // If response includes tenant_id, set it on auth
+      if (data.tenant_id) { auth.tenantId = data.tenant_id; }
+
+      // Auto-route to the correct provider
+      let provider;
+      if (ssoProvider === "google" || ssoProvider === "google.com") {
+        provider = new GoogleAuthProvider();
+      } else if (ssoProvider === "microsoft" || ssoProvider === "microsoft.com") {
+        provider = new OAuthProvider('microsoft.com');
+        provider.setCustomParameters({ prompt: 'select_account' });
+      } else if (ssoProvider === "okta" || ssoProvider.startsWith("oidc.")) {
+        provider = new OAuthProvider(ssoProvider.startsWith("oidc.") ? ssoProvider : 'oidc.okta');
+      } else if (ssoProvider.startsWith("saml.")) {
+        provider = new SAMLAuthProvider(ssoProvider);
+      } else {
+        toast.error(`Unsupported provider: ${ssoProvider}. Contact your admin.`);
+        setIsResolving(false);
+        return;
+      }
+
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          uid: user.uid, email: user.email, displayName: user.displayName,
+          photoURL: user.photoURL, credits: 10, plan: "free", createdAt: serverTimestamp()
+        });
+      }
+      const idToken = await user.getIdToken();
+      const loginRes = await fetch("/api/auth/login", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      if (loginRes.ok) { router.push("/dashboard"); }
+      else { toast.error("Session creation failed."); setIsResolving(false); }
+    } catch (error: any) {
+      console.error("HRD resolve/login failed:", error);
+      if (error?.code === 'auth/operation-not-allowed') {
+        toast.error("SSO configuration pending for this provider. Contact your admin.");
+      } else {
+        toast.error("Authentication failed. Please try again.");
+      }
+      setIsResolving(false);
+    }
+  };
+
   const styles = {
     container: { display: 'flex', height: '100vh', width: '100vw', backgroundColor: '#050505', color: '#EDEDED', fontFamily: 'Inter, sans-serif', overflow: 'hidden' },
     leftPanel: { flex: '1.5', position: 'relative' as const, backgroundColor: '#000', borderRight: '1px solid #222', display: 'flex', flexDirection: 'column' as const, justifyContent: 'space-between', overflow: 'hidden' },
@@ -285,33 +355,47 @@ export default function LoginPage() {
                   <div>Please tap <strong>...</strong> and select <strong>Open in Browser</strong>.</div>
                 </div>
               ) : isSSOView ? (
-                <div key="sso" style={styles.fadeIn}>
-                  <input
-                    type="text"
-                    value={ssoInput}
-                    onChange={(e) => setSsoInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSSOContinue()}
-                    placeholder="name@company.com or workspace-slug"
-                    style={styles.ssoInput}
-                    autoFocus
-                  />
-                  <button
-                    onClick={handleSSOContinue}
-                    disabled={ssoLoading}
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                    style={{ ...styles.btn, opacity: ssoLoading ? 0.7 : 1 }}
-                  >
-                    {ssoLoading ? <><Activity size={16} className="animate-spin" /> RESOLVING...</> : <> CONTINUE <ArrowRight size={16} strokeWidth={3} /> </>}
-                  </button>
-                  <button
-                    onClick={() => { setIsSSOView(false); setSsoInput(''); setSsoPayload(null); }}
-                    style={styles.ssoToggle}
-                  >
+                /* ════════ ORGANIZATION LOGIN VIEW ════════ */
+                <div key="sso" style={styles.fadeIn} className="space-y-3">
+                  {/* HRD Form */}
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={hrdInput}
+                      onChange={(e) => setHrdInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleHRDResolve()}
+                      placeholder="name@company.com or workspace slug"
+                      disabled={isResolving}
+                      className="w-full px-4 py-3.5 bg-[#111] border border-[#333] rounded-lg text-[13px] text-white font-sans placeholder-[#555] outline-none focus:border-[#E50914] transition-colors disabled:opacity-60"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleHRDResolve}
+                      disabled={isResolving || isLoading}
+                      onMouseEnter={() => setIsHovered(true)}
+                      onMouseLeave={() => setIsHovered(false)}
+                      className="w-full py-4 rounded-lg text-[11px] font-bold tracking-[2px] uppercase flex items-center justify-center gap-2.5 transition-all cursor-pointer border border-white/10 disabled:opacity-60"
+                      style={{
+                        backgroundColor: isHovered && !isResolving ? '#E50914' : '#FFF',
+                        color: isHovered && !isResolving ? '#FFF' : '#000',
+                        boxShadow: isHovered && !isResolving ? '0 0 25px rgba(229,9,20,0.35)' : 'none'
+                      }}
+                    >
+                      {isResolving ? (
+                        <><Activity size={14} className="animate-spin" /> Locating Workspace...</>
+                      ) : (
+                        <><ArrowRight size={14} strokeWidth={3} /> Continue</>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Back link */}
+                  <button onClick={() => { setIsSSOView(false); setHrdInput(''); }} className="w-full pt-2 text-center text-[9px] font-semibold tracking-[1.5px] uppercase text-[#555] hover:text-white transition-colors cursor-pointer bg-transparent border-none">
                     ← Back to standard login
                   </button>
                 </div>
               ) : (
+                /* ════════ DEFAULT B2C LOGIN VIEW ════════ */
                 <div key="standard" style={styles.fadeIn}>
                   <button
                     onClick={handleGoogleLogin}
@@ -327,11 +411,8 @@ export default function LoginPage() {
                   >
                     {isLoading ? <><Activity size={16} className="animate-spin" /> SIGNING IN...</> : <> CONTINUE WITH GOOGLE <ArrowRight size={16} strokeWidth={3} /></>}
                   </button>
-                  <button
-                    onClick={() => setIsSSOView(true)}
-                    style={styles.ssoToggle}
-                  >
-                    Organization Login
+                  <button onClick={() => setIsSSOView(true)} style={styles.ssoToggle}>
+                    Organization Login →
                   </button>
                 </div>
               )}
