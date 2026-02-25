@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ShieldCheck, Building, RefreshCw, Activity, X, Info, Mail, Copy } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { auth } from "@/lib/firebase";
+import { API_BASE_URL } from "@/lib/config";
 
 interface Organization {
     organization_name: string;
@@ -68,7 +69,7 @@ export default function ConfigurePage() {
         setIsLoading(true);
         setError("");
         try {
-            const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const BACKEND_URL = API_BASE_URL;
             const token = await auth.currentUser?.getIdToken();
             const res = await fetch(`${BACKEND_URL}/api/admin/organizations`, {
                 headers: { "Authorization": `Bearer ${token}` },
@@ -140,7 +141,7 @@ export default function ConfigurePage() {
 
         setIsSubmitting(true);
         try {
-            const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const BACKEND_URL = API_BASE_URL;
             const token = await auth.currentUser?.getIdToken();
             const res = await fetch(`${BACKEND_URL}/api/admin/configure-idp`, {
                 method: "POST",

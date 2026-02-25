@@ -10,6 +10,7 @@ import { Loader2, Plus, Film, Radio, Image as ImageIcon, Crosshair, Maximize, Pl
 import ShareProjectModal from "@/components/ShareProjectModal";
 import { collection as fsCollection, query as fsQuery, where as fsWhere, limit as fsLimit, onSnapshot as fsOnSnapshot } from "firebase/firestore";
 import { DashboardProject, fetchUserDashboardProjects, fetchGlobalFeed, invalidateDashboardCache, fetchUserProjectsBasic, enrichProjectPreview } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/config";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { TourOverlay } from "@/components/tour/TourOverlay";
 import { useTour } from "@/hooks/useTour";
@@ -49,7 +50,7 @@ export default function Dashboard() {
     const creditsUnsubRef = useRef<(() => void) | null>(null);
     const projectTypeUnsubRef = useRef<(() => void) | null>(null);
     const orgUnsubRef = useRef<(() => void) | null>(null);
-    const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const BACKEND_URL = API_BASE_URL;
 
     // Derive isOrgAdmin and isOrgAccount from Firestore org data
     useEffect(() => {
@@ -809,7 +810,7 @@ export default function Dashboard() {
                     projectTitle={shareProject.title}
                     currentTeamIds={shareProject.team_ids || []}
                     currentIsGlobal={shareProject.is_global || false}
-                    backendUrl={BACKEND_URL}
+
                     onClose={() => setShareProject(null)}
                     onSuccess={() => {
                         if (auth.currentUser) {

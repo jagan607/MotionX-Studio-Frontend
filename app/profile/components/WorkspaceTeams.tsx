@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/config";
+
 import { useState, useEffect, useMemo } from "react";
 import { Loader2, Plus, Pencil, Trash2, X, Users, FolderKanban, Check, ChevronDown, ChevronRight, Globe, Film } from "lucide-react";
 import { auth } from "@/lib/firebase";
@@ -31,12 +33,11 @@ interface OrgProject {
 
 interface WorkspaceTeamsProps {
     members: Member[];
-    backendUrl: string;
     projects: OrgProject[];
     refreshProjects: () => void;
 }
 
-export default function WorkspaceTeams({ members, backendUrl, projects, refreshProjects }: WorkspaceTeamsProps) {
+export default function WorkspaceTeams({ members, projects, refreshProjects }: WorkspaceTeamsProps) {
     const [teams, setTeams] = useState<Team[]>([]);
     const [teamsLoading, setTeamsLoading] = useState(false);
     const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
@@ -76,7 +77,7 @@ export default function WorkspaceTeams({ members, backendUrl, projects, refreshP
         setTeamsLoading(true);
         try {
             const token = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${backendUrl}/api/organization/teams`, {
+            const res = await fetch(`${API_BASE_URL}/api/organization/teams`, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
             if (res.ok) {
@@ -140,8 +141,8 @@ export default function WorkspaceTeams({ members, backendUrl, projects, refreshP
 
             const isEdit = !!editingTeam;
             const url = isEdit
-                ? `${backendUrl}/api/organization/teams/${editingTeam!.id}`
-                : `${backendUrl}/api/organization/teams`;
+                ? `${API_BASE_URL}/api/organization/teams/${editingTeam!.id}`
+                : `${API_BASE_URL}/api/organization/teams`;
 
             const res = await fetch(url, {
                 method: isEdit ? "PATCH" : "POST",
@@ -174,7 +175,7 @@ export default function WorkspaceTeams({ members, backendUrl, projects, refreshP
         setDeletingTeamId(team.id);
         try {
             const token = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${backendUrl}/api/organization/teams/${team.id}`, {
+            const res = await fetch(`${API_BASE_URL}/api/organization/teams/${team.id}`, {
                 method: "DELETE",
                 headers: { "Authorization": `Bearer ${token}` },
             });
@@ -202,7 +203,7 @@ export default function WorkspaceTeams({ members, backendUrl, projects, refreshP
                 ? [...currentTeams, teamId]
                 : currentTeams.filter(id => id !== teamId);
 
-            const res = await fetch(`${backendUrl}/api/v1/project/${project.id}/share`, {
+            const res = await fetch(`${API_BASE_URL}/api/v1/project/${project.id}/share`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
