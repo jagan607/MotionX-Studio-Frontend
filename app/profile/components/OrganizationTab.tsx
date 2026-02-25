@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Building, Users, Copy, Shield, RefreshCw, Activity, UserPlus, X, Info, Trash2 } from "lucide-react";
+import { Building, Users, Copy, Shield, RefreshCw, Loader2, UserPlus, X, Info, Trash2, ChevronDown } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, limit, onSnapshot } from "firebase/firestore";
-import { toast } from "react-hot-toast";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 interface OrgData {
     organization_name: string;
@@ -83,10 +83,10 @@ export default function OrganizationTab() {
                 const data = await res.json();
                 setMembers(data.members || []);
             } else {
-                toast.error("Failed to load team roster");
+                toastError("Failed to load team roster");
             }
         } catch {
-            toast.error("Network error loading members");
+            toastError("Network error loading members");
         } finally {
             setMembersLoading(false);
         }
@@ -99,13 +99,13 @@ export default function OrganizationTab() {
     // Invite member handler
     const handleInvite = async () => {
         const email = inviteEmail.trim().toLowerCase();
-        if (!email) { toast.error("Please enter an email"); return; }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error("Invalid email format"); return; }
+        if (!email) { toastError("Please enter an email"); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toastError("Invalid email format"); return; }
 
         // Check domain
         const emailDomain = email.split("@")[1];
         if (!orgData?.allowed_domains?.includes(emailDomain)) {
-            toast.error(`Domain @${emailDomain} is not in the allowed list`);
+            toastError(`Domain @${emailDomain} is not in the allowed list`);
             return;
         }
 
@@ -122,22 +122,17 @@ export default function OrganizationTab() {
             });
 
             if (res.ok) {
-                toast.success(`Invited ${email} as ${inviteRole}`);
+                toastSuccess(`Invited ${email} as ${inviteRole}`);
                 setShowInviteModal(false);
                 setInviteEmail("");
                 setInviteRole("editor");
                 fetchMembers();
             } else {
                 const errData = await res.json().catch(() => null);
-                const message = typeof errData?.detail === "string"
-                    ? errData.detail
-                    : Array.isArray(errData?.detail)
-                        ? errData.detail.map((e: any) => e.msg).join(", ")
-                        : "Invite failed";
-                toast.error(message);
+                toastError(errData?.detail || "Invite failed");
             }
         } catch {
-            toast.error("Network error");
+            toastError("Network error");
         } finally {
             setInviting(false);
         }
@@ -154,18 +149,18 @@ export default function OrganizationTab() {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`,
                 },
-                body: JSON.stringify({ email: memberEmail, role: newRole }),
+                body: JSON.stringify({ email: memberEmail, new_role: newRole }),
             });
 
             if (res.ok) {
-                toast.success(`${memberEmail} updated to ${newRole}`);
+                toastSuccess(`${memberEmail} updated to ${newRole}`);
                 fetchMembers();
             } else {
                 const errData = await res.json().catch(() => null);
-                toast.error(errData?.detail || "Role update failed");
+                toastError(errData?.detail || "Role update failed");
             }
         } catch {
-            toast.error("Network error");
+            toastError("Network error");
         } finally {
             setChangingRoleUid(null);
         }
@@ -174,7 +169,7 @@ export default function OrganizationTab() {
     const handleCopyInvite = () => {
         const text = `Join our MotionX Studio workspace!\n\nLog in here with your work email to access the team workspace:\nhttps://studio.motionx.in/login`;
         navigator.clipboard.writeText(text);
-        toast.success("Invite link copied to clipboard!");
+        toastSuccess("Invite link copied to clipboard!");
     };
 
     // Remove member handler
@@ -192,14 +187,14 @@ export default function OrganizationTab() {
                 body: JSON.stringify({ email: memberEmail }),
             });
             if (res.ok) {
-                toast.success(`${memberEmail} removed from organization`);
+                toastSuccess(`${memberEmail} removed from organization`);
                 fetchMembers();
             } else {
                 const errData = await res.json().catch(() => null);
-                toast.error(errData?.detail || "Remove failed");
+                toastError(errData?.detail || "Remove failed");
             }
         } catch {
-            toast.error("Network error");
+            toastError("Network error");
         } finally {
             setRemovingUid(null);
         }
@@ -208,7 +203,7 @@ export default function OrganizationTab() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20 gap-3 text-[#555]">
-                <Activity size={18} className="animate-spin" />
+                <Loader2 size={18} className="animate-spin" />
                 <span className="text-[11px] font-mono uppercase tracking-widest">Loading organization...</span>
             </div>
         );
@@ -298,7 +293,7 @@ export default function OrganizationTab() {
 
                         {membersLoading ? (
                             <div className="flex items-center justify-center py-12 gap-3 text-[#555]">
-                                <Activity size={16} className="animate-spin" />
+                                <Loader2 size={16} className="animate-spin" />
                                 <span className="text-[10px] font-mono uppercase tracking-widest">Loading roster...</span>
                             </div>
                         ) : members.length === 0 ? (
@@ -315,15 +310,17 @@ export default function OrganizationTab() {
                                         <th className="text-left p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Name</th>
                                         <th className="text-left p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Status</th>
                                         <th className="text-left p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Role</th>
+                                        <th className="text-right p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {members.map((m) => {
                                         const isSelf = m.email === user?.email;
                                         const memberStatus = m.status || "active";
+                                        const memberId = m.uid || m.email; // Fallback to email if uid is missing (invited users)
 
                                         return (
-                                            <tr key={m.uid} className="border-b border-[#111] hover:bg-[#0D0D0D] transition-colors">
+                                            <tr key={memberId} className="border-b border-[#111] hover:bg-[#0D0D0D] transition-colors">
                                                 <td className="p-4 text-xs text-white font-mono">
                                                     {m.email}
                                                     {isSelf && <span className="text-[8px] text-[#E50914] ml-2 font-bold">(you)</span>}
@@ -342,35 +339,41 @@ export default function OrganizationTab() {
                                                             {m.role || "admin"}
                                                         </span>
                                                     ) : (
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="relative">
-                                                                <select
-                                                                    value={m.role || "viewer"}
-                                                                    disabled={changingRoleUid === m.uid}
-                                                                    onChange={(e) => handleRoleChange(m.uid, m.email, e.target.value)}
-                                                                    className="appearance-none bg-[#111] border border-[#333] text-[10px] text-white px-2.5 py-1.5 pr-6 uppercase tracking-widest font-bold rounded cursor-pointer focus:border-[#E50914] outline-none transition-colors disabled:opacity-50"
-                                                                >
-                                                                    {ROLES.map((r) => (
-                                                                        <option key={r} value={r} className="bg-[#111] text-white">{r}</option>
-                                                                    ))}
-                                                                </select>
-                                                                {changingRoleUid === m.uid && (
-                                                                    <Activity size={10} className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin text-[#E50914]" />
+                                                        <div className="relative inline-block w-28">
+                                                            <select
+                                                                value={m.role || "viewer"}
+                                                                disabled={changingRoleUid === memberId}
+                                                                onChange={(e) => handleRoleChange(memberId, m.email, e.target.value)}
+                                                                className="w-full appearance-none bg-[#111] border border-[#333] text-[10px] text-white pl-3 py-2 pr-8 uppercase tracking-widest font-bold rounded-md cursor-pointer focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914] outline-none transition-colors disabled:opacity-50"
+                                                            >
+                                                                {ROLES.map((r) => (
+                                                                    <option key={r} value={r} className="bg-[#111] text-white">{r}</option>
+                                                                ))}
+                                                            </select>
+                                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                                {changingRoleUid === memberId ? (
+                                                                    <Loader2 size={12} className="animate-spin text-[#E50914]" />
+                                                                ) : (
+                                                                    <ChevronDown size={14} className="text-[#666]" />
                                                                 )}
                                                             </div>
-                                                            <button
-                                                                onClick={() => handleRemove(m.uid, m.email)}
-                                                                disabled={removingUid === m.uid}
-                                                                title={`Remove ${m.email}`}
-                                                                className="p-1.5 text-[#444] hover:text-red-500 hover:bg-red-500/10 rounded transition-all disabled:opacity-50"
-                                                            >
-                                                                {removingUid === m.uid ? (
-                                                                    <Activity size={13} className="animate-spin" />
-                                                                ) : (
-                                                                    <Trash2 size={13} />
-                                                                )}
-                                                            </button>
                                                         </div>
+                                                    )}
+                                                </td>
+                                                <td className="p-4 text-right">
+                                                    {!isSelf && (
+                                                        <button
+                                                            onClick={() => handleRemove(memberId, m.email)}
+                                                            disabled={removingUid === memberId}
+                                                            title={`Remove ${m.email}`}
+                                                            className="p-2 text-[#666] hover:text-[#E50914] hover:bg-[#E50914]/10 rounded-md transition-all disabled:opacity-50 inline-flex items-center justify-center"
+                                                        >
+                                                            {removingUid === memberId ? (
+                                                                <Loader2 size={14} className="animate-spin" />
+                                                            ) : (
+                                                                <Trash2 size={14} />
+                                                            )}
+                                                        </button>
                                                     )}
                                                 </td>
                                             </tr>
@@ -452,7 +455,7 @@ export default function OrganizationTab() {
                                     className="flex items-center gap-2 bg-white text-black hover:bg-[#E50914] hover:text-white px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50 rounded-lg"
                                 >
                                     {inviting ? (
-                                        <><Activity size={13} className="animate-spin" /> Sending...</>
+                                        <><Loader2 size={13} className="animate-spin" /> Sending...</>
                                     ) : (
                                         <><UserPlus size={13} /> Send Invite</>
                                     )}
