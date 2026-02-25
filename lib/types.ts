@@ -137,6 +137,11 @@ export interface Project {
     episode_count?: number;
     product_count?: number;
     script_status?: string;
+
+    // RBAC collaboration fields
+    tenant_id?: string | null;
+    team_ids?: string[];
+    is_global?: boolean;
 }
 
 // --- 6. SCENE & SHOT INTERFACES ---

@@ -5,6 +5,7 @@ import { Building, Users, Copy, Shield, RefreshCw, Loader2, UserPlus, X, Info, T
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, limit, onSnapshot } from "firebase/firestore";
 import { toastSuccess, toastError } from "@/lib/toast";
+import WorkspaceTeams from "./WorkspaceTeams";
 
 interface OrgData {
     organization_name: string;
@@ -386,6 +387,9 @@ export default function OrganizationTab() {
                             </table>
                         )}
                     </div>
+
+                    {/* Workspace Teams */}
+                    <WorkspaceTeams members={members} backendUrl={BACKEND_URL} />
                 </>
             )}
 
