@@ -6,6 +6,7 @@ import { auth, db } from "@/lib/firebase";
 import { collection, query, where, limit, onSnapshot } from "firebase/firestore";
 import { toastSuccess, toastError } from "@/lib/toast";
 import WorkspaceTeams from "./WorkspaceTeams";
+import OrganizationUsage from "./OrganizationUsage";
 
 interface OrgData {
     organization_name: string;
@@ -44,6 +45,9 @@ export default function OrganizationTab() {
     // Role change tracking
     const [changingRoleUid, setChangingRoleUid] = useState<string | null>(null);
     const [removingUid, setRemovingUid] = useState<string | null>(null);
+
+    // Sub-navigation
+    const [activeSubTab, setActiveSubTab] = useState<"team" | "analytics">("team");
 
     const user = auth.currentUser;
     const tenantId = user?.tenantId;
@@ -313,109 +317,137 @@ export default function OrganizationTab() {
                         </button>
                     </div>
 
-                    {/* Team Roster */}
-                    <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl overflow-hidden">
-                        <div className="flex items-center gap-3 p-5 border-b border-[#1a1a1a]">
-                            <Users size={16} className="text-[#E50914]" />
-                            <h3 className="text-sm font-bold text-white uppercase tracking-wide">Team Roster</h3>
-                            <span className="text-[9px] font-mono text-[#555] ml-auto">{members.length} member{members.length !== 1 ? "s" : ""}</span>
-                        </div>
-
-                        {membersLoading ? (
-                            <div className="flex items-center justify-center py-12 gap-3 text-[#555]">
-                                <Loader2 size={16} className="animate-spin" />
-                                <span className="text-[10px] font-mono uppercase tracking-widest">Loading roster...</span>
-                            </div>
-                        ) : members.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 gap-2 text-[#333]">
-                                <Users size={30} className="opacity-30" />
-                                <p className="text-[10px] uppercase tracking-widest font-semibold">No members yet</p>
-                                <p className="text-[9px] text-[#444]">Share the invite link or add members above.</p>
-                            </div>
-                        ) : (
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-[#1a1a1a] bg-[#0A0A0A]">
-                                        <th className="text-left p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Email</th>
-                                        <th className="text-left p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Name</th>
-                                        <th className="text-left p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Status</th>
-                                        <th className="text-left p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Role</th>
-                                        <th className="text-right p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {members.map((m) => {
-                                        const isSelf = m.email === user?.email;
-                                        const memberStatus = m.status || "active";
-                                        const memberId = m.uid || m.email; // Fallback to email if uid is missing (invited users)
-
-                                        return (
-                                            <tr key={memberId} className="border-b border-[#111] hover:bg-[#0D0D0D] transition-colors">
-                                                <td className="p-4 text-xs text-white font-mono">
-                                                    {m.email}
-                                                    {isSelf && <span className="text-[8px] text-[#E50914] ml-2 font-bold">(you)</span>}
-                                                </td>
-                                                <td className="p-4 text-xs text-[#AAA]">{m.displayName || "—"}</td>
-                                                <td className="p-4">
-                                                    {memberStatus === "active" ? (
-                                                        <span className="text-[9px] text-green-400 bg-green-900/10 border border-green-900/30 px-2 py-0.5 uppercase tracking-widest font-bold rounded">Active</span>
-                                                    ) : (
-                                                        <span className="text-[9px] text-yellow-400 bg-yellow-900/10 border border-yellow-900/30 px-2 py-0.5 uppercase tracking-widest font-bold rounded animate-pulse">Invited</span>
-                                                    )}
-                                                </td>
-                                                <td className="p-4">
-                                                    {isSelf ? (
-                                                        <span className="text-[9px] text-[#E50914] bg-[#E50914]/10 border border-[#E50914]/20 px-2.5 py-1 uppercase tracking-widest font-bold rounded">
-                                                            {m.role || "admin"}
-                                                        </span>
-                                                    ) : (
-                                                        <div className="relative inline-block w-28">
-                                                            <select
-                                                                value={m.role || "viewer"}
-                                                                disabled={changingRoleUid === memberId}
-                                                                onChange={(e) => handleRoleChange(memberId, m.email, e.target.value)}
-                                                                className="w-full appearance-none bg-[#111] border border-[#333] text-[10px] text-white pl-3 py-2 pr-8 uppercase tracking-widest font-bold rounded-md cursor-pointer focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914] outline-none transition-colors disabled:opacity-50"
-                                                            >
-                                                                {ROLES.map((r) => (
-                                                                    <option key={r} value={r} className="bg-[#111] text-white">{r}</option>
-                                                                ))}
-                                                            </select>
-                                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                                                {changingRoleUid === memberId ? (
-                                                                    <Loader2 size={12} className="animate-spin text-[#E50914]" />
-                                                                ) : (
-                                                                    <ChevronDown size={14} className="text-[#666]" />
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                <td className="p-4 text-right">
-                                                    {!isSelf && (
-                                                        <button
-                                                            onClick={() => handleRemove(memberId, m.email)}
-                                                            disabled={removingUid === memberId}
-                                                            title={`Remove ${m.email}`}
-                                                            className="p-2 text-[#666] hover:text-[#E50914] hover:bg-[#E50914]/10 rounded-md transition-all disabled:opacity-50 inline-flex items-center justify-center"
-                                                        >
-                                                            {removingUid === memberId ? (
-                                                                <Loader2 size={14} className="animate-spin" />
-                                                            ) : (
-                                                                <Trash2 size={14} />
-                                                            )}
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        )}
+                    {/* ═══ SUB-NAVIGATION TABS ═══ */}
+                    <div className="flex gap-1 bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-1 w-fit">
+                        <button
+                            onClick={() => setActiveSubTab("team")}
+                            className={`px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-md transition-all ${activeSubTab === "team"
+                                    ? "bg-white text-black"
+                                    : "text-[#666] hover:text-white"
+                                }`}
+                        >
+                            Team Management
+                        </button>
+                        <button
+                            onClick={() => setActiveSubTab("analytics")}
+                            className={`px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-md transition-all ${activeSubTab === "analytics"
+                                    ? "bg-white text-black"
+                                    : "text-[#666] hover:text-white"
+                                }`}
+                        >
+                            Usage & Analytics
+                        </button>
                     </div>
 
-                    {/* Workspace Teams */}
-                    <WorkspaceTeams members={members} backendUrl={BACKEND_URL} projects={orgProjects} refreshProjects={fetchOrgProjects} />
+                    {activeSubTab === "team" ? (
+                        <>
+
+                            {/* Team Roster */}
+                            <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl overflow-hidden">
+                                <div className="flex items-center gap-3 p-5 border-b border-[#1a1a1a]">
+                                    <Users size={16} className="text-[#E50914]" />
+                                    <h3 className="text-sm font-bold text-white uppercase tracking-wide">Team Roster</h3>
+                                    <span className="text-[9px] font-mono text-[#555] ml-auto">{members.length} member{members.length !== 1 ? "s" : ""}</span>
+                                </div>
+
+                                {membersLoading ? (
+                                    <div className="flex items-center justify-center py-12 gap-3 text-[#555]">
+                                        <Loader2 size={16} className="animate-spin" />
+                                        <span className="text-[10px] font-mono uppercase tracking-widest">Loading roster...</span>
+                                    </div>
+                                ) : members.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-12 gap-2 text-[#333]">
+                                        <Users size={30} className="opacity-30" />
+                                        <p className="text-[10px] uppercase tracking-widest font-semibold">No members yet</p>
+                                        <p className="text-[9px] text-[#444]">Share the invite link or add members above.</p>
+                                    </div>
+                                ) : (
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="border-b border-[#1a1a1a] bg-[#0A0A0A]">
+                                                <th className="text-left p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Email</th>
+                                                <th className="text-left p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Name</th>
+                                                <th className="text-left p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Status</th>
+                                                <th className="text-left p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Role</th>
+                                                <th className="text-right p-4 text-[9px] font-mono uppercase text-[#666] tracking-widest">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {members.map((m) => {
+                                                const isSelf = m.email === user?.email;
+                                                const memberStatus = m.status || "active";
+                                                const memberId = m.uid || m.email; // Fallback to email if uid is missing (invited users)
+
+                                                return (
+                                                    <tr key={memberId} className="border-b border-[#111] hover:bg-[#0D0D0D] transition-colors">
+                                                        <td className="p-4 text-xs text-white font-mono">
+                                                            {m.email}
+                                                            {isSelf && <span className="text-[8px] text-[#E50914] ml-2 font-bold">(you)</span>}
+                                                        </td>
+                                                        <td className="p-4 text-xs text-[#AAA]">{m.displayName || "—"}</td>
+                                                        <td className="p-4">
+                                                            {memberStatus === "active" ? (
+                                                                <span className="text-[9px] text-green-400 bg-green-900/10 border border-green-900/30 px-2 py-0.5 uppercase tracking-widest font-bold rounded">Active</span>
+                                                            ) : (
+                                                                <span className="text-[9px] text-yellow-400 bg-yellow-900/10 border border-yellow-900/30 px-2 py-0.5 uppercase tracking-widest font-bold rounded animate-pulse">Invited</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="p-4">
+                                                            {isSelf ? (
+                                                                <span className="text-[9px] text-[#E50914] bg-[#E50914]/10 border border-[#E50914]/20 px-2.5 py-1 uppercase tracking-widest font-bold rounded">
+                                                                    {m.role || "admin"}
+                                                                </span>
+                                                            ) : (
+                                                                <div className="relative inline-block w-28">
+                                                                    <select
+                                                                        value={m.role || "viewer"}
+                                                                        disabled={changingRoleUid === memberId}
+                                                                        onChange={(e) => handleRoleChange(memberId, m.email, e.target.value)}
+                                                                        className="w-full appearance-none bg-[#111] border border-[#333] text-[10px] text-white pl-3 py-2 pr-8 uppercase tracking-widest font-bold rounded-md cursor-pointer focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914] outline-none transition-colors disabled:opacity-50"
+                                                                    >
+                                                                        {ROLES.map((r) => (
+                                                                            <option key={r} value={r} className="bg-[#111] text-white">{r}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                                        {changingRoleUid === memberId ? (
+                                                                            <Loader2 size={12} className="animate-spin text-[#E50914]" />
+                                                                        ) : (
+                                                                            <ChevronDown size={14} className="text-[#666]" />
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="p-4 text-right">
+                                                            {!isSelf && (
+                                                                <button
+                                                                    onClick={() => handleRemove(memberId, m.email)}
+                                                                    disabled={removingUid === memberId}
+                                                                    title={`Remove ${m.email}`}
+                                                                    className="p-2 text-[#666] hover:text-[#E50914] hover:bg-[#E50914]/10 rounded-md transition-all disabled:opacity-50 inline-flex items-center justify-center"
+                                                                >
+                                                                    {removingUid === memberId ? (
+                                                                        <Loader2 size={14} className="animate-spin" />
+                                                                    ) : (
+                                                                        <Trash2 size={14} />
+                                                                    )}
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+
+                            <WorkspaceTeams members={members} backendUrl={BACKEND_URL} projects={orgProjects} refreshProjects={fetchOrgProjects} />
+                        </>
+                    ) : (
+                        <OrganizationUsage backendUrl={BACKEND_URL} />
+                    )}
                 </>
             )}
 
