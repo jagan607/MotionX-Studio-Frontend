@@ -13,6 +13,7 @@ interface OrgData {
     credits_balance: number;
     admins: string[];
     allowed_domains: string[];
+    role_bindings?: Record<string, string>;
 }
 
 interface Member {
@@ -44,7 +45,9 @@ export default function OrganizationTab() {
 
     const user = auth.currentUser;
     const tenantId = user?.tenantId;
-    const isOrgAdmin = orgData?.admins?.includes(user?.email || "");
+    const userRole = orgData?.role_bindings?.[user?.email || ""]
+        || (orgData?.admins?.includes(user?.email || "") ? "admin" : "member");
+    const isOrgAdmin = userRole === "admin";
     const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
     // Listen to org document
@@ -234,8 +237,8 @@ export default function OrganizationTab() {
                     <div className="bg-[#0A0A0A] border border-[#1A1A1A] p-4 rounded-lg">
                         <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Your Role</span>
                         <div className="flex items-center gap-2">
-                            <Shield size={13} className={isOrgAdmin ? "text-[#E50914]" : "text-[#555]"} />
-                            <span className="text-sm font-bold text-white">{isOrgAdmin ? "Admin" : "Member"}</span>
+                            <Shield size={13} className={userRole === "admin" ? "text-[#E50914]" : "text-[#555]"} />
+                            <span className="text-sm font-bold text-white">{userRole.charAt(0).toUpperCase() + userRole.slice(1)}</span>
                         </div>
                     </div>
 
