@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { ArrowRight, Activity, Disc, Globe, ArrowLeft, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
+import { API_BASE_URL } from "@/lib/config";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -113,7 +114,7 @@ export default function LoginPage() {
     setSsoLoading(true);
 
     try {
-      const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const BACKEND_URL = API_BASE_URL;
       const res = await fetch(`${BACKEND_URL}/api/auth/resolve-sso`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -187,7 +188,7 @@ export default function LoginPage() {
     if (!identifier) { toast.error("Please enter your email or workspace slug"); return; }
     setIsResolving(true);
     try {
-      const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const BACKEND_URL = API_BASE_URL;
       const res = await fetch(`${BACKEND_URL}/api/auth/resolve-tenant?identifier=${encodeURIComponent(identifier)}`);
       if (!res.ok) {
         const errData = await res.json().catch(() => null);

@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/config";
+
 import { useState, useEffect } from "react";
 import { Globe, Users, Loader2, X, Check, ToggleLeft, ToggleRight } from "lucide-react";
 import { auth } from "@/lib/firebase";
@@ -16,7 +18,6 @@ interface ShareProjectModalProps {
     projectTitle: string;
     currentTeamIds: string[];
     currentIsGlobal: boolean;
-    backendUrl: string;
     onClose: () => void;
     onSuccess: () => void;
 }
@@ -26,7 +27,6 @@ export default function ShareProjectModal({
     projectTitle,
     currentTeamIds,
     currentIsGlobal,
-    backendUrl,
     onClose,
     onSuccess,
 }: ShareProjectModalProps) {
@@ -41,7 +41,7 @@ export default function ShareProjectModal({
         (async () => {
             try {
                 const token = await auth.currentUser?.getIdToken();
-                const res = await fetch(`${backendUrl}/api/organization/teams`, {
+                const res = await fetch(`${API_BASE_URL}/api/organization/teams`, {
                     headers: { "Authorization": `Bearer ${token}` },
                 });
                 if (res.ok) {
@@ -54,7 +54,7 @@ export default function ShareProjectModal({
                 setTeamsLoading(false);
             }
         })();
-    }, [backendUrl]);
+    }, []);
 
     const toggleTeam = (teamId: string) => {
         setSelectedTeamIds((prev) => {
@@ -69,7 +69,7 @@ export default function ShareProjectModal({
         setSubmitting(true);
         try {
             const token = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${backendUrl}/api/v1/project/${projectId}/share`, {
+            const res = await fetch(`${API_BASE_URL}/api/v1/project/${projectId}/share`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",

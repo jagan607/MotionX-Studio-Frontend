@@ -5,6 +5,7 @@ import { Building, Users, Copy, Shield, RefreshCw, Loader2, UserPlus, X, Info, T
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, limit, onSnapshot } from "firebase/firestore";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { API_BASE_URL } from "@/lib/config";
 import WorkspaceTeams from "./WorkspaceTeams";
 import OrganizationUsage from "./OrganizationUsage";
 
@@ -54,7 +55,7 @@ export default function OrganizationTab() {
     const userRole = orgData?.role_bindings?.[user?.email || ""]
         || (orgData?.admins?.includes(user?.email || "") ? "admin" : "member");
     const isOrgAdmin = userRole === "admin";
-    const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const BACKEND_URL = API_BASE_URL;
 
     // Listen to org document
     useEffect(() => {
@@ -322,8 +323,8 @@ export default function OrganizationTab() {
                         <button
                             onClick={() => setActiveSubTab("team")}
                             className={`px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-md transition-all ${activeSubTab === "team"
-                                    ? "bg-white text-black"
-                                    : "text-[#666] hover:text-white"
+                                ? "bg-white text-black"
+                                : "text-[#666] hover:text-white"
                                 }`}
                         >
                             Team Management
@@ -331,8 +332,8 @@ export default function OrganizationTab() {
                         <button
                             onClick={() => setActiveSubTab("analytics")}
                             className={`px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-md transition-all ${activeSubTab === "analytics"
-                                    ? "bg-white text-black"
-                                    : "text-[#666] hover:text-white"
+                                ? "bg-white text-black"
+                                : "text-[#666] hover:text-white"
                                 }`}
                         >
                             Usage & Analytics
@@ -443,10 +444,10 @@ export default function OrganizationTab() {
                                 )}
                             </div>
 
-                            <WorkspaceTeams members={members} backendUrl={BACKEND_URL} projects={orgProjects} refreshProjects={fetchOrgProjects} />
+                            <WorkspaceTeams members={members} projects={orgProjects} refreshProjects={fetchOrgProjects} />
                         </>
                     ) : (
-                        <OrganizationUsage backendUrl={BACKEND_URL} />
+                        <OrganizationUsage />
                     )}
                 </>
             )}

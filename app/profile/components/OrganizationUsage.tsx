@@ -1,5 +1,7 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/config";
+
 import { useState, useEffect } from "react";
 import { Loader2, TrendingUp, BarChart3, Zap, Clock, User, Cpu } from "lucide-react";
 import { auth } from "@/lib/firebase";
@@ -23,11 +25,7 @@ interface UsageData {
     recent_transactions: Transaction[];
 }
 
-interface OrganizationUsageProps {
-    backendUrl: string;
-}
-
-export default function OrganizationUsage({ backendUrl }: OrganizationUsageProps) {
+export default function OrganizationUsage() {
     const [data, setData] = useState<UsageData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
@@ -37,7 +35,7 @@ export default function OrganizationUsage({ backendUrl }: OrganizationUsageProps
             try {
                 const token = await auth.currentUser?.getIdToken();
                 if (!token) return;
-                const res = await fetch(`${backendUrl}/api/organization/usage`, {
+                const res = await fetch(`${API_BASE_URL}/api/organization/usage`, {
                     headers: { "Authorization": `Bearer ${token}` },
                 });
                 if (res.ok) {
@@ -51,7 +49,7 @@ export default function OrganizationUsage({ backendUrl }: OrganizationUsageProps
                 setLoading(false);
             }
         })();
-    }, [backendUrl]);
+    }, []);
 
     const formatDate = (iso: string) => {
         try {
@@ -147,8 +145,8 @@ export default function OrganizationUsage({ backendUrl }: OrganizationUsageProps
                                         <div className="mt-1 h-1.5 bg-[#111] rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-700 ${idx === 0 ? "bg-gradient-to-r from-amber-500 to-amber-400"
-                                                        : idx === 1 ? "bg-gradient-to-r from-[#666] to-[#888]"
-                                                            : "bg-gradient-to-r from-[#333] to-[#555]"
+                                                    : idx === 1 ? "bg-gradient-to-r from-[#666] to-[#888]"
+                                                        : "bg-gradient-to-r from-[#333] to-[#555]"
                                                     }`}
                                                 style={{ width: `${(entry.spent / maxSpent) * 100}%` }}
                                             />
