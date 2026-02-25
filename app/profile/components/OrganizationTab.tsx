@@ -32,6 +32,7 @@ export default function OrganizationTab() {
     const [orgData, setOrgData] = useState<OrgData | null>(null);
     const [members, setMembers] = useState<Member[]>([]);
     const [membersLoading, setMembersLoading] = useState(false);
+    const [orgProjects, setOrgProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Add Member Modal
@@ -98,6 +99,31 @@ export default function OrganizationTab() {
 
     useEffect(() => {
         if (isOrgAdmin && orgData) fetchMembers();
+    }, [isOrgAdmin, orgData]);
+
+    // Fetch org projects
+    const fetchOrgProjects = async () => {
+        try {
+            const token = await auth.currentUser?.getIdToken();
+            if (!token) return;
+            const res = await fetch(`${BACKEND_URL}/api/v1/project/list`, {
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const list = Array.isArray(data) ? data : (data.projects || data.items || []);
+                console.log("[OrganizationTab] Org projects fetched:", list.length, list);
+                setOrgProjects(list);
+            } else {
+                console.error("[OrganizationTab] Projects fetch failed:", res.status);
+            }
+        } catch (e) {
+            console.error("[OrganizationTab] Failed to fetch org projects:", e);
+        }
+    };
+
+    useEffect(() => {
+        if (isOrgAdmin && orgData) fetchOrgProjects();
     }, [isOrgAdmin, orgData]);
 
     // Invite member handler
@@ -389,7 +415,7 @@ export default function OrganizationTab() {
                     </div>
 
                     {/* Workspace Teams */}
-                    <WorkspaceTeams members={members} backendUrl={BACKEND_URL} />
+                    <WorkspaceTeams members={members} backendUrl={BACKEND_URL} projects={orgProjects} refreshProjects={fetchOrgProjects} />
                 </>
             )}
 

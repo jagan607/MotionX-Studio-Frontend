@@ -29,6 +29,7 @@ export default function Dashboard() {
     const [showAllProjects, setShowAllProjects] = useState(false);
     const [shareProject, setShareProject] = useState<DashboardProject | null>(null);
     const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+    const [isOrgAccount, setIsOrgAccount] = useState(false);
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [dismissedIds, setDismissedIds] = useState<string[]>([]);
     const [activeAnnouncementIdx, setActiveAnnouncementIdx] = useState(0);
@@ -50,10 +51,15 @@ export default function Dashboard() {
     const orgUnsubRef = useRef<(() => void) | null>(null);
     const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-    // Derive isOrgAdmin from Firestore org data
+    // Derive isOrgAdmin and isOrgAccount from Firestore org data
     useEffect(() => {
         const user = auth.currentUser;
-        if (!user?.tenantId || !user?.email) return;
+        if (!user?.tenantId || !user?.email) {
+            setIsOrgAccount(false);
+            setIsOrgAdmin(false);
+            return;
+        }
+        setIsOrgAccount(true);
         const orgQ = fsQuery(fsCollection(db, "organizations"), fsWhere("tenant_id", "==", user.tenantId), fsLimit(1));
         orgUnsubRef.current = fsOnSnapshot(orgQ, (snap) => {
             if (!snap.empty) {
@@ -473,24 +479,26 @@ export default function Dashboard() {
                                         onDoubleClick={() => navigateToProject(p, p.type)}
                                     />
 
-                                    {/* ACTION BUTTONS */}
-                                    <div className="absolute top-2 right-2 z-20 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all duration-200">
-                                        {isOrgAdmin && (
+                                    {/* ACTION BUTTONS — B2B admin: share+delete, B2C: delete only, B2B non-admin: none */}
+                                    {(!isOrgAccount || isOrgAdmin) && (
+                                        <div className="absolute top-2 right-2 z-20 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all duration-200">
+                                            {isOrgAdmin && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setShareProject(p); }}
+                                                    className="bg-black/80 p-2 rounded-md text-white hover:bg-blue-600 transition-all"
+                                                    title="Share project"
+                                                >
+                                                    <Share2 size={14} />
+                                                </button>
+                                            )}
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); setShareProject(p); }}
-                                                className="bg-black/80 p-2 rounded-md text-white hover:bg-blue-600 transition-all"
-                                                title="Share project"
+                                                onClick={(e) => { e.stopPropagation(); setProjectToDelete(p); }}
+                                                className="bg-black/80 p-2 rounded-md text-white hover:bg-red-600 transition-all"
                                             >
-                                                <Share2 size={14} />
+                                                <Trash2 size={14} />
                                             </button>
-                                        )}
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setProjectToDelete(p); }}
-                                            className="bg-black/80 p-2 rounded-md text-white hover:bg-red-600 transition-all"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
+                                        </div>
+                                    )}
 
                                     {/* VISIBILITY BADGE */}
                                     <div className="absolute top-2 left-2 z-20">
