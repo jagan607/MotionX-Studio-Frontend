@@ -167,7 +167,7 @@ export const invalidateDashboardCache = (uid: string) => {
     delete projectCache[uid];
 };
 
-// [NEW] 1. Fast Load: Just the metadata
+// 1. Fast Load: Project list from backend (RBAC-filtered)
 export const fetchUserProjectsBasic = async (uid: string): Promise<DashboardProject[]> => {
     // Check Cache
     if (projectCache[uid] && (Date.now() - projectCache[uid].timestamp < CACHE_TTL)) {
@@ -175,25 +175,34 @@ export const fetchUserProjectsBasic = async (uid: string): Promise<DashboardProj
     }
 
     try {
-        const q = query(
-            collection(db, "projects"),
-            where("owner_id", "==", uid),
-            orderBy("updated_at", "desc")
-        );
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) return [];
 
-        const snap = await getDocs(q).catch((e) => {
-            console.error("⚠️ SORT FAILED. Missing Index? Click the link in the error above.", e);
-            return getDocs(query(collection(db, "projects"), where("owner_id", "==", uid)));
+        const res = await fetch(`${API_BASE_URL}/api/v1/project/list`, {
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
         });
 
-        const projects = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DashboardProject));
+        if (!res.ok) {
+            console.error("[fetchUserProjectsBasic] Backend returned", res.status);
+            return [];
+        }
 
-        // Update Cache with basic data
+        const data = await res.json();
+        // Backend returns { projects: [...] } or a flat array — handle both
+        const projects: DashboardProject[] = (data.projects || data || []).map((p: any) => ({
+            ...p,
+            id: p.id || p.project_id,
+        }));
+
+        // Update Cache
         projectCache[uid] = { data: projects, timestamp: Date.now() };
 
         return projects;
     } catch (e) {
-        console.error("Basic Project Fetch Error", e);
+        console.error("[fetchUserProjectsBasic] Network error:", e);
         return [];
     }
 }

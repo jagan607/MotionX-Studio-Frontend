@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { adminAuth } from '@/lib/firebase-admin';
 import Link from 'next/link';
-import { LayoutDashboard, Users, CreditCard, Activity, Terminal, ShieldAlert, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Users, CreditCard, Activity, Terminal, ShieldAlert, Megaphone, Building, ShieldCheck } from 'lucide-react';
 
 // 🔒 SECURITY CONFIGURATION
 const ALLOWED_ADMINS = [
@@ -22,20 +22,28 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
     try {
         // 2. Verify Session & Email
-        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+        // Skip revocation check in dev (avoids 25s network timeout to Google)
+        const checkRevocation = process.env.NODE_ENV === 'production';
+
+        const verifyPromise = adminAuth.verifySessionCookie(sessionCookie, checkRevocation);
+
+        // Fail fast with a 5-second timeout instead of hanging for 30s
+        const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Session verification timeout (5s)")), 5000)
+        );
+
+        const decodedClaims = await Promise.race([verifyPromise, timeoutPromise]);
 
         console.log("------------------------------------------------");
         console.log("🔍 Admin Access Attempt:");
         console.log("📧 Email Detected:", decodedClaims.email);
         console.log("✅ Is Allowed?", ALLOWED_ADMINS.includes(decodedClaims.email || ''));
         console.log("------------------------------------------------");
-        // ------------------------------------------------
 
         if (!decodedClaims.email || !ALLOWED_ADMINS.includes(decodedClaims.email)) {
             throw new Error("Unauthorized Access");
         }
     } catch (error) {
-        // If invalid, redirect to home (or show a 403 page)
         console.log("⛔ Access Denied:", error);
         redirect('/');
     }
@@ -62,6 +70,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                     <AdminNavLink href="/admin" icon={LayoutDashboard} label="Command Center" />
                     <AdminNavLink href="/admin/users" icon={Users} label="User Database" />
                     <AdminNavLink href="/admin/announcements" icon={Megaphone} label="Announcements" />
+                    <AdminNavLink href="/admin/enterprise" icon={Building} label="Enterprise Setup" />
+                    <AdminNavLink href="/admin/enterprise/configure" icon={ShieldCheck} label="SSO Configuration" />
                     <AdminNavLink href="/admin/finance" icon={CreditCard} label="Revenue Stream" />
                 </nav>
 

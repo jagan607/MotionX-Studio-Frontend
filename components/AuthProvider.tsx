@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter, usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -16,6 +18,27 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setAuthCheckComplete(true);
+
+      // JIT provisioning: sync tenant UID to Firestore on every login
+      if (currentUser) {
+        (async () => {
+          try {
+            const userRef = doc(db, "users", currentUser.uid);
+            console.log("✅ [AuthProvider] Attempting Firestore sync — UID:", currentUser.uid, "| Tenant:", currentUser.tenantId, "| Email:", currentUser.email);
+
+            await setDoc(userRef, {
+              email: currentUser.email,
+              tenant_id: currentUser.tenantId || null,
+              lastActiveAt: serverTimestamp(),
+            }, { merge: true });
+
+            console.log("✅ FIRESTORE SYNC SUCCESS | UID:", currentUser.uid, "| Tenant:", currentUser.tenantId);
+          } catch (error: any) {
+            console.error("❌ FIRESTORE SYNC FAILED:", error);
+            toast.error(`Database Sync Error: ${error?.message || error}`, { duration: 10000 });
+          }
+        })();
+      }
     });
     return () => unsubscribe();
   }, []);

@@ -6,7 +6,9 @@ import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Plus, Film, Radio, Image as ImageIcon, Crosshair, Maximize, Play, ChevronLeft, ChevronRight, Trash2, ArrowRight, Megaphone, Sparkles, Zap, Wrench, X } from "lucide-react";
+import { Loader2, Plus, Film, Radio, Image as ImageIcon, Crosshair, Maximize, Play, ChevronLeft, ChevronRight, Trash2, ArrowRight, Megaphone, Sparkles, Zap, Wrench, X, Share2, Globe, Users as UsersIcon, Lock } from "lucide-react";
+import ShareProjectModal from "@/components/ShareProjectModal";
+import { collection as fsCollection, query as fsQuery, where as fsWhere, limit as fsLimit, onSnapshot as fsOnSnapshot } from "firebase/firestore";
 import { DashboardProject, fetchUserDashboardProjects, fetchGlobalFeed, invalidateDashboardCache, fetchUserProjectsBasic, enrichProjectPreview } from "@/lib/api";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { TourOverlay } from "@/components/tour/TourOverlay";
@@ -25,6 +27,9 @@ export default function Dashboard() {
     const [projectToDelete, setProjectToDelete] = useState<DashboardProject | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showAllProjects, setShowAllProjects] = useState(false);
+    const [shareProject, setShareProject] = useState<DashboardProject | null>(null);
+    const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+    const [isOrgAccount, setIsOrgAccount] = useState(false);
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [dismissedIds, setDismissedIds] = useState<string[]>([]);
     const [activeAnnouncementIdx, setActiveAnnouncementIdx] = useState(0);
@@ -43,6 +48,28 @@ export default function Dashboard() {
     // FIX #3: Store unsubscribe functions for proper cleanup
     const creditsUnsubRef = useRef<(() => void) | null>(null);
     const projectTypeUnsubRef = useRef<(() => void) | null>(null);
+    const orgUnsubRef = useRef<(() => void) | null>(null);
+    const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+    // Derive isOrgAdmin and isOrgAccount from Firestore org data
+    useEffect(() => {
+        const user = auth.currentUser;
+        if (!user?.tenantId || !user?.email) {
+            setIsOrgAccount(false);
+            setIsOrgAdmin(false);
+            return;
+        }
+        setIsOrgAccount(true);
+        const orgQ = fsQuery(fsCollection(db, "organizations"), fsWhere("tenant_id", "==", user.tenantId), fsLimit(1));
+        orgUnsubRef.current = fsOnSnapshot(orgQ, (snap) => {
+            if (!snap.empty) {
+                const orgData = snap.docs[0].data();
+                const role = orgData?.role_bindings?.[user.email!] || (orgData?.admins?.includes(user.email!) ? "admin" : "member");
+                setIsOrgAdmin(role === "admin");
+            }
+        });
+        return () => orgUnsubRef.current?.();
+    }, []);
 
     // Load dismissed announcement IDs from localStorage
     useEffect(() => {
@@ -452,16 +479,43 @@ export default function Dashboard() {
                                         onDoubleClick={() => navigateToProject(p, p.type)}
                                     />
 
-                                    {/* DELETE BUTTON */}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setProjectToDelete(p);
-                                        }}
-                                        className="absolute top-2 right-2 z-20 bg-black/80 p-2 rounded-md text-white opacity-0 group-hover/card:opacity-100 hover:bg-red-600 transition-all duration-200"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
+                                    {/* ACTION BUTTONS — B2B admin: share+delete, B2C: delete only, B2B non-admin: none */}
+                                    {(!isOrgAccount || isOrgAdmin) && (
+                                        <div className="absolute top-2 right-2 z-20 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all duration-200">
+                                            {isOrgAdmin && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setShareProject(p); }}
+                                                    className="bg-black/80 p-2 rounded-md text-white hover:bg-blue-600 transition-all"
+                                                    title="Share project"
+                                                >
+                                                    <Share2 size={14} />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setProjectToDelete(p); }}
+                                                className="bg-black/80 p-2 rounded-md text-white hover:bg-red-600 transition-all"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* VISIBILITY BADGE */}
+                                    <div className="absolute top-2 left-2 z-20">
+                                        {p.is_global ? (
+                                            <span className="flex items-center gap-1 bg-blue-500/80 text-white text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded backdrop-blur-sm">
+                                                <Globe size={8} /> Global
+                                            </span>
+                                        ) : p.team_ids && p.team_ids.length > 0 ? (
+                                            <span className="flex items-center gap-1 bg-purple-500/80 text-white text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded backdrop-blur-sm">
+                                                <UsersIcon size={8} /> Team
+                                            </span>
+                                        ) : p.tenant_id ? (
+                                            <span className="flex items-center gap-1 bg-[#555]/80 text-white text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded backdrop-blur-sm">
+                                                <Lock size={8} /> Private
+                                            </span>
+                                        ) : null}
+                                    </div>
 
                                     {/* FIX #12: Skeleton shimmer while previews load */}
                                     {p.previewImage ? (
@@ -596,6 +650,22 @@ export default function Dashboard() {
                                     onDoubleClick={() => { setShowAllProjects(false); navigateToProject(p, p.type); }}
                                     onClick={() => { setShowAllProjects(false); setActiveProjectIndex(myProjects.indexOf(p)); }}
                                 >
+                                    {/* VISIBILITY BADGE */}
+                                    <div className="absolute top-2 left-2 z-10">
+                                        {p.is_global ? (
+                                            <span className="flex items-center gap-1 bg-blue-500/80 text-white text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded backdrop-blur-sm">
+                                                <Globe size={8} /> Global
+                                            </span>
+                                        ) : p.team_ids && p.team_ids.length > 0 ? (
+                                            <span className="flex items-center gap-1 bg-purple-500/80 text-white text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded backdrop-blur-sm">
+                                                <UsersIcon size={8} /> Team
+                                            </span>
+                                        ) : p.tenant_id ? (
+                                            <span className="flex items-center gap-1 bg-[#555]/80 text-white text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded backdrop-blur-sm">
+                                                <Lock size={8} /> Private
+                                            </span>
+                                        ) : null}
+                                    </div>
                                     {p.previewImage ? (
                                         <img src={p.previewImage} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                                     ) : (
@@ -732,6 +802,23 @@ export default function Dashboard() {
                 );
             })()}
             <TourOverlay step={tourStep} steps={DASHBOARD_TOUR_STEPS} onNext={tourNext} onComplete={completeTour} />
+            {/* SHARE PROJECT MODAL */}
+            {shareProject && (
+                <ShareProjectModal
+                    projectId={shareProject.id}
+                    projectTitle={shareProject.title}
+                    currentTeamIds={shareProject.team_ids || []}
+                    currentIsGlobal={shareProject.is_global || false}
+                    backendUrl={BACKEND_URL}
+                    onClose={() => setShareProject(null)}
+                    onSuccess={() => {
+                        if (auth.currentUser) {
+                            invalidateDashboardCache(auth.currentUser.uid);
+                            fetchUserProjectsBasic(auth.currentUser.uid).then(setMyProjects);
+                        }
+                    }}
+                />
+            )}
         </main>
     );
 }

@@ -1,20 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, CreditCard, Settings } from "lucide-react";
+import { ArrowLeft, CreditCard, Settings, Building } from "lucide-react";
 
 interface ProfileHeaderProps {
     user: any;
-    activeTab: "subscription" | "settings";
-    setActiveTab: (tab: "subscription" | "settings") => void;
+    activeTab: "subscription" | "settings" | "organization";
+    setActiveTab: (tab: "subscription" | "settings" | "organization") => void;
     handleLogout: () => void;
+    showOrgTab?: boolean;
 }
 
 export default function ProfileHeader({
     user,
     activeTab,
     setActiveTab,
-    handleLogout
+    handleLogout,
+    showOrgTab = false,
 }: ProfileHeaderProps) {
     return (
         <div>
@@ -56,6 +58,17 @@ export default function ProfileHeader({
                 >
                     <Settings size={14} /> Account Settings
                 </button>
+                {showOrgTab && (
+                    <button
+                        onClick={() => setActiveTab("organization")}
+                        className={`px-5 py-3 text-[11px] font-semibold tracking-wide flex items-center gap-2 transition-all border-b-2 cursor-pointer bg-transparent outline-none ${activeTab === "organization"
+                            ? "text-white border-[#E50914]"
+                            : "text-[#555] border-transparent hover:text-[#999]"
+                            }`}
+                    >
+                        <Building size={14} /> Organization
+                    </button>
+                )}
             </div>
         </div>
     );
