@@ -70,6 +70,10 @@ export default function LoginPage() {
     if (isRestrictedBrowser) return;
     setIsLoading(true);
     try {
+      // CRITICAL FIX: Clear any lingering tenant ID from previous B2B sessions
+      // to ensure B2C login uses the top-level parent project (B2C pool)
+      auth.tenantId = null;
+
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       const userRef = doc(db, "users", user.uid);

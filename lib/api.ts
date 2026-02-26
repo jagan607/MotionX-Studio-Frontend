@@ -197,6 +197,13 @@ export const fetchUserProjectsBasic = async (uid: string): Promise<DashboardProj
             id: p.id || p.project_id,
         }));
 
+        // Sort by most recently updated (or created) first
+        projects.sort((a, b) => {
+            const dateA = new Date(a.updated_at || a.created_at || 0).getTime();
+            const dateB = new Date(b.updated_at || b.created_at || 0).getTime();
+            return dateB - dateA;
+        });
+
         // Update Cache
         projectCache[uid] = { data: projects, timestamp: Date.now() };
 
