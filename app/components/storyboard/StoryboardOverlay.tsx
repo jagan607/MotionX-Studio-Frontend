@@ -814,6 +814,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                     nextShotImage={nextShotImage}
                                                     isMorphedByPrev={isMorphedByPrev}
                                                     onUploadImage={(file) => shotMgr.handleShotImageUpload(shot, file)}
+                                                    onLipSync={() => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url || '' })}
                                                     tourId={index === 0 ? "tour-sb-shot-card" : undefined}
                                                 >
                                                     <div style={styles.shotImageContainer}>

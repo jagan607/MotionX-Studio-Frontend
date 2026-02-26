@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film,
     ImagePlus, Link2, Plus, CheckCircle2,
-    Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin
+    Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin, Volume2
 } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 import type { VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
@@ -55,6 +55,7 @@ interface SortableShotCardProps {
     nextShotImage?: string;
     isMorphedByPrev?: boolean;
     onUploadImage: (file: File) => void;
+    onLipSync?: () => void;
     tourId?: string;
     children: React.ReactNode;
     continuityRefId?: string | null;
@@ -80,6 +81,7 @@ export const SortableShotCard = ({
     nextShotImage,
     isMorphedByPrev = false,
     onUploadImage,
+    onLipSync,
     tourId,
     children,
     continuityRefId,
@@ -532,6 +534,17 @@ export const SortableShotCard = ({
                         {!isUpscaled && !isUpscaling && <span className="opacity-50 text-[9px] font-normal">· {upscaleCost} cr</span>}
                     </button>
                 </div>
+
+                {/* Lip Sync — only when video exists */}
+                {hasVideo && onLipSync && (
+                    <button
+                        onClick={onLipSync}
+                        disabled={isBusy}
+                        className="w-full flex items-center justify-center gap-1.5 py-2 mb-2 rounded-lg text-[10px] font-bold bg-white/[0.06] text-white border border-white/[0.1] hover:border-[#E50914]/40 hover:bg-[#E50914]/10 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <Volume2 size={12} /> Lip Sync
+                    </button>
+                )}
 
                 {/* Upload Image */}
                 <button
