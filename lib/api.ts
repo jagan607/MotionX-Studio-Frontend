@@ -420,3 +420,12 @@ export const exportUGC = async (params: {
     const res = await api.post("/api/v1/ugc/export", params);
     return res.data;
 };
+
+export const uploadStyleRef = async (projectId: string, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await api.post(`/api/v1/adaptation/project/${projectId}/upload_style_ref`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+};

@@ -5,12 +5,13 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import { doc, onSnapshot, collection, query, orderBy, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { api } from "@/lib/api";
+import { api, uploadStyleRef } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import {
     Loader2, User, Film, Play, X, SplitSquareHorizontal, RefreshCw,
-    CheckCircle2, Scan, Sliders, Zap, Wand2, MousePointer2,
-    Maximize2, Download, ChevronRight, Save, Aperture, Palette, Brush, RectangleHorizontal, RectangleVertical, Monitor
+    CheckCircle2, Scan, Zap, Wand2, MousePointer2,
+    Maximize2, Download, ChevronRight, Brush, RectangleHorizontal, RectangleVertical, Monitor,
+    ImagePlus, Trash2
 } from "lucide-react";
 
 
@@ -42,26 +43,6 @@ interface AdaptationShot {
     order?: number;
 }
 
-// --- MANIFEST TYPES ---
-type MoodOption = {
-    id: string;
-    label: string;
-    sub_label: string;
-    image_url: string;
-};
-
-type MoodAxis = {
-    id: string;
-    code_prefix: string;
-    label: string;
-    description: string;
-    options: MoodOption[];
-};
-
-type Manifest = {
-    axes: MoodAxis[];
-};
-
 // --- COMPONENT: IMAGE ZOOM MODAL ---
 const ImageZoomModal = ({ url, onClose }: { url: string, onClose: () => void }) => {
     if (!url) return null;
@@ -75,69 +56,121 @@ const ImageZoomModal = ({ url, onClose }: { url: string, onClose: () => void }) 
     );
 };
 
-// --- COMPONENT: MOODBOARD SIDEBAR ---
-const MoodboardSidebar = ({
-    manifest,
-    currentLighting,
-    currentColor,
-    onSelect,
+// --- COMPONENT: STYLE REFERENCE SIDEBAR ---
+const StyleRefSidebar = ({
+    projectId,
+    currentUrl,
     onClose
 }: {
-    manifest: Manifest | null,
-    currentLighting: string,
-    currentColor: string,
-    onSelect: (type: 'lighting' | 'color', value: string) => void,
-    onClose: () => void
+    projectId: string;
+    currentUrl: string | null;
+    onClose: () => void;
 }) => {
+    const [uploading, setUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const fileRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (file: File) => {
+        setUploading(true);
+        try {
+            await uploadStyleRef(projectId, file);
+            toast.success("Style reference uploaded");
+            onClose();
+        } catch (e: any) {
+            toast.error(e.response?.data?.detail || "Upload failed");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleRemove = async () => {
+        try {
+            await updateDoc(doc(db, "projects", projectId), { style_ref_url: null });
+            toast.success("Style reference removed");
+        } catch (e) {
+            toast.error("Failed to remove");
+        }
+    };
+
     return (
         <>
             <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px] z-[60] transition-opacity" onClick={onClose} />
-            <div className="fixed inset-y-0 right-0 w-[500px] xl:w-[600px] bg-[#0A0A0A] border-l border-[#333] z-[70] flex flex-col shadow-2xl slide-in-from-right duration-300">
+            <div className="fixed inset-y-0 right-0 w-[420px] bg-[#0A0A0A] border-l border-[#333] z-[70] flex flex-col shadow-2xl">
                 <div className="h-16 border-b border-[#222] flex items-center justify-between px-6 bg-[#111] shrink-0">
                     <div className="flex items-center gap-3">
-                        <Aperture className="text-red-600 animate-spin-slow" size={18} />
-                        <span className="text-sm font-bold uppercase tracking-[0.2em] text-white">Visual Matrix</span>
+                        <ImagePlus className="text-[#E50914]" size={18} />
+                        <span className="text-sm font-bold uppercase tracking-[0.2em] text-white">Style Reference</span>
                     </div>
-                    <button onClick={onClose} className="hover:text-white text-[#666] transition-colors"><X size={24} /></button>
+                    <button onClick={onClose} className="hover:text-white text-[#666] transition-colors cursor-pointer"><X size={24} /></button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-8 space-y-12 dark-scrollbar">
-                    {!manifest ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-[#444]"><Loader2 className="animate-spin text-red-600 mb-2" /><span className="text-xs font-mono">LOADING ASSETS...</span></div>
-                    ) : (
-                        manifest.axes.map((axis) => {
-                            const labelLower = axis.label.toLowerCase();
-                            let type: 'lighting' | 'color' | null = null;
-                            if (axis.code_prefix === "A" || labelLower.includes("light")) type = 'lighting';
-                            else if (axis.code_prefix === "B" || labelLower.includes("color") || labelLower.includes("look")) type = 'color';
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div className="space-y-2">
+                        <h4 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[2px]">About</h4>
+                        <p className="text-[12px] text-neutral-500 leading-relaxed">
+                            Upload a reference image to set the visual tone for all renders. The AI will match the lighting, color grading, and atmosphere of your reference.
+                        </p>
+                    </div>
 
-                            if (!type) return null;
-                            const currentVal = type === 'lighting' ? currentLighting : currentColor;
-
-                            return (
-                                <div key={axis.id} className="space-y-4">
-                                    <div className="flex items-end gap-3 border-b border-[#222] pb-2 sticky top-0 bg-[#0A0A0A] z-10">
-                                        <span className="text-sm font-bold uppercase text-white tracking-widest">{axis.label}</span>
-                                        <span className="text-[9px] font-mono text-[#444] mb-0.5">// {axis.description}</span>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                        {axis.options.map((option) => {
-                                            const isSelected = currentVal === option.label;
-                                            return (
-                                                <button key={option.id} onClick={() => onSelect(type!, option.label)} className={`relative aspect-[16/10] group overflow-hidden transition-all duration-200 rounded-sm border ${isSelected ? 'border-red-600 z-10 opacity-100 ring-1 ring-red-600 shadow-[0_0_15px_rgba(220,38,38,0.3)]' : 'border-transparent opacity-50 hover:opacity-100 hover:border-[#444]'}`}>
-                                                    <Image src={option.image_url} alt={option.label} fill sizes="(max-width: 768px) 50vw, 200px" quality={75} loading="lazy" className="object-cover transition-transform duration-700 group-hover:scale-105" />
-                                                    <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent transition-opacity ${isSelected ? 'opacity-80' : 'opacity-60 group-hover:opacity-80'}`} />
-                                                    <div className="absolute bottom-0 left-0 w-full p-2 flex justify-between items-end">
-                                                        <div className="text-left w-full"><div className={`text-[7px] font-mono mb-0.5 ${isSelected ? 'text-red-500' : 'text-[#888]'}`}>{option.id}</div><div className="text-[9px] font-bold uppercase text-white tracking-wider truncate">{option.label}</div></div>
-                                                        {isSelected && <div className="h-1.5 w-1.5 bg-red-600 rounded-full shadow-[0_0_5px_#EF4444] mb-1 mr-1 shrink-0" />}
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                    {/* Current style ref */}
+                    {currentUrl ? (
+                        <div className="space-y-3">
+                            <h4 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[2px]">Current Reference</h4>
+                            <div className="relative rounded-lg overflow-hidden border border-[#333] group">
+                                <img src={currentUrl} className="w-full aspect-video object-cover" />
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                    <button onClick={handleRemove} className="p-2.5 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors cursor-pointer" title="Remove">
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
-                            );
-                        })
-                    )}
+                                <div className="absolute top-2 left-2 bg-[#E50914]/80 text-white text-[7px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider backdrop-blur-sm">Active</div>
+                            </div>
+                        </div>
+                    ) : null}
+
+                    {/* Upload area */}
+                    <div className="space-y-3">
+                        <h4 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[2px]">{currentUrl ? 'Replace Reference' : 'Upload Reference'}</h4>
+                        <div
+                            onClick={() => fileRef.current?.click()}
+                            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                            onDragLeave={() => setIsDragging(false)}
+                            onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files?.[0]; if (f && f.type.startsWith('image/')) handleUpload(f); else toast.error('Please drop an image file'); }}
+                            className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all group
+                                ${isDragging ? 'border-[#E50914] bg-[#E50914]/[0.06] scale-[1.02]' : 'border-[#333] hover:border-[#E50914]/50 hover:bg-[#E50914]/[0.02]'}`}
+                        >
+                            <input
+                                ref={fileRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
+                            />
+                            {uploading ? (
+                                <>
+                                    <Loader2 size={28} className="text-[#E50914] animate-spin mb-3" />
+                                    <span className="text-[11px] text-neutral-400 font-bold">Uploading...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <div className={`w-14 h-14 rounded-xl bg-white/[0.03] border flex items-center justify-center mb-3 transition-colors ${isDragging ? 'border-[#E50914]/50' : 'border-white/[0.08] group-hover:border-[#E50914]/30'}`}>
+                                        <ImagePlus size={24} className={`transition-colors ${isDragging ? 'text-[#E50914]' : 'text-neutral-600 group-hover:text-[#E50914]'}`} />
+                                    </div>
+                                    <span className={`text-[12px] font-semibold transition-colors ${isDragging ? 'text-white' : 'text-neutral-400 group-hover:text-white'}`}>{isDragging ? 'Drop to upload' : 'Click or drag & drop'}</span>
+                                    <span className="text-[10px] text-neutral-600 mt-1">JPEG, PNG, or WebP</span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Tips */}
+                    <div className="space-y-2 border-t border-[#222] pt-5">
+                        <h4 className="text-[10px] font-bold text-neutral-400 uppercase tracking-[2px]">Tips</h4>
+                        <ul className="space-y-2 text-[11px] text-neutral-500">
+                            <li className="flex items-start gap-2"><span className="text-[#E50914] mt-0.5">•</span> Use a still from the look you want to achieve</li>
+                            <li className="flex items-start gap-2"><span className="text-[#E50914] mt-0.5">•</span> Film stills, paintings, or mood boards work well</li>
+                            <li className="flex items-start gap-2"><span className="text-[#E50914] mt-0.5">•</span> The AI extracts color palette, lighting direction, and atmosphere</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </>
@@ -314,11 +347,8 @@ export default function AdaptationPage() {
     const [activeShotForTagging, setActiveShotForTagging] = useState<AdaptationShot | null>(null);
     const [activeShotForInpaint, setActiveShotForInpaint] = useState<AdaptationShot | null>(null);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
-    const [showMoodboard, setShowMoodboard] = useState(false);
-
-    const [manifest, setManifest] = useState<Manifest | null>(null);
-    const [selectedLighting, setSelectedLighting] = useState("Cinematic");
-    const [selectedColor, setSelectedColor] = useState("Standard");
+    const [showStyleRef, setShowStyleRef] = useState(false);
+    const [styleRefUrl, setStyleRefUrl] = useState<string | null>(null);
 
     const [clusters, setClusters] = useState<CastCluster[]>([]);
     const [shots, setShots] = useState<AdaptationShot[]>([]);
@@ -327,22 +357,13 @@ export default function AdaptationPage() {
 
     useEffect(() => {
         if (!projectId || projectId === "new") return;
-        const u1 = onSnapshot(doc(db, "projects", projectId), async (d) => {
+        const u1 = onSnapshot(doc(db, "projects", projectId), (d) => {
             const data = d.data();
             if (data) {
                 setStatus(data.status || "init");
-                if (data.adaptation_settings) {
-                    if (data.adaptation_settings.lighting) setSelectedLighting(data.adaptation_settings.lighting);
-                    if (data.adaptation_settings.color) setSelectedColor(data.adaptation_settings.color);
-                }
+                setStyleRefUrl(data.style_ref_url || null);
             }
         });
-        const u2 = async () => {
-            try {
-                const s = await getDoc(doc(db, "configs", "moodboard_manifest"));
-                if (s.exists()) setManifest(s.data() as Manifest);
-            } catch (e) { }
-        }; u2();
         const u3 = onSnapshot(query(collection(db, "projects", projectId, "cast_clusters"), orderBy("label_id")), (s) => setClusters(s.docs.map(d => ({ id: d.id, ...d.data() } as CastCluster))));
         const u4 = onSnapshot(collection(db, "projects", projectId, "episodes", "main", "scenes", "scene_01", "shots"), (s) => {
             const list = s.docs.map(d => ({ id: d.id, ...d.data() } as AdaptationShot));
@@ -353,13 +374,7 @@ export default function AdaptationPage() {
         return () => { u1(); u3(); u4(); };
     }, [projectId]);
 
-    const updateProjectSettings = async (type: 'lighting' | 'color', value: string) => {
-        let newLight = selectedLighting;
-        let newColor = selectedColor;
-        if (type === 'lighting') { setSelectedLighting(value); newLight = value; }
-        if (type === 'color') { setSelectedColor(value); newColor = value; }
-        try { await updateDoc(doc(db, "projects", projectId), { adaptation_settings: { lighting: newLight, color: newColor } }); toast.success("Style Updated"); } catch (e) { }
-    };
+
 
     const handleRegenerate = async (shotId: string, tags?: Tag[]) => {
         const shotData = shots.find(s => s.id === shotId);
@@ -367,10 +382,7 @@ export default function AdaptationPage() {
         toast("Processing Shot...", { icon: "🎨" });
         try {
             await api.post(`/api/v1/adaptation/project/${projectId}/shot/${shotId}/regenerate`, {
-                lighting: selectedLighting,
-                color_grade: selectedColor,
                 manual_tags: finalTags,
-                aspect_ratio: aspectRatio,
             });
         } catch (e: any) {
             if (e.response?.status === 402) toast.error("Insufficient Credits");
@@ -450,7 +462,7 @@ export default function AdaptationPage() {
         }
     };
     const handleDeleteShot = async (sid: string) => { if (!confirm("Delete?")) return; try { await deleteDoc(doc(db, "projects", projectId, "episodes", "main", "scenes", "scene_01", "shots", sid)); } catch (e) { } };
-    const handleStartRender = async () => { setIsStartingRender(true); try { await updateDoc(doc(db, "projects", projectId), { adaptation_settings: { lighting: selectedLighting, color: selectedColor } }); await api.post(`/api/v1/adaptation/start_render/${projectId}`); } catch (e) { } finally { setIsStartingRender(false) } };
+    const handleStartRender = async () => { setIsStartingRender(true); try { await api.post(`/api/v1/adaptation/start_render/${projectId}`); } catch (e) { } finally { setIsStartingRender(false) } };
 
     const isProjectRendering = status === 'rendering_adaptation' || status === 'completed';
 
@@ -503,13 +515,11 @@ export default function AdaptationPage() {
                 ))}
             </div>
 
-            {showMoodboard && (
-                <MoodboardSidebar
-                    manifest={manifest}
-                    currentLighting={selectedLighting}
-                    currentColor={selectedColor}
-                    onSelect={updateProjectSettings}
-                    onClose={() => setShowMoodboard(false)}
+            {showStyleRef && (
+                <StyleRefSidebar
+                    projectId={projectId}
+                    currentUrl={styleRefUrl}
+                    onClose={() => setShowStyleRef(false)}
                 />
             )}
 
@@ -521,13 +531,18 @@ export default function AdaptationPage() {
                 <div className="flex items-center gap-6">
                     {!status.includes('analyzing') && (
                         <div className="flex items-center gap-3 mr-4 border-r border-[#333] pr-6">
-                            <button onClick={() => setShowMoodboard(true)} className="flex items-center gap-2 bg-[#111] hover:bg-[#1a1a1a] border border-[#333] px-3 py-1.5 rounded-sm transition-all group">
-                                <Zap size={12} className="text-[#666] group-hover:text-red-500" />
-                                <span className="text-[10px] font-mono text-white uppercase">{selectedLighting}</span>
-                            </button>
-                            <button onClick={() => setShowMoodboard(true)} className="flex items-center gap-2 bg-[#111] hover:bg-[#1a1a1a] border border-[#333] px-3 py-1.5 rounded-sm transition-all group">
-                                <Palette size={12} className="text-[#666] group-hover:text-red-500" />
-                                <span className="text-[10px] font-mono text-white uppercase">{selectedColor}</span>
+                            <button onClick={() => setShowStyleRef(true)} className="flex items-center gap-2 bg-[#111] hover:bg-[#1a1a1a] border border-[#333] px-3 py-1.5 rounded-sm transition-all group cursor-pointer">
+                                {styleRefUrl ? (
+                                    <>
+                                        <img src={styleRefUrl} className="w-5 h-5 rounded-sm object-cover border border-[#444]" />
+                                        <span className="text-[10px] font-mono text-white uppercase">Style Ref</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <ImagePlus size={12} className="text-[#666] group-hover:text-[#E50914]" />
+                                        <span className="text-[10px] font-mono text-[#666] group-hover:text-white uppercase transition-colors">Style Reference</span>
+                                    </>
+                                )}
                             </button>
                         </div>
                     )}
@@ -536,6 +551,19 @@ export default function AdaptationPage() {
                     <div className="flex gap-6 text-xs font-mono text-[#666]"><span>CLUSTERS: <span className="text-white">{clusters.length}</span></span><span>SHOTS: <span className="text-white">{shots.length}</span></span></div>
                 </div>
             </div>
+
+            {/* Style Reference Strip */}
+            {styleRefUrl && (
+                <div className="shrink-0 border-b border-[#222] bg-[#0A0A0A] px-8 py-3 flex items-center gap-4">
+                    <button onClick={() => setShowStyleRef(true)} className="flex items-center gap-4 group cursor-pointer">
+                        <img src={styleRefUrl} className="w-20 h-12 rounded-md object-cover border border-[#333] group-hover:border-[#E50914]/50 transition-colors shadow-lg" />
+                        <div>
+                            <div className="text-[9px] font-bold text-[#E50914] uppercase tracking-[2px] mb-0.5">Style Reference</div>
+                            <div className="text-[10px] text-neutral-500 group-hover:text-neutral-300 transition-colors">Lighting & color grading reference · Click to change</div>
+                        </div>
+                    </button>
+                </div>
+            )}
 
             <div className="flex-1 overflow-y-auto p-8 space-y-12 dark-scrollbar">
                 <div className={isProjectRendering ? "opacity-30 pointer-events-none filter grayscale transition-all duration-500" : "transition-all duration-500"}>

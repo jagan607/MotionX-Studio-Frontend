@@ -11,7 +11,7 @@ import { api, invalidateDashboardCache } from "@/lib/api";
 import {
     ArrowLeft, Film, Tv, ChevronRight, ChevronLeft, Loader2,
     Megaphone, BrainCircuit, UploadCloud, FileVideo, AlertTriangle,
-    Mic, User as UserIcon, Camera, BookOpen, Backpack
+    Mic, User as UserIcon, Camera, BookOpen, Backpack, Sparkles, Clapperboard
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -54,6 +54,7 @@ export default function NewProjectPage() {
     const [adaptationFile, setAdaptationFile] = useState<File | null>(null);
     const [isSizeError, setIsSizeError] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => setCurrentUser(user));
@@ -105,6 +106,16 @@ export default function NewProjectPage() {
         setFormData({ ...formData, type: FORMAT_OPTIONS[idx].id });
     };
 
+    const handleFileDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files?.[0] || null;
+        if (!file) return;
+        if (!file.type.startsWith('video/')) return toast.error("Please upload a video file");
+        if (file.size > 350 * 1024 * 1024) { setIsSizeError(true); setAdaptationFile(null); toast.error("File exceeds 350MB"); }
+        else { setIsSizeError(false); setAdaptationFile(file); }
+    };
+
     return (
         <div className="h-screen bg-[#030303] text-white overflow-hidden flex">
             <style jsx global>{`
@@ -112,10 +123,13 @@ export default function NewProjectPage() {
                 @keyframes imgCrossfade { from { opacity: 0; } to { opacity: 1; } }
                 @keyframes slideLabel { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes scanDrift { 0% { top: 15%; } 100% { top: 85%; } }
+                @keyframes glowPulse { 0%,100% { opacity: 0.3; } 50% { opacity: 0.8; } }
+                @keyframes floatOrb { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(10px,-15px) scale(1.1); } }
                 .fade-up { animation: fadeUp 0.5s ease both; }
                 .fade-up-1 { animation: fadeUp 0.5s ease 0.05s both; }
                 .fade-up-2 { animation: fadeUp 0.5s ease 0.1s both; }
                 .fade-up-3 { animation: fadeUp 0.5s ease 0.15s both; }
+                .fade-up-4 { animation: fadeUp 0.5s ease 0.2s both; }
                 .img-fade { animation: imgCrossfade 0.7s ease both; }
                 .label-slide { animation: slideLabel 0.4s ease 0.1s both; }
             `}</style>
@@ -137,7 +151,9 @@ export default function NewProjectPage() {
                         <h1 className="text-4xl font-display uppercase tracking-tight leading-[0.95] mb-1">
                             New <span className="text-[#E50914]">Production</span>
                         </h1>
-                        <p className="text-[11px] text-neutral-600">Set up your project, then upload your script.</p>
+                        <p className="text-[11px] text-neutral-600">
+                            {isAdaptation ? "Upload a source video to begin face-swap adaptation." : "Set up your project, then upload your script."}
+                        </p>
                     </div>
 
                     {/* ── TITLE ── */}
@@ -238,14 +254,21 @@ export default function NewProjectPage() {
                             </div>
                         </>
                     ) : (
-                        /* ── ADAPTATION ── */
+                        /* ── ADAPTATION UPLOAD ── */
                         <div className="space-y-3 fade-up-2">
                             <div className="flex items-center justify-between">
                                 <label className="text-[9px] font-semibold tracking-[3px] uppercase text-neutral-500">Source Video</label>
                                 {isSizeError && <span className="text-[#E50914] text-[9px] font-bold flex items-center gap-1 animate-pulse"><AlertTriangle size={9} /> TOO LARGE</span>}
                             </div>
-                            <div className={`border border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-center relative transition-all
-                                ${isSizeError ? 'border-[#E50914] bg-[#E50914]/[0.04]' : adaptationFile ? 'border-[#E50914]/50 bg-[#E50914]/[0.03]' : 'border-white/[0.1] bg-white/[0.02] hover:border-white/[0.2]'}`}
+                            <div
+                                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                onDragLeave={() => setIsDragging(false)}
+                                onDrop={handleFileDrop}
+                                className={`border border-dashed rounded-xl p-10 flex flex-col items-center justify-center text-center relative transition-all duration-300
+                                    ${isDragging ? 'border-[#E50914] bg-[#E50914]/[0.06] scale-[1.01]'
+                                        : isSizeError ? 'border-[#E50914] bg-[#E50914]/[0.04]'
+                                            : adaptationFile ? 'border-[#E50914]/50 bg-[#E50914]/[0.03]'
+                                                : 'border-white/[0.1] bg-white/[0.02] hover:border-white/[0.2] hover:bg-white/[0.03]'}`}
                             >
                                 <input type="file" accept="video/mp4,video/mov" className="absolute inset-0 opacity-0 cursor-pointer z-10"
                                     onChange={(e) => {
@@ -256,15 +279,25 @@ export default function NewProjectPage() {
                                 />
                                 {adaptationFile ? (
                                     <>
-                                        <FileVideo size={32} className="text-[#E50914] mb-2" />
-                                        <span className="text-white font-bold text-[12px]">{adaptationFile.name}</span>
-                                        <span className="text-[9px] text-[#E50914]/70 mt-1 uppercase tracking-widest">Ready</span>
+                                        <div className="w-14 h-14 rounded-xl bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center mb-3">
+                                            <FileVideo size={24} className="text-[#E50914]" />
+                                        </div>
+                                        <span className="text-white font-bold text-[13px] mb-0.5">{adaptationFile.name}</span>
+                                        <span className="text-[10px] text-neutral-500">{(adaptationFile.size / 1024 / 1024).toFixed(1)} MB</span>
+                                        <span className="text-[9px] text-[#E50914]/70 mt-2 uppercase tracking-[3px] font-bold">Ready to Process</span>
                                     </>
                                 ) : (
                                     <>
-                                        <UploadCloud size={32} className="mb-2 text-neutral-600" />
-                                        <span className="text-[12px] font-semibold text-neutral-400">Drop source video here</span>
-                                        <span className="text-[9px] text-neutral-600 mt-0.5">MP4 / MOV • Max 350MB</span>
+                                        <div className="w-14 h-14 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-3">
+                                            <UploadCloud size={24} className="text-neutral-600" />
+                                        </div>
+                                        <span className="text-[13px] font-semibold text-neutral-400">Drop source video here</span>
+                                        <span className="text-[10px] text-neutral-600 mt-1">or click to browse</span>
+                                        <div className="flex items-center gap-3 mt-3">
+                                            <span className="text-[8px] text-neutral-700 bg-white/[0.03] px-2 py-0.5 rounded-full border border-white/[0.06]">MP4</span>
+                                            <span className="text-[8px] text-neutral-700 bg-white/[0.03] px-2 py-0.5 rounded-full border border-white/[0.06]">MOV</span>
+                                            <span className="text-[8px] text-neutral-700 bg-white/[0.03] px-2 py-0.5 rounded-full border border-white/[0.06]">Max 350MB</span>
+                                        </div>
                                     </>
                                 )}
                             </div>
@@ -275,7 +308,7 @@ export default function NewProjectPage() {
                     <button
                         onClick={handleSubmit}
                         disabled={creating || (isAdaptation && (isSizeError || !adaptationFile))}
-                        className={`w-full py-3.5 rounded-lg text-[11px] font-bold uppercase tracking-[3px] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer
+                        className={`w-full py-3.5 rounded-lg text-[11px] font-bold uppercase tracking-[3px] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer fade-up-4
                             ${creating || (isAdaptation && (isSizeError || !adaptationFile))
                                 ? 'bg-white/[0.04] text-neutral-600 border border-white/[0.06] cursor-not-allowed'
                                 : 'bg-[#E50914] hover:bg-[#ff1a25] text-white shadow-[0_4px_24px_rgba(229,9,20,0.25)] hover:shadow-[0_4px_32px_rgba(229,9,20,0.4)]'
@@ -301,92 +334,151 @@ export default function NewProjectPage() {
                 )}
             </div>
 
-            {/* ═════════════════ RIGHT: IMMERSIVE FORMAT SELECTOR ═════════════════ */}
-            {!isAdaptation && (
-                <div className="flex-1 flex flex-col relative overflow-hidden">
+            {/* ═════════════════ RIGHT: IMMERSIVE PANEL ═════════════════ */}
+            <div className="flex-1 flex flex-col relative overflow-hidden">
 
-                    {/* ── Full-bleed hero image ── */}
-                    {selectedFormat && (
-                        <div key={selectedFormat.id} className="absolute inset-0 img-fade">
-                            <Image src={selectedFormat.img} alt={selectedFormat.label} fill className="object-cover" priority />
-                            {/* Cinematic overlays */}
-                            <div className="absolute inset-0 bg-black/40" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-[#030303]/60" />
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#030303] via-transparent to-transparent" />
+                {isAdaptation ? (
+                    /* ── Adaptation: Atmospheric right panel ── */
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        {/* Ambient background */}
+                        <div className="absolute inset-0 bg-[#030303]">
+                            <div className="absolute top-1/4 left-1/3 w-80 h-80 bg-[#E50914]/[0.04] rounded-full blur-[120px]" style={{ animation: 'floatOrb 8s ease-in-out infinite' }} />
+                            <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-[#E50914]/[0.03] rounded-full blur-[140px]" style={{ animation: 'floatOrb 10s ease-in-out infinite reverse' }} />
                         </div>
-                    )}
 
-                    {/* ── Viewfinder frame ── */}
-                    <div className="absolute inset-0 z-10 pointer-events-none">
-                        {/* Corner brackets */}
-                        <div className="absolute top-8 left-8 w-10 h-10 border-t-[1.5px] border-l-[1.5px] border-white/[0.08]" />
-                        <div className="absolute top-8 right-8 w-10 h-10 border-t-[1.5px] border-r-[1.5px] border-white/[0.08]" />
-                        <div className="absolute bottom-28 left-8 w-10 h-10 border-b-[1.5px] border-l-[1.5px] border-white/[0.08]" />
-                        <div className="absolute bottom-28 right-8 w-10 h-10 border-b-[1.5px] border-r-[1.5px] border-white/[0.08]" />
+                        {/* Viewfinder brackets */}
+                        <div className="absolute inset-0 z-10 pointer-events-none">
+                            <div className="absolute top-8 left-8 w-10 h-10 border-t-[1.5px] border-l-[1.5px] border-white/[0.06]" />
+                            <div className="absolute top-8 right-8 w-10 h-10 border-t-[1.5px] border-r-[1.5px] border-white/[0.06]" />
+                            <div className="absolute bottom-8 left-8 w-10 h-10 border-b-[1.5px] border-l-[1.5px] border-white/[0.06]" />
+                            <div className="absolute bottom-8 right-8 w-10 h-10 border-b-[1.5px] border-r-[1.5px] border-white/[0.06]" />
+                            <div className="absolute left-10 right-10 h-[1px] bg-gradient-to-r from-transparent via-[#E50914]/15 to-transparent"
+                                style={{ animation: 'scanDrift 6s ease-in-out infinite alternate' }} />
+                        </div>
 
-                        {/* Animated scan line */}
-                        <div className="absolute left-10 right-10 h-[1px] bg-gradient-to-r from-transparent via-[#E50914]/20 to-transparent"
-                            style={{ animation: 'scanDrift 5s ease-in-out infinite alternate' }} />
+                        {/* Center content */}
+                        <div className="relative z-20 text-center px-12 max-w-lg fade-up">
+                            <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-8">
+                                <BrainCircuit size={36} className="text-[#E50914]/40" />
+                            </div>
+                            <h2 className="text-4xl font-display uppercase tracking-tight text-white leading-none mb-3">
+                                Face <span className="text-[#E50914]">Adaptation</span>
+                            </h2>
+                            <p className="text-[13px] text-neutral-500 leading-relaxed mb-8">
+                                Upload any video and our AI will detect faces, map characters, and let you swap them with your cast — frame by frame.
+                            </p>
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { step: "01", label: "Upload", desc: "Source video" },
+                                    { step: "02", label: "Cast", desc: "Map characters" },
+                                    { step: "03", label: "Render", desc: "Generate output" },
+                                ].map(s => (
+                                    <div key={s.step} className="py-4 px-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                                        <div className="text-[8px] font-mono text-[#E50914]/40 mb-1 tracking-wider">STEP {s.step}</div>
+                                        <div className="text-[12px] font-bold text-white uppercase tracking-wider">{s.label}</div>
+                                        <div className="text-[9px] text-neutral-600 mt-0.5">{s.desc}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
 
-                        {/* Top right HUD */}
-                        <div className="absolute top-10 right-14 text-right">
-                            <div className="text-[8px] font-mono text-white/15 uppercase tracking-[3px]">MotionX Studio</div>
-                            <div className="text-[8px] font-mono text-[#E50914]/30 mt-0.5 tracking-wider">{formData.aspect_ratio} • {formData.style}</div>
+                        {/* Bottom HUD */}
+                        <div className="absolute bottom-8 left-0 right-0 z-20 flex justify-center">
+                            <div className="flex items-center gap-6 text-[8px] font-mono text-neutral-700 uppercase tracking-[3px]">
+                                <span>MotionX Adaptation Engine</span>
+                                <span className="w-1 h-1 bg-[#E50914]/30 rounded-full" />
+                                <span>AI Face Detection</span>
+                                <span className="w-1 h-1 bg-[#E50914]/30 rounded-full" />
+                                <span>Frame-Level Render</span>
+                            </div>
                         </div>
                     </div>
-
-                    {/* ── Center: Format label + navigation ── */}
-                    <div className="relative z-20 flex-1 flex flex-col items-center justify-center px-12">
+                ) : (
+                    /* ── Standard: Format selector ── */
+                    <>
+                        {/* ── Full-bleed hero image ── */}
                         {selectedFormat && (
-                            <div key={selectedFormat.id} className="label-slide text-center">
-                                <selectedFormat.icon size={28} className="text-white/30 mx-auto mb-4" />
-                                <h2 className="text-5xl font-display uppercase tracking-tight text-white leading-none mb-2">
-                                    {selectedFormat.label}
-                                </h2>
-                                <p className="text-[12px] text-white/40 tracking-wide">{selectedFormat.desc}</p>
+                            <div key={selectedFormat.id} className="absolute inset-0 img-fade">
+                                <Image src={selectedFormat.img} alt={selectedFormat.label} fill className="object-cover" priority />
+                                {/* Cinematic overlays */}
+                                <div className="absolute inset-0 bg-black/40" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-[#030303]/60" />
+                                <div className="absolute inset-0 bg-gradient-to-r from-[#030303] via-transparent to-transparent" />
                             </div>
                         )}
 
-                        {/* Navigation arrows */}
-                        <div className="flex gap-4 mt-8">
-                            <button onClick={() => cycleFormat(-1)}
-                                className="w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.03] backdrop-blur-sm flex items-center justify-center hover:border-white/[0.25] hover:bg-white/[0.06] transition-all cursor-pointer group">
-                                <ChevronLeft size={16} className="text-white/40 group-hover:text-white transition-colors" />
-                            </button>
-                            <button onClick={() => cycleFormat(1)}
-                                className="w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.03] backdrop-blur-sm flex items-center justify-center hover:border-white/[0.25] hover:bg-white/[0.06] transition-all cursor-pointer group">
-                                <ChevronRight size={16} className="text-white/40 group-hover:text-white transition-colors" />
-                            </button>
-                        </div>
-                    </div>
+                        {/* ── Viewfinder frame ── */}
+                        <div className="absolute inset-0 z-10 pointer-events-none">
+                            {/* Corner brackets */}
+                            <div className="absolute top-8 left-8 w-10 h-10 border-t-[1.5px] border-l-[1.5px] border-white/[0.08]" />
+                            <div className="absolute top-8 right-8 w-10 h-10 border-t-[1.5px] border-r-[1.5px] border-white/[0.08]" />
+                            <div className="absolute bottom-28 left-8 w-10 h-10 border-b-[1.5px] border-l-[1.5px] border-white/[0.08]" />
+                            <div className="absolute bottom-28 right-8 w-10 h-10 border-b-[1.5px] border-r-[1.5px] border-white/[0.08]" />
 
-                    {/* ── Bottom: Filmstrip thumbnails ── */}
-                    <div className="relative z-20 shrink-0 border-t border-white/[0.04] bg-[#030303]/80 backdrop-blur-md">
-                        <div className="flex h-24">
-                            {FORMAT_OPTIONS.map((opt, idx) => {
-                                const active = formData.type === opt.id;
-                                return (
-                                    <button key={opt.id} onClick={() => setFormData({ ...formData, type: opt.id })}
-                                        className={`flex-1 relative overflow-hidden transition-all duration-300 cursor-pointer group
-                                            ${active ? 'opacity-100' : 'opacity-40 hover:opacity-70'}
-                                            ${idx > 0 ? 'border-l border-white/[0.04]' : ''}`}
-                                    >
-                                        <Image src={opt.img} alt={opt.label} fill className={`object-cover transition-all duration-500 ${active ? 'scale-100' : 'scale-110 group-hover:scale-105'}`} />
-                                        <div className="absolute inset-0 bg-black/50" />
-                                        {/* Active indicator */}
-                                        {active && <div className="absolute bottom-0 inset-x-0 h-[2px] bg-[#E50914]" />}
-                                        {/* Label */}
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <opt.icon size={14} className={`mb-1 ${active ? 'text-[#E50914]' : 'text-white/40'}`} />
-                                            <span className={`text-[10px] font-bold uppercase tracking-wider ${active ? 'text-white' : 'text-white/50'}`}>{opt.label}</span>
-                                        </div>
-                                    </button>
-                                );
-                            })}
+                            {/* Animated scan line */}
+                            <div className="absolute left-10 right-10 h-[1px] bg-gradient-to-r from-transparent via-[#E50914]/20 to-transparent"
+                                style={{ animation: 'scanDrift 5s ease-in-out infinite alternate' }} />
+
+                            {/* Top right HUD */}
+                            <div className="absolute top-10 right-14 text-right">
+                                <div className="text-[8px] font-mono text-white/15 uppercase tracking-[3px]">MotionX Studio</div>
+                                <div className="text-[8px] font-mono text-[#E50914]/30 mt-0.5 tracking-wider">{formData.aspect_ratio} • {formData.style}</div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            )}
+
+                        {/* ── Center: Format label + navigation ── */}
+                        <div className="relative z-20 flex-1 flex flex-col items-center justify-center px-12">
+                            {selectedFormat && (
+                                <div key={selectedFormat.id} className="label-slide text-center">
+                                    <selectedFormat.icon size={28} className="text-white/30 mx-auto mb-4" />
+                                    <h2 className="text-5xl font-display uppercase tracking-tight text-white leading-none mb-2">
+                                        {selectedFormat.label}
+                                    </h2>
+                                    <p className="text-[12px] text-white/40 tracking-wide">{selectedFormat.desc}</p>
+                                </div>
+                            )}
+
+                            {/* Navigation arrows */}
+                            <div className="flex gap-4 mt-8">
+                                <button onClick={() => cycleFormat(-1)}
+                                    className="w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.03] backdrop-blur-sm flex items-center justify-center hover:border-white/[0.25] hover:bg-white/[0.06] transition-all cursor-pointer group">
+                                    <ChevronLeft size={16} className="text-white/40 group-hover:text-white transition-colors" />
+                                </button>
+                                <button onClick={() => cycleFormat(1)}
+                                    className="w-10 h-10 rounded-full border border-white/[0.1] bg-white/[0.03] backdrop-blur-sm flex items-center justify-center hover:border-white/[0.25] hover:bg-white/[0.06] transition-all cursor-pointer group">
+                                    <ChevronRight size={16} className="text-white/40 group-hover:text-white transition-colors" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* ── Bottom: Filmstrip thumbnails ── */}
+                        <div className="relative z-20 shrink-0 border-t border-white/[0.04] bg-[#030303]/80 backdrop-blur-md">
+                            <div className="flex h-24">
+                                {FORMAT_OPTIONS.map((opt, idx) => {
+                                    const active = formData.type === opt.id;
+                                    return (
+                                        <button key={opt.id} onClick={() => setFormData({ ...formData, type: opt.id })}
+                                            className={`flex-1 relative overflow-hidden transition-all duration-300 cursor-pointer group
+                                                ${active ? 'opacity-100' : 'opacity-40 hover:opacity-70'}
+                                                ${idx > 0 ? 'border-l border-white/[0.04]' : ''}`}
+                                        >
+                                            <Image src={opt.img} alt={opt.label} fill className={`object-cover transition-all duration-500 ${active ? 'scale-100' : 'scale-110 group-hover:scale-105'}`} />
+                                            <div className="absolute inset-0 bg-black/50" />
+                                            {/* Active indicator */}
+                                            {active && <div className="absolute bottom-0 inset-x-0 h-[2px] bg-[#E50914]" />}
+                                            {/* Label */}
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                <opt.icon size={14} className={`mb-1 ${active ? 'text-[#E50914]' : 'text-white/40'}`} />
+                                                <span className={`text-[10px] font-bold uppercase tracking-wider ${active ? 'text-white' : 'text-white/50'}`}>{opt.label}</span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </>
+                )}
+            </div>
         </div>
     );
 }
