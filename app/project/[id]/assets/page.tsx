@@ -350,12 +350,12 @@ export default function AssetManagerPage() {
                         </div>
                     </div>
 
-                    <MotionButton
+                    <button
                         onClick={handleEnterStudio}
-                        className="bg-green-600 hover:bg-green-500 border-green-500/30 text-white"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600/20 border border-green-500/30 hover:bg-green-600/40 hover:border-green-500/50 text-green-400 text-[10px] font-bold tracking-widest uppercase rounded transition-all cursor-pointer"
                     >
-                        ENTER STUDIO <ArrowRight size={14} className="ml-2" />
-                    </MotionButton>
+                        Enter Studio <ArrowRight size={11} />
+                    </button>
                 </div>
             ) : (
                 <StudioHeader
