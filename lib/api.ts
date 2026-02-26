@@ -192,7 +192,7 @@ export const fetchUserProjectsBasic = async (uid: string): Promise<DashboardProj
 
         const data = await res.json();
         // Backend returns { projects: [...] } or a flat array — handle both
-        const projects: DashboardProject[] = (data.projects || data || []).map((p: any) => ({
+        let projects: DashboardProject[] = (data.projects || data || []).map((p: any) => ({
             ...p,
             id: p.id || p.project_id,
         }));
@@ -203,6 +203,12 @@ export const fetchUserProjectsBasic = async (uid: string): Promise<DashboardProj
             const dateB = new Date(b.updated_at || b.created_at || 0).getTime();
             return dateB - dateA;
         });
+
+        // B2C filter: if the current user has no tenantId, exclude enterprise projects
+        const isB2C = !auth.currentUser?.tenantId;
+        if (isB2C) {
+            projects = projects.filter(p => !p.tenant_id);
+        }
 
         // Update Cache
         projectCache[uid] = { data: projects, timestamp: Date.now() };
