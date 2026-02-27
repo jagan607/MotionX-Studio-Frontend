@@ -37,6 +37,7 @@ import Link from "next/link";
 // --- CONTEXT IMPORT ---
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
 import { PricingProvider } from "@/app/hooks/usePricing";
+import { useCredits } from '@/hooks/useCredits';
 
 //db
 import { doc, onSnapshot, getDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
@@ -97,7 +98,7 @@ interface StoryboardOverlayProps {
 }
 
 export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
-    activeSceneId, currentScene, onClose, credits, castMembers, locations, products,
+    activeSceneId, currentScene, onClose, credits: _creditsProp, castMembers, locations, products,
     seriesName, episodeTitle, initialScript, initialRuntime,
     seriesId, episodeId,
     shotMgr, inpaintData, setInpaintData, onSaveInpaint, onApplyInpaint,
@@ -156,6 +157,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     }, []);
 
     // UI State
+    // Use the same real-time Firestore snapshot as StudioHeader
+    const { credits } = useCredits();
+
     const [showTopUp, setShowTopUp] = useState(false);
     const [showAssets, setShowAssets] = useState(false);
     const [showScript, setShowScript] = useState(false);
