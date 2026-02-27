@@ -307,7 +307,12 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         referenceFile?: File | null,
         imageProvider: string = 'gemini',
         continuityRefId?: string | null,
+<<<<<<< HEAD
         modelTier: 'flash' | 'pro' = 'flash'
+=======
+        cameraTransform?: any,
+        cameraShotType?: string
+>>>>>>> ee6e98a (Camera orbit functionality added for camera control)
     ) => {
         addLoadingShot(shot.id);
 
@@ -338,8 +343,18 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         formData.append("aspect_ratio", aspectRatio);
         formData.append("image_provider", imageProvider); // <--- Pass Provider to Backend
 
+<<<<<<< HEAD
         // [NEW] Model tier for cost/quality selection
         formData.append("model_tier", modelTier);
+=======
+        // [NEW] Camera transform data
+        if (cameraTransform) {
+            formData.append("camera_transform", JSON.stringify(cameraTransform));
+        }
+        if (cameraShotType) {
+            formData.append("camera_shot_type", cameraShotType);
+        }
+>>>>>>> ee6e98a (Camera orbit functionality added for camera control)
 
         // [NEW] Continuity reference shot (overrides default N-1 behavior)
         if (continuityRefId) {
@@ -352,8 +367,9 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
 
         try {
             const idToken = await auth.currentUser?.getIdToken();
+            const endpoint = cameraTransform ? "/api/v1/shot/reimagine_shot" : "/api/v1/shot/generate_shot";
 
-            const response = await fetch(`${API_BASE_URL}/api/v1/shot/generate_shot`, {
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${idToken}` },
                 body: formData

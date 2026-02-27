@@ -28,7 +28,18 @@ export const useShotBatch = (
         cancelGenerationRef.current = false;
 
         try {
-            // Use the batch scene generation endpoint
+            // Extract all camera transforms & shot types for the batch
+            const cameraTransforms: Record<string, any> = {};
+            const cameraShotTypes: Record<string, string> = {};
+            shots.forEach(shot => {
+                if (shot.camera_transform) {
+                    cameraTransforms[shot.id] = shot.camera_transform;
+                }
+                if (shot.camera_shot_type) {
+                    cameraShotTypes[shot.id] = shot.camera_shot_type;
+                }
+            });
+
             const formData = new FormData();
             formData.append("project_id", projectId);
             formData.append("episode_id", episodeId);
@@ -38,7 +49,20 @@ export const useShotBatch = (
             formData.append("style", "");
             formData.append("model_tier", modelTier);
 
+<<<<<<< HEAD
             const res = await api.post("/api/v1/images/generate_scene", formData);
+=======
+            if (Object.keys(cameraTransforms).length > 0) {
+                formData.append("camera_transforms", JSON.stringify(cameraTransforms));
+            }
+            if (Object.keys(cameraShotTypes).length > 0) {
+                formData.append("camera_shot_types", JSON.stringify(cameraShotTypes));
+            }
+
+            const res = await api.post("/api/v1/images/generate_scene", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+>>>>>>> ee6e98a (Camera orbit functionality added for camera control)
 
             if (res.data.status === "queued") {
                 toastSuccess(`Generating ${res.data.shot_count || shots.length} shots...`);

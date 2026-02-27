@@ -59,7 +59,13 @@ export const useShotImageGen = (
         formData.append("shot_id", shot.id);
 
         // Combine action + style for better results
-        const actionPrompt = `${shot.visual_action || shot.action} ${style}`.trim();
+        let actionPrompt = `${shot.visual_action || shot.action} ${style}`.trim();
+
+        // [NEW] If Gizmo was used, prepend the exact camera phrasing to the prompt
+        if (cameraShotType) {
+            actionPrompt = `[Camera: ${cameraShotType}] ${actionPrompt}`;
+        }
+
         formData.append("scene_action", actionPrompt);
 
         // [EXISTING] Characters
@@ -82,6 +88,7 @@ export const useShotImageGen = (
         formData.append("genre", genre);
 
         // [NEW] Camera transform data
+        console.log("PAYLOAD DEBUG: cameraTransform", cameraTransform, "cameraShotType", cameraShotType);
         if (cameraTransform) {
             formData.append("camera_transform", JSON.stringify(cameraTransform));
         }
@@ -104,7 +111,15 @@ export const useShotImageGen = (
         formData.append("model_tier", modelTier);
 
         try {
+<<<<<<< HEAD
             const res = await api.post("/api/v1/images/generate_shot", formData);
+=======
+            const endpoint = cameraTransform ? "/api/v1/shot/reimagine_shot" : "/api/v1/images/generate_shot";
+            // FIX: Explicitly set Content-Type to multipart/form-data
+            const res = await api.post(endpoint, formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+>>>>>>> ee6e98a (Camera orbit functionality added for camera control)
 
             toastSuccess(`Generating with ${provider}...`);
         } catch (e: any) {

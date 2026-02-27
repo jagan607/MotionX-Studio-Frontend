@@ -153,7 +153,7 @@ export const saveCameraTransform = async (
     cameraTransform: any
 ) => {
     try {
-        const response = await api.post('/api/v1/production/save_camera_transform', {
+        const response = await api.post('/api/v1/shot/save_camera_transform', {
             project_id: projectId,
             episode_id: episodeId,
             scene_id: sceneId,

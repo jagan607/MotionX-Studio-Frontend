@@ -119,9 +119,15 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     // 4. Create a "Safe Proxy" of the Manager
     const safeShotMgr = useMemo(() => ({
         ...rawShotMgr,
+<<<<<<< HEAD
         handleRenderShot: async (shot: any, sceneData: any, refFile?: File | null, provider?: 'gemini' | 'seedream', continuityRefId?: string | null, modelTier?: 'flash' | 'pro') => {
             try {
                 return await rawShotMgr.handleRenderShot(shot, sceneData, refFile, provider, continuityRefId, modelTier);
+=======
+        handleRenderShot: async (shot: any, sceneData: any, refFile?: File | null, provider?: 'gemini' | 'seedream', continuityRefId?: string | null, cameraTransform?: any, cameraShotType?: string) => {
+            try {
+                return await rawShotMgr.handleRenderShot(shot, sceneData, refFile, provider, continuityRefId, cameraTransform, cameraShotType);
+>>>>>>> ee6e98a (Camera orbit functionality added for camera control)
             } catch (e: any) {
                 const msg = safeError(e);
                 toastError(msg);
