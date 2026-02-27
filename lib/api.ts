@@ -20,6 +20,10 @@ api.interceptors.request.use(
             const token = await user.getIdToken();
             config.headers.Authorization = `Bearer ${token}`;
         }
+        // Let the browser set Content-Type + boundary for FormData
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
         return config;
     },
     (error) => Promise.reject(error)
@@ -351,12 +355,13 @@ export const exportTreatmentPdf = async (projectId: string, episodeId: string) =
 
 // --- 10. 4K UPSCALE ---
 
-export const upscaleShot = async (projectId: string, episodeId: string, sceneId: string, shotId: string) => {
+export const upscaleShot = async (projectId: string, episodeId: string, sceneId: string, shotId: string, model_tier: 'flash' | 'pro' = 'pro') => {
     const res = await api.post("/api/v1/shot/upscale_shot", {
         project_id: projectId,
         episode_id: episodeId,
         scene_id: sceneId,
         shot_id: shotId,
+        model_tier,
     });
     return res.data;
 };

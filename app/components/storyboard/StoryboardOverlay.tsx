@@ -803,8 +803,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
                                                     onUpdateShot={shotMgr.updateShot}
                                                     onEdit={() => setEditingShotId(shot.id)}
-                                                    onRender={(referenceFile, provider) =>
-                                                        shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider, continuityRefId)
+                                                    onRender={(referenceFile, provider, modelTier) =>
+                                                        shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider, continuityRefId, modelTier)
                                                     }
                                                     isRendering={shotMgr.loadingShots.has(shot.id)}
                                                     continuityRefId={continuityRefId}

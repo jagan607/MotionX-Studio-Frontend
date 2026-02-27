@@ -47,7 +47,7 @@ interface SortableShotCardProps {
     locations: Location[];
     products?: Product[];
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
-    onRender: (referenceFile?: File | null, provider?: 'gemini' | 'seedream') => void;
+    onRender: (referenceFile?: File | null, provider?: 'gemini' | 'seedream', modelTier?: 'flash' | 'pro') => void;
     onEdit: () => void;
     onUpscale: () => void;
     isRendering: boolean;
@@ -94,6 +94,7 @@ export const SortableShotCard = ({
 
     // --- Provider States ---
     const [imageProvider, setImageProvider] = useState<'gemini' | 'seedream'>('gemini');
+    const [modelTier, setModelTier] = useState<'flash' | 'pro'>('flash');
 
     // Linked State
     const isLinked = shot.morph_to_next === true;
@@ -112,9 +113,9 @@ export const SortableShotCard = ({
     const canLink = hasImage && Boolean(nextShotImage) && !isMorphedByPrev;
 
     // --- Pricing ---
-    const { getImageCost } = usePricing();
-    const imageCost = getImageCost();
-    const upscaleCost = 2;
+    const { getImageCost, getUpscaleCost } = usePricing();
+    const imageCost = getImageCost(modelTier);
+    const upscaleCost = getUpscaleCost('pro');
 
     // --- Cast Toggle Logic ---
     const handleCharToggle = (charId: string) => {
@@ -507,10 +508,38 @@ export const SortableShotCard = ({
                     Shot Settings & Animate
                 </button>
 
+                {/* ── Model Tier Toggle ── */}
+                <div className="flex gap-0 mb-2 rounded-lg overflow-hidden border border-white/[0.08]">
+                    <button
+                        onClick={() => setModelTier('flash')}
+                        disabled={isBusy}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[9px] font-bold transition-all cursor-pointer select-none
+                            ${modelTier === 'flash'
+                                ? 'bg-white/[0.08] text-white border-r border-white/[0.12]'
+                                : 'bg-white/[0.02] text-neutral-500 border-r border-white/[0.08] hover:text-neutral-300'
+                            }
+                            ${isBusy ? '!cursor-not-allowed' : ''}`}
+                    >
+                        Nano Banana 2
+                    </button>
+                    <button
+                        onClick={() => setModelTier('pro')}
+                        disabled={isBusy}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[9px] font-bold transition-all cursor-pointer select-none
+                            ${modelTier === 'pro'
+                                ? 'bg-white/[0.08] text-white'
+                                : 'bg-white/[0.02] text-neutral-500 hover:text-neutral-300'
+                            }
+                            ${isBusy ? '!cursor-not-allowed' : ''}`}
+                    >
+                        Nano Banana 1 Pro
+                    </button>
+                </div>
+
                 {/* Image Rendering Utils */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
                     <button
-                        onClick={() => onRender(refFile, imageProvider)}
+                        onClick={() => onRender(refFile, imageProvider, modelTier)}
                         disabled={isBusy}
                         className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     >

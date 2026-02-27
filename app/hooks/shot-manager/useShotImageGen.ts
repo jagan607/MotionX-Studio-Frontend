@@ -22,7 +22,8 @@ export const useShotImageGen = (
         aspectRatio: string,
         referenceFile?: File | null,
         provider: 'gemini' | 'seedream' = 'gemini',
-        continuityRefId?: string | null
+        continuityRefId?: string | null,
+        modelTier: 'flash' | 'pro' = 'flash'
     ) => {
         if (!sceneId) return;
 
@@ -88,11 +89,11 @@ export const useShotImageGen = (
             formData.append("reference_image", referenceFile);
         }
 
+        // [NEW] Append the model tier
+        formData.append("model_tier", modelTier);
+
         try {
-            // FIX: Explicitly set Content-Type to multipart/form-data
-            const res = await api.post("/api/v1/images/generate_shot", formData, {
-                headers: { "Content-Type": "multipart/form-data" }
-            });
+            const res = await api.post("/api/v1/images/generate_shot", formData);
 
             toastSuccess(`Generating with ${provider}...`);
         } catch (e: any) {
@@ -123,7 +124,7 @@ export const useShotImageGen = (
 
         try {
             const { upscaleShot } = await import("@/lib/api");
-            await upscaleShot(projectId, episodeId, sceneId!, shot.id);
+            await upscaleShot(projectId, episodeId, sceneId!, shot.id, 'pro');
             toastSuccess("4K upscale started");
         } catch (e: any) {
             const msg = e.response?.data?.detail || e.response?.data?.message || getErrorMessage(e);
@@ -160,9 +161,7 @@ export const useShotImageGen = (
                 formData.append("reference_images", file);
             });
 
-            const res = await api.post("/api/v1/shot/inpaint_shot", formData, {
-                headers: { "Content-Type": "multipart/form-data" }
-            });
+            const res = await api.post("/api/v1/shot/inpaint_shot", formData);
 
             if (res.data.image_url) {
                 return res.data.image_url;

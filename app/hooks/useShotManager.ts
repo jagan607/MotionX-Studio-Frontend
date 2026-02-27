@@ -92,8 +92,8 @@ export const useShotManager = (
 
     const audioGen = useShotAudioGen(projectId, episodeId, activeSceneId);
 
-    // Batch depends on Scene ID + project context
-    const batch = useShotBatch(shotsRef, (shot, ar) => imageGen.handleRenderShot(shot, ar), projectId, episodeId, activeSceneId);
+    // Batch depends on Scene ID + project context — always uses 'flash' for cost efficiency
+    const batch = useShotBatch(shotsRef, (shot, ar) => imageGen.handleRenderShot(shot, ar), projectId, episodeId, activeSceneId, 'flash');
 
     // --- MANUAL IMAGE UPLOAD (Integrated directly for now) ---
     const handleShotImageUpload = async (shot: any, file: File) => {
@@ -150,8 +150,8 @@ export const useShotManager = (
         isAutoDirecting: ai.isAutoDirecting,
         handleAutoDirect: ai.handleAutoDirect,
 
-        // Image
-        handleRenderShot: (shot: any, scene: any, refFile?: File | null, provider?: 'gemini' | 'seedream', continuityRefId?: string | null) => imageGen.handleRenderShot(shot, aspectRatio, refFile, provider, continuityRefId),
+        // Image — modelTier passed from individual shot card
+        handleRenderShot: (shot: any, scene: any, refFile?: File | null, provider?: 'gemini' | 'seedream', continuityRefId?: string | null, modelTier: 'flash' | 'pro' = 'flash') => imageGen.handleRenderShot(shot, aspectRatio, refFile, provider, continuityRefId, modelTier),
         handleUpscaleShot: imageGen.handleUpscaleShot,
         handleInpaintShot: imageGen.handleInpaintShot,
         handleShotImageUpload, // <--- EXPOSED HERE

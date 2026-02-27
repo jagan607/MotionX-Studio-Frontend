@@ -19,7 +19,8 @@ interface LipsyncPricing {
 
 export interface Pricing {
     video: { [provider: string]: ProviderPricing };
-    image: number;
+    image: { flash: number; pro: number };
+    upscale: { flash: number; pro: number };
     edit: number;
     finalize: number;
     voiceover: number;
@@ -32,7 +33,8 @@ interface PricingContextValue {
     isLoaded: boolean;
     getVideoCost: (provider: string, mode: string, duration: string) => number;
     getLipSyncCost: (durationSeconds: number) => number;
-    getImageCost: () => number;
+    getImageCost: (tier?: 'flash' | 'pro') => number;
+    getUpscaleCost: (tier?: 'flash' | 'pro') => number;
     getVoiceoverCost: () => number;
     getFinalizeCost: () => number;
     getSfxCost: () => number;
@@ -55,7 +57,8 @@ const DEFAULT_PRICING: Pricing = {
             "pro": { "3s": 5, "5s": 8, "10s": 15, "15s": 22 }
         }
     },
-    image: 1,
+    image: { flash: 1, pro: 2 },
+    upscale: { flash: 1, pro: 3 },
     edit: 1,
     finalize: 1,
     voiceover: 1,
@@ -70,6 +73,7 @@ const PricingContext = createContext<PricingContextValue>({
     getVideoCost: () => 0,
     getLipSyncCost: () => 0,
     getImageCost: () => 0,
+    getUpscaleCost: () => 0,
     getVoiceoverCost: () => 0,
     getFinalizeCost: () => 0,
     getSfxCost: () => 0,
@@ -108,7 +112,17 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return Math.max(pricing.lipsync.minimum, durationSeconds * pricing.lipsync.per_second);
     };
 
-    const getImageCost = () => pricing.image;
+    const getImageCost = (tier: 'flash' | 'pro' = 'flash') => {
+        const img = pricing.image;
+        // Handle both old API format (flat number) and new format ({ flash, pro })
+        if (typeof img === 'number') return tier === 'pro' ? img * 2 : img;
+        return img?.[tier] ?? (tier === 'pro' ? 2 : 1);
+    };
+    const getUpscaleCost = (tier: 'flash' | 'pro' = 'pro') => {
+        const up = pricing.upscale;
+        if (!up || typeof up === 'number') return tier === 'pro' ? 3 : 1;
+        return up?.[tier] ?? (tier === 'pro' ? 3 : 1);
+    };
     const getVoiceoverCost = () => pricing.voiceover;
     const getFinalizeCost = () => pricing.finalize;
     const getSfxCost = () => pricing.sfx;
@@ -121,6 +135,7 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             getVideoCost,
             getLipSyncCost,
             getImageCost,
+            getUpscaleCost,
             getVoiceoverCost,
             getFinalizeCost,
             getSfxCost,

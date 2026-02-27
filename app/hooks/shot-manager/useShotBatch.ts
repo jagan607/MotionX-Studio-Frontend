@@ -7,7 +7,8 @@ export const useShotBatch = (
     handleRenderShot: (shot: any, aspectRatio: string) => Promise<void>,
     projectId: string,
     episodeId: string,
-    activeSceneId: string | null
+    activeSceneId: string | null,
+    modelTier: 'flash' | 'pro' = 'flash'
 ) => {
     const [isGeneratingAll, setIsGeneratingAll] = useState(false);
     const [isStopping, setIsStopping] = useState(false);
@@ -35,10 +36,9 @@ export const useShotBatch = (
             formData.append("image_provider", "gemini");
             formData.append("aspect_ratio", aspectRatio);
             formData.append("style", "");
+            formData.append("model_tier", modelTier);
 
-            const res = await api.post("/api/v1/images/generate_scene", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
+            const res = await api.post("/api/v1/images/generate_scene", formData);
 
             if (res.data.status === "queued") {
                 toastSuccess(`Generating ${res.data.shot_count || shots.length} shots...`);

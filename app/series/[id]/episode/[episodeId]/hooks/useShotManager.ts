@@ -290,8 +290,8 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             }
             const currentShot = shotsRef.current.find(s => s.id === shotId);
             if (currentShot) {
-                // Default to seedream for batch generation or whatever default you prefer
-                await handleRenderShot(currentShot, currentScene, null, 'gemini');
+                // Default to flash for batch generation to save credits
+                await handleRenderShot(currentShot, currentScene, null, 'gemini', null, 'flash');
                 await new Promise(r => setTimeout(r, 1000));
             }
         }
@@ -306,7 +306,8 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         currentScene: any,
         referenceFile?: File | null,
         imageProvider: string = 'gemini',
-        continuityRefId?: string | null
+        continuityRefId?: string | null,
+        modelTier: 'flash' | 'pro' = 'flash'
     ) => {
         addLoadingShot(shot.id);
 
@@ -336,6 +337,9 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
         formData.append("aspect_ratio", aspectRatio);
         formData.append("image_provider", imageProvider); // <--- Pass Provider to Backend
+
+        // [NEW] Model tier for cost/quality selection
+        formData.append("model_tier", modelTier);
 
         // [NEW] Continuity reference shot (overrides default N-1 behavior)
         if (continuityRefId) {
