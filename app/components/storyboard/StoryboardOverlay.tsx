@@ -30,6 +30,9 @@ import { TourOverlay } from "@/components/tour/TourOverlay";
 import { STORYBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import CreditModal from "@/app/components/modals/CreditModal";
+import { CameraGizmoOverlay } from "./CameraGizmoOverlay";
+import { CameraTransform } from "@/lib/types";
+import { saveCameraTransform } from "@/lib/api";
 import { AssetManagerModal } from "@/app/components/studio/AssetManagerModal";
 import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionModal";
 import Link from "next/link";
@@ -137,6 +140,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [editingShotId, setEditingShotId] = useState<string | null>(null);
     const [continuityRefId, setContinuityRefId] = useState<string | null>(null);
     const [sceneList, setSceneList] = useState<any[]>([]);
+
+    // Camera Gizmo State
+    const [activeGizmoShotId, setActiveGizmoShotId] = useState<string | null>(null);
 
     // Scene Selector Dropdown
     const [showSceneDropdown, setShowSceneDropdown] = useState(false);
@@ -820,6 +826,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                     onUploadImage={(file) => shotMgr.handleShotImageUpload(shot, file)}
                                                     onLipSync={() => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url || '' })}
                                                     tourId={index === 0 ? "tour-sb-shot-card" : undefined}
+                                                    onOpenGizmo={shot.image_url ? () => setActiveGizmoShotId(shot.id) : undefined}
                                                 >
                                                     <div style={styles.shotImageContainer}>
                                                         <ShotImage
@@ -1056,6 +1063,54 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 />
 
                 <TourOverlay step={tourStep} steps={tourSteps} onNext={onTourNext} onComplete={onTourComplete} />
+
+                {/* Camera Gizmo Overlay */}
+                {activeGizmoShotId && (() => {
+                    const shot = shotMgr.shots.find((s: any) => s.id === activeGizmoShotId);
+                    if (!shot || !shot.image_url) return null;
+                    return (
+                        <CameraGizmoOverlay
+                            imageUrl={shot.image_url}
+                            initialTransform={shot.camera_transform}
+                            onClose={() => setActiveGizmoShotId(null)}
+                            isGenerating={shotMgr.loadingShots.has(shot.id)}
+                            onSave={async (transform, typeStr) => {
+                                try {
+                                    if (activeSceneId) {
+                                        await saveCameraTransform(seriesId, episodeId, activeSceneId, shot.id, transform);
+                                        // Update local state optimisticly
+                                        shotMgr.updateShot(shot.id, "camera_transform", transform);
+                                        shotMgr.updateShot(shot.id, "camera_shot_type", typeStr);
+                                        toastSuccess("Camera position saved");
+                                    }
+                                } catch (e) {
+                                    toastError("Failed to save camera position");
+                                }
+                                setActiveGizmoShotId(null);
+                            }}
+                            onRegenerate={async (transform, typeStr) => {
+                                // First, save implicitly
+                                if (activeSceneId) {
+                                    shotMgr.updateShot(shot.id, "camera_transform", transform);
+                                    shotMgr.updateShot(shot.id, "camera_shot_type", typeStr);
+                                }
+                                // Then trigger generation with the new data
+                                // The image generator will pick it up from the arguments
+                                shotMgr.handleRenderShot(
+                                    shot,
+                                    currentScene,
+                                    null,
+                                    'gemini',
+                                    continuityRefId,
+                                    transform,
+                                    typeStr
+                                );
+                                setActiveGizmoShotId(null);
+                            }}
+                        />
+                    );
+                })()}
+
             </div>
         </PricingProvider>
     );

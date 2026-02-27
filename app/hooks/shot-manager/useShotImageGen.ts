@@ -23,6 +23,8 @@ export const useShotImageGen = (
         referenceFile?: File | null,
         provider: 'gemini' | 'seedream' = 'gemini',
         continuityRefId?: string | null,
+        cameraTransform?: any,
+        cameraShotType?: string,
         modelTier: 'flash' | 'pro' = 'flash'
     ) => {
         if (!sceneId) return;
@@ -78,6 +80,15 @@ export const useShotImageGen = (
         formData.append("image_provider", provider);
         formData.append("style", style);
         formData.append("genre", genre);
+
+        // [NEW] Camera transform data
+        if (cameraTransform) {
+            formData.append("camera_transform", JSON.stringify(cameraTransform));
+        }
+        if (cameraShotType) {
+            // Include auto-derived shot type from gizmo
+            formData.append("camera_shot_type", cameraShotType);
+        }
 
         // [NEW] Continuity reference shot (overrides default N-1 behavior)
         if (continuityRefId) {

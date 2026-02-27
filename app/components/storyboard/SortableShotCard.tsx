@@ -36,6 +36,15 @@ interface Shot {
     upscale_status?: string;
     upscale_error?: string;
     image_url_original?: string;
+    camera_transform?: {
+        x: number;
+        y: number;
+        z: number;
+        rx: number;
+        ry: number;
+        fov: number;
+    };
+    camera_shot_type?: string;
 }
 
 interface SortableShotCardProps {
@@ -60,6 +69,7 @@ interface SortableShotCardProps {
     children: React.ReactNode;
     continuityRefId?: string | null;
     onSetContinuityRef?: (id: string | null) => void;
+    onOpenGizmo?: () => void;
 }
 
 const normalize = (str: string) => str ? str.toLowerCase().trim() : "";
@@ -86,6 +96,7 @@ export const SortableShotCard = ({
     children,
     continuityRefId,
     onSetContinuityRef,
+    onOpenGizmo,
 }: SortableShotCardProps) => {
 
     const isPinned = continuityRefId === shot.id;
@@ -284,6 +295,15 @@ export const SortableShotCard = ({
                                 }`}
                         >
                             <Pin size={13} className={isPinned ? 'fill-[#E50914]' : ''} />
+                        </button>
+                    )}
+                    {onOpenGizmo && (
+                        <button
+                            onClick={onOpenGizmo}
+                            title="Open Camera Framing Gizmo"
+                            className="p-1 rounded-md text-neutral-600 hover:text-white hover:bg-[#E50914]/80 transition-all cursor-pointer"
+                        >
+                            <span className="text-sm">🎬</span>
                         </button>
                     )}
                     <button onClick={() => onDelete(shot.id)} className="bg-transparent border-none text-neutral-600 hover:text-red-500 cursor-pointer transition-colors p-1 rounded-md hover:bg-white/[0.05]">

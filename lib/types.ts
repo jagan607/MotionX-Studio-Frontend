@@ -168,6 +168,15 @@ export interface Scene {
     status: "draft" | "approved";
 }
 
+export interface CameraTransform {
+    x: number;   // Camera X position (lateral offset)
+    y: number;   // Camera Y position (height)
+    z: number;   // Camera Z position (depth/distance)
+    rx: number;  // Rotation around X axis in degrees (pitch)
+    ry: number;  // Rotation around Y axis in degrees (yaw)
+    fov: number; // Field of view / focal length equiv
+}
+
 export interface Shot {
     id: string;
     shot_type: string;
@@ -184,6 +193,9 @@ export interface Shot {
     image_url?: string;
     video_url?: string;
     lipsync_url?: string; // Added for UI
+
+    camera_transform?: CameraTransform;
+    camera_shot_type?: string;
 
     video_status?: 'queued' | 'processing' | 'completed' | 'failed' | null;
     status?: 'draft' | 'rendered' | 'animating' | 'completed' | 'finalized';

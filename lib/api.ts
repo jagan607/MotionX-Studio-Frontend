@@ -145,6 +145,28 @@ export const generateShotImage = async (
     return res.data;
 };
 
+export const saveCameraTransform = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    shotId: string,
+    cameraTransform: any
+) => {
+    try {
+        const response = await api.post('/api/v1/production/save_camera_transform', {
+            project_id: projectId,
+            episode_id: episodeId,
+            scene_id: sceneId,
+            shot_id: shotId,
+            camera_transform: cameraTransform,
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error saving camera transform:", error);
+        throw error;
+    }
+};
+
 // --- 8. STUDIO & SCENES ---
 
 export const fetchScenes = async (projectId: string, containerId?: string) => {
