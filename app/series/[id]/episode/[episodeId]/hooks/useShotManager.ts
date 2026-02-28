@@ -307,12 +307,9 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         referenceFile?: File | null,
         imageProvider: string = 'gemini',
         continuityRefId?: string | null,
-<<<<<<< HEAD
-        modelTier: 'flash' | 'pro' = 'flash'
-=======
         cameraTransform?: any,
-        cameraShotType?: string
->>>>>>> ee6e98a (Camera orbit functionality added for camera control)
+        cameraShotType?: string,
+        modelTier: 'flash' | 'pro' = 'flash'
     ) => {
         addLoadingShot(shot.id);
 
@@ -343,10 +340,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         formData.append("aspect_ratio", aspectRatio);
         formData.append("image_provider", imageProvider); // <--- Pass Provider to Backend
 
-<<<<<<< HEAD
-        // [NEW] Model tier for cost/quality selection
-        formData.append("model_tier", modelTier);
-=======
         // [NEW] Camera transform data
         if (cameraTransform) {
             formData.append("camera_transform", JSON.stringify(cameraTransform));
@@ -354,7 +347,9 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         if (cameraShotType) {
             formData.append("camera_shot_type", cameraShotType);
         }
->>>>>>> ee6e98a (Camera orbit functionality added for camera control)
+
+        // [NEW] Model tier for cost/quality selection
+        formData.append("model_tier", modelTier);
 
         // [NEW] Continuity reference shot (overrides default N-1 behavior)
         if (continuityRefId) {

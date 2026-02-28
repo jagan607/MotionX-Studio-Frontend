@@ -92,13 +92,8 @@ export const useShotManager = (
 
     const audioGen = useShotAudioGen(projectId, episodeId, activeSceneId);
 
-<<<<<<< HEAD
     // Batch depends on Scene ID + project context — always uses 'flash' for cost efficiency
-    const batch = useShotBatch(shotsRef, (shot, ar) => imageGen.handleRenderShot(shot, ar), projectId, episodeId, activeSceneId, 'flash');
-=======
-    // Batch depends on Scene ID + project context
-    const batch = useShotBatch(shotsRef, (shot, ar) => imageGen.handleRenderShot(shot, ar, null, undefined, null, shot.camera_transform, shot.camera_shot_type), projectId, episodeId, activeSceneId);
->>>>>>> ee6e98a (Camera orbit functionality added for camera control)
+    const batch = useShotBatch(shotsRef, (shot, ar) => imageGen.handleRenderShot(shot, ar, null, undefined, null, shot.camera_transform, shot.camera_shot_type), projectId, episodeId, activeSceneId, 'flash');
 
     // --- MANUAL IMAGE UPLOAD (Integrated directly for now) ---
     const handleShotImageUpload = async (shot: any, file: File) => {
@@ -155,11 +150,7 @@ export const useShotManager = (
         isAutoDirecting: ai.isAutoDirecting,
         handleAutoDirect: ai.handleAutoDirect,
 
-<<<<<<< HEAD
         // Image — modelTier passed from individual shot card
-        handleRenderShot: (shot: any, scene: any, refFile?: File | null, provider?: 'gemini' | 'seedream', continuityRefId?: string | null, modelTier: 'flash' | 'pro' = 'flash') => imageGen.handleRenderShot(shot, aspectRatio, refFile, provider, continuityRefId, modelTier),
-=======
-        // Image
         handleRenderShot: (
             shot: any,
             scene: any,
@@ -168,8 +159,7 @@ export const useShotManager = (
             continuityRefId?: string | null,
             cameraTransform?: any,
             cameraShotType?: string
-        ) => imageGen.handleRenderShot(shot, aspectRatio, refFile, provider, continuityRefId, cameraTransform, cameraShotType),
->>>>>>> ee6e98a (Camera orbit functionality added for camera control)
+            , modelTier: 'flash' | 'pro' = 'flash') => imageGen.handleRenderShot(shot, aspectRatio, refFile, provider, continuityRefId, cameraTransform, cameraShotType, modelTier),
         handleUpscaleShot: imageGen.handleUpscaleShot,
         handleInpaintShot: imageGen.handleInpaintShot,
         handleShotImageUpload, // <--- EXPOSED HERE

@@ -111,15 +111,8 @@ export const useShotImageGen = (
         formData.append("model_tier", modelTier);
 
         try {
-<<<<<<< HEAD
-            const res = await api.post("/api/v1/images/generate_shot", formData);
-=======
             const endpoint = cameraTransform ? "/api/v1/shot/reimagine_shot" : "/api/v1/images/generate_shot";
-            // FIX: Explicitly set Content-Type to multipart/form-data
-            const res = await api.post(endpoint, formData, {
-                headers: { "Content-Type": "multipart/form-data" }
-            });
->>>>>>> ee6e98a (Camera orbit functionality added for camera control)
+            const res = await api.post(endpoint, formData);
 
             toastSuccess(`Generating with ${provider}...`);
         } catch (e: any) {

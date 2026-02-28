@@ -813,13 +813,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
                                                     onUpdateShot={shotMgr.updateShot}
                                                     onEdit={() => setEditingShotId(shot.id)}
-<<<<<<< HEAD
-                                                    onRender={(referenceFile, provider, modelTier) =>
-                                                        shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider, continuityRefId, modelTier)
-=======
-                                                    onRender={(referenceFile, provider, continuityRefIdOverride, cameraTransform, cameraShotType) =>
-                                                        shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider, continuityRefIdOverride, cameraTransform || shot.camera_transform, cameraShotType || shot.camera_shot_type)
->>>>>>> ee6e98a (Camera orbit functionality added for camera control)
+                                                    onRender={(referenceFile, provider, continuityRefIdOverride, cameraTransform, cameraShotType, modelTier) =>
+                                                        shotMgr.handleRenderShot(shot, currentScene, referenceFile, provider, continuityRefIdOverride, cameraTransform, cameraShotType, modelTier)
                                                     }
                                                     isRendering={shotMgr.loadingShots.has(shot.id)}
                                                     continuityRefId={continuityRefId}

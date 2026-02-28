@@ -47,22 +47,16 @@ export const useShotBatch = (
             formData.append("image_provider", "gemini");
             formData.append("aspect_ratio", aspectRatio);
             formData.append("style", "");
-            formData.append("model_tier", modelTier);
 
-<<<<<<< HEAD
-            const res = await api.post("/api/v1/images/generate_scene", formData);
-=======
             if (Object.keys(cameraTransforms).length > 0) {
                 formData.append("camera_transforms", JSON.stringify(cameraTransforms));
             }
             if (Object.keys(cameraShotTypes).length > 0) {
                 formData.append("camera_shot_types", JSON.stringify(cameraShotTypes));
             }
+            formData.append("model_tier", modelTier);
 
-            const res = await api.post("/api/v1/images/generate_scene", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
->>>>>>> ee6e98a (Camera orbit functionality added for camera control)
+            const res = await api.post("/api/v1/images/generate_scene", formData);
 
             if (res.data.status === "queued") {
                 toastSuccess(`Generating ${res.data.shot_count || shots.length} shots...`);

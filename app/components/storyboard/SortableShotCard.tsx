@@ -56,11 +56,7 @@ interface SortableShotCardProps {
     locations: Location[];
     products?: Product[];
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
-<<<<<<< HEAD
-    onRender: (referenceFile?: File | null, provider?: 'gemini' | 'seedream', modelTier?: 'flash' | 'pro') => void;
-=======
-    onRender: (referenceFile?: File | null, provider?: 'gemini' | 'seedream', continuityRefId?: string | null, cameraTransform?: any, cameraShotType?: string) => void;
->>>>>>> ee6e98a (Camera orbit functionality added for camera control)
+    onRender: (referenceFile?: File | null, provider?: 'gemini' | 'seedream', continuityRefId?: string | null, cameraTransform?: any, cameraShotType?: string, modelTier?: 'flash' | 'pro') => void;
     onEdit: () => void;
     onUpscale: () => void;
     isRendering: boolean;
@@ -563,11 +559,7 @@ export const SortableShotCard = ({
                 {/* Image Rendering Utils */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
                     <button
-<<<<<<< HEAD
-                        onClick={() => onRender(refFile, imageProvider, modelTier)}
-=======
-                        onClick={() => onRender(refFile, imageProvider, continuityRefId, shot.camera_transform, shot.camera_shot_type)}
->>>>>>> ee6e98a (Camera orbit functionality added for camera control)
+                        onClick={() => onRender(refFile, imageProvider, continuityRefId, undefined, undefined, modelTier)}
                         disabled={isBusy}
                         className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     >
