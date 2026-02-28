@@ -130,7 +130,7 @@ export const useShotImageGen = (
         }
     };
 
-    const handleUpscaleShot = async (shot: any) => {
+    const handleUpscaleShot = async (shot: any, modelTier: 'flash' | 'pro' = 'pro') => {
         if (!shot.image_url) {
             toastError("Shot has no image to upscale");
             return;
@@ -141,11 +141,15 @@ export const useShotImageGen = (
         }
         addLoadingShot(shot.id);
 
+        const shotRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId!, "shots", shot.id);
+        await updateDoc(shotRef, { status: "upscaling" });
+
         try {
             const { upscaleShot } = await import("@/lib/api");
-            await upscaleShot(projectId, episodeId, sceneId!, shot.id, 'pro');
+            await upscaleShot(projectId, episodeId, sceneId!, shot.id, modelTier);
             toastSuccess("4K upscale started");
         } catch (e: any) {
+            await updateDoc(shotRef, { status: "failed" });
             const msg = e.response?.data?.detail || e.response?.data?.message || getErrorMessage(e);
             toastError(msg);
         } finally {

@@ -58,7 +58,7 @@ const DEFAULT_PRICING: Pricing = {
         }
     },
     image: { flash: 1, pro: 2 },
-    upscale: { flash: 1, pro: 3 },
+    upscale: { flash: 3, pro: 3 },
     edit: 1,
     finalize: 1,
     voiceover: 1,
@@ -120,8 +120,9 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
     const getUpscaleCost = (tier: 'flash' | 'pro' = 'pro') => {
         const up = pricing.upscale;
-        if (!up || typeof up === 'number') return tier === 'pro' ? 3 : 1;
-        return up?.[tier] ?? (tier === 'pro' ? 3 : 1);
+        if (!up || typeof up === 'number') return 3;
+        // Upscaling always costs the pro amount (default 3) regardless of the selected tier
+        return up?.['pro'] ?? 3;
     };
     const getVoiceoverCost = () => pricing.voiceover;
     const getFinalizeCost = () => pricing.finalize;

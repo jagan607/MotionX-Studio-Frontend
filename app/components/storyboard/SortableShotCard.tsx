@@ -58,7 +58,7 @@ interface SortableShotCardProps {
     onUpdateShot: (id: string, field: keyof Shot, value: any) => void;
     onRender: (referenceFile?: File | null, provider?: 'gemini' | 'seedream', continuityRefId?: string | null, cameraTransform?: any, cameraShotType?: string, modelTier?: 'flash' | 'pro') => void;
     onEdit: () => void;
-    onUpscale: () => void;
+    onUpscale: (modelTier: 'flash' | 'pro') => void;
     isRendering: boolean;
     onExpand: () => void;
     nextShotImage?: string;
@@ -113,10 +113,13 @@ export const SortableShotCard = ({
     // Loading States
     const isGenerating = isRendering || shot.status === 'generating';
     const isAnimating = ['animating', 'processing', 'queued', 'pending'].includes(shot.video_status || '');
-    const isBusy = isGenerating || isAnimating;
-    const overlayText = isAnimating ? "Animating..." : "Generating...";
     const isUpscaled = shot.is_upscaled === true;
-    const isUpscaling = shot.upscale_status === 'processing';
+    const isUpscaling = !isUpscaled && (shot.status === 'upscaling' || shot.upscale_status === 'processing');
+    const isBusy = isGenerating || isAnimating || isUpscaling;
+
+    let overlayText = "Generating...";
+    if (isAnimating) overlayText = "Animating...";
+    if (isUpscaling) overlayText = "Upscaling...";
 
     // Validation
     const hasImage = Boolean(shot.image_url);
@@ -126,7 +129,7 @@ export const SortableShotCard = ({
     // --- Pricing ---
     const { getImageCost, getUpscaleCost } = usePricing();
     const imageCost = getImageCost(modelTier);
-    const upscaleCost = getUpscaleCost('pro');
+    const upscaleCost = getUpscaleCost(modelTier);
 
     // --- Cast Toggle Logic ---
     const handleCharToggle = (charId: string) => {
@@ -567,19 +570,17 @@ export const SortableShotCard = ({
                         <span className="opacity-50 text-[9px] font-normal">· {imageCost} cr</span>
                     </button>
                     <button
-                        onClick={onUpscale}
+                        onClick={() => onUpscale(modelTier)}
                         disabled={!hasImage || isBusy || isUpscaled || isUpscaling}
                         className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed
                             ${isUpscaled
                                 ? 'bg-cyan-500/15 text-white border border-cyan-500/60'
-                                : isUpscaling
-                                    ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30 animate-pulse'
-                                    : 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
+                                : 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
                             }
                         `}
                     >
-                        {isUpscaling ? <Loader2 size={12} className="animate-spin" /> : isUpscaled ? <CheckCircle2 size={12} /> : <Wand2 size={12} />}
-                        {isUpscaling ? "Upscaling..." : isUpscaled ? "4K" : "Upscale 4K"}
+                        {isUpscaled ? <CheckCircle2 size={12} /> : <Wand2 size={12} />}
+                        {isUpscaled ? "4K" : "Upscale 4K"}
                         {!isUpscaled && !isUpscaling && <span className="opacity-50 text-[9px] font-normal">· {upscaleCost} cr</span>}
                     </button>
                 </div>

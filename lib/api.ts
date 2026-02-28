@@ -377,13 +377,19 @@ export const exportTreatmentPdf = async (projectId: string, episodeId: string) =
 
 // --- 10. 4K UPSCALE ---
 
-export const upscaleShot = async (projectId: string, episodeId: string, sceneId: string, shotId: string, model_tier: 'flash' | 'pro' = 'pro') => {
+export const upscaleShot = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    shotId: string,
+    modelTier: 'flash' | 'pro' = 'pro'
+) => {
     const res = await api.post("/api/v1/shot/upscale_shot", {
         project_id: projectId,
         episode_id: episodeId,
         scene_id: sceneId,
         shot_id: shotId,
-        model_tier,
+        model_tier: modelTier,
     });
     return res.data;
 };

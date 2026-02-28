@@ -160,7 +160,7 @@ export const useShotManager = (
             cameraTransform?: any,
             cameraShotType?: string
             , modelTier: 'flash' | 'pro' = 'flash') => imageGen.handleRenderShot(shot, aspectRatio, refFile, provider, continuityRefId, cameraTransform, cameraShotType, modelTier),
-        handleUpscaleShot: imageGen.handleUpscaleShot,
+        handleUpscaleShot: (shot: any, modelTier: 'flash' | 'pro' = 'pro') => imageGen.handleUpscaleShot(shot, modelTier),
         handleInpaintShot: imageGen.handleInpaintShot,
         handleShotImageUpload, // <--- EXPOSED HERE
 

@@ -819,7 +819,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                     isRendering={shotMgr.loadingShots.has(shot.id)}
                                                     continuityRefId={continuityRefId}
                                                     onSetContinuityRef={setContinuityRefId}
-                                                    onUpscale={() => shotMgr.handleUpscaleShot(shot)}
+                                                    onUpscale={(modelTier) => shotMgr.handleUpscaleShot(shot, modelTier)}
                                                     onExpand={() => handleOpenViewer(index)}
                                                     nextShotImage={nextShotImage}
                                                     isMorphedByPrev={isMorphedByPrev}
