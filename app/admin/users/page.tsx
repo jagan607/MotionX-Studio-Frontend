@@ -2,7 +2,6 @@ import { adminDb } from '@/lib/firebase-admin';
 import { Shield, Zap, MoreVertical, Plus, HardDrive, RefreshCw } from 'lucide-react';
 import { updateUserCredits, calculateUserStorage } from '../actions';
 import { UserSearch } from './user-search'; // Import Client Component
-import { PaginationControls } from './pagination-controls'; // Import Client Component
 
 // --- HELPER FUNCTIONS ---
 function formatBytes(bytes: number, decimals = 2) {
@@ -15,8 +14,7 @@ function formatBytes(bytes: number, decimals = 2) {
 }
 
 // --- DATA FETCHING ---
-async function getUsers(query: string, page: number) {
-    const PAGE_SIZE = 10;
+async function getUsers(query: string) {
     let usersRef = adminDb.collection('users');
     let snapshot;
 
@@ -29,53 +27,69 @@ async function getUsers(query: string, page: number) {
             snapshot = { docs: [docById], empty: false };
         } else {
             // Fallback: Search by Email Prefix
-            // This mimics "starts with" logic in Firestore
             snapshot = await usersRef
                 .where('email', '>=', query)
                 .where('email', '<=', query + '\uf8ff')
-                .limit(PAGE_SIZE)
                 .get();
         }
     } else {
-        // 2. PAGINATION LOGIC (Standard Offset)
-        // Note: 'offset' gets expensive with thousands of docs, but perfectly fine for <5000 users.
-        const offset = (page - 1) * PAGE_SIZE;
-        snapshot = await usersRef
-            .orderBy('createdAt', 'desc')
-            .limit(PAGE_SIZE)
-            .offset(offset)
-            .get();
+        // Fetch ALL users (no orderBy to avoid excluding docs missing createdAt)
+        snapshot = await usersRef.get();
     }
 
-    // Check if we might have a next page
-    // (Simplified check: if we got full page size, assume there's more)
-    const hasNextPage = snapshot.docs.length === PAGE_SIZE;
-
-    const users = snapshot.docs.map(doc => {
-        // ⬇️ FIX: Add "|| {}" to handle cases where data might be undefined
+    const users = await Promise.all(snapshot.docs.map(async doc => {
         const data = doc.data() || {};
+
+        // Fetch transactions subcollection
+        const txSnap = await adminDb.collection('users').doc(doc.id).collection('transactions').get();
+        const transactionsCount = txSnap.size;
+        const creditsSpent = txSnap.docs.reduce((sum, txDoc) => {
+            const txData = txDoc.data();
+            if (txData.amount < 0) {
+                return sum + Math.abs(txData.amount);
+            }
+            return sum;
+        }, 0);
+
+        const formatDate = (date: Date) => {
+            return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+        };
+
+        const displayName = data.displayName || (data.email ? data.email.split('@')[0] : 'Unknown User');
 
         return {
             id: doc.id,
             email: data.email,
-            name: data.displayName || 'Anonymous',
+            name: displayName,
             credits: data.credits || 0,
             role: data.role || 'user',
             storage: data.storageUsage || 0,
-            lastScan: data.storageLastUpdated ? 'Checked' : 'Never'
+            lastScan: data.storageLastUpdated ? 'Checked' : 'Never',
+            transactionsCount,
+            creditsSpent,
+            createdAtRaw: data.createdAt?.toDate() || null,
+            lastActiveRaw: data.lastActiveAt?.toDate() || null,
+            createdAtFormatted: data.createdAt ? formatDate(data.createdAt.toDate()) : "N/A",
+            lastActiveFormatted: data.lastActiveAt ? formatDate(data.lastActiveAt.toDate()) : "N/A",
         };
+    }));
+
+    // Sort users descending by createdAt (fallback to lastActiveAt)
+    users.sort((a, b) => {
+        const dateA = a.createdAtRaw || a.lastActiveRaw || new Date(0);
+        const dateB = b.createdAtRaw || b.lastActiveRaw || new Date(0);
+        return dateB.getTime() - dateA.getTime();
     });
 
-    return { users, hasNextPage };
+    return users;
 }
 
 // --- MAIN COMPONENT ---
-export default async function UsersPage(props: { searchParams?: Promise<{ query?: string; page?: string }> }) {
+export default async function UsersPage(props: { searchParams?: Promise<{ query?: string }> }) {
     const searchParams = await props.searchParams;
     const query = searchParams?.query || '';
-    const currentPage = Number(searchParams?.page) || 1;
 
-    const { users, hasNextPage } = await getUsers(query, currentPage);
+    const users = await getUsers(query);
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -85,16 +99,18 @@ export default async function UsersPage(props: { searchParams?: Promise<{ query?
                 <UserSearch />
             </div>
 
-            <div className="border border-[#222] bg-[#080808]">
+            <div className="border border-[#222] bg-[#080808] max-h-[80vh] overflow-y-auto">
                 <table className="w-full text-left">
-                    <thead className="bg-[#0A0A0A] text-[10px] uppercase font-mono text-[#666] tracking-widest">
+                    <thead className="bg-[#0A0A0A] text-[10px] uppercase font-mono text-[#666] tracking-widest sticky top-0 z-10">
                         <tr>
-                            <th className="p-4 border-b border-r border-[#222] w-16">Status</th>
-                            <th className="p-4 border-b border-r border-[#222]">Identity</th>
-                            <th className="p-4 border-b border-r border-[#222]">Storage</th>
-                            <th className="p-4 border-b border-r border-[#222]">Balance</th>
-                            <th className="p-4 border-b border-r border-[#222]">Role</th>
-                            <th className="p-4 border-b border-[#222] text-right">Controls</th>
+                            <th className="p-4 border-b border-r border-[#222] w-16 bg-[#0A0A0A]">Status</th>
+                            <th className="p-4 border-b border-r border-[#222] bg-[#0A0A0A]">Identity</th>
+                            <th className="p-4 border-b border-r border-[#222] bg-[#0A0A0A]">Storage</th>
+                            <th className="p-4 border-b border-r border-[#222] bg-[#0A0A0A]">Timeline</th>
+                            <th className="p-4 border-b border-r border-[#222] bg-[#0A0A0A]">Activity</th>
+                            <th className="p-4 border-b border-r border-[#222] bg-[#0A0A0A]">Balance</th>
+                            <th className="p-4 border-b border-r border-[#222] bg-[#0A0A0A]">Role</th>
+                            <th className="p-4 border-b border-[#222] text-right bg-[#0A0A0A]">Controls</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-[#222]">
@@ -125,6 +141,34 @@ export default async function UsersPage(props: { searchParams?: Promise<{ query?
                                                     <RefreshCw size={12} />
                                                 </button>
                                             </form>
+                                        </div>
+                                    </td>
+
+                                    {/* TIMELINE COLUMN */}
+                                    <td className="p-4 border-r border-[#222]">
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-[#666]">Joined:</span>
+                                                <span className="text-white font-mono">{user.createdAtFormatted}</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs">
+                                                <span className="text-[#666]">Active:</span>
+                                                <span className="text-[#00FF41] font-mono">{user.lastActiveFormatted}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    {/* ACTIVITY COLUMN (TRANSACTIONS / SPENT) */}
+                                    <td className="p-4 border-r border-[#222]">
+                                        <div className="flex flex-col gap-1 text-xs">
+                                            <div className="flex justify-between">
+                                                <span className="text-[#666]">Transactions:</span>
+                                                <span className="text-white font-mono" title="Total number of generations, upscales, and credit updates">{user.transactionsCount}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-[#666]">Spent:</span>
+                                                <span className="text-[#E50914] font-mono">{user.creditsSpent}</span>
+                                            </div>
                                         </div>
                                     </td>
 
@@ -159,16 +203,13 @@ export default async function UsersPage(props: { searchParams?: Promise<{ query?
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={6} className="p-8 text-center text-[#444] font-mono text-xs">
+                                <td colSpan={8} className="p-8 text-center text-[#444] font-mono text-xs">
                                     NO OPERATIVES FOUND MATCHING PROTOCOL "{query}"
                                 </td>
                             </tr>
                         )}
                     </tbody>
                 </table>
-
-                {/* NEW: PAGINATION CONTROLS */}
-                {!query && <PaginationControls hasNextPage={hasNextPage} />}
             </div>
         </div>
     );
