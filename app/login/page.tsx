@@ -79,9 +79,19 @@ export default function LoginPage() {
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) {
+        const authCreationTime = user.metadata.creationTime
+          ? new Date(user.metadata.creationTime)
+          : serverTimestamp();
         await setDoc(userRef, {
-          uid: user.uid, email: user.email, displayName: user.displayName,
-          photoURL: user.photoURL, credits: 10, plan: "free", createdAt: serverTimestamp()
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || "",
+          photoURL: user.photoURL || "",
+          tenant_id: user.tenantId || null,
+          plan: "free",
+          credits: 10,
+          createdAt: authCreationTime,
+          lastActiveAt: serverTimestamp(),
         });
       }
       const idToken = await user.getIdToken();
@@ -229,9 +239,19 @@ export default function LoginPage() {
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) {
+        const authCreationTime = user.metadata.creationTime
+          ? new Date(user.metadata.creationTime)
+          : serverTimestamp();
         await setDoc(userRef, {
-          uid: user.uid, email: user.email, displayName: user.displayName,
-          photoURL: user.photoURL, credits: 10, plan: "free", createdAt: serverTimestamp()
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || "",
+          photoURL: user.photoURL || "",
+          tenant_id: user.tenantId || null,
+          plan: "free",
+          credits: 10,
+          createdAt: authCreationTime,
+          lastActiveAt: serverTimestamp(),
         });
       }
       const idToken = await user.getIdToken();
