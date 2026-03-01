@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter, usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -24,15 +24,35 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         (async () => {
           try {
             const userRef = doc(db, "users", currentUser.uid);
-            console.log("✅ [AuthProvider] Attempting Firestore sync — UID:", currentUser.uid, "| Tenant:", currentUser.tenantId, "| Email:", currentUser.email);
+            const userSnap = await getDoc(userRef);
 
-            await setDoc(userRef, {
-              email: currentUser.email,
-              tenant_id: currentUser.tenantId || null,
-              lastActiveAt: serverTimestamp(),
-            }, { merge: true });
+            if (!userSnap.exists()) {
+              // 🛡️ FIRST TIME LOGIN: Document doesn't exist yet
+              // Pull true creation time from Google Auth metadata
+              const authCreationTime = currentUser.metadata.creationTime
+                ? new Date(currentUser.metadata.creationTime)
+                : serverTimestamp();
 
-            console.log("✅ FIRESTORE SYNC SUCCESS | UID:", currentUser.uid, "| Tenant:", currentUser.tenantId);
+              await setDoc(userRef, {
+                uid: currentUser.uid,
+                email: currentUser.email,
+                displayName: currentUser.displayName || "",
+                photoURL: currentUser.photoURL || "",
+                tenant_id: currentUser.tenantId || null,
+                plan: "free",
+                credits: 10,
+                createdAt: authCreationTime,
+                lastActiveAt: serverTimestamp(),
+              });
+            } else {
+              // 🔄 ROUTINE LOGIN: Document already exists.
+              // Strictly update ONLY the last active timestamp.
+              await setDoc(userRef, {
+                lastActiveAt: serverTimestamp(),
+              }, { merge: true });
+            }
+
+            console.log("✅ FIRESTORE SYNC SUCCESS | UID:", currentUser.uid);
           } catch (error: any) {
             console.error("❌ FIRESTORE SYNC FAILED:", error);
             toast.error(`Database Sync Error: ${error?.message || error}`, { duration: 10000 });
