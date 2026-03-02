@@ -43,6 +43,14 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 credits: 10,
                 createdAt: authCreationTime,
                 lastActiveAt: serverTimestamp(),
+                onboarding: {
+                  asset_manager_tour: false,
+                  dashboard_tour: false,
+                  episode_tour: false,
+                  series_tour: false,
+                  storyboard_tour: false,
+                  studio_tour: false,
+                },
               });
             } else {
               // 🔄 ROUTINE LOGIN: Document already exists.

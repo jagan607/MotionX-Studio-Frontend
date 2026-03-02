@@ -10,6 +10,46 @@ import Link from "next/link";
 import { toast } from "react-hot-toast";
 import { API_BASE_URL } from "@/lib/config";
 
+// --- FIRESTORE SYNC HELPER ---
+const syncUserToFirestore = async (user: any) => {
+  if (!user) return;
+  const userRef = doc(db, "users", user.uid);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) {
+    try {
+      await setDoc(userRef, {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || "Operative",
+        photoURL: user.photoURL || "",
+        tenant_id: user.tenantId || null,
+        plan: "free",
+        credits: 10,
+        createdAt: serverTimestamp(),
+        lastActiveAt: serverTimestamp(),
+        onboarding: {
+          asset_manager_tour: false,
+          dashboard_tour: false,
+          episode_tour: false,
+          series_tour: false,
+          storyboard_tour: false,
+          studio_tour: false,
+        },
+      });
+      console.log("✅ New user foundational document created.");
+    } catch (error) {
+      console.error("❌ Failed to create initial user document:", error);
+    }
+  } else {
+    try {
+      await setDoc(userRef, { lastActiveAt: serverTimestamp() }, { merge: true });
+    } catch (error) {
+      console.error("❌ Failed to update lastActiveAt:", error);
+    }
+  }
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +81,7 @@ export default function LoginPage() {
         const result = await getRedirectResult(auth);
         if (result?.user) {
           setIsLoading(true);
+          await syncUserToFirestore(result.user);
 
           const idToken = await result.user.getIdToken();
           const response = await fetch("/api/auth/login", {
@@ -76,24 +117,7 @@ export default function LoginPage() {
 
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) {
-        const authCreationTime = user.metadata.creationTime
-          ? new Date(user.metadata.creationTime)
-          : serverTimestamp();
-        await setDoc(userRef, {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName || "",
-          photoURL: user.photoURL || "",
-          tenant_id: user.tenantId || null,
-          plan: "free",
-          credits: 10,
-          createdAt: authCreationTime,
-          lastActiveAt: serverTimestamp(),
-        });
-      }
+      await syncUserToFirestore(user);
       const idToken = await user.getIdToken();
       const response = await fetch("/api/auth/login", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -173,6 +197,7 @@ export default function LoginPage() {
       if (provider_id === "google.com") {
         const result = await signInWithPopup(auth, provider);
         if (result?.user) {
+          await syncUserToFirestore(result.user);
           const idToken = await result.user.getIdToken();
           const loginRes = await fetch("/api/auth/login", {
             method: "POST",
@@ -236,24 +261,7 @@ export default function LoginPage() {
 
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-      if (!userSnap.exists()) {
-        const authCreationTime = user.metadata.creationTime
-          ? new Date(user.metadata.creationTime)
-          : serverTimestamp();
-        await setDoc(userRef, {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName || "",
-          photoURL: user.photoURL || "",
-          tenant_id: user.tenantId || null,
-          plan: "free",
-          credits: 10,
-          createdAt: authCreationTime,
-          lastActiveAt: serverTimestamp(),
-        });
-      }
+      await syncUserToFirestore(user);
       const idToken = await user.getIdToken();
       const loginRes = await fetch("/api/auth/login", {
         method: "POST", headers: { "Content-Type": "application/json" },
