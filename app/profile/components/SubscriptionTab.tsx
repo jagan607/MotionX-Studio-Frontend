@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { CheckCircle2, Zap, AlertTriangle, LayoutGrid, HardDrive, Users, TrendingUp, Settings, XCircle, Loader2, CalendarClock, RefreshCw } from "lucide-react";
+import { CheckCircle2, Zap, AlertTriangle, LayoutGrid, HardDrive, Users, TrendingUp, Settings, XCircle, Loader2, CalendarClock, RefreshCw, AlertCircle, Clock } from "lucide-react";
 import { usePayment } from "@/lib/payment";
 import toast from "react-hot-toast";
 import { auth } from "@/lib/firebase";
@@ -54,6 +54,27 @@ const PLAN_FEATURES: Record<string, string[]> = {
     agency: ["Turbo Queue", "Private Mode", "Commercial License", "4K Native"],
 };
 
+// --- TRANSACTION FORMATTING HELPERS ---
+const formatTxType = (type: string) => {
+    switch (type) {
+        case 'top_up': return 'Credit Top-up';
+        case 'subscription_charge': return 'Subscription Renewal';
+        case 'payment_failed': return 'Failed Payment';
+        case 'subscription_cancelled': return 'Plan Cancellation';
+        default: return type.replace(/_/g, ' ');
+    }
+};
+
+const formatCurrency = (amount: number, currency: string = 'USD') => {
+    if (!amount) return '—';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+};
+
+const formatTxDate = (isoString: string) => {
+    if (!isoString) return '—';
+    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(isoString));
+};
+
 interface SubscriptionTabProps {
     credits: number | null;
 }
@@ -67,6 +88,8 @@ export default function SubscriptionTab({ credits: realtimeCredits }: Subscripti
     const [isCancelling, setIsCancelling] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [showTopUpModal, setShowTopUpModal] = useState(false);
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [isLoadingTx, setIsLoadingTx] = useState(true);
 
     // --- FETCH SUBSCRIPTION STATUS ---
     useEffect(() => {
@@ -91,6 +114,34 @@ export default function SubscriptionTab({ credits: realtimeCredits }: Subscripti
             }
         };
         fetchStatus();
+    }, []);
+
+    // --- FETCH TRANSACTION HISTORY ---
+    useEffect(() => {
+        const fetchTransactions = async () => {
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+                const idToken = await user.getIdToken();
+                const res = await fetch(`${API_BASE_URL}/api/v1/payment/transaction-history`, {
+                    headers: { Authorization: `Bearer ${idToken}` },
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    setTransactions(data.transactions);
+                }
+            } catch (error) {
+                console.error("Failed to fetch transactions:", error);
+            } finally {
+                setIsLoadingTx(false);
+            }
+        };
+
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) fetchTransactions();
+            else setIsLoadingTx(false);
+        });
+        return () => unsubscribe();
     }, []);
 
     // --- LOADING STATE ---
@@ -139,7 +190,7 @@ export default function SubscriptionTab({ credits: realtimeCredits }: Subscripti
     const percentageAvailable = maxCredits > 0 ? (currentCredits / maxCredits) * 100 : 0;
     const visualPercent = Math.min(100, percentageAvailable);
     const isSurplus = currentCredits > maxCredits;
-    const isLowBalance = currentCredits <= 10 && !isSurplus;
+    const isLowBalance = currentCredits < 10 && !isSurplus;
 
     let barColor = '#2D8B4E';
     let statusText = "Balance healthy";
@@ -359,6 +410,66 @@ export default function SubscriptionTab({ credits: realtimeCredits }: Subscripti
                     </div>
                 </div>
             </div>
+
+            {/* --- BILLING HISTORY TABLE --- */}
+            {!isLoadingTx && transactions.length > 0 && (
+                <div className="bg-[#0A0A0A] border border-[#1a1a1a] rounded-lg overflow-hidden hover:border-[#333] transition-colors">
+                    <div className="px-6 py-4 border-b border-[#1a1a1a]">
+                        <h2 className="text-base font-anton uppercase text-white">Billing History</h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-[11px] text-[#A0A0A0]">
+                            <thead className="bg-[#111] border-b border-[#1a1a1a] uppercase tracking-[1px] text-[9px]">
+                                <tr>
+                                    <th className="px-5 py-4 font-medium">Date</th>
+                                    <th className="px-5 py-4 font-medium">Description</th>
+                                    <th className="px-5 py-4 font-medium">Amount</th>
+                                    <th className="px-5 py-4 font-medium">Credits</th>
+                                    <th className="px-5 py-4 font-medium">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {transactions.map((tx) => (
+                                    <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors">
+                                        <td className="px-5 py-4 whitespace-nowrap text-white">
+                                            {formatTxDate(tx.timestamp)}
+                                        </td>
+                                        <td className="px-5 py-4 font-medium text-white capitalize">
+                                            {formatTxType(tx.type)}
+                                            {tx.package_id && (
+                                                <span className="text-[#555] ml-2 text-[9px] uppercase tracking-wider">
+                                                    ({tx.package_id.replace('topup_', '')})
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-5 py-4 whitespace-nowrap">
+                                            {formatCurrency(tx.amount, tx.currency)}
+                                        </td>
+                                        <td className={`px-5 py-4 whitespace-nowrap font-medium ${tx.credits_added > 0 ? 'text-[#00FF41]' : 'text-[#A0A0A0]'}`}>
+                                            {tx.credits_added > 0 ? `+${tx.credits_added}` : '—'}
+                                        </td>
+                                        <td className="px-5 py-4 whitespace-nowrap">
+                                            {tx.type === 'payment_failed' ? (
+                                                <span className="flex items-center gap-1.5 text-[#E50914] font-medium">
+                                                    <AlertCircle size={12} /> Failed
+                                                </span>
+                                            ) : tx.type === 'subscription_cancel_requested' ? (
+                                                <span className="flex items-center gap-1.5 text-[#F5A623] font-medium">
+                                                    <Clock size={12} /> Pending Cancel
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center gap-1.5 text-[#00FF41] font-medium">
+                                                    <CheckCircle2 size={12} /> Successful
+                                                </span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
