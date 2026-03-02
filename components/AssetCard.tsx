@@ -44,6 +44,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     if (variant === 'create') {
         return (
             <div
+                id={tourId}
                 onClick={onCreate}
                 className="aspect-[4/3] border border-dashed border-white/[0.08] rounded-lg bg-white/[0.02] flex flex-col items-center justify-center p-4 hover:border-[#E50914]/40 hover:bg-[#E50914]/5 transition-all cursor-pointer group"
             >
