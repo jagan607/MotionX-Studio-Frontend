@@ -14,7 +14,7 @@ import CreditModal from "@/app/components/modals/CreditModal";
 interface SubscriptionStatus {
     plan: string;
     plan_name: string;
-    status: "active" | "authenticated" | "expired" | "none";
+    status: "active" | "authenticated" | "created" | "pending" | "halted" | "expired" | "none";
     credits: number;
     credits_per_cycle: number;
     next_billing_at: number | null;
@@ -154,9 +154,12 @@ export default function SubscriptionTab({ credits: realtimeCredits }: Subscripti
     }
 
     // --- DERIVED VALUES ---
+    // Razorpay "authenticated" = first payment done, recurring not yet started.
+    // Treat it identically to "active" so paid-tier UI (Cancel, billing date) shows correctly.
+    const PAID_STATUSES = new Set(["active", "authenticated", "created", "pending", "halted"]);
     const isPaidPlan = subData.plan !== "free" && subData.status !== "none";
-    const isActive = subData.status === "active" && !subData.cancel_at_period_end;
-    const isCancelling_ = subData.status === "active" && subData.cancel_at_period_end;
+    const isActive = PAID_STATUSES.has(subData.status) && !subData.cancel_at_period_end;
+    const isCancelling_ = PAID_STATUSES.has(subData.status) && subData.cancel_at_period_end;
     const isExpired = subData.status === "expired";
     const isFree = subData.status === "none" || subData.plan === "free";
 
