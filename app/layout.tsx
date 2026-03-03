@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Anton, Roboto_Mono } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import GlobalHeader from "@/components/GlobalHeader";
@@ -83,7 +84,9 @@ export default function RootLayout({
               {/* <div className="vignette pointer-events-none fixed inset-0 z-50" /> */}
 
               {/* GlobalHeader handles its own visibility */}
-              <GlobalHeader />
+              <Suspense fallback={null}>
+                <GlobalHeader />
+              </Suspense>
 
               {/* MAIN CONTENT: flex-1 ensures it fills space, but doesn't force clipping */}
               <main className="flex-1 flex flex-col relative z-0">

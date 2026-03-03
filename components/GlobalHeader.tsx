@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { auth } from "@/lib/firebase";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, User, Building } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
@@ -10,8 +10,19 @@ import CreditModal from "@/app/components/modals/CreditModal";
 
 export default function GlobalHeader() {
     const pathname = usePathname();
-    const { credits, isEnterprise } = useCredits();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const { credits, plan, isEnterprise } = useCredits();
     const [showTopUp, setShowTopUp] = useState(false);
+
+    // Auto-open top-up modal when redirected from /pricing after successful subscription
+    useEffect(() => {
+        if (searchParams.get("openTopUp") === "true") {
+            setShowTopUp(true);
+            // Clean the param from the URL without a re-render loop
+            router.replace(pathname);
+        }
+    }, [searchParams, pathname, router]);
 
     // Hide Header on "App Mode" Pages
     const isEditorPage = pathname.includes('/project/') && (
@@ -56,7 +67,14 @@ export default function GlobalHeader() {
                             <div className="text-xs sm:text-[13px] text-white font-bold font-mono tracking-[0.5px]">{credits !== null ? credits : '---'}</div>
                         </div>
                         <button
-                            onClick={() => setShowTopUp(true)}
+                            onClick={() => {
+                                if (plan === "free") {
+                                    // Free users must subscribe before topping up
+                                    router.push("/pricing?from=topup");
+                                } else {
+                                    setShowTopUp(true);
+                                }
+                            }}
                             className="flex items-center gap-1 sm:gap-1.5 bg-[#E50914]/10 border border-[#E50914]/30 text-white px-2 sm:px-3 py-1.5 sm:py-[6px] text-[8px] sm:text-[9px] font-bold uppercase rounded-md cursor-pointer transition-all hover:bg-[#E50914]/25 hover:border-[#E50914] hover:shadow-[0_0_20px_rgba(229,9,20,0.2)]"
                         >
                             <Plus size={9} strokeWidth={4} />

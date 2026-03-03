@@ -6,6 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 
 export function useCredits() {
     const [credits, setCredits] = useState<number | null>(null);
+    const [plan, setPlan] = useState<string>("free");
     const [loading, setLoading] = useState(true);
     const [isEnterprise, setIsEnterprise] = useState(false);
 
@@ -47,8 +48,10 @@ export function useCredits() {
                     unsubscribeSnapshot = onSnapshot(userRef, (snap) => {
                         if (snap.exists()) {
                             setCredits(snap.data().credits ?? 0);
+                            setPlan(snap.data().plan ?? "free");
                         } else {
                             setCredits(0);
+                            setPlan("free");
                         }
                         setLoading(false);
                     }, (error) => {
@@ -58,6 +61,7 @@ export function useCredits() {
                 }
             } else {
                 setCredits(null);
+                setPlan("free");
                 setIsEnterprise(false);
                 setLoading(false);
             }
@@ -71,5 +75,5 @@ export function useCredits() {
         };
     }, []);
 
-    return { credits, loading, isEnterprise };
+    return { credits, plan, loading, isEnterprise };
 }

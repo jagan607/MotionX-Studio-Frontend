@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { usePayment, getUserCurrency } from "@/lib/payment";
 import PricingCard from "@/app/components/PricingCard";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import { ArrowRight, MessageSquare, CheckCircle2 } from "lucide-react";
@@ -24,6 +24,8 @@ export default function PricingPage() {
     const [currency, setCurrency] = useState<"USD" | "INR">("USD");
     const [currentPlan, setCurrentPlan] = useState<string>("free");
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const fromTopUp = searchParams.get("from") === "topup";
 
     // 1. DETECT CURRENCY & FETCH USER PLAN
     useEffect(() => {
@@ -86,7 +88,11 @@ export default function PricingPage() {
                 setLoading(null);
                 setCurrentPlan(plan);
                 terminalToast(`SYSTEM UPDATE: ${plan.toUpperCase()} ACTIVATED`, "success");
-                setTimeout(() => router.push("/dashboard"), 1500);
+                // If user came here from the top-up flow, redirect back and open top-up modal
+                const destination = fromTopUp
+                    ? "/dashboard?openTopUp=true"
+                    : "/dashboard";
+                setTimeout(() => router.push(destination), 1500);
             },
             onError: (err: any) => {
                 console.error("Subscription Failed:", err);
@@ -94,7 +100,7 @@ export default function PricingPage() {
                 terminalToast("TRANSACTION FAILURE", "error");
             },
         });
-    }, [subscribe, loading, router, currency]);
+    }, [subscribe, loading, router, currency, fromTopUp]);
 
     return (
         <div className="min-h-screen bg-[#050505] text-[#EDEDED] flex flex-col font-sans selection:bg-[#E50914] selection:text-white">
