@@ -6,7 +6,8 @@ import Image from "next/image";
 import { doc, onSnapshot, collection, query, orderBy, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { api, uploadStyleRef } from "@/lib/api";
-import { toast } from "react-hot-toast";
+import { toastError, toastSuccess, toastInfo } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/apiErrors";
 import {
     Loader2, User, Film, Play, X, SplitSquareHorizontal, RefreshCw,
     CheckCircle2, Scan, Zap, Wand2, MousePointer2,
@@ -74,10 +75,10 @@ const StyleRefSidebar = ({
         setUploading(true);
         try {
             await uploadStyleRef(projectId, file);
-            toast.success("Style reference uploaded");
+            toastSuccess("Style reference uploaded");
             onClose();
         } catch (e: any) {
-            toast.error(e.response?.data?.detail || "Upload failed");
+            toastError(e);
         } finally {
             setUploading(false);
         }
@@ -86,9 +87,9 @@ const StyleRefSidebar = ({
     const handleRemove = async () => {
         try {
             await updateDoc(doc(db, "projects", projectId), { style_ref_url: null });
-            toast.success("Style reference removed");
+            toastSuccess("Style reference removed");
         } catch (e) {
-            toast.error("Failed to remove");
+            toastError("Failed to remove");
         }
     };
 
@@ -134,7 +135,7 @@ const StyleRefSidebar = ({
                             onClick={() => fileRef.current?.click()}
                             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                             onDragLeave={() => setIsDragging(false)}
-                            onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files?.[0]; if (f && f.type.startsWith('image/')) handleUpload(f); else toast.error('Please drop an image file'); }}
+                            onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files?.[0]; if (f && f.type.startsWith('image/')) handleUpload(f); else toastError('Please drop an image file'); }}
                             className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all group
                                 ${isDragging ? 'border-[#E50914] bg-[#E50914]/[0.06] scale-[1.02]' : 'border-[#333] hover:border-[#E50914]/50 hover:bg-[#E50914]/[0.02]'}`}
                         >
@@ -379,14 +380,13 @@ export default function AdaptationPage() {
     const handleRegenerate = async (shotId: string, tags?: Tag[]) => {
         const shotData = shots.find(s => s.id === shotId);
         const finalTags = tags || shotData?.manual_tags || [];
-        toast("Processing Shot...", { icon: "🎨" });
+        toastInfo("Processing Shot...");
         try {
             await api.post(`/api/v1/adaptation/project/${projectId}/shot/${shotId}/regenerate`, {
                 manual_tags: finalTags,
             });
         } catch (e: any) {
-            if (e.response?.status === 402) toast.error("Insufficient Credits");
-            else toast.error("Generation Failed");
+            toastError(e);
         }
     };
 
@@ -421,7 +421,7 @@ export default function AdaptationPage() {
                     video_url: res.data.image_url,
                     status: "rendered"
                 });
-                toast.success("Edit Generated! Click Apply to Save.");
+                toastSuccess("Edit Generated! Click Apply to Save.");
                 // DO NOT CLOSE HERE. Let user see it in editor.
                 return res.data.image_url;
             }
@@ -430,8 +430,7 @@ export default function AdaptationPage() {
 
         } catch (e: any) {
             console.error("Inpaint Error:", e);
-            if (e.response?.status === 402) toast.error("Insufficient Credits");
-            else toast.error("Inpaint failed");
+            toastError(e);
             return null;
         }
     };
@@ -456,7 +455,7 @@ export default function AdaptationPage() {
             });
         } catch (e) {
             console.error("Upload failed", e);
-            toast.error("Upload failed");
+            toastError("Upload failed");
         } finally {
             setUploadingCast(null);
         }

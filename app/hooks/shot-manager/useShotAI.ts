@@ -2,6 +2,7 @@ import { doc, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { api } from "@/lib/api";
 import { toastError } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/apiErrors";
 import { useState } from "react";
 
 // Helper to match backend CAPS_CAPS format
@@ -99,7 +100,7 @@ export const useShotAI = (
             }
         } catch (e: any) {
             console.error(e);
-            const errorMsg = e.response?.data?.detail || "Auto-Direct failed";
+            const errorMsg = getApiErrorMessage(e, "Auto-Direct failed");
             setTerminalLog(prev => [...prev, `> ERROR: ${errorMsg.toUpperCase()}`]);
             toastError(errorMsg);
         } finally {

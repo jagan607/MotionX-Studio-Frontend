@@ -3,6 +3,7 @@ import { collection, doc, onSnapshot, setDoc } from "firebase/firestore";
 import { db, storage } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { inferVideoErrorMessage } from "@/lib/apiErrors";
 
 // Sub-hooks (Relative imports)
 import { useShotCRUD } from "./shot-manager/useShotCRUD";
@@ -28,9 +29,11 @@ export const useShotManager = (
 
     const [aspectRatio, setAspectRatio] = useState("16:9");
 
-    // Ref for Batch Operations to access latest state
     const shotsRef = useRef<any[]>([]);
     useEffect(() => { shotsRef.current = shots; }, [shots]);
+
+    // Track which shot errors have already been toasted
+    const failedToastedIds = useRef<Set<string>>(new Set());
 
     // Helper functions for loading state
     const addLoadingShot = (id: string) => setLoadingShots(prev => new Set(prev).add(id));
@@ -40,10 +43,10 @@ export const useShotManager = (
     useEffect(() => {
         if (!projectId || !episodeId || !activeSceneId) return;
 
-        const shotsRef = collection(db, "projects", projectId, "episodes", episodeId, "scenes", activeSceneId, "shots");
+        const shotsCollectionRef = collection(db, "projects", projectId, "episodes", episodeId, "scenes", activeSceneId, "shots");
 
-        const unsubscribe = onSnapshot(shotsRef, (snapshot) => {
-            const shotData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const unsubscribe = onSnapshot(shotsCollectionRef, (snapshot) => {
+            const shotData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
             // Sort by order, then by creation time
             shotData.sort((a: any, b: any) => {
                 const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
@@ -51,8 +54,30 @@ export const useShotManager = (
                 if (orderA !== orderB) return orderA - orderB;
                 return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
             });
+
+            // Surface async failures via toast (once per event)
+            shotData.forEach(shot => {
+                // 1. Image/Action Failure
+                if (shot.status === "failed" && !failedToastedIds.current.has(`${shot.id}_status`)) {
+                    failedToastedIds.current.add(`${shot.id}_status`);
+                    toastError(shot.error_message || "Image generation failed");
+                }
+                // 2. Upscale Failure
+                if (shot.upscale_status === "failed" && !failedToastedIds.current.has(`${shot.id}_upscale`)) {
+                    failedToastedIds.current.add(`${shot.id}_upscale`);
+                    toastError(shot.upscale_error || "Upscale failed");
+                }
+                // 3. Video/Animation Failure
+                if (shot.video_status === "failed" && !failedToastedIds.current.has(`${shot.id}_video`)) {
+                    failedToastedIds.current.add(`${shot.id}_video`);
+                    const vidErr = shot.video_error || shot.error_message;
+                    toastError(inferVideoErrorMessage(vidErr));
+                }
+            });
+
             setShots(shotData);
         });
+
         return () => unsubscribe();
     }, [projectId, episodeId, activeSceneId]);
 

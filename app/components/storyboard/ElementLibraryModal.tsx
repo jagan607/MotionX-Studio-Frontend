@@ -5,6 +5,7 @@ import { X, Plus, Trash2, Image as ImageIcon, Upload, Loader2, Search } from 'lu
 import { KlingElement } from '@/app/hooks/shot-manager/useElementLibrary';
 import Image from 'next/image';
 import { toast } from "react-hot-toast";
+import { toastError } from "@/lib/toast";
 
 interface ElementLibraryModalProps {
     projectId: string; // Kept for reference or derived usage if needed
@@ -202,7 +203,7 @@ export const ElementLibraryModal: React.FC<ElementLibraryModalProps> = ({
                                                                     } else {
                                                                         console.error("Invalid ID returned:", newKlingId);
                                                                         toast.dismiss(toastId);
-                                                                        toast.error("Failed to prepare asset (Invalid ID)");
+                                                                        toastError("Failed to prepare asset (Invalid ID)");
                                                                     }
                                                                 } else {
                                                                     onSelect?.(el);
@@ -210,7 +211,7 @@ export const ElementLibraryModal: React.FC<ElementLibraryModalProps> = ({
                                                             } catch (err: any) {
                                                                 console.error("Selection error:", err);
                                                                 toast.dismiss();
-                                                                toast.error(err.message || "Something went wrong");
+                                                                toastError(err.message || "Something went wrong");
                                                             } finally {
                                                                 setEnablingId(null);
                                                             }

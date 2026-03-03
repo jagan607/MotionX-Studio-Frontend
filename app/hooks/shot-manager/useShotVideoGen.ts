@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/apiErrors";
 
 export type VideoProvider = 'kling' | 'kling-v3' | 'seedance';
 
@@ -86,7 +87,7 @@ export const useShotVideoGen = (
             await api.post("/api/v1/shot/animate_shot", payload);
             toastSuccess("Animation Queued");
         } catch (e: any) {
-            toastError(e.response?.data?.detail || "Animation request failed");
+            toastError(getApiErrorMessage(e, "Animation request failed"));
         }
     };
 
@@ -133,7 +134,7 @@ export const useShotVideoGen = (
             await api.post("/api/v1/shot/text2video_shot", payload);
             toastSuccess("Text-to-Video Queued");
         } catch (e: any) {
-            toastError(e.response?.data?.detail || "Text-to-video request failed");
+            toastError(getApiErrorMessage(e, "Text-to-video request failed"));
         }
     };
 

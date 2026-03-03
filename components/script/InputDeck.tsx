@@ -7,6 +7,8 @@ import {
     FileText, Clipboard, AlertCircle, CheckCircle2, Check, Plus
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { toastError, toastSuccess, toastInfo } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/apiErrors";
 import { api, checkJobStatus } from "@/lib/api";
 import { MotionButton } from "@/components/ui/MotionButton";
 import ScriptProcessingLoader from "@/components/script/ScriptProcessingLoader";
@@ -193,7 +195,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         }
 
         if (!isValid) {
-            toast.error("Please fill in all required fields", { icon: "🚨" });
+            toastError("Please fill in all required fields");
             return;
         }
 
@@ -239,7 +241,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             // Only send data from the active tab
             if (activeTab === 'ai') {
                 if (!synopsisText.trim()) {
-                    toast.error("Please enter a synopsis or story description");
+                    toastError("Please enter a synopsis or story description");
                     return;
                 }
                 const content = `[TYPE: SYNOPSIS/TREATMENT]\n\n${synopsisText}`;
@@ -248,7 +250,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             }
             else if (activeTab === 'paste') {
                 if (!pastedScript.trim()) {
-                    toast.error("Please paste your script text");
+                    toastError("Please paste your script text");
                     return;
                 }
                 const blob = new Blob([pastedScript], { type: "text/plain" });
@@ -256,7 +258,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             }
             else if (activeTab === 'upload') {
                 if (!selectedFile) {
-                    toast.error("Please select a file to upload");
+                    toastError("Please select a file to upload");
                     return;
                 }
                 formData.append("file", selectedFile);
@@ -291,14 +293,14 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                         const moodboardUrl = job.redirect_url.replace('/assets', '/moodboard');
                         setTimeout(() => onSuccess(moodboardUrl), 800);
                     } else {
-                        toast.error("Redirect coordinates missing.");
+                        toastError("Redirect coordinates missing.");
                         setIsUploading(false);
                     }
                 } else if (job.status === "failed") {
                     clearInterval(pollInterval);
                     setIsUploading(false);
                     addLog("Error: " + (job.error || "Unknown Failure"));
-                    toast.error(job.error || "Ingestion Failed");
+                    toastError(job.error || "Ingestion Failed");
                 }
             }, 1000);
 
@@ -307,7 +309,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             setIsUploading(false);
             const errorMsg = e.response?.data?.detail || e.message;
             addLog("Fatal Error: " + errorMsg);
-            toast.error(`Protocol Failed: ${errorMsg}`);
+            toastError(getApiErrorMessage(e, "Protocol Failed"));
         }
     };
 

@@ -12,6 +12,7 @@ import {
     Mic, User, Camera, BookOpen, Backpack
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 import Link from "next/link";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -71,6 +72,8 @@ export default function MoodboardPage() {
     const [appliedMoodId, setAppliedMoodId] = useState<string | null>(null);
     const [projectType, setProjectType] = useState<string>("");
     const [ugcSetup, setUgcSetup] = useState<string>("");
+    // Track which moodboard card IDs have already been toasted for failure
+    const failedToastedIds = React.useRef<Set<string>>(new Set());
 
     const UGC_LABELS: Record<string, { label: string; Icon: React.ComponentType<any> }> = {
         podcast: { label: "Podcast", Icon: Mic },
@@ -118,6 +121,15 @@ export default function MoodboardPage() {
                     status: data.status || "generating",
                 };
             });
+
+            // Surface per-card failures via toast (once per card, not on every snapshot)
+            options.forEach(opt => {
+                if (opt.status === "failed" && !failedToastedIds.current.has(opt.id)) {
+                    failedToastedIds.current.add(opt.id);
+                    toastError(`Mood "${opt.name || opt.id}" failed to render. You can regenerate.`);
+                }
+            });
+
             setMoods(options);
             setFirestoreLoaded(true);
         });
@@ -138,14 +150,16 @@ export default function MoodboardPage() {
                         ...m, status: m.status || (m.image_url ? "ready" : "generating"),
                     })));
                 }
-                toast.success("Generating moods...");
+                toastSuccess("Generating moods...");
             } else {
                 setErrorMessage("Couldn't generate mood options. Please try again.");
                 setPhase("error");
             }
         } catch (e: any) {
             console.error("[Moodboard] Generation error:", e);
-            setErrorMessage(e.response?.data?.detail || "Generation failed. Please try again.");
+            const moodErr = e.response?.data?.detail || "Generation failed. Please try again.";
+            setErrorMessage(moodErr);
+            toastError(moodErr);
             setPhase("error");
         } finally {
             setIsRegenerating(false);
@@ -171,11 +185,11 @@ export default function MoodboardPage() {
             });
             if (res.data.status === "success") {
                 setAppliedMoodId(selectedMood.id);
-                toast.success(`Mood "${res.data.selected_mood?.name || "selected"}" applied`);
+                toastSuccess(`Mood "${res.data.selected_mood?.name || "selected"}" applied`);
                 router.push(assetsUrl);
-            } else { toast.error("Failed to apply mood"); setPhase("select"); }
+            } else { toastError("Failed to apply mood"); setPhase("select"); }
         } catch (e: any) {
-            toast.error(e.response?.data?.detail || "Selection failed");
+            toastError(e.response?.data?.detail || "Selection failed");
             setPhase("select");
         }
     };

@@ -7,6 +7,7 @@ import {
     Sparkles
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { generateTreatment, updateTreatment, exportTreatmentPdf } from "@/lib/api";
@@ -97,10 +98,10 @@ export const TreatmentModal: React.FC<TreatmentModalProps> = ({
                 setHasExisting(true);
             }
             toast.dismiss(toastId);
-            toast.success("Treatment generated!");
+            toastSuccess("Treatment generated!");
         } catch (e: any) {
             toast.dismiss(toastId);
-            toast.error(e.response?.data?.detail || "Failed to generate treatment");
+            toastError(e);
         } finally {
             setIsGenerating(false);
         }
@@ -145,10 +146,10 @@ export const TreatmentModal: React.FC<TreatmentModalProps> = ({
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
             toast.dismiss(toastId);
-            toast.success("PDF exported!");
+            toastSuccess("PDF exported!");
         } catch (e: any) {
             toast.dismiss(toastId);
-            toast.error(e.response?.data?.detail || "PDF export failed");
+            toastError(e);
         } finally {
             setIsExporting(false);
         }

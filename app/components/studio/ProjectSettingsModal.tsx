@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { X, Save, Loader2, Sliders, Palette } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 import { api } from "@/lib/api";
 import { Project } from "@/lib/types";
 
@@ -96,12 +96,12 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
             // Use PATCH
             await api.patch(`/api/v1/project/${project.id}`, payload);
 
-            toast.success("Configuration saved");
+            toastSuccess("Configuration saved");
             onUpdate({ ...project, ...payload } as Project);
             onClose();
         } catch (error) {
             console.error("Failed to update project", error);
-            toast.error("Failed to save changes");
+            toastError("Failed to save changes");
         } finally {
             setIsSaving(false);
         }

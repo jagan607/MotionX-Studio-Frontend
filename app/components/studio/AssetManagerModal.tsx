@@ -6,6 +6,7 @@ import {
     Search, Sparkles
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { toastError, toastSuccess } from "@/lib/toast";
 
 // --- API & TYPES ---
 import {
@@ -112,7 +113,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             onAssetsUpdated?.();
         } catch (e) {
             console.error(e);
-            toast.error("Failed to load assets");
+            toastError("Failed to load assets");
         } finally {
             setLoading(false);
         }
@@ -144,19 +145,19 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             if (asset.id === "new") {
                 const res = await createAsset(projectId, { ...data, type: asset.type });
                 const newAsset = { ...res.data.asset, type: asset.type };
-                toast.success("Asset created");
+                toastSuccess("Asset created");
                 setSelectedAsset(newAsset);
                 loadData();
                 return newAsset;
             } else {
                 await updateAsset(projectId, asset.type, asset.id, data);
-                toast.success("Asset updated");
+                toastSuccess("Asset updated");
                 loadData();
                 return asset;
             }
         } catch (e) {
             console.error(e);
-            toast.error("Save failed");
+            toastError("Save failed");
             throw e;
         }
     };
@@ -172,10 +173,10 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                 else if (type === 'product') newState.products = prev.products.filter(a => a.id !== id);
                 return newState;
             });
-            toast.success("Asset deleted");
+            toastSuccess("Asset deleted");
             onAssetsUpdated?.();
         } catch (e) {
-            toast.error("Delete failed");
+            toastError("Delete failed");
         }
     };
 
@@ -232,7 +233,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
 
             return res.image_url;
         } catch (e) {
-            toast.error("Generation failed");
+            toastError("Generation failed");
             setGeneratingIds(prev => { const next = new Set(prev); next.delete(asset.id); return next; });
         }
     };
@@ -251,7 +252,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             loadData();
             await handleGenerate(newAsset, draftData.prompt, true);
         } catch (e) {
-            toast.error("Creation failed");
+            toastError("Creation failed");
         }
     };
 

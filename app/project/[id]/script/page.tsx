@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import { fetchProject, fetchEpisodes } from "@/lib/api";
 import { Project } from "@/lib/types";
-import { toast } from "react-hot-toast";
+import { toastError, toastSuccess, toastInfo } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/apiErrors";
 import { collection, getDocs, limit, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -93,7 +94,7 @@ export default function ScriptIngestionPage() {
                 }
             } catch (error) {
                 console.error("Failed to load project details", error);
-                toast.error("Failed to load project data");
+                toastError("Failed to load project data");
             } finally {
                 setLoading(false);
             }
@@ -149,7 +150,7 @@ export default function ScriptIngestionPage() {
             });
         } catch (e) {
             console.error("Context Load Error:", e);
-            toast.error("Failed to load context scenes");
+            toastError("Failed to load context scenes");
             return [];
         }
     };
@@ -159,14 +160,14 @@ export default function ScriptIngestionPage() {
         if (val === "new_placeholder") return;
         router.push(`/project/${projectId}/script?episode_id=${val}`);
         setSelectedEpisodeId(val);
-        toast.success(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
+        toastSuccess(`Switched to ${e.target.options[e.target.selectedIndex].text}`);
     };
 
     const handleNewEpisode = () => {
         router.push(`/project/${projectId}/script?mode=new`);
         setActiveStatus("Ready for new sequence...");
         setHasExistingScenes(false);
-        toast("New Sequence Initialized", { icon: '✨' });
+        toastInfo("New Sequence Initialized");
     };
 
     const handleIngestStatus = (status: string) => {

@@ -2,11 +2,7 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { api } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
-
-// Helper to handle API errors
-const getErrorMessage = (e: any) => {
-    return e.response?.data?.detail || "Generation failed";
-};
+import { getApiErrorMessage } from "@/lib/apiErrors";
 
 export const useShotImageGen = (
     projectId: string,
@@ -123,7 +119,7 @@ export const useShotImageGen = (
                 if (onLowCredits) onLowCredits();
                 else toastError("Insufficient Credits");
             } else {
-                toastError(getErrorMessage(e));
+                toastError(getApiErrorMessage(e, "Image generation failed"));
             }
         } finally {
             removeLoadingShot(shot.id);
@@ -149,9 +145,8 @@ export const useShotImageGen = (
             await upscaleShot(projectId, episodeId, sceneId!, shot.id, modelTier);
             toastSuccess("4K upscale started");
         } catch (e: any) {
-            await updateDoc(shotRef, { status: "failed" });
-            const msg = e.response?.data?.detail || e.response?.data?.message || getErrorMessage(e);
-            toastError(msg);
+            await updateDoc(shotRef, { upscale_status: "failed", upscale_error: getApiErrorMessage(e, "Upscale failed") });
+            toastError(getApiErrorMessage(e, "Upscale failed"));
         } finally {
             removeLoadingShot(shot.id);
         }
@@ -193,7 +188,7 @@ export const useShotImageGen = (
 
         } catch (e: any) {
             console.error(e);
-            toastError(getErrorMessage(e));
+            toastError(getApiErrorMessage(e, "Inpaint failed"));
             await updateDoc(shotRef, { status: "failed" });
             return null;
         }

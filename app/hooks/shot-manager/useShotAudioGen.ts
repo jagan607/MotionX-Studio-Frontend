@@ -2,6 +2,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { api } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/apiErrors";
 
 export const useShotAudioGen = (
     projectId: string,
@@ -89,7 +90,7 @@ export const useShotAudioGen = (
             toastSuccess("Lip Sync Queued");
         } catch (e: any) {
             console.error(e);
-            toastError(e.response?.data?.detail || "Lip Sync failed");
+            toastError(getApiErrorMessage(e, "Lip Sync failed"));
             await setDoc(shotRef, { video_status: "ready" }, { merge: true });
         }
     };
