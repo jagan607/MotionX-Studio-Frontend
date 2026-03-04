@@ -147,29 +147,24 @@ export const SceneCard: React.FC<SceneCardProps> = ({
             <div className="p-4 flex-1 flex flex-col">
 
                 {/* HEADER */}
-                <div className="flex justify-between items-center mb-4 border-b border-white/[0.04] pb-3">
-                    <div className="flex items-center gap-2">
+                <div className="flex justify-between items-center mb-4 border-b border-white/[0.04] pb-3 gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                         <div
                             {...attributes}
                             {...listeners}
-                            className="cursor-grab active:cursor-grabbing text-[#444] hover:text-[#888] transition-colors p-0.5"
+                            className="cursor-grab active:cursor-grabbing text-[#444] hover:text-[#888] transition-colors p-0.5 flex-shrink-0"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <GripVertical size={14} />
                         </div>
-                        <span className="text-[11px] font-semibold tracking-widest text-[#ff6b6b] bg-[#E50914]/10 px-2.5 py-1 rounded-md flex items-center gap-1.5">
-                            <Clapperboard size={11} /> SCENE {displaySceneNumber}
+                        <span className="text-[11px] font-extrabold tracking-widest text-neutral-400 truncate">
+                            SCENE {displaySceneNumber}
                         </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5 text-[9px] text-neutral-500 bg-white/[0.03] px-2.5 py-1 rounded-md border border-white/[0.06]">
-                            <Clock size={10} />
-                            {scene.time || "N/A"}
-                        </div>
-
+                    <div className="flex items-center gap-2 flex-shrink-0">
                         {/* DURATION BADGE */}
                         {durationLabel && (
-                            <div className="flex items-center gap-1.5 text-[9px] text-emerald-400 bg-emerald-500/[0.08] px-2.5 py-1 rounded-md border border-emerald-500/[0.15]">
+                            <div className="flex items-center gap-1.5 text-[9px] text-neutral-500 bg-white/[0.03] px-2.5 py-1 rounded-md border border-white/[0.06]">
                                 <Timer size={10} />
                                 {durationLabel}
                             </div>
