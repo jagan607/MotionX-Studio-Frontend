@@ -280,13 +280,13 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                 {/* --- INLINE EDIT PANEL (absolute overlay, no reflow) --- */}
                 {/* Dim + blur backdrop */}
                 <div
-                    className={`absolute inset-0 z-40 bg-black/30 backdrop-blur-sm transition-opacity duration-300 pointer-events-none
+                    className={`absolute inset-0 z-[55] bg-black/30 backdrop-blur-sm transition-opacity duration-300 pointer-events-none
                         ${isEditing ? 'opacity-100' : 'opacity-0'}`}
                 />
 
                 {/* Sliding panel */}
                 <div
-                    className={`absolute top-0 right-0 h-full w-[380px] z-[51] bg-[#080808] border-l border-white/[0.06]
+                    className={`absolute top-0 right-0 h-full w-[380px] z-[60] bg-[#080808] border-l border-white/[0.06]
                         flex flex-col shadow-2xl
                         transform transition-transform duration-300 ease-in-out
                         ${isEditing ? 'translate-x-0' : 'translate-x-full'}`}

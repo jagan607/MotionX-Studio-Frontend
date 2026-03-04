@@ -630,7 +630,7 @@ export default function StudioPage() {
             />
 
             {/* MAIN CONTENT ROW */}
-            <div className="flex-1 flex overflow-hidden relative z-40">
+            <div className="flex-1 flex overflow-hidden relative">
 
                 {/* SIDEBAR */}
                 <ReelSidebar
