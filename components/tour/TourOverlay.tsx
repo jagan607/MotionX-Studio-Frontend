@@ -42,11 +42,20 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
 
         const tryFind = (attempts = 0) => {
             const el = document.getElementById(currentStep.targetId);
-            if (!el && attempts < 10) {
-                setTimeout(() => tryFind(attempts + 1), 100);
+            if (!el && attempts < 15) {
+                setTimeout(() => tryFind(attempts + 1), 200);
                 return;
             }
-            if (!el) return;
+            if (!el) {
+                // Target not found after retries — auto-skip this step
+                console.warn(`[TourOverlay] Target "${currentStep.targetId}" not found, auto-skipping step ${step}`);
+                if (isLastStep) {
+                    onComplete();
+                } else {
+                    onNext();
+                }
+                return;
+            }
 
             const rect = el.getBoundingClientRect();
             setTargetRect({
@@ -105,12 +114,13 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
         setTooltipPos({ top, left });
     }, [targetRect, step, steps]);
 
+    const isLastStep = step === steps.length;
+
     if (!mounted || step === 0 || step > steps.length) return null;
 
     const currentStep = steps[step - 1];
-    const isLastStep = step === steps.length;
     const handleAction = isLastStep ? onComplete : onNext;
-    const handleClose = isLastStep ? onComplete : onNext;
+    const handleClose = onComplete; // X always dismisses the entire tour
 
     // Arrow direction based on placement
     const getArrowStyle = (): React.CSSProperties => {

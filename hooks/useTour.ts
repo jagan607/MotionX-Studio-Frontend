@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -12,11 +12,14 @@ import { onAuthStateChanged } from "firebase/auth";
  */
 export const useTour = (tourId: string) => {
     const [step, setStep] = useState(0); // 0 = inactive
+    const hasChecked = useRef(false);
 
     useEffect(() => {
+        hasChecked.current = false; // Reset when tourId changes
         // Wait for auth to resolve, then check Firestore
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (!user) return;
+            if (!user || hasChecked.current) return;
+            hasChecked.current = true;
             // Small delay to ensure page DOM is mounted before we start tour
             const timer = setTimeout(() => checkStatus(user.uid), 1200);
             return () => clearTimeout(timer);
