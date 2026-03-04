@@ -197,7 +197,7 @@ export default function NewProjectPage() {
                                     <label className="text-[9px] font-semibold tracking-[3px] uppercase text-neutral-500">Engine</label>
                                     <div className="space-y-1.5">
                                         {[
-                                            { id: 'realistic' as const, label: 'Realistic', desc: 'Photorealistic' },
+                                            { id: 'realistic' as const, label: 'Realistic', desc: 'Ultra Realism' },
                                             { id: 'anime' as const, label: 'Animation', desc: 'Anime style' }
                                         ].map(s => {
                                             const active = formData.style === s.id;

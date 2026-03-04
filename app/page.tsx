@@ -68,95 +68,65 @@ const ViewfinderCorner = ({ position }: { position: 'tl' | 'tr' | 'bl' | 'br' })
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HERO: MOSAIC CELL (video or image fallback)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const MosaicCell = ({ shot }: { shot: { video_url?: string; image_url?: string } }) => {
-  const cellRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const el = cellRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.disconnect(); } },
-      { rootMargin: '200px' }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={cellRef} className="mosaic-cell relative rounded-lg overflow-hidden" style={{ aspectRatio: '3/4' }}>
-      {shot.video_url && isVisible ? (
-        <video
-          ref={videoRef}
-          src={shot.video_url}
-          poster={shot.image_url}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="none"
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <img src={shot.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
-      )}
-    </div>
-  );
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
 // HERO SECTION COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
 const HeroSection = ({ cmsData }: { cmsData: any }) => {
   const { displayText, isComplete } = useTypingEffect(cmsData.headline, 80, 600);
-  const [feedShots, setFeedShots] = useState<any[]>([]);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [heroVideos, setHeroVideos] = useState<string[]>([]);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
-  // Fetch global feed for mosaic
+  // Fetch 4 videos from Firebase global feed
   useEffect(() => {
-    fetchGlobalFeed().then(shots => {
-      // Prefer shots with video, then fill with images
-      const withVideo = shots.filter((s: any) => s.video_url);
-      const withImage = shots.filter((s: any) => !s.video_url && s.image_url);
-      setFeedShots([...withVideo, ...withImage].slice(0, 20));
-    });
+    fetchGlobalFeed().then((shots: any[]) => {
+      const vids = shots
+        .filter((s: any) => s.video_url)
+        .slice(0, 4)
+        .map((s: any) => s.video_url);
+      setHeroVideos(vids);
+    }).catch(() => { });
   }, []);
 
-  // Build 5 columns, duplicate for seamless loop
-  const columns = Array.from({ length: 5 }, (_, colIdx) => {
-    if (feedShots.length === 0) return [];
-    const colShots: any[] = [];
-    for (let r = 0; r < 6; r++) {
-      colShots.push(feedShots[(colIdx * 6 + r) % feedShots.length]);
-    }
-    return [...colShots, ...colShots]; // duplicate for seamless loop
-  });
+  // Cross-fade every 6 seconds
+  useEffect(() => {
+    if (heroVideos.length < 2) return;
+    const timer = setInterval(() => {
+      setActiveIdx(prev => (prev + 1) % heroVideos.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [heroVideos.length]);
+
+  // Play only the active video, pause all others
+  useEffect(() => {
+    videoRefs.current.forEach((vid, i) => {
+      if (!vid) return;
+      if (i === activeIdx) {
+        vid.currentTime = 0;
+        vid.play().catch(() => { });
+      } else {
+        vid.pause();
+      }
+    });
+  }, [activeIdx, heroVideos.length]);
 
   return (
     <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
 
-      {/* ── Mosaic Grid Background ── */}
-      {feedShots.length > 0 && (
-        <div className="absolute inset-0 z-0 flex gap-2 px-2 opacity-50"
-          style={{ transform: 'rotate(-4deg) scale(1.4)', transformOrigin: 'center center' }}
-        >
-          {columns.map((col, colIdx) => (
-            <div
-              key={colIdx}
-              className="mosaic-column flex-1 flex flex-col gap-2"
-              style={{ animationDelay: `${colIdx * -6}s` }}
-            >
-              {col.map((shot, rowIdx) => (
-                <MosaicCell key={rowIdx} shot={shot} />
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* ── Cross-Fade Video Background ── */}
+      {heroVideos.map((src, i) => (
+        <video
+          key={i}
+          ref={el => { videoRefs.current[i] = el; }}
+          src={src}
+          muted
+          playsInline
+          loop
+          preload={i === 0 ? 'auto' : 'none'}
+          className={`hero-slide ${i === activeIdx ? 'hero-slide-active' : ''}`}
+          style={{ objectFit: 'cover' }}
+        />
+      ))}
 
       {/* ── Dark Overlays ── */}
       <div className="absolute inset-0 z-[1] bg-[#050505]/65" />
@@ -375,12 +345,6 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const castingImages = [
-    "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-1%20(1).png?alt=media&token=4125c260-6236-49d0-abb5-d06b20278eb0",
-    "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-3%20(2).png?alt=media&token=07a27ac4-8a69-4d8d-bcde-f6a079eb5f4d",
-    "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-2%20(2).png?alt=media&token=92858dec-04d2-4dae-b8c1-c815705c2141",
-    "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-1%20(2).png?alt=media&token=c1755e67-9fc0-49e5-a000-77a92198fae1"
-  ];
 
   return (
     <main className="bg-[#050505] min-h-screen text-[#EAEAEA] overflow-x-hidden relative">
@@ -403,9 +367,9 @@ export default function LandingPage() {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
-        @keyframes mosaic-drift {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(-50%); }
+        @keyframes ken-burns {
+          0% { transform: scale(1) translate(0, 0); }
+          100% { transform: scale(1.08) translate(-1%, -1%); }
         }
         @keyframes typing-cursor {
           0%, 100% { opacity: 1; }
@@ -427,24 +391,19 @@ export default function LandingPage() {
           animation: marquee-scroll 30s linear infinite;
         }
         .landing-marquee:hover { animation-play-state: paused; }
-        .mosaic-column {
-          animation: mosaic-drift 40s linear infinite;
+        .hero-slide {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          opacity: 0;
+          transition: opacity 1.5s ease-in-out;
+          filter: saturate(0.4) brightness(0.5);
         }
-        .mosaic-column:nth-child(even) {
-          animation-duration: 55s;
-          animation-direction: reverse;
-        }
-        .mosaic-column:nth-child(3n) {
-          animation-duration: 48s;
-        }
-        .mosaic-cell {
-          filter: saturate(0.3) brightness(0.6);
-          transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .mosaic-cell:hover {
-          filter: saturate(1) brightness(1);
-          transform: scale(1.05);
-          z-index: 10;
+        .hero-slide-active {
+          opacity: 1;
+          animation: ken-burns 6s ease-out forwards;
         }
       `}</style>
 
@@ -573,7 +532,16 @@ export default function LandingPage() {
 
         <div className="relative">
           <div className="landing-marquee">
-            {[...castingImages, ...castingImages].map((src, i) => (
+            {[
+              "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-1%20(1).png?alt=media&token=4125c260-6236-49d0-abb5-d06b20278eb0",
+              "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-3%20(2).png?alt=media&token=07a27ac4-8a69-4d8d-bcde-f6a079eb5f4d",
+              "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-2%20(2).png?alt=media&token=92858dec-04d2-4dae-b8c1-c815705c2141",
+              "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-1%20(2).png?alt=media&token=c1755e67-9fc0-49e5-a000-77a92198fae1",
+              "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-1%20(1).png?alt=media&token=4125c260-6236-49d0-abb5-d06b20278eb0",
+              "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-3%20(2).png?alt=media&token=07a27ac4-8a69-4d8d-bcde-f6a079eb5f4d",
+              "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-2%20(2).png?alt=media&token=92858dec-04d2-4dae-b8c1-c815705c2141",
+              "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/shot-1%20(2).png?alt=media&token=c1755e67-9fc0-49e5-a000-77a92198fae1",
+            ].map((src, i) => (
               <div key={i} className="flex-shrink-0 w-[300px] md:w-[400px] h-[400px] md:h-[533px] mx-2 rounded-xl overflow-hidden border border-white/[0.06] group relative">
                 <img src={src} alt={`Showcase ${i + 1}`}
                   className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"

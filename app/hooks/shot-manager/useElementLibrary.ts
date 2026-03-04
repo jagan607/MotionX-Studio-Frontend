@@ -38,7 +38,7 @@ export const useElementLibrary = (projectId: string) => {
         try {
             // 1. Fetch Standalone Elements (User's library)
             try {
-                const resElements = await api.get("/api/v1/production/elements");
+                const resElements = await api.get("/api/v1/shot/elements");
                 userElements = (resElements.data.elements || []).map((e: any) => ({ ...e, source: 'user' }));
                 console.log(`[useElementLibrary] Fetched ${userElements.length} user elements`);
             } catch (err) {
@@ -204,7 +204,7 @@ export const useElementLibrary = (projectId: string) => {
                 refer_image_urls: referImageUrls
             };
 
-            const res = await api.post("/api/v1/production/elements/create", payload);
+            const res = await api.post("/api/v1/shot/elements/create", payload);
 
             if (res.data.status === 'success' && res.data.element) {
                 setElements(prev => [res.data.element, ...prev]);

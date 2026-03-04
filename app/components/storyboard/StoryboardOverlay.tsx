@@ -73,6 +73,11 @@ interface StoryboardOverlayProps {
     initialScript?: string; // [NEW] Script content (fetched by parent)
     initialRuntime?: string | number; // [NEW] Runtime
 
+    // Mood Props
+    mood?: { color_palette?: string; lighting?: string; texture?: string; atmosphere?: string };
+    moodSource?: "scene" | "project" | "none";
+    onEditMood?: () => void;
+
     seriesName: string;
     episodeTitle: string;
 
@@ -103,6 +108,7 @@ interface StoryboardOverlayProps {
 export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     activeSceneId, currentScene, onClose, credits: _creditsProp, castMembers, locations, products,
     seriesName, episodeTitle, initialScript, initialRuntime,
+    mood, moodSource, onEditMood,
     seriesId, episodeId,
     shotMgr, inpaintData, setInpaintData, onSaveInpaint, onApplyInpaint,
     onZoom, onDownload, onDeleteShot, onSceneChange,
@@ -767,7 +773,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </div>
 
                 {/* --- CONTENT --- */}
-                <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#050505', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#050505', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
                     <div id="tour-sb-context-strip" style={{ margin: '40px 40px 0 40px' }}>
                         <SceneContextStrip
@@ -779,6 +785,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             timeOfDay={currentScene.time_of_day || "DAY"}
                             castList={charDisplay}
                             aspectRatio={shotMgr.aspectRatio || "16:9"}
+                            mood={mood}
+                            moodSource={moodSource}
+                            onEditMood={onEditMood}
                             onAutoDirect={(newSummary) => handleSafeAutoDirect(newSummary)}
                             isAutoDirecting={shotMgr.isAutoDirecting}
                         />
@@ -896,11 +905,11 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     />
                 )}
 
-                {/* AI DIRECTOR OVERLAY */}
+                {/* AI DIRECTOR OVERLAY — Content area only, header stays accessible */}
                 {shotMgr.isAutoDirecting && (
                     <div style={{
-                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: '#000', zIndex: 9999,
+                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: '#000', zIndex: 50,
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                         overflow: 'hidden',
                     }}>

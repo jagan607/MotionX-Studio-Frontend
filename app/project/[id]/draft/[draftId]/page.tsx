@@ -112,7 +112,8 @@ export default function DraftPage() {
                             summary: summaryText,
                             time: s.time || "",
                             cast_ids: s.cast_ids || s.characters || [],
-                            location_id: s.location_id || "" // Critical fix for location selector
+                            location_id: s.location_id || "", // Critical fix for location selector
+                            mood: s.mood || {},               // Preserve AI-inferred mood
                         };
                     });
                     setScenes(stableScenes);

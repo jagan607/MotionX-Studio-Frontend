@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     Film, RefreshCw, Link2, Mic2,
-    ChevronDown, ChevronUp, Sliders, Plus, Trash2, AlertCircle, Loader2
+    ChevronDown, ChevronUp, Sliders, Plus, Trash2, AlertCircle, Loader2,
+    RectangleHorizontal, RectangleVertical, Square, Volume2, FastForward
 } from 'lucide-react';
 import type { VideoProvider, AnimateOptions, PromptSegment } from '@/app/hooks/shot-manager/useShotVideoGen';
 import type { KlingElement } from '@/app/hooks/shot-manager/useElementLibrary';
 import { usePricing } from '@/app/hooks/usePricing';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase';
+import { api } from '@/lib/api';
 import Image from 'next/image';
 
 interface VideoSettingsPanelProps {
@@ -20,9 +24,15 @@ interface VideoSettingsPanelProps {
 
     // Elements
     elementList?: string[];
-    selectedElements?: KlingElement[]; // [NEW] Full objects for display
+    selectedElements?: KlingElement[];
     onElementListChange?: (list: string[]) => void;
     onOpenElementLibrary?: () => void;
+
+    // Seedance 2.0
+    shot?: { seedance_task_id?: string; video_url?: string; video_provider?: string };
+    sceneCharacters?: { name: string; image_url: string }[];
+    locationImage?: string;
+    onExtend?: (parentTaskId: string, options?: AnimateOptions) => void;
 
     // Persistence
     initialSettings?: any;
@@ -43,22 +53,38 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     onOpenElementLibrary,
     initialSettings,
     onSettingsChange,
-    onText2Video
+    onText2Video,
+    shot: shotData,
+    sceneCharacters = [],
+    locationImage,
+    onExtend
 }) => {
     // --- State ---
-    const [provider, setProvider] = useState<VideoProvider>(initialSettings?.provider || 'kling-v3');
+    const [provider, setProvider] = useState<VideoProvider>(initialSettings?.provider || 'seedance-2');
     const [duration, setDuration] = useState<'3' | '5' | '10' | '15'>(initialSettings?.duration || '5');
     const [mode, setMode] = useState<'std' | 'pro'>(initialSettings?.mode || 'pro');
+    // --- Provider Flags ---
+    const isV3 = provider === 'kling-v3';
+    const isSeedance2 = provider === 'seedance-2' || provider === 'seedance';
 
     // --- Pricing ---
     const { getVideoCost, getLipSyncCost } = usePricing();
-    const videoCost = getVideoCost(provider, mode, duration);
+    const [quality, setQuality] = useState<'fast' | 'pro'>(initialSettings?.quality || 'fast');
+    const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '4:3' | '3:4'>(initialSettings?.aspect_ratio || '16:9');
+    const [refImages, setRefImages] = useState<string[]>(initialSettings?.reference_image_urls || []);
+    const [isUploadingRef, setIsUploadingRef] = useState(false);
+    const refInputRef = useRef<HTMLInputElement>(null);
+
+    // Compute pricing key — seedance-2 draft uses 'seedance-2-fast' pricing
+    const pricingKey = (isSeedance2 && quality === 'fast') ? 'seedance-2-fast' : provider;
+    const videoCost = getVideoCost(pricingKey, mode, duration);
+    const finalCost = isSeedance2 ? getVideoCost('seedance-2', mode, duration) : videoCost;
     const [showAdvanced, setShowAdvanced] = useState(false);
 
     // Advanced
     const [negativePrompt, setNegativePrompt] = useState(initialSettings?.negative_prompt || '');
     const [cfgScale, setCfgScale] = useState(initialSettings?.cfg_scale || 0.5);
-    const [sound, setSound] = useState<'on' | 'off'>(initialSettings?.sound || 'off');
+    const [sound, setSound] = useState<'on' | 'off'>(initialSettings?.sound || 'on');
     const [watermark, setWatermark] = useState(initialSettings?.watermark || false);
 
     // Multi-Shot
@@ -66,13 +92,61 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const [shotType, setShotType] = useState<'intelligence' | 'customize'>(initialSettings?.shot_type || 'intelligence');
     const [segments, setSegments] = useState<PromptSegment[]>(initialSettings?.multi_prompt || []);
 
-    // Elements & Voices (Voices still just ID based for now as we don't have a voice library UI yet)
+    // Elements & Voices
     const [elementIdInput, setElementIdInput] = useState('');
     const [internalElementList, setInternalElementList] = useState<string[]>(initialSettings?.element_list || []);
     const [voiceIdInput, setVoiceIdInput] = useState('');
     const [voiceList, setVoiceList] = useState<string[]>(initialSettings?.voice_list || []);
 
-    const isV3 = provider === 'kling-v3';
+    // Peak Hours Detection
+    const [peakStatus, setPeakStatus] = useState<{ is_peak: boolean; wait: string; message: string } | null>(null);
+    useEffect(() => {
+        if (!isSeedance2) { setPeakStatus(null); return; }
+        let cancelled = false;
+        api.get('/api/v1/system/generation_status?provider=seedance-2')
+            .then(res => {
+                if (cancelled) return;
+                if (res.data?.is_peak_hours) {
+                    setPeakStatus({
+                        is_peak: true,
+                        wait: res.data.estimated_wait || '10-20 min',
+                        message: res.data.message || 'High demand — generation may take longer.',
+                    });
+                } else {
+                    setPeakStatus(null);
+                }
+            })
+            .catch(() => { if (!cancelled) setPeakStatus(null); });
+        return () => { cancelled = true; };
+    }, [isSeedance2]);
+
+    // Available durations per provider
+    const availableDurations = (() => {
+        if (provider === 'kling') return ['5', '10'] as const;
+        if (provider === 'seedance-1.5') return ['5', '10'] as const;
+        return ['3', '5', '10', '15'] as const; // seedance-2, kling-v3
+    })();
+
+    // Auto-correct duration if not available for selected provider
+    React.useEffect(() => {
+        if (!availableDurations.includes(duration as any)) {
+            setDuration(availableDurations[1] as any); // default to 5s
+        }
+    }, [provider]);
+
+    // Seedance 2.0 has native audio — force sound on
+    React.useEffect(() => {
+        if (isSeedance2) setSound('on');
+    }, [isSeedance2]);
+
+    // Auto-populate reference images from scene assets
+    React.useEffect(() => {
+        if (!isSeedance2) return;
+        const autoRefs: string[] = [];
+        sceneCharacters.forEach(c => { if (c.image_url && !autoRefs.includes(c.image_url)) autoRefs.push(c.image_url); });
+        if (locationImage && !autoRefs.includes(locationImage)) autoRefs.push(locationImage);
+        if (autoRefs.length > 0 && refImages.length === 0) setRefImages(autoRefs.slice(0, 5));
+    }, [isSeedance2, sceneCharacters, locationImage]);
 
     // Derived state for controlled vs uncontrolled
     const elementList = propElementList || internalElementList;
@@ -88,7 +162,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     React.useEffect(() => {
         if (!onSettingsChange) return;
         const currentSettings = {
-            provider, duration, mode, negative_prompt: negativePrompt,
+            provider, duration, mode, quality, aspect_ratio: aspectRatio,
+            reference_image_urls: refImages,
+            negative_prompt: negativePrompt,
             cfg_scale: cfgScale, sound, watermark, multi_shot: multiShot,
             shot_type: shotType, multi_prompt: segments,
             element_list: elementList,
@@ -98,7 +174,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             onSettingsChange(currentSettings);
         }, 500);
         return () => clearTimeout(timer);
-    }, [provider, duration, mode, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, onSettingsChange]);
+    }, [provider, duration, mode, quality, aspectRatio, refImages, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, onSettingsChange]);
 
     // --- Validation & Options Building ---
     const getTotalSegmentDuration = () => {
@@ -110,6 +186,12 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const buildOptions = (): AnimateOptions => ({
         duration,
         mode,
+        aspect_ratio: aspectRatio,
+        ...(isSeedance2 ? {
+            sound: 'on',
+            quality,
+            reference_image_urls: refImages.length > 0 ? refImages : undefined,
+        } : {}),
         ...(isV3 && negativePrompt ? { negative_prompt: negativePrompt } : {}),
         ...(isV3 ? {
             cfg_scale: cfgScale,
@@ -178,20 +260,23 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
             {/* ── Provider Selector ── */}
             {!isBusy && (
-                <div className="flex gap-1.5">
-                    <button type="button" onClick={() => setProvider('kling')} className={pill(provider === 'kling')}>
-                        Kling 2.6
-                    </button>
-                    <button type="button" onClick={() => setProvider('kling-v3')} className={pill(provider === 'kling-v3')}>
-                        Kling 3.0
-                    </button>
+                <div className="flex gap-1.5 flex-wrap">
                     <button
                         type="button"
-                        onClick={() => { if (!isLinked) setProvider('seedance'); }}
+                        onClick={() => { if (!isLinked) setProvider('seedance-2'); }}
                         disabled={isLinked}
-                        className={pill(provider === 'seedance', isLinked)}
+                        className={pill(isSeedance2, isLinked)}
                     >
-                        Seedance
+                        Seedance 2.0
+                    </button>
+                    <button type="button" onClick={() => setProvider('kling-v3')} className={pill(provider === 'kling-v3')}>
+                        Kling v3
+                    </button>
+                    <button type="button" onClick={() => setProvider('seedance-1.5')} className={pill(provider === 'seedance-1.5')}>
+                        Seedance 1.5
+                    </button>
+                    <button type="button" onClick={() => setProvider('kling')} className={pill(provider === 'kling')}>
+                        Kling 2.6
                     </button>
                 </div>
             )}
@@ -201,11 +286,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                 <div className="flex gap-1.5 flex-wrap">
                     {/* Duration */}
                     <div className="flex gap-1 flex-1 min-w-[100px]">
-                        {(['3', '5', '10', '15'] as const).map(d => (
+                        {availableDurations.map(d => (
                             <button
                                 key={d}
                                 type="button"
-                                onClick={() => setDuration(d)}
+                                onClick={() => setDuration(d as any)}
                                 className={pill(duration === d)}
                             >
                                 {d}s
@@ -221,6 +306,137 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         <button type="button" onClick={() => setMode('pro')} className={pill(mode === 'pro')}>
                             1080p
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Seedance 2.0 Features ── */}
+            {isSeedance2 && !isBusy && (
+                <div className="space-y-2">
+                    {/* Peak Hours Warning */}
+                    {peakStatus?.is_peak && (
+                        <div className="flex items-start gap-2 px-2.5 py-2 rounded-md bg-amber-500/10 border border-amber-500/25">
+                            <span className="text-amber-400 text-[11px] mt-px">⚠</span>
+                            <div className="flex-1">
+                                <span className="text-[9px] text-amber-300 leading-relaxed">
+                                    High demand — generation may take {peakStatus.wait}. Use <strong>Draft</strong> mode for faster previews.
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                    {/* Draft / Final Toggle */}
+                    <div className="flex gap-1.5">
+                        <button type="button" onClick={() => setQuality('fast')}
+                            className={`flex-1 px-2 py-2 rounded-md text-center transition-all cursor-pointer select-none border
+                                ${quality === 'fast'
+                                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/40'
+                                    : 'bg-white/[0.03] text-neutral-500 border-white/[0.08] hover:border-white/20'}`}
+                        >
+                            <div className="flex items-center justify-center gap-1.5">
+                                <FastForward size={10} />
+                                <span className="text-[10px] font-bold">Draft</span>
+                            </div>
+                            <div className="text-[8px] mt-0.5 opacity-60">{getVideoCost('seedance-2-fast', mode, duration)} cr</div>
+                        </button>
+                        <button type="button" onClick={() => setQuality('pro')}
+                            className={`flex-1 px-2 py-2 rounded-md text-center transition-all cursor-pointer select-none border
+                                ${quality === 'pro'
+                                    ? 'bg-[#E50914]/15 text-white border-[#E50914]/60'
+                                    : 'bg-white/[0.03] text-neutral-500 border-white/[0.08] hover:border-white/20'}`}
+                        >
+                            <div className="flex items-center justify-center gap-1.5">
+                                <Film size={10} />
+                                <span className="text-[10px] font-bold">Final</span>
+                            </div>
+                            <div className="text-[8px] mt-0.5 opacity-60">{getVideoCost('seedance-2', mode, duration)} cr</div>
+                        </button>
+                    </div>
+
+                    {/* Aspect Ratio Icons */}
+                    <div className="flex gap-1.5">
+                        {[
+                            { value: '16:9' as const, icon: <RectangleHorizontal size={14} />, label: 'Wide' },
+                            { value: '9:16' as const, icon: <RectangleVertical size={14} />, label: 'Social' },
+                            { value: '4:3' as const, icon: <RectangleHorizontal size={12} />, label: '4:3' },
+                            { value: '3:4' as const, icon: <RectangleVertical size={12} />, label: '3:4' },
+                        ].map(ar => (
+                            <button key={ar.value} type="button" onClick={() => setAspectRatio(ar.value)}
+                                className={`flex-1 flex flex-col items-center gap-1 py-1.5 rounded-md border transition-all cursor-pointer select-none
+                                    ${aspectRatio === ar.value
+                                        ? 'bg-[#E50914]/15 text-white border-[#E50914]/60'
+                                        : 'bg-white/[0.03] text-neutral-500 border-white/[0.08] hover:border-white/20 hover:text-neutral-300'}`}
+                            >
+                                {ar.icon}
+                                <span className="text-[8px] font-semibold">{ar.label}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Reference Images Strip */}
+                    <div>
+                        <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex items-center justify-between">
+                            <span>Reference Images</span>
+                            <span className="text-neutral-600">{refImages.length}/5</span>
+                        </label>
+                        <div className="flex gap-1.5 overflow-x-auto pb-1">
+                            {refImages.map((url, i) => (
+                                <div key={i} className="relative w-10 h-10 rounded-md overflow-hidden border border-white/[0.1] flex-shrink-0 group">
+                                    <img src={url} alt="" className="w-full h-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setRefImages(refImages.filter((_, idx) => idx !== i))}
+                                        className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <Trash2 size={10} className="text-red-400" />
+                                    </button>
+                                </div>
+                            ))}
+                            {refImages.length < 5 && (
+                                <>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        ref={refInputRef}
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            try {
+                                                setIsUploadingRef(true);
+                                                const path = `ref_images/${Date.now()}_${file.name}`;
+                                                const storageRef = ref(storage, path);
+                                                await uploadBytes(storageRef, file);
+                                                const url = await getDownloadURL(storageRef);
+                                                setRefImages(prev => [...prev, url].slice(0, 5));
+                                            } catch (err) {
+                                                console.error('[RefUpload] Failed:', err);
+                                            } finally {
+                                                setIsUploadingRef(false);
+                                                if (refInputRef.current) refInputRef.current.value = '';
+                                            }
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        disabled={isUploadingRef}
+                                        onClick={() => refInputRef.current?.click()}
+                                        className="w-10 h-10 rounded-md border border-dashed border-white/[0.15] flex items-center justify-center flex-shrink-0
+                                            bg-white/[0.02] hover:bg-white/[0.06] hover:border-amber-500/40 transition-all cursor-pointer
+                                            disabled:opacity-40 disabled:cursor-wait"
+                                    >
+                                        {isUploadingRef
+                                            ? <Loader2 size={12} className="text-amber-400 animate-spin" />
+                                            : <Plus size={14} className="text-neutral-500" />}
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Native Audio Badge */}
+                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+                        <Volume2 size={10} className="text-emerald-400" />
+                        <span className="text-[9px] font-semibold text-emerald-400 tracking-wider uppercase">Native Audio Included</span>
                     </div>
                 </div>
             )}
@@ -448,6 +664,25 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                 <div className="text-[9px] text-center min-h-[14px]">
                     <span className="text-red-400/80">Image required to animate.</span>
                 </div>
+            )}
+
+            {/* ── Extend + (Seedance 2.0 video continuation) ── */}
+            {!isBusy && shotData?.seedance_task_id && shotData?.video_url && (
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (onExtend && shotData.seedance_task_id) {
+                            onExtend(shotData.seedance_task_id, buildOptions());
+                        }
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold transition-all cursor-pointer
+                        bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30
+                        text-amber-300 hover:border-amber-500/60 hover:from-amber-500/15 hover:to-orange-500/15
+                        shadow-[0_0_12px_rgba(245,158,11,0.08)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
+                >
+                    <Plus size={12} /> Extend Video
+                    {videoCost > 0 && <span className="opacity-60 text-[9px] font-normal">· {videoCost} cr</span>}
+                </button>
             )}
         </div>
     );

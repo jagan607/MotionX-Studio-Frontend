@@ -14,6 +14,7 @@ export interface WorkstationScene {
     cast_ids?: string[];
     characters?: string[];
     location_id?: string;
+    mood?: { color_palette?: string; lighting?: string; texture?: string; atmosphere?: string };
     [key: string]: any;
 }
 

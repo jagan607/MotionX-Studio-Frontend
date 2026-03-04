@@ -22,7 +22,15 @@ export interface ProductVisualTraits {
     brand_colors: string;
 }
 
-// --- 2. MOODBOARD ---
+// --- 2. SCENE MOOD ---
+export interface SceneMood {
+    color_palette?: string;
+    lighting?: string;
+    texture?: string;
+    atmosphere?: string;
+}
+
+// --- 3. MOODBOARD ---
 export interface Moodboard {
     [key: string]: any;
 }
@@ -65,6 +73,7 @@ export interface LocationProfile {
 
     image_url?: string;
     ref_image_url?: string;
+    /** @deprecated Legacy field — new locations generate only `image_url`. Retained for old Firestore docs. */
     image_views?: {
         wide?: string;
         front?: string;
@@ -165,6 +174,7 @@ export interface Scene {
     dialogue?: Record<string, string>;
     dialogues?: SceneDialogue[];                // NEW – structured dialogues
     estimated_duration_seconds?: number;        // NEW – scene duration estimate
+    mood?: SceneMood;                           // NEW – per-scene visual mood
     status: "draft" | "approved";
 }
 
@@ -210,8 +220,12 @@ export interface Shot {
 
     // [NEW] Persisted Video Settings
     video_settings?: {
+        provider?: string;
         duration?: '3' | '5' | '10' | '15';
         mode?: 'std' | 'pro';
+        quality?: 'fast' | 'pro';
+        aspect_ratio?: string;
+        reference_image_urls?: string[];
         negative_prompt?: string;
         cfg_scale?: number;
         sound?: 'on' | 'off';

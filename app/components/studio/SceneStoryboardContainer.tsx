@@ -5,10 +5,12 @@ import { toastError, toastSuccess } from "@/lib/toast";
 
 // --- IMPORTS ---
 import { StoryboardOverlay } from "../storyboard/StoryboardOverlay";
+import { SceneMoodEditor } from "../storyboard/SceneMoodEditor";
 import { useShotManager } from "@/app/hooks/useShotManager";
 import { VideoProvider, AnimateOptions } from "@/app/hooks/shot-manager/useShotVideoGen";
 import { SceneData } from "@/components/studio/SceneCard";
-import { Asset } from "@/lib/types";
+import { Asset, SceneMood } from "@/lib/types";
+import { getSceneMood, updateSceneMood } from "@/lib/api";
 import { useTour } from "@/hooks/useTour";
 
 // --- FIREBASE IMPORTS ---
@@ -66,6 +68,11 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     const [realScript, setRealScript] = useState<string>("");
     const [realRuntime, setRealRuntime] = useState<string | number>(""); // [NEW]
 
+    // Mood State
+    const [sceneMood, setSceneMood] = useState<SceneMood>({});
+    const [moodSource, setMoodSource] = useState<"scene" | "project" | "none">("none");
+    const [showMoodEditor, setShowMoodEditor] = useState(false);
+
     // Sync state if the prop changes
     useEffect(() => {
         if (scene) {
@@ -102,6 +109,62 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
         fetchEpisodeTitle();
     }, [projectId, episodeId]);
 
+    // Fetch Scene Mood when active scene changes
+    useEffect(() => {
+        const fetchMood = async () => {
+            if (!projectId || !episodeId || !activeSceneData?.id) return;
+            try {
+                const res = await getSceneMood(projectId, episodeId, activeSceneData.id);
+                if (res.mood) {
+                    setSceneMood(res.mood);
+                    setMoodSource(res.source || "scene");
+                } else {
+                    setSceneMood({});
+                    setMoodSource("none");
+                }
+            } catch (err) {
+                // Graceful fallback — mood may not exist for older scenes
+                console.warn("[Mood] Failed to fetch scene mood:", err);
+                setSceneMood(activeSceneData.mood || {});
+                setMoodSource(activeSceneData.mood && (activeSceneData.mood.atmosphere || activeSceneData.mood.color_palette) ? "scene" : "none");
+            }
+        };
+
+        fetchMood();
+    }, [projectId, episodeId, activeSceneData?.id]);
+
+    // Mood Handlers
+    const handleSaveMood = async (newMood: SceneMood) => {
+        try {
+            await updateSceneMood(projectId, episodeId, activeSceneData.id, newMood);
+            setSceneMood(newMood);
+            setMoodSource("scene");
+            setShowMoodEditor(false);
+            toastSuccess("Scene mood updated");
+        } catch (e) {
+            toastError("Failed to update scene mood");
+            console.error("Failed to save mood:", e);
+        }
+    };
+
+    const handleResetMood = async () => {
+        try {
+            await updateSceneMood(projectId, episodeId, activeSceneData.id, {
+                color_palette: "",
+                lighting: "",
+                texture: "",
+                atmosphere: "",
+            });
+            setSceneMood({});
+            setMoodSource("project");
+            setShowMoodEditor(false);
+            toastSuccess("Scene mood reset to project default");
+        } catch (e) {
+            toastError("Failed to reset mood");
+            console.error("Failed to reset mood:", e);
+        }
+    };
+
 
     // 2. Initialize the Hook with the ACTIVE scene ID
     const rawShotMgr = useShotManager(
@@ -128,7 +191,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 throw new Error(msg);
             }
         },
-        handleAnimateShot: async (shot: any, provider: VideoProvider = 'kling', endFrameUrl?: string | null, options?: AnimateOptions) => {
+        handleAnimateShot: async (shot: any, provider: VideoProvider = 'seedance-2', endFrameUrl?: string | null, options?: AnimateOptions) => {
             try {
                 return await rawShotMgr.handleAnimateShot(shot, provider, endFrameUrl, options);
             } catch (e: any) {
@@ -192,6 +255,16 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     return (
         <div className="relative z-[100]">
 
+            {/* Scene Mood Editor Modal */}
+            {showMoodEditor && (
+                <SceneMoodEditor
+                    mood={sceneMood}
+                    moodSource={moodSource}
+                    onSave={handleSaveMood}
+                    onReset={handleResetMood}
+                    onClose={() => setShowMoodEditor(false)}
+                />
+            )}
 
             <StoryboardOverlay
                 activeSceneId={activeSceneData.id}
@@ -210,6 +283,11 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 episodeTitle={realEpisodeTitle}
                 initialScript={realScript}
                 initialRuntime={realRuntime} // [NEW] Pass runtime
+
+                // Mood Props
+                mood={sceneMood}
+                moodSource={moodSource}
+                onEditMood={() => setShowMoodEditor(true)}
 
                 shotMgr={safeShotMgr}
                 onClose={onClose}

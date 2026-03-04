@@ -45,16 +45,28 @@ interface PricingContextValue {
 const DEFAULT_PRICING: Pricing = {
     video: {
         "kling-v3": {
-            "standard": { "3s": 3, "5s": 5, "10s": 10, "15s": 15 },
-            "pro": { "3s": 5, "5s": 8, "10s": 15, "15s": 22 }
+            "standard": { "3s": 2, "5s": 3, "10s": 5, "15s": 8 },
+            "pro": { "3s": 3, "5s": 5, "10s": 8, "15s": 12 }
         },
         "kling": {
-            "standard": { "5s": 3, "10s": 6 },
-            "pro": { "5s": 5, "10s": 10 }
+            "standard": { "5s": 2, "10s": 3 },
+            "pro": { "5s": 3, "10s": 5 }
+        },
+        "seedance-2": {
+            "standard": { "3s": 2, "5s": 3, "10s": 5, "15s": 8 },
+            "pro": { "3s": 3, "5s": 4, "10s": 8, "15s": 12 }
         },
         "seedance": {
-            "standard": { "3s": 3, "5s": 5, "10s": 10, "15s": 15 },
-            "pro": { "3s": 5, "5s": 8, "10s": 15, "15s": 22 }
+            "standard": { "3s": 2, "5s": 3, "10s": 5, "15s": 8 },
+            "pro": { "3s": 3, "5s": 4, "10s": 8, "15s": 12 }
+        },
+        "seedance-1.5": {
+            "standard": { "5s": 3, "10s": 5 },
+            "pro": { "5s": 4, "10s": 8 }
+        },
+        "seedance-2-fast": {
+            "standard": { "3s": 1, "5s": 2, "10s": 3, "15s": 5 },
+            "pro": { "3s": 2, "5s": 2, "10s": 4, "15s": 7 }
         }
     },
     image: { flash: 1, pro: 2 },
@@ -105,7 +117,10 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const getVideoCost = (provider: string, mode: string, duration: string): number => {
         const modeKey = mode === "std" ? "standard" : mode;
         const durationKey = duration.endsWith("s") ? duration : `${duration}s`;
-        return pricing.video[provider]?.[modeKey]?.[durationKey] ?? 0;
+        // Try API pricing first, fall back to defaults if provider/key missing
+        return pricing.video[provider]?.[modeKey]?.[durationKey]
+            ?? DEFAULT_PRICING.video[provider]?.[modeKey]?.[durationKey]
+            ?? 0;
     };
 
     const getLipSyncCost = (durationSeconds: number): number => {

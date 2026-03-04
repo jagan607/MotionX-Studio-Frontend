@@ -84,6 +84,16 @@ export default function LoginPage() {
           await syncUserToFirestore(result.user);
 
           const idToken = await result.user.getIdToken();
+
+          // Initialize user on backend (welcome credits, welcome email)
+          try {
+            await fetch(`${API_BASE_URL}/api/v1/user/init`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+            });
+            console.log('✅ [user/init] SSO redirect: success');
+          } catch (e) { console.warn('[user/init] SSO redirect:', e); }
+
           const response = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -119,6 +129,16 @@ export default function LoginPage() {
       const user = result.user;
       await syncUserToFirestore(user);
       const idToken = await user.getIdToken();
+
+      // Initialize user on backend (welcome credits, welcome email)
+      try {
+        await fetch(`${API_BASE_URL}/api/v1/user/init`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+        });
+        console.log('✅ [user/init] Google login: success');
+      } catch (e) { console.warn('[user/init] Google login:', e); }
+
       const response = await fetch("/api/auth/login", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
@@ -199,6 +219,16 @@ export default function LoginPage() {
         if (result?.user) {
           await syncUserToFirestore(result.user);
           const idToken = await result.user.getIdToken();
+
+          // Initialize user on backend (welcome credits, welcome email)
+          try {
+            await fetch(`${API_BASE_URL}/api/v1/user/init`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+            });
+            console.log('✅ [user/init] SSO popup: success');
+          } catch (e) { console.warn('[user/init] SSO popup:', e); }
+
           const loginRes = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -263,6 +293,16 @@ export default function LoginPage() {
       const user = result.user;
       await syncUserToFirestore(user);
       const idToken = await user.getIdToken();
+
+      // Initialize user on backend (welcome credits, welcome email)
+      try {
+        await fetch(`${API_BASE_URL}/api/v1/user/init`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json' },
+        });
+        console.log('✅ [user/init] HRD login: success');
+      } catch (e) { console.warn('[user/init] HRD login:', e); }
+
       const loginRes = await fetch("/api/auth/login", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),

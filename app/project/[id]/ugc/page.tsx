@@ -78,7 +78,7 @@ export default function UGCStudioPage() {
     // Shot-level media for per-shot control
     const [shotMedia, setShotMedia] = useState<ShotMedia[]>([]);
 
-    const [videoProvider, setVideoProvider] = useState("kling");
+    const [videoProvider, setVideoProvider] = useState("seedance-2");
     const [videoDuration, setVideoDuration] = useState("5");
     const [videoMode, setVideoMode] = useState("standard");
     const [imageProvider, setImageProvider] = useState("gemini");
@@ -467,7 +467,7 @@ export default function UGCStudioPage() {
                             <div className="space-y-1.5">
                                 <label className="text-[8px] font-bold text-neutral-500 uppercase tracking-[3px] flex items-center gap-1.5"><Film size={9} /> Video Model</label>
                                 <div className="grid grid-cols-3 gap-1.5">
-                                    {[{ id: "kling", label: "Kling v2", desc: "Balanced" }, { id: "kling-v3", label: "Kling v3", desc: "Premium" }, { id: "seedance", label: "Seedance", desc: "Creative" }].map(p => (
+                                    {[{ id: "seedance-2", label: "Seedance 2.0", desc: "Recommended" }, { id: "kling-v3", label: "Kling v3", desc: "Premium" }, { id: "seedance-1.5", label: "Seedance 1.5", desc: "Legacy" }, { id: "kling", label: "Kling 2.6", desc: "Budget" }].map(p => (
                                         <button key={p.id} onClick={() => setVideoProvider(p.id)} className={`py-2 px-2 rounded-lg border text-center transition-all cursor-pointer ${videoProvider === p.id ? 'border-[#E50914]/50 bg-[#E50914]/[0.08]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]'}`}>
                                             <div className={`text-[10px] font-bold ${videoProvider === p.id ? 'text-white' : 'text-neutral-500'}`}>{p.label}</div>
                                             <div className={`text-[7px] uppercase tracking-wider ${videoProvider === p.id ? 'text-[#E50914]/60' : 'text-neutral-700'}`}>{p.desc}</div>
@@ -480,7 +480,7 @@ export default function UGCStudioPage() {
                                 <div className="space-y-1.5">
                                     <label className="text-[8px] font-bold text-neutral-500 uppercase tracking-[3px] flex items-center gap-1.5"><Clapperboard size={9} /> Duration</label>
                                     <div className="flex gap-1">
-                                        {["3", "5", "10"].map(d => (
+                                        {(videoProvider === 'kling' || videoProvider === 'seedance-1.5' ? ["5", "10"] : ["3", "5", "10", "15"]).map(d => (
                                             <button key={d} onClick={() => setVideoDuration(d)} className={`flex-1 py-2 rounded-lg border text-center transition-all cursor-pointer ${videoDuration === d ? 'border-[#E50914]/50 bg-[#E50914]/[0.08]' : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]'}`}>
                                                 <div className={`text-[11px] font-bold font-mono ${videoDuration === d ? 'text-white' : 'text-neutral-500'}`}>{d}s</div>
                                             </button>

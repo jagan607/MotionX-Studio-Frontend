@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import {
     MapPin, Users, Loader2, Sparkles, X,
-    Save, Clock, AlertTriangle, Plus, Check, ChevronDown, MessageSquareQuote
+    Save, Clock, AlertTriangle, Plus, Check, ChevronDown, MessageSquareQuote,
+    Palette, Sun, Layers, CloudFog
 } from "lucide-react";
 import { SceneData } from "@/components/studio/SceneCard"; // Use unified type
 import { ContextReference } from "./ContextSelectorModal";
@@ -64,6 +65,13 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
     const [summary, setSummary] = useState("");
     const [isDirty, setIsDirty] = useState(false);
 
+    // Mood State
+    const [moodExpanded, setMoodExpanded] = useState(false);
+    const [moodColorPalette, setMoodColorPalette] = useState("");
+    const [moodLighting, setMoodLighting] = useState("");
+    const [moodTexture, setMoodTexture] = useState("");
+    const [moodAtmosphere, setMoodAtmosphere] = useState("");
+
     // --- 1. SMART SYNC EFFECT ---
     useEffect(() => {
         if (activeScene) {
@@ -103,6 +111,15 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
             setSummary(activeScene.summary || activeScene.synopsis || "");
             setInstruction("");
             setIsDirty(false);
+
+            // Sync mood fields
+            const mood = activeScene.mood || {};
+            setMoodColorPalette(mood.color_palette || "");
+            setMoodLighting(mood.lighting || "");
+            setMoodTexture(mood.texture || "");
+            setMoodAtmosphere(mood.atmosphere || "");
+            // Auto-expand if mood has data
+            setMoodExpanded(!!(mood.color_palette || mood.lighting || mood.texture || mood.atmosphere));
         }
     }, [activeScene?.id, availableLocations]); // Re-run if locations load late
 
@@ -134,7 +151,13 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
             synopsis: summary,
             time: timeOfDay,
             location: locationDisplayName,
-            location_id: locationId
+            location_id: locationId,
+            mood: {
+                color_palette: moodColorPalette,
+                lighting: moodLighting,
+                texture: moodTexture,
+                atmosphere: moodAtmosphere,
+            }
         });
         setIsDirty(false);
         onCancelSelection(); // Close panel on save
@@ -181,6 +204,8 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
     // Determine if we should show the warning
     // Show warning only if NO ID is selected AND the header text isn't empty
     const showWarning = !locationId && activeScene.header;
+
+    const hasMoodData = moodColorPalette || moodLighting || moodTexture || moodAtmosphere;
 
     return (
         <div className="flex flex-col h-full bg-[#050505] text-[#EEE] font-sans">
@@ -354,7 +379,90 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                     </div>
                 )}
 
-                {/* 4. AI ASSISTANT */}
+                {/* 5. SCENE MOOD (Collapsible) */}
+                <div className="space-y-3">
+                    <button
+                        onClick={() => setMoodExpanded(!moodExpanded)}
+                        className="flex items-center justify-between w-full group"
+                    >
+                        <label className="text-[10px] font-bold text-[#666] uppercase tracking-widest flex items-center gap-2 cursor-pointer group-hover:text-[#888] transition-colors">
+                            <Palette size={12} className="text-amber-500/60" /> Scene Mood
+                        </label>
+                        <div className="flex items-center gap-2">
+                            {hasMoodData && !moodExpanded && (
+                                <span className="text-[8px] font-mono text-amber-400/50 bg-amber-500/10 px-2 py-0.5 rounded uppercase tracking-wider">
+                                    Set
+                                </span>
+                            )}
+                            <ChevronDown
+                                size={12}
+                                className={`text-[#444] transition-transform duration-200 ${moodExpanded ? 'rotate-180' : ''}`}
+                            />
+                        </div>
+                    </button>
+
+                    {moodExpanded && (
+                        <div className="space-y-3 bg-[#0A0A0A] border border-[#1A1A1A] rounded-md p-3">
+                            {/* Color Palette */}
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-mono text-[#555] uppercase tracking-wider flex items-center gap-1.5">
+                                    <Palette size={10} className="text-[#444]" /> Color Palette
+                                </label>
+                                <input
+                                    type="text"
+                                    value={moodColorPalette}
+                                    onChange={(e) => { setMoodColorPalette(e.target.value); setIsDirty(true); }}
+                                    placeholder="e.g. Warm amber and deep gold..."
+                                    className="w-full bg-[#111] border border-[#222] text-[11px] text-[#CCC] px-3 py-2 rounded focus:outline-none focus:border-[#444] transition-colors placeholder:text-[#333]"
+                                />
+                            </div>
+
+                            {/* Lighting */}
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-mono text-[#555] uppercase tracking-wider flex items-center gap-1.5">
+                                    <Sun size={10} className="text-[#444]" /> Lighting
+                                </label>
+                                <input
+                                    type="text"
+                                    value={moodLighting}
+                                    onChange={(e) => { setMoodLighting(e.target.value); setIsDirty(true); }}
+                                    placeholder="e.g. Chiaroscuro, single source golden..."
+                                    className="w-full bg-[#111] border border-[#222] text-[11px] text-[#CCC] px-3 py-2 rounded focus:outline-none focus:border-[#444] transition-colors placeholder:text-[#333]"
+                                />
+                            </div>
+
+                            {/* Texture */}
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-mono text-[#555] uppercase tracking-wider flex items-center gap-1.5">
+                                    <Layers size={10} className="text-[#444]" /> Texture
+                                </label>
+                                <input
+                                    type="text"
+                                    value={moodTexture}
+                                    onChange={(e) => { setMoodTexture(e.target.value); setIsDirty(true); }}
+                                    placeholder="e.g. Clean digital with lens flare..."
+                                    className="w-full bg-[#111] border border-[#222] text-[11px] text-[#CCC] px-3 py-2 rounded focus:outline-none focus:border-[#444] transition-colors placeholder:text-[#333]"
+                                />
+                            </div>
+
+                            {/* Atmosphere */}
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-mono text-[#555] uppercase tracking-wider flex items-center gap-1.5">
+                                    <CloudFog size={10} className="text-[#444]" /> Atmosphere
+                                </label>
+                                <input
+                                    type="text"
+                                    value={moodAtmosphere}
+                                    onChange={(e) => { setMoodAtmosphere(e.target.value); setIsDirty(true); }}
+                                    placeholder="e.g. Reverent, intimate, sacred..."
+                                    className="w-full bg-[#111] border border-[#222] text-[11px] text-[#CCC] px-3 py-2 rounded focus:outline-none focus:border-[#444] transition-colors placeholder:text-[#333]"
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* 6. AI ASSISTANT */}
                 <div className="pt-6 border-t border-[#111] space-y-4">
                     <div className="flex items-center justify-between">
                         <label className="text-[10px] font-bold text-[#666] uppercase tracking-widest flex items-center gap-2">
