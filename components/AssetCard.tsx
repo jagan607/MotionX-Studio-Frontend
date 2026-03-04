@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import {
     Trash2, Loader2, Wand2, Play, Sparkles, Settings,
-    Plus, Video, ShoppingBag, ChevronLeft, ChevronRight
+    Plus, Video, ShoppingBag
 } from "lucide-react";
 import { Asset, CharacterProfile, ProductProfile, LocationProfile } from "@/lib/types";
 
@@ -20,10 +20,6 @@ interface AssetCardProps {
     label?: string;
 }
 
-const VIEW_LABELS: Record<string, string> = {
-    wide: "Wide", front: "Front", left: "Left", right: "Right"
-};
-
 export const AssetCard: React.FC<AssetCardProps> = ({
     variant = 'default',
     asset,
@@ -37,8 +33,6 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     label,
     tourId
 }) => {
-    // Hooks must be called before any returns
-    const [activeViewIdx, setActiveViewIdx] = useState(0);
 
     // --- VARIANT: CREATE NEW CARD ---
     if (variant === 'create') {
@@ -60,26 +54,6 @@ export const AssetCard: React.FC<AssetCardProps> = ({
 
     // --- VARIANT: STANDARD ASSET CARD ---
     if (!asset) return null;
-
-    // Location multi-view
-    const isLocation = asset.type === 'location';
-    const hasViews = isLocation && !!(asset as LocationProfile).image_views;
-    const views = hasViews ? (asset as LocationProfile).image_views! : {};
-    const allViews: { key: string; url: string }[] = [];
-    // Main image always first
-    if (asset.image_url) allViews.push({ key: 'wide', url: asset.image_url });
-    if (hasViews) {
-        Object.entries(views).forEach(([key, url]) => {
-            if (url && key !== 'wide') allViews.push({ key, url });
-        });
-    }
-    const currentView = allViews[activeViewIdx] || allViews[0];
-    const hasMultipleViews = allViews.length > 1;
-
-    const cycleView = (dir: 1 | -1, e: React.MouseEvent) => {
-        e.stopPropagation();
-        setActiveViewIdx(prev => (prev + dir + allViews.length) % allViews.length);
-    };
 
     // Status
     const isReady = !!asset.image_url;
@@ -110,9 +84,9 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                 )}
 
                 {/* IMAGE OR PLACEHOLDER */}
-                {currentView?.url ? (
+                {asset.image_url ? (
                     <img
-                        src={currentView.url}
+                        src={asset.image_url}
                         alt={asset.name}
                         className="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.03]"
                     />
@@ -125,41 +99,6 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                             </>
                         )}
                     </div>
-                )}
-
-                {/* MULTI-VIEW ARROWS (locations only) */}
-                {hasMultipleViews && !isGenerating && (
-                    <>
-                        <button
-                            onClick={(e) => cycleView(-1, e)}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-black/80 cursor-pointer"
-                        >
-                            <ChevronLeft size={14} className="text-white/70" />
-                        </button>
-                        <button
-                            onClick={(e) => cycleView(1, e)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-black/80 cursor-pointer"
-                        >
-                            <ChevronRight size={14} className="text-white/70" />
-                        </button>
-                        {/* View label + dots */}
-                        <div className="absolute top-2 left-2 z-20 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-white/80 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded">
-                                {VIEW_LABELS[currentView?.key] || currentView?.key}
-                            </span>
-                        </div>
-                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {allViews.map((v, i) => (
-                                <button
-                                    key={v.key}
-                                    onClick={(e) => { e.stopPropagation(); setActiveViewIdx(i); }}
-                                    className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${i === activeViewIdx
-                                        ? 'bg-[#E50914] scale-125'
-                                        : 'bg-white/30 hover:bg-white/60'}`}
-                                />
-                            ))}
-                        </div>
-                    </>
                 )}
 
                 {/* DELETE BUTTON */}

@@ -457,3 +457,20 @@ export const uploadStyleRef = async (projectId: string, file: File) => {
     });
     return res.data;
 };
+
+// --- 12. SCENE MOOD ---
+
+export const getSceneMood = async (projectId: string, episodeId: string, sceneId: string) => {
+    const res = await api.get(`/api/v1/shot/project/${projectId}/episode/${episodeId}/scene/${sceneId}/mood`);
+    return res.data;
+};
+
+export const updateSceneMood = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    mood: { color_palette?: string; lighting?: string; texture?: string; atmosphere?: string }
+) => {
+    const res = await api.put(`/api/v1/shot/project/${projectId}/episode/${episodeId}/scene/${sceneId}/mood`, mood);
+    return res.data;
+};

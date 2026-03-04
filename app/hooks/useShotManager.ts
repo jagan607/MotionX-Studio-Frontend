@@ -192,7 +192,7 @@ export const useShotManager = (
         // Video
         handleAnimateShot: (
             shot: any,
-            provider: VideoProvider = 'kling',
+            provider: VideoProvider = 'seedance-2',
             endFrameUrl?: string | null,
             options?: AnimateOptions
         ) => videoGen.handleAnimateShot(shot, provider, endFrameUrl, options),

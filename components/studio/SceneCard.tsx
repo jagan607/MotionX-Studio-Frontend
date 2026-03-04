@@ -5,7 +5,7 @@ import { Clapperboard, Clock, Timer, Pencil, GripVertical, Trash2 } from "lucide
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { EntityStatusChip } from "./EntityStatusChip";
-import { Asset, SceneDialogue } from "@/lib/types";
+import { Asset, SceneDialogue, SceneMood } from "@/lib/types";
 
 export interface SceneData {
     id: string;
@@ -25,6 +25,7 @@ export interface SceneData {
     location_id: string;   // Location asset ID for linking
     dialogues?: SceneDialogue[];           // NEW – structured dialogues
     estimated_duration_seconds?: number;   // NEW – scene duration estimate
+    mood?: SceneMood;                      // NEW – per-scene visual mood
     [key: string]: any;    // Allow extra Firestore fields
 }
 

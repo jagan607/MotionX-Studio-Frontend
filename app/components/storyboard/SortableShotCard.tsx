@@ -105,7 +105,7 @@ export const SortableShotCard = ({
 
     // --- Provider States ---
     const [imageProvider, setImageProvider] = useState<'gemini' | 'seedream'>('gemini');
-    const [modelTier, setModelTier] = useState<'flash' | 'pro'>('flash');
+    const [modelTier, setModelTier] = useState<'flash' | 'pro'>('pro');
 
     // Linked State
     const isLinked = shot.morph_to_next === true;
@@ -534,28 +534,28 @@ export const SortableShotCard = ({
                 {/* ── Model Tier Toggle ── */}
                 <div className="flex gap-0 mb-2 rounded-lg overflow-hidden border border-white/[0.08]">
                     <button
-                        onClick={() => setModelTier('flash')}
+                        onClick={() => setModelTier('pro')}
                         disabled={isBusy}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[9px] font-bold transition-all cursor-pointer select-none
-                            ${modelTier === 'flash'
+                            ${modelTier === 'pro'
                                 ? 'bg-white/[0.08] text-white border-r border-white/[0.12]'
                                 : 'bg-white/[0.02] text-neutral-500 border-r border-white/[0.08] hover:text-neutral-300'
                             }
                             ${isBusy ? '!cursor-not-allowed' : ''}`}
                     >
-                        Nano Banana 2
+                        Nano Banana 1 Pro
                     </button>
                     <button
-                        onClick={() => setModelTier('pro')}
+                        onClick={() => setModelTier('flash')}
                         disabled={isBusy}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[9px] font-bold transition-all cursor-pointer select-none
-                            ${modelTier === 'pro'
+                            ${modelTier === 'flash'
                                 ? 'bg-white/[0.08] text-white'
                                 : 'bg-white/[0.02] text-neutral-500 hover:text-neutral-300'
                             }
                             ${isBusy ? '!cursor-not-allowed' : ''}`}
                     >
-                        Nano Banana 1 Pro
+                        Nano Banana 2
                     </button>
                 </div>
 

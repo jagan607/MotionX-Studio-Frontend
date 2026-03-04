@@ -269,17 +269,6 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
     };
 
     const handleViewAsset = (asset: Asset) => {
-        if (asset.type === 'location') {
-            const loc = asset as LocationProfile;
-            const mediaItems: MediaItem[] = [];
-            if (loc.image_url) mediaItems.push({ id: `${loc.id}-wide`, type: 'image', imageUrl: loc.image_url, title: `${loc.name} — Wide`, description: loc.prompt || (loc as any).base_prompt });
-            if (loc.image_views?.front) mediaItems.push({ id: `${loc.id}-front`, type: 'image', imageUrl: loc.image_views.front, title: `${loc.name} — Front`, description: '' });
-            if (loc.image_views?.left) mediaItems.push({ id: `${loc.id}-left`, type: 'image', imageUrl: loc.image_views.left, title: `${loc.name} — Left`, description: '' });
-            if (loc.image_views?.right) mediaItems.push({ id: `${loc.id}-right`, type: 'image', imageUrl: loc.image_views.right, title: `${loc.name} — Right`, description: '' });
-            if (mediaItems.length > 0) openViewer(mediaItems, 0);
-            return;
-        }
-
         const displayed = getDisplayedAssets();
         const index = displayed.findIndex(a => a.id === asset.id);
         if (index === -1) return;

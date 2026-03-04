@@ -3,7 +3,7 @@
 import React from "react";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, MapPin, Users, Sparkles, Trash2, Clock } from "lucide-react";
+import { GripVertical, MapPin, Users, Sparkles, Trash2, Clock, Palette } from "lucide-react";
 import { WorkstationScene } from "./ScriptWorkstation";
 
 interface SortableSceneCardProps {
@@ -38,6 +38,10 @@ export const SortableSceneCard: React.FC<SortableSceneCardProps> = ({
     // Cast Logic
     const rawCast = scene.cast_ids || scene.characters || [];
     const castList = Array.isArray(rawCast) ? rawCast : [];
+
+    // Mood Logic
+    const mood = scene.mood;
+    const hasMood = mood && (mood.atmosphere || mood.color_palette);
 
     return (
         <div
@@ -119,6 +123,16 @@ export const SortableSceneCard: React.FC<SortableSceneCardProps> = ({
                         ))
                     ) : (
                         <span className="text-[9px] font-mono text-[#333] italic pl-1">No cast assigned</span>
+                    )}
+
+                    {/* Mood Chip - Purple/Amber tint */}
+                    {hasMood && (
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-950/20 border border-amber-900/20 rounded text-amber-400/70">
+                            <Palette size={10} />
+                            <span className="text-[9px] font-bold uppercase tracking-wider max-w-[120px] truncate">
+                                {mood.atmosphere || mood.color_palette || "Mood"}
+                            </span>
+                        </div>
                     )}
                 </div>
             </div>

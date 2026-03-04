@@ -9,6 +9,7 @@ import { ArrowRight, Activity, Disc, Globe, ArrowLeft, AlertTriangle } from "luc
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 
 // --- FIRESTORE SYNC HELPER ---
 const syncUserToFirestore = async (user: any) => {
@@ -84,6 +85,10 @@ export default function LoginPage() {
           await syncUserToFirestore(result.user);
 
           const idToken = await result.user.getIdToken();
+
+          // Initialize user on backend (welcome credits, welcome email)
+          try { await api.post('/api/v1/user/init'); } catch (e) { console.warn('[user/init] SSO redirect:', e); }
+
           const response = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -119,6 +124,10 @@ export default function LoginPage() {
       const user = result.user;
       await syncUserToFirestore(user);
       const idToken = await user.getIdToken();
+
+      // Initialize user on backend (welcome credits, welcome email)
+      try { await api.post('/api/v1/user/init'); } catch (e) { console.warn('[user/init] Google login:', e); }
+
       const response = await fetch("/api/auth/login", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
@@ -199,6 +208,10 @@ export default function LoginPage() {
         if (result?.user) {
           await syncUserToFirestore(result.user);
           const idToken = await result.user.getIdToken();
+
+          // Initialize user on backend (welcome credits, welcome email)
+          try { await api.post('/api/v1/user/init'); } catch (e) { console.warn('[user/init] SSO popup:', e); }
+
           const loginRes = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -263,6 +276,10 @@ export default function LoginPage() {
       const user = result.user;
       await syncUserToFirestore(user);
       const idToken = await user.getIdToken();
+
+      // Initialize user on backend (welcome credits, welcome email)
+      try { await api.post('/api/v1/user/init'); } catch (e) { console.warn('[user/init] HRD login:', e); }
+
       const loginRes = await fetch("/api/auth/login", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),

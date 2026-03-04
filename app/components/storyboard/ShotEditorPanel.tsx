@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, Image as ImageIcon, ChevronRight } from 'lucide-react';
+import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2 } from 'lucide-react';
 import { VideoSettingsPanel } from './VideoSettingsPanel';
 import { ElementLibraryModal } from './ElementLibraryModal';
 import { KlingElement, useElementLibrary } from '@/app/hooks/shot-manager/useElementLibrary';
 import { AnimateOptions, VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
+import { api } from '@/lib/api';
 import Image from 'next/image';
 import { Shot } from '@/lib/types';
 
@@ -21,6 +22,9 @@ interface ShotEditorPanelProps {
     onText2Video?: (options?: AnimateOptions) => void;
     onLipSync: (shot: Shot) => void;
     isGenerating?: boolean;
+    sceneCharacters?: { name: string; image_url: string }[];
+    locationImage?: string;
+    sceneContext?: { genre?: string; location?: string; scene_action?: string };
 }
 
 export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
@@ -34,8 +38,12 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     onAnimate,
     onLipSync,
     onText2Video,
-    isGenerating = false
+    isGenerating = false,
+    sceneCharacters = [],
+    locationImage,
+    sceneContext
 }) => {
+    const [isEnhancing, setIsEnhancing] = useState(false);
     const {
         elements: allElements,
         fetchElements,
@@ -78,6 +86,11 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
 
     const handleAnimateWrapper = (provider: VideoProvider, endFrameUrl?: string | null, options?: AnimateOptions) => {
         onAnimate(provider, endFrameUrl, options);
+        onClose();
+    };
+
+    const handleExtend = (parentTaskId: string, options?: AnimateOptions) => {
+        onAnimate('seedance-2', null, { ...options, parent_task_id: parentTaskId });
         onClose();
     };
 
@@ -143,23 +156,86 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
 
                     {/* Prompt Editor */}
                     <div className="space-y-2">
-                        <label className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Prompt</label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Prompt</label>
+                            <button
+                                type="button"
+                                disabled={isEnhancing || !(shot.video_prompt || shot.visual_action)}
+                                onClick={async () => {
+                                    const prompt = shot.video_prompt || shot.visual_action || '';
+                                    if (!prompt.trim()) return;
+                                    setIsEnhancing(true);
+                                    try {
+                                        const res = await api.post('/api/v1/shot/enhance_prompt', {
+                                            prompt,
+                                            provider: shot.video_settings?.provider || 'seedance-2',
+                                            duration: shot.video_settings?.duration || '5',
+                                            aspect_ratio: shot.video_settings?.aspect_ratio || '16:9',
+                                            shot_type: shot.shot_type || shot.camera_shot_type,
+                                            characters: sceneCharacters.map(c => c.name).join(', ') || undefined,
+                                            location: sceneContext?.location || undefined,
+                                            genre: sceneContext?.genre || undefined,
+                                            scene_action: sceneContext?.scene_action || shot.visual_action || undefined,
+                                        });
+                                        if (res.data?.enhanced_prompt) {
+                                            onUpdateShot(shot.id, 'video_prompt', res.data.enhanced_prompt);
+                                        }
+                                    } catch (e: any) {
+                                        console.error('[Enhance] Failed:', e);
+                                    } finally {
+                                        setIsEnhancing(false);
+                                    }
+                                }}
+                                className={`flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold transition-all
+                                    ${isEnhancing
+                                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 cursor-wait'
+                                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500/50 cursor-pointer'}
+                                    disabled:opacity-30 disabled:cursor-not-allowed`}
+                            >
+                                {isEnhancing ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                                {isEnhancing ? 'Enhancing...' : 'Enhance'}
+                            </button>
+                        </div>
                         <div className="relative">
                             <textarea
                                 value={shot.video_prompt ?? shot.visual_action ?? ""}
                                 onChange={(e) => onUpdateShot(shot.id, 'video_prompt', e.target.value)}
                                 placeholder="Describe the shot..."
-                                className="w-full h-32 bg-[#1a1a1a] border border-white/[0.1] rounded-lg px-3 py-3 text-xs text-white outline-none focus:border-white/[0.3] resize-none leading-relaxed"
+                                className={`w-full h-32 bg-[#1a1a1a] border border-white/[0.1] rounded-lg px-3 py-3 text-xs text-white outline-none focus:border-white/[0.3] resize-none leading-relaxed transition-all
+                                    ${isEnhancing ? 'animate-pulse opacity-60' : ''}`}
                             />
                             <div className="absolute bottom-2 right-2 flex gap-1">
-                                <button
-                                    onClick={() => setIsLibraryOpen(true)}
-                                    className="px-2 py-1 bg-white/[0.05] hover:bg-white/[0.1] rounded text-[9px] text-neutral-400 hover:text-white transition-colors border border-white/[0.05]"
-                                >
-                                    + Character
-                                </button>
+                                {(shot.video_settings?.provider === 'kling-v3') && (
+                                    <button
+                                        onClick={() => setIsLibraryOpen(true)}
+                                        className="px-2 py-1 bg-white/[0.05] hover:bg-white/[0.1] rounded text-[9px] text-neutral-400 hover:text-white transition-colors border border-white/[0.05]"
+                                    >
+                                        + Character
+                                    </button>
+                                )}
                             </div>
                         </div>
+
+                        {/* Camera Direction Hints */}
+                        {(shot.video_settings?.provider === 'seedance-2' || shot.video_settings?.provider === 'seedance' || !shot.video_settings?.provider) && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {['slow dolly in', 'tracking shot', 'pan left', 'zoom out', 'static close-up', 'crane up'].map(hint => (
+                                    <button
+                                        key={hint}
+                                        type="button"
+                                        onClick={() => {
+                                            const current = shot.video_prompt ?? shot.visual_action ?? '';
+                                            if (!current.toLowerCase().includes(hint)) {
+                                                onUpdateShot(shot.id, 'video_prompt', current ? `${current}, ${hint}` : hint);
+                                            }
+                                        }}
+                                        className="px-1.5 py-0.5 bg-white/[0.03] border border-white/[0.06] rounded text-[8px] text-neutral-500 hover:text-amber-300 hover:border-amber-500/30 transition-colors"
+                                    >
+                                        {hint}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Settings */}
@@ -187,6 +263,14 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                     onSettingsChange={(newSettings) => {
                                         onUpdateShot(shot.id, 'video_settings', newSettings);
                                     }}
+                                    shot={{
+                                        seedance_task_id: (shot as any).seedance_task_id,
+                                        video_url: shot.video_url,
+                                        video_provider: shot.video_settings?.provider,
+                                    }}
+                                    sceneCharacters={sceneCharacters}
+                                    locationImage={locationImage}
+                                    onExtend={handleExtend}
                                 />
                             </div>
                         </div>

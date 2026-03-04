@@ -2,7 +2,7 @@ import { api } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 
-export type VideoProvider = 'kling' | 'kling-v3' | 'seedance';
+export type VideoProvider = 'kling' | 'kling-v3' | 'seedance' | 'seedance-2' | 'seedance-1.5';
 
 export interface PromptSegment {
     index: number;
@@ -13,7 +13,7 @@ export interface PromptSegment {
 export interface AnimateOptions {
     duration?: '3' | '5' | '10' | '15';
     mode?: 'std' | 'pro';
-    aspect_ratio?: '16:9' | '9:16' | '1:1';
+    aspect_ratio?: '16:9' | '9:16' | '4:3' | '3:4' | '1:1';
 
     // Advanced
     negative_prompt?: string;
@@ -29,6 +29,11 @@ export interface AnimateOptions {
     // Elements & Voices
     element_list?: Array<{ element_id: string }>;
     voice_list?: Array<{ voice_id: string }>;
+
+    // Seedance 2.0
+    quality?: 'fast' | 'pro';                // Draft vs Final
+    reference_image_urls?: string[];         // Multi-ref images
+    parent_task_id?: string;                 // Video extension
 }
 
 export const useShotVideoGen = (
@@ -39,7 +44,7 @@ export const useShotVideoGen = (
 
     const handleAnimateShot = async (
         shot: any,
-        provider: VideoProvider = 'kling',
+        provider: VideoProvider = 'seedance-2',
         endFrameUrl?: string | null,
         options?: AnimateOptions
     ) => {
@@ -66,6 +71,13 @@ export const useShotVideoGen = (
                 if (options.cfg_scale !== undefined) payload.cfg_scale = options.cfg_scale;
                 if (options.sound) payload.sound = options.sound;
                 if (options.watermark !== undefined) payload.watermark = options.watermark;
+
+                // Seedance 2.0
+                if (options.quality) payload.quality = options.quality;
+                if (options.reference_image_urls && options.reference_image_urls.length > 0) {
+                    payload.reference_image_urls = options.reference_image_urls;
+                }
+                if (options.parent_task_id) payload.parent_task_id = options.parent_task_id;
 
                 // Multi-shot
                 if (options.multi_shot) {
