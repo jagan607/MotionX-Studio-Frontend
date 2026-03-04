@@ -41,7 +41,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
     className = ""
 }) => {
     const router = useRouter();
-    const { credits } = useCredits();
+    const { credits, plan } = useCredits();
     const [showTopUp, setShowTopUp] = useState(false);
 
     // --- PROJECT SWITCHER STATE ---
@@ -242,7 +242,13 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                 {credits !== null ? credits.toLocaleString() : <span className="text-[#333] animate-pulse">---</span>}
                             </div>
                         </div>
-                        <button onClick={() => setShowTopUp(true)} className="flex items-center gap-1.5 bg-red-900/10 border border-red-600/30 text-white px-4 py-2 text-[9px] font-bold uppercase cursor-pointer transition-all hover:bg-red-600 hover:border-red-600 rounded-md">
+                        <button onClick={() => {
+                            if (plan === "free") {
+                                router.push("/pricing?from=topup");
+                            } else {
+                                setShowTopUp(true);
+                            }
+                        }} className="flex items-center gap-1.5 bg-red-900/10 border border-red-600/30 text-white px-4 py-2 text-[9px] font-bold uppercase cursor-pointer transition-all hover:bg-red-600 hover:border-red-600 rounded-md">
                             <Plus size={10} strokeWidth={4} /> Top Up
                         </button>
                     </div>

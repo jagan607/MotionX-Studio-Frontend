@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Zap, AlertTriangle, LayoutGrid, HardDrive, Users, TrendingUp, Settings, XCircle, Loader2, CalendarClock, RefreshCw, AlertCircle, Clock } from "lucide-react";
 import { usePayment } from "@/lib/payment";
@@ -81,6 +82,7 @@ interface SubscriptionTabProps {
 
 export default function SubscriptionTab({ credits: realtimeCredits }: SubscriptionTabProps) {
     const { cancelSubscription, loading } = usePayment();
+    const router = useRouter();
 
     // --- STATE ---
     const [subData, setSubData] = useState<SubscriptionStatus | null>(null);
@@ -405,7 +407,13 @@ export default function SubscriptionTab({ credits: realtimeCredits }: Subscripti
                         </span>
 
                         <button
-                            onClick={() => setShowTopUpModal(true)}
+                            onClick={() => {
+                                if (subData.plan === "free") {
+                                    router.push("/pricing?from=topup");
+                                } else {
+                                    setShowTopUpModal(true);
+                                }
+                            }}
                             className="text-[10px] font-semibold text-[#E50914] hover:text-white transition-colors bg-transparent border-none cursor-pointer"
                         >
                             + Top Up

@@ -164,7 +164,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
     // UI State
     // Use the same real-time Firestore snapshot as StudioHeader
-    const { credits } = useCredits();
+    const { credits, plan } = useCredits();
 
     const [showTopUp, setShowTopUp] = useState(false);
     const [showAssets, setShowAssets] = useState(false);
@@ -744,7 +744,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             </div>
 
                             <button
-                                onClick={() => setShowTopUp(true)}
+                                onClick={() => {
+                                    if (plan === "free") {
+                                        router.push("/pricing?from=topup");
+                                    } else {
+                                        setShowTopUp(true);
+                                    }
+                                }}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(127, 29, 29, 0.1)',
                                     border: '1px solid rgba(220, 38, 38, 0.3)', color: 'white', padding: '8px 16px', fontSize: '9px', fontWeight: 700,
