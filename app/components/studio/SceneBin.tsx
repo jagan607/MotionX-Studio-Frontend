@@ -184,11 +184,11 @@ export const SceneBin: React.FC<SceneBinProps> = ({
 
 
 
-            {/* --- MAIN CONTENT: GRID + INLINE EDIT PANEL --- */}
-            <div className="flex-1 flex overflow-hidden">
+            {/* --- MAIN CONTENT: GRID --- */}
+            <div className="flex-1 flex overflow-hidden relative">
 
-                {/* GRID CONTENT (shrinks when editing) */}
-                <div className={`flex-1 overflow-y-auto p-6 md:p-8 bg-[#020202] transition-all duration-300 ease-in-out ${isEditing ? 'min-w-0' : ''}`}>
+                {/* GRID CONTENT — full width always, never shrinks */}
+                <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-[#020202]">
                     {scenes.length === 0 ? (
                         // EMPTY STATE
                         <div className="h-full flex flex-col items-center justify-center opacity-50">
@@ -216,12 +216,7 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                         // SORTABLE GRID LAYOUT
                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                             <SortableContext items={scenes.map(s => s.id)} strategy={rectSortingStrategy}>
-                                <div className={`grid gap-6 pb-20 transition-all duration-300
-                                    ${isEditing
-                                        ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3'
-                                        : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
-                                    }`}
-                                >
+                                <div className="grid gap-6 pb-20 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                                     {scenes.map((scene, index) => {
                                         const isActive = editingScene?.id === scene.id;
                                         return (
@@ -282,48 +277,54 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                     )}
                 </div>
 
-                {/* --- INLINE EDIT PANEL --- */}
+                {/* --- INLINE EDIT PANEL (absolute overlay, no reflow) --- */}
+                {/* Dim + blur backdrop */}
                 <div
-                    className={`shrink-0 bg-[#080808] border-l border-white/[0.06] overflow-hidden transition-all duration-300 ease-in-out
-                        ${isEditing ? 'w-[380px] opacity-100' : 'w-0 opacity-0 border-l-0'}`}
-                >
-                    {/* Panel inner content (always rendered for smooth transitions) */}
-                    <div className="w-[380px] h-full flex flex-col overflow-hidden">
-                        {/* PANEL HEADER */}
-                        <div className="h-12 border-b border-white/[0.06] bg-[#0A0A0A] flex items-center justify-between px-4 shrink-0">
-                            <div className="flex items-center gap-2">
-                                <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest">Editing Scene</span>
-                                <span className="text-sm font-bold text-red-500 font-mono">
-                                    {editingScene ? String(editingScene.scene_number).padStart(2, '0') : '--'}
-                                </span>
-                            </div>
-                            <button
-                                onClick={onCloseEdit}
-                                className="p-1.5 rounded bg-[#111] border border-[#333] text-[#666] hover:text-white hover:border-[#555] transition-colors"
-                            >
-                                <X size={14} />
-                            </button>
-                        </div>
+                    className={`absolute inset-0 z-40 bg-black/30 backdrop-blur-sm transition-opacity duration-300 pointer-events-none
+                        ${isEditing ? 'opacity-100' : 'opacity-0'}`}
+                />
 
-                        {/* DIRECTOR CONSOLE (Reused) */}
-                        {editingScene && (
-                            <DirectorConsole
-                                activeScene={editingScene}
-                                availableCharacters={availableCharacters}
-                                availableLocations={availableLocations}
-                                availableProducts={availableProducts}
-                                projectType={projectType}
-                                selectedContext={selectedContext}
-                                isProcessing={isProcessing}
-                                onUpdateCast={onUpdateCast}
-                                onUpdateScene={onUpdateScene}
-                                onExecuteAi={handleExecuteAi}
-                                onOpenContextModal={() => setIsContextModalOpen(true)}
-                                onRemoveContextRef={removeContextRef}
-                                onCancelSelection={onCloseEdit}
-                            />
-                        )}
+                {/* Sliding panel */}
+                <div
+                    className={`absolute top-0 right-0 h-full w-[380px] z-[51] bg-[#080808] border-l border-white/[0.06]
+                        flex flex-col shadow-2xl
+                        transform transition-transform duration-300 ease-in-out
+                        ${isEditing ? 'translate-x-0' : 'translate-x-full'}`}
+                >
+                    {/* PANEL HEADER */}
+                    <div className="h-12 border-b border-white/[0.06] bg-[#0A0A0A] flex items-center justify-between px-4 shrink-0">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest">Editing Scene</span>
+                            <span className="text-sm font-bold text-red-500 font-mono">
+                                {editingScene ? String(editingScene.scene_number).padStart(2, '0') : '--'}
+                            </span>
+                        </div>
+                        <button
+                            onClick={onCloseEdit}
+                            className="p-1.5 rounded bg-[#111] border border-[#333] text-[#666] hover:text-white hover:border-[#555] transition-colors"
+                        >
+                            <X size={14} />
+                        </button>
                     </div>
+
+                    {/* DIRECTOR CONSOLE */}
+                    {editingScene && (
+                        <DirectorConsole
+                            activeScene={editingScene}
+                            availableCharacters={availableCharacters}
+                            availableLocations={availableLocations}
+                            availableProducts={availableProducts}
+                            projectType={projectType}
+                            selectedContext={selectedContext}
+                            isProcessing={isProcessing}
+                            onUpdateCast={onUpdateCast}
+                            onUpdateScene={onUpdateScene}
+                            onExecuteAi={handleExecuteAi}
+                            onOpenContextModal={() => setIsContextModalOpen(true)}
+                            onRemoveContextRef={removeContextRef}
+                            onCancelSelection={onCloseEdit}
+                        />
+                    )}
                 </div>
             </div>
 
