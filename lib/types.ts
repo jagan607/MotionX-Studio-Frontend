@@ -226,6 +226,7 @@ export interface Shot {
         quality?: 'fast' | 'pro';
         aspect_ratio?: string;
         reference_image_urls?: string[];
+        end_frame_url?: string | null;  // Seedance 2.0 start-to-end frame
         negative_prompt?: string;
         cfg_scale?: number;
         sound?: 'on' | 'off';

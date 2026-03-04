@@ -51,13 +51,20 @@ export const useShotVideoGen = (
         if (!shot.image_url) return toastError("No image to animate");
 
         try {
+            // Seedance 2.0 @tag prompt mutation when end frame is present
+            const isSeedance = provider === 'seedance-2' || provider === 'seedance' || provider === 'seedance-1.5';
+            const originalPrompt = shot.video_prompt || "Cinematic motion";
+            const finalPrompt = (isSeedance && endFrameUrl)
+                ? `@image1 as the first frame. ${originalPrompt}. smoothly transitioning to @image2 as the last frame.`
+                : originalPrompt;
+
             const payload: any = {
                 project_id: projectId,
                 episode_id: episodeId,
                 scene_id: sceneId!,
                 shot_id: shot.id,
                 image_url: shot.image_url,
-                prompt: shot.video_prompt || "Cinematic motion",
+                prompt: finalPrompt,
                 provider: provider,
                 end_frame_url: endFrameUrl || null
             };

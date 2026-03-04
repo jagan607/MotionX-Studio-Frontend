@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     Film, RefreshCw, Link2, Mic2,
     ChevronDown, ChevronUp, Sliders, Plus, Trash2, AlertCircle, Loader2,
-    RectangleHorizontal, RectangleVertical, Square, Volume2, FastForward
+    RectangleHorizontal, RectangleVertical, Square, Volume2, FastForward,
+    ImagePlus, X
 } from 'lucide-react';
 import type { VideoProvider, AnimateOptions, PromptSegment } from '@/app/hooks/shot-manager/useShotVideoGen';
 import type { KlingElement } from '@/app/hooks/shot-manager/useElementLibrary';
@@ -74,6 +75,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const [refImages, setRefImages] = useState<string[]>(initialSettings?.reference_image_urls || []);
     const [isUploadingRef, setIsUploadingRef] = useState(false);
     const refInputRef = useRef<HTMLInputElement>(null);
+
+    // End Frame (Seedance 2.0 start-to-end)
+    const [endFrameUrl, setEndFrameUrl] = useState<string | null>(initialSettings?.end_frame_url || null);
+    const [isUploadingEndFrame, setIsUploadingEndFrame] = useState(false);
+    const endFrameInputRef = useRef<HTMLInputElement>(null);
 
     // Compute pricing key — seedance-2 draft uses 'seedance-2-fast' pricing
     const pricingKey = (isSeedance2 && quality === 'fast') ? 'seedance-2-fast' : provider;
@@ -164,6 +170,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         const currentSettings = {
             provider, duration, mode, quality, aspect_ratio: aspectRatio,
             reference_image_urls: refImages,
+            end_frame_url: endFrameUrl,
             negative_prompt: negativePrompt,
             cfg_scale: cfgScale, sound, watermark, multi_shot: multiShot,
             shot_type: shotType, multi_prompt: segments,
@@ -174,7 +181,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             onSettingsChange(currentSettings);
         }, 500);
         return () => clearTimeout(timer);
-    }, [provider, duration, mode, quality, aspectRatio, refImages, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, onSettingsChange]);
+    }, [provider, duration, mode, quality, aspectRatio, refImages, endFrameUrl, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, onSettingsChange]);
 
     // --- Validation & Options Building ---
     const getTotalSegmentDuration = () => {
@@ -208,7 +215,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const handleAnimate = () => {
         if (!isDurationValid) return;
         const options = buildOptions();
-        onAnimate(provider, isLinked ? nextShotImage : null, options);
+        // Linked morph-to-next takes priority; otherwise use manual end frame
+        const endFrame = isLinked ? nextShotImage : (endFrameUrl || null);
+        onAnimate(provider, endFrame, options);
     };
 
     // --- Helpers ---
@@ -433,197 +442,292 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         </div>
                     </div>
 
+                    {/* ── End Frame Upload Zone ── */}
+                    <div>
+                        <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex items-center justify-between">
+                            <span>
+                                End Frame
+                                {isLinked && nextShotImage
+                                    ? <span className="text-[#E50914] font-normal ml-1">· Linked</span>
+                                    : <span className="text-neutral-600 font-normal ml-1">(optional)</span>
+                                }
+                            </span>
+                            {!isLinked && endFrameUrl && (
+                                <button
+                                    type="button"
+                                    onClick={() => setEndFrameUrl(null)}
+                                    className="text-[8px] text-red-400/70 hover:text-red-400 transition-colors"
+                                >
+                                    Remove
+                                </button>
+                            )}
+                        </label>
+
+                        {isLinked && nextShotImage ? (
+                            <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-[#E50914]/30 bg-black">
+                                <img src={nextShotImage} alt="Next Shot (Linked)" className="w-full h-full object-cover" />
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2.5 py-2">
+                                    <div className="flex items-center gap-1.5">
+                                        <Link2 size={9} className="text-[#E50914]" />
+                                        <span className="text-[8px] text-neutral-300">Linked to next shot — morph target</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : endFrameUrl ? (
+                            <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-white/[0.1] bg-black group">
+                                <img src={endFrameUrl} alt="End Frame" className="w-full h-full object-cover" />
+                                <button
+                                    type="button"
+                                    onClick={() => setEndFrameUrl(null)}
+                                    className="absolute top-1.5 right-1.5 p-1 bg-black/60 hover:bg-red-500/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all"
+                                >
+                                    <X size={10} />
+                                </button>
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
+                                    <span className="text-[8px] text-neutral-300">Target frame — video will transition to this image</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    ref={endFrameInputRef}
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        try {
+                                            setIsUploadingEndFrame(true);
+                                            const path = `end_frames/${Date.now()}_${file.name}`;
+                                            const storageRef = ref(storage, path);
+                                            await uploadBytes(storageRef, file);
+                                            const url = await getDownloadURL(storageRef);
+                                            setEndFrameUrl(url);
+                                        } catch (err) {
+                                            console.error('[EndFrameUpload] Failed:', err);
+                                        } finally {
+                                            setIsUploadingEndFrame(false);
+                                            if (endFrameInputRef.current) endFrameInputRef.current.value = '';
+                                        }
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    disabled={isUploadingEndFrame}
+                                    onClick={() => endFrameInputRef.current?.click()}
+                                    className="w-full py-3 rounded-lg border border-dashed border-white/[0.12] flex flex-col items-center justify-center gap-1.5
+                                        bg-white/[0.02] hover:bg-white/[0.05] hover:border-amber-500/30 transition-all cursor-pointer
+                                        disabled:opacity-40 disabled:cursor-wait"
+                                >
+                                    {isUploadingEndFrame ? (
+                                        <Loader2 size={16} className="text-amber-400 animate-spin" />
+                                    ) : (
+                                        <>
+                                            <ImagePlus size={16} className="text-neutral-500" />
+                                            <span className="text-[9px] text-neutral-500">Add End Frame</span>
+                                            <span className="text-[7px] text-neutral-600">Video will smoothly transition to this image</span>
+                                        </>
+                                    )}
+                                </button>
+                            </>
+                        )}
+                    </div>
+
                     {/* Native Audio Badge */}
                     <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">
                         <Volume2 size={10} className="text-emerald-400" />
                         <span className="text-[9px] font-semibold text-emerald-400 tracking-wider uppercase">Native Audio Included</span>
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* ── Advanced Settings (Kling 3.0 only) ── */}
-            {isV3 && !isBusy && (
-                <div className="rounded-lg border border-white/[0.06] overflow-hidden">
-                    <button
-                        type="button"
-                        onClick={() => setShowAdvanced(!showAdvanced)}
-                        className={`w-full flex items-center justify-between px-3 py-2 text-[10px] font-semibold transition-colors
+            {
+                isV3 && !isBusy && (
+                    <div className="rounded-lg border border-white/[0.06] overflow-hidden">
+                        <button
+                            type="button"
+                            onClick={() => setShowAdvanced(!showAdvanced)}
+                            className={`w-full flex items-center justify-between px-3 py-2 text-[10px] font-semibold transition-colors
                             ${showAdvanced ? 'bg-white/[0.05] text-white' : 'bg-white/[0.02] text-neutral-400 hover:text-neutral-200'}
                         `}
-                    >
-                        <span className="flex items-center gap-1.5">
-                            <Sliders size={11} className={showAdvanced ? "text-[#E50914]" : ""} />
-                            Advanced Settings
-                        </span>
-                        {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                    </button>
+                        >
+                            <span className="flex items-center gap-1.5">
+                                <Sliders size={11} className={showAdvanced ? "text-[#E50914]" : ""} />
+                                Advanced Settings
+                            </span>
+                            {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        </button>
 
-                    {showAdvanced && (
-                        <div className="px-3 pb-3 space-y-4 border-t border-white/[0.04] bg-black/20 pt-3">
-                            {/* Negative Prompt */}
-                            <div>
-                                <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Negative Prompt</label>
-                                <textarea
-                                    value={negativePrompt}
-                                    onChange={(e) => setNegativePrompt(e.target.value)}
-                                    placeholder="blurry, distorted, low quality..."
-                                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-md px-2.5 py-2 text-[11px] text-neutral-300 placeholder:text-neutral-600 outline-none focus:border-[#E50914]/40 resize-none transition-colors"
-                                    rows={2}
-                                />
-                            </div>
-
-                            {/* CFG Scale */}
-                            <div>
-                                <label className="text-[9px] font-semibold text-neutral-500 mb-1.5 flex items-center justify-between">
-                                    <span>Creativity (CFG)</span>
-                                    <span className="text-neutral-400 font-mono">{cfgScale.toFixed(1)}</span>
-                                </label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.1"
-                                    value={cfgScale}
-                                    onChange={(e) => setCfgScale(parseFloat(e.target.value))}
-                                    className="w-full h-1 bg-white/[0.08] rounded-full appearance-none cursor-pointer accent-[#E50914]"
-                                />
-                            </div>
-
-                            {/* Sound + Watermark + Multi-Shot Toggles */}
-                            <div className="flex flex-wrap gap-4">
-                                {[{ label: 'Sound', val: sound === 'on', set: () => setSound(sound === 'on' ? 'off' : 'on') }, { label: 'Watermark', val: watermark, set: () => setWatermark(!watermark) }, { label: 'Multi-Shot', val: multiShot, set: () => setMultiShot(!multiShot) }].map((t, i) => (
-                                    <label key={i} className="flex items-center gap-2 cursor-pointer group">
-                                        <div onClick={t.set} className={`w-7 h-3.5 rounded-full transition-colors relative ${t.val ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
-                                            <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${t.val ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
-                                        </div>
-                                        <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">{t.label}</span>
-                                    </label>
-                                ))}
-                            </div>
-
-                            {/* ── Multi-Shot Editor ── */}
-                            {multiShot && (
-                                <div className="p-2.5 rounded-lg border border-white/[0.08] bg-white/[0.02]">
-                                    <div className="flex gap-2 mb-2">
-                                        <button type="button" onClick={() => setShotType('intelligence')} className={pill(shotType === 'intelligence')}>Auto (Intelligence)</button>
-                                        <button type="button" onClick={() => setShotType('customize')} className={pill(shotType === 'customize')}>Manual (Customize)</button>
-                                    </div>
-
-                                    {shotType === 'customize' && (
-                                        <div className="space-y-2">
-                                            {segments.map((seg, idx) => (
-                                                <div key={idx} className="flex gap-2 items-start">
-                                                    <span className="text-[9px] text-neutral-500 pt-2 w-3 text-center">{seg.index}</span>
-                                                    <textarea
-                                                        value={seg.prompt}
-                                                        onChange={(e) => updateSegment(idx, 'prompt', e.target.value)}
-                                                        placeholder="Segment prompt..."
-                                                        className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#E50914]/40 resize-none h-[34px]"
-                                                    />
-                                                    <input
-                                                        type="number"
-                                                        value={seg.duration}
-                                                        onChange={(e) => updateSegment(idx, 'duration', e.target.value)}
-                                                        className="w-10 bg-white/[0.03] border border-white/[0.08] rounded-md px-1 py-1.5 text-[10px] text-center outline-none focus:border-[#E50914]/40"
-                                                    />
-                                                    <button type="button" onClick={() => removeSegment(idx)} className="text-neutral-600 hover:text-red-500 pt-1.5"><Trash2 size={12} /></button>
-                                                </div>
-                                            ))}
-                                            <button type="button" onClick={addSegment} className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md border border-dashed border-white/[0.1] text-[10px] text-neutral-500 hover:border-white/20 hover:text-neutral-300">
-                                                <Plus size={10} /> Add Segment
-                                            </button>
-
-                                            <div className={`text-[9px] flex items-center gap-1.5 ${isDurationValid ? 'text-green-500' : 'text-red-500'}`}>
-                                                <AlertCircle size={10} />
-                                                Total Duration: {getTotalSegmentDuration()}s / {duration}s required
-                                            </div>
-                                        </div>
-                                    )}
+                        {showAdvanced && (
+                            <div className="px-3 pb-3 space-y-4 border-t border-white/[0.04] bg-black/20 pt-3">
+                                {/* Negative Prompt */}
+                                <div>
+                                    <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Negative Prompt</label>
+                                    <textarea
+                                        value={negativePrompt}
+                                        onChange={(e) => setNegativePrompt(e.target.value)}
+                                        placeholder="blurry, distorted, low quality..."
+                                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-md px-2.5 py-2 text-[11px] text-neutral-300 placeholder:text-neutral-600 outline-none focus:border-[#E50914]/40 resize-none transition-colors"
+                                        rows={2}
+                                    />
                                 </div>
-                            )}
 
-                            {/* ── Elements & Voices ── */}
-                            <div className="space-y-3">
-                                {/* Elements */}
-                                <div className={voiceList.length > 0 ? 'opacity-30 pointer-events-none' : ''}>
-                                    <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex justify-between items-center">
-                                        <span>Elements (Max 6)</span>
-                                        <span className="text-neutral-500">{elementList.length}/6</span>
+                                {/* CFG Scale */}
+                                <div>
+                                    <label className="text-[9px] font-semibold text-neutral-500 mb-1.5 flex items-center justify-between">
+                                        <span>Creativity (CFG)</span>
+                                        <span className="text-neutral-400 font-mono">{cfgScale.toFixed(1)}</span>
                                     </label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.1"
+                                        value={cfgScale}
+                                        onChange={(e) => setCfgScale(parseFloat(e.target.value))}
+                                        className="w-full h-1 bg-white/[0.08] rounded-full appearance-none cursor-pointer accent-[#E50914]"
+                                    />
+                                </div>
 
-                                    {/* Element Grid */}
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {/* Render Selected */}
-                                        {elementList.map((id) => {
-                                            const el = selectedElements.find(e => e.id === id || e.local_id === id);
-                                            return (
-                                                <div key={id} className="relative aspect-square rounded-lg overflow-hidden border border-white/[0.1] bg-white/[0.02] group">
-                                                    {el ? (
-                                                        <Image src={el.image_url} alt={el.name} fill className="object-cover" />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-[9px] text-neutral-500 font-mono break-all p-1">
-                                                            {id.slice(0, 4)}
-                                                        </div>
-                                                    )}
+                                {/* Sound + Watermark + Multi-Shot Toggles */}
+                                <div className="flex flex-wrap gap-4">
+                                    {[{ label: 'Sound', val: sound === 'on', set: () => setSound(sound === 'on' ? 'off' : 'on') }, { label: 'Watermark', val: watermark, set: () => setWatermark(!watermark) }, { label: 'Multi-Shot', val: multiShot, set: () => setMultiShot(!multiShot) }].map((t, i) => (
+                                        <label key={i} className="flex items-center gap-2 cursor-pointer group">
+                                            <div onClick={t.set} className={`w-7 h-3.5 rounded-full transition-colors relative ${t.val ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
+                                                <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${t.val ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                            </div>
+                                            <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">{t.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
 
-                                                    {/* ID Badge */}
-                                                    <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-sm px-1.5 py-1 text-[8px] text-white font-mono truncate">
-                                                        {el?.name || id}
+                                {/* ── Multi-Shot Editor ── */}
+                                {multiShot && (
+                                    <div className="p-2.5 rounded-lg border border-white/[0.08] bg-white/[0.02]">
+                                        <div className="flex gap-2 mb-2">
+                                            <button type="button" onClick={() => setShotType('intelligence')} className={pill(shotType === 'intelligence')}>Auto (Intelligence)</button>
+                                            <button type="button" onClick={() => setShotType('customize')} className={pill(shotType === 'customize')}>Manual (Customize)</button>
+                                        </div>
+
+                                        {shotType === 'customize' && (
+                                            <div className="space-y-2">
+                                                {segments.map((seg, idx) => (
+                                                    <div key={idx} className="flex gap-2 items-start">
+                                                        <span className="text-[9px] text-neutral-500 pt-2 w-3 text-center">{seg.index}</span>
+                                                        <textarea
+                                                            value={seg.prompt}
+                                                            onChange={(e) => updateSegment(idx, 'prompt', e.target.value)}
+                                                            placeholder="Segment prompt..."
+                                                            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#E50914]/40 resize-none h-[34px]"
+                                                        />
+                                                        <input
+                                                            type="number"
+                                                            value={seg.duration}
+                                                            onChange={(e) => updateSegment(idx, 'duration', e.target.value)}
+                                                            className="w-10 bg-white/[0.03] border border-white/[0.08] rounded-md px-1 py-1.5 text-[10px] text-center outline-none focus:border-[#E50914]/40"
+                                                        />
+                                                        <button type="button" onClick={() => removeSegment(idx)} className="text-neutral-600 hover:text-red-500 pt-1.5"><Trash2 size={12} /></button>
                                                     </div>
+                                                ))}
+                                                <button type="button" onClick={addSegment} className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md border border-dashed border-white/[0.1] text-[10px] text-neutral-500 hover:border-white/20 hover:text-neutral-300">
+                                                    <Plus size={10} /> Add Segment
+                                                </button>
 
-                                                    {/* Remove Button */}
-                                                    <button
-                                                        onClick={() => handleElementListChange(elementList.filter(e => e !== id))}
-                                                        className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-red-500/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all"
-                                                    >
-                                                        <Trash2 size={10} />
-                                                    </button>
+                                                <div className={`text-[9px] flex items-center gap-1.5 ${isDurationValid ? 'text-green-500' : 'text-red-500'}`}>
+                                                    <AlertCircle size={10} />
+                                                    Total Duration: {getTotalSegmentDuration()}s / {duration}s required
                                                 </div>
-                                            );
-                                        })}
-
-                                        {/* Add Button */}
-                                        {elementList.length < 6 && (
-                                            <button
-                                                type="button"
-                                                onClick={onOpenElementLibrary}
-                                                className="aspect-square rounded-lg border border-dashed border-white/[0.1] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.2] flex flex-col items-center justify-center gap-1 text-neutral-500 hover:text-neutral-300 transition-all"
-                                            >
-                                                <Plus size={16} />
-                                                <span className="text-[9px]">Add</span>
-                                            </button>
+                                            </div>
                                         )}
                                     </div>
+                                )}
+
+                                {/* ── Elements & Voices ── */}
+                                <div className="space-y-3">
+                                    {/* Elements */}
+                                    <div className={voiceList.length > 0 ? 'opacity-30 pointer-events-none' : ''}>
+                                        <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex justify-between items-center">
+                                            <span>Elements (Max 6)</span>
+                                            <span className="text-neutral-500">{elementList.length}/6</span>
+                                        </label>
+
+                                        {/* Element Grid */}
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {/* Render Selected */}
+                                            {elementList.map((id) => {
+                                                const el = selectedElements.find(e => e.id === id || e.local_id === id);
+                                                return (
+                                                    <div key={id} className="relative aspect-square rounded-lg overflow-hidden border border-white/[0.1] bg-white/[0.02] group">
+                                                        {el ? (
+                                                            <Image src={el.image_url} alt={el.name} fill className="object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-[9px] text-neutral-500 font-mono break-all p-1">
+                                                                {id.slice(0, 4)}
+                                                            </div>
+                                                        )}
+
+                                                        {/* ID Badge */}
+                                                        <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-sm px-1.5 py-1 text-[8px] text-white font-mono truncate">
+                                                            {el?.name || id}
+                                                        </div>
+
+                                                        {/* Remove Button */}
+                                                        <button
+                                                            onClick={() => handleElementListChange(elementList.filter(e => e !== id))}
+                                                            className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-red-500/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all"
+                                                        >
+                                                            <Trash2 size={10} />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+
+                                            {/* Add Button */}
+                                            {elementList.length < 6 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={onOpenElementLibrary}
+                                                    className="aspect-square rounded-lg border border-dashed border-white/[0.1] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.2] flex flex-col items-center justify-center gap-1 text-neutral-500 hover:text-neutral-300 transition-all"
+                                                >
+                                                    <Plus size={16} />
+                                                    <span className="text-[9px]">Add</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Voices (Simple List) */}
+                                    <div className={elementList.length > 0 ? 'opacity-30 pointer-events-none' : ''}>
+                                        <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Voices (Max 2)</label>
+                                        <div className="flex gap-1.5 mb-1.5">
+                                            <input
+                                                value={voiceIdInput}
+                                                onChange={(e) => setVoiceIdInput(e.target.value)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addVoice(); } }}
+                                                placeholder="Voice ID..."
+                                                className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1.5 text-[10px] min-w-0"
+                                            />
+                                            <button type="button" onClick={addVoice} className="w-7 h-7 flex items-center justify-center bg-white/[0.05] rounded-md border border-white/[0.1] text-white hover:bg-white/[0.1]"><Plus size={12} /></button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                            {voiceList.map((id, i) => (
+                                                <div key={i} className="bg-blue-500/20 border border-blue-500/40 text-white text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                    <span className="truncate max-w-[60px]">{id}</span>
+                                                    <button type="button" onClick={() => setVoiceList(voiceList.filter(v => v !== id))}><Trash2 size={8} /></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Voices (Simple List) */}
-                                <div className={elementList.length > 0 ? 'opacity-30 pointer-events-none' : ''}>
-                                    <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Voices (Max 2)</label>
-                                    <div className="flex gap-1.5 mb-1.5">
-                                        <input
-                                            value={voiceIdInput}
-                                            onChange={(e) => setVoiceIdInput(e.target.value)}
-                                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addVoice(); } }}
-                                            placeholder="Voice ID..."
-                                            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1.5 text-[10px] min-w-0"
-                                        />
-                                        <button type="button" onClick={addVoice} className="w-7 h-7 flex items-center justify-center bg-white/[0.05] rounded-md border border-white/[0.1] text-white hover:bg-white/[0.1]"><Plus size={12} /></button>
-                                    </div>
-                                    <div className="flex flex-wrap gap-1">
-                                        {voiceList.map((id, i) => (
-                                            <div key={i} className="bg-blue-500/20 border border-blue-500/40 text-white text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1">
-                                                <span className="truncate max-w-[60px]">{id}</span>
-                                                <button type="button" onClick={() => setVoiceList(voiceList.filter(v => v !== id))}><Trash2 size={8} /></button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
                             </div>
-
-                        </div>
-                    )}
-                </div>
-            )}
+                        )}
+                    </div>
+                )
+            }
 
             {/* ── Action Buttons ── */}
             <div className="flex gap-2">
@@ -660,30 +764,34 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             </div>
 
             {/* Disabled Reason Helper */}
-            {(!isBusy && !isLinked) && !hasImage && (
-                <div className="text-[9px] text-center min-h-[14px]">
-                    <span className="text-red-400/80">Image required to animate.</span>
-                </div>
-            )}
+            {
+                (!isBusy && !isLinked) && !hasImage && (
+                    <div className="text-[9px] text-center min-h-[14px]">
+                        <span className="text-red-400/80">Image required to animate.</span>
+                    </div>
+                )
+            }
 
             {/* ── Extend + (Seedance 2.0 video continuation) ── */}
-            {!isBusy && shotData?.seedance_task_id && shotData?.video_url && (
-                <button
-                    type="button"
-                    onClick={() => {
-                        if (onExtend && shotData.seedance_task_id) {
-                            onExtend(shotData.seedance_task_id, buildOptions());
-                        }
-                    }}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold transition-all cursor-pointer
+            {
+                !isBusy && shotData?.seedance_task_id && shotData?.video_url && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (onExtend && shotData.seedance_task_id) {
+                                onExtend(shotData.seedance_task_id, buildOptions());
+                            }
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold transition-all cursor-pointer
                         bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30
                         text-amber-300 hover:border-amber-500/60 hover:from-amber-500/15 hover:to-orange-500/15
                         shadow-[0_0_12px_rgba(245,158,11,0.08)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
-                >
-                    <Plus size={12} /> Extend Video
-                    {videoCost > 0 && <span className="opacity-60 text-[9px] font-normal">· {videoCost} cr</span>}
-                </button>
-            )}
-        </div>
+                    >
+                        <Plus size={12} /> Extend Video
+                        {videoCost > 0 && <span className="opacity-60 text-[9px] font-normal">· {videoCost} cr</span>}
+                    </button>
+                )
+            }
+        </div >
     );
 };
