@@ -51,6 +51,8 @@ export const useShotAudioGen = (
     };
 
     const handleLipSyncShot = async (shot: any, audioUrl: string | null, audioFile: File | null) => {
+        console.log("🔊 [LipSync] START — audioUrl param:", audioUrl, "| audioFile:", audioFile?.name || null, "| shot.audio_url (stale?):", shot.audio_url);
+
         if (!shot.video_url) return toastError("No video to sync");
         if (!audioUrl && !audioFile) return toastError("No audio provided");
         if (!sceneId) return;
@@ -73,6 +75,7 @@ export const useShotAudioGen = (
                 const uploadRes = await api.post("/api/v1/shot/upload_temp_audio", uploadFormData, {
                     headers: { "Content-Type": "multipart/form-data" }
                 });
+                console.log("🔊 [LipSync] upload_temp_audio response:", JSON.stringify(uploadRes.data));
                 finalAudioUrl = uploadRes.data.url;
             }
 
@@ -89,11 +92,12 @@ export const useShotAudioGen = (
                 video_duration: shot.video_duration || parseInt(shot.video_settings?.duration) || 5
             };
 
+            console.log("🔊 [LipSync] FINAL payload audio_url:", finalAudioUrl);
             await api.post("/api/v1/shot/lipsync_shot", payload);
 
             toastSuccess("Lip Sync Queued");
         } catch (e: any) {
-            console.error(e);
+            console.error("🔊 [LipSync] ERROR:", e);
             toastError(getApiErrorMessage(e, "Lip Sync failed"));
             await setDoc(shotRef, { video_status: "ready" }, { merge: true });
         }

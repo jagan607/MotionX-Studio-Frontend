@@ -139,7 +139,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [showGenerateWarning, setShowGenerateWarning] = useState(false);
     const [pendingSummary, setPendingSummary] = useState<string | undefined>(undefined);
     const [isWiping, setIsWiping] = useState(false);
-    const [lipSyncShot, setLipSyncShot] = useState<{ id: string, videoUrl: string } | null>(null);
+    const [lipSyncShot, setLipSyncShot] = useState<{ id: string, videoUrl: string, audioUrl?: string } | null>(null);
     const [shotToDelete, setShotToDelete] = useState<string | null>(null);
     const [isDeletingShot, setIsDeletingShot] = useState(false);
     const [shotToDownload, setShotToDownload] = useState<any>(null);
@@ -839,7 +839,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                     nextShotImage={nextShotImage}
                                                     isMorphedByPrev={isMorphedByPrev}
                                                     onUploadImage={(file) => shotMgr.handleShotImageUpload(shot, file)}
-                                                    onLipSync={() => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url || '' })}
+                                                    onLipSync={() => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url || '', audioUrl: shot.audio_url || undefined })}
                                                     tourId={index === 0 ? "tour-sb-shot-card" : undefined}
                                                     onOpenGizmo={shot.image_url ? () => setActiveGizmoShotId(shot.id) : undefined}
                                                 >
@@ -881,6 +881,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 {lipSyncShot && (
                     <LipSyncModal
                         videoUrl={lipSyncShot.videoUrl}
+                        existingAudioUrl={lipSyncShot.audioUrl}
                         credits={credits || 0}
                         onClose={() => setLipSyncShot(null)}
                         onGenerateVoice={(text, voiceId, emotion) => {
@@ -1069,7 +1070,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         const shot = shotMgr.shots.find((s: any) => s.id === editingShotId);
                         if (shot) shotMgr.handleAnimateShot(shot, provider, endFrameUrl, options);
                     }}
-                    onLipSync={(shot) => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url || '' })}
+                    onLipSync={(shot) => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url || '', audioUrl: (shot as any).audio_url || undefined })}
                     onText2Video={(options) => {
                         const shot = shotMgr.shots.find((s: any) => s.id === editingShotId);
                         if (shot) shotMgr.handleText2Video(shot, options);

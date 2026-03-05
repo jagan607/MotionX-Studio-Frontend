@@ -17,6 +17,7 @@ interface LipSyncModalProps {
     onGenerateVoice: (text: string, voiceId: string, emotion: string) => Promise<string | null>;
     onStartSync: (audioUrl: string | null, audioFile: File | null) => Promise<void>;
     credits: number;
+    existingAudioUrl?: string | null;
 }
 
 interface Voice {
@@ -48,8 +49,11 @@ const EMOTIONS = [
 const GENDERS = ["All", "male", "female"];
 const ACCENTS = ["All", "american", "british", "australian", "indian"];
 
-export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }: LipSyncModalProps) => {
-    const [mode, setMode] = useState<'tts' | 'upload'>('tts');
+export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, existingAudioUrl }: LipSyncModalProps) => {
+    const [mode, setMode] = useState<'tts' | 'upload'>(existingAudioUrl ? 'upload' : 'tts');
+
+    // --- PRELOADED AUDIO (from existing shot audio_url) ---
+    const [preloadedAudioUrl, setPreloadedAudioUrl] = useState<string | null>(existingAudioUrl || null);
     const [text, setText] = useState("");
 
     // --- Pricing ---
@@ -243,6 +247,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
 
     const handleResetUpload = () => {
         setUploadedFile(null);
+        setPreloadedAudioUrl(null);
         setTrimRange(null);
         setIsTrimming(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -391,7 +396,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
 
     const handleExecuteSync = async () => {
         if (mode === 'tts' && !generatedAudioUrl) return toastError("Generate audio first");
-        if (mode === 'upload' && !uploadedFile) return toastError("Upload audio first");
+        if (mode === 'upload' && !uploadedFile && !preloadedAudioUrl) return toastError("Upload audio first");
 
         setIsSyncing(true);
 
@@ -408,7 +413,15 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
                 }
             }
 
-            await onStartSync(mode === 'tts' ? generatedAudioUrl : null, mode === 'upload' ? fileToSync : null);
+            if (mode === 'tts') {
+                await onStartSync(generatedAudioUrl, null);
+            } else if (uploadedFile) {
+                // User uploaded a new file — send as File
+                await onStartSync(null, fileToSync);
+            } else if (preloadedAudioUrl) {
+                // Re-use existing audio URL — send as URL directly
+                await onStartSync(preloadedAudioUrl, null);
+            }
             onClose();
         } catch (error) {
             console.error("Sync failed", error);
@@ -547,11 +560,26 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
 
                                     </div>
                                 ) : (
-                                    <div onClick={() => fileInputRef.current?.click()} style={{ flex: 1, minHeight: '200px', border: '1px dashed #333', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#444', cursor: 'pointer' }}>
-                                        <Upload size={32} />
-                                        <span style={{ fontSize: '10px', marginTop: '10px' }}>UPLOAD AUDIO FILE</span>
-                                        <input type="file" ref={fileInputRef} accept="audio/*" onChange={(e) => { if (e.target.files?.[0]) { setUploadedFile(e.target.files[0]); setGeneratedAudioUrl(null); } }} style={{ display: 'none' }} />
-                                    </div>
+                                    preloadedAudioUrl ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', flex: 1, minHeight: '200px', justifyContent: 'center' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ color: '#888', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' }}>PREVIOUSLY UPLOADED AUDIO</span>
+                                                <button onClick={handleResetUpload} style={{ color: '#666', background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <RotateCcw size={12} /> REPLACE
+                                                </button>
+                                            </div>
+                                            <div style={{ padding: '15px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '4px' }}>
+                                                <audio src={preloadedAudioUrl} controls style={{ width: '100%', height: '30px' }} />
+                                            </div>
+                                            <div style={{ textAlign: 'center', color: '#555', fontSize: '10px' }}>This audio was previously used for lip sync on this shot.</div>
+                                        </div>
+                                    ) : (
+                                        <div onClick={() => fileInputRef.current?.click()} style={{ flex: 1, minHeight: '200px', border: '1px dashed #333', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#444', cursor: 'pointer' }}>
+                                            <Upload size={32} />
+                                            <span style={{ fontSize: '10px', marginTop: '10px' }}>UPLOAD AUDIO FILE</span>
+                                            <input type="file" ref={fileInputRef} accept="audio/*" onChange={(e) => { if (e.target.files?.[0]) { setUploadedFile(e.target.files[0]); setGeneratedAudioUrl(null); setPreloadedAudioUrl(null); } }} style={{ display: 'none' }} />
+                                        </div>
+                                    )
                                 )}
                             </>
                         )}
@@ -564,7 +592,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync }
                     </div>
 
                     <div style={{ padding: '20px', borderTop: '1px solid #222', backgroundColor: '#080808' }}>
-                        <button onClick={handleExecuteSync} disabled={isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile)} style={{ width: '100%', padding: '15px', backgroundColor: '#E50914', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', display: 'flex', justifyContent: 'center', gap: '10px', opacity: (isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile)) ? 0.5 : 1 }}>
+                        <button onClick={handleExecuteSync} disabled={isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile && !preloadedAudioUrl)} style={{ width: '100%', padding: '15px', backgroundColor: '#E50914', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', display: 'flex', justifyContent: 'center', gap: '10px', opacity: (isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile && !preloadedAudioUrl)) ? 0.5 : 1 }}>
                             {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
                             {mode === 'upload' && trimRange && (Math.abs(trimRange.end - trimRange.start - audioDuration) > 0.1) ? 'TRIM & SYNC' : 'EXECUTE SYNC'}
                             <span style={{ opacity: 0.6, fontSize: '10px', fontWeight: 'normal', letterSpacing: '0' }}>· {getLipSyncCost(5)} cr</span>
