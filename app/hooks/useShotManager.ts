@@ -68,7 +68,7 @@ export const useShotManager = (
                     toastError(shot.upscale_error || "Upscale failed");
                 }
                 // 3. Video/Animation Failure
-                if (shot.video_status === "failed" && !failedToastedIds.current.has(`${shot.id}_video`)) {
+                if ((shot.video_status === "failed" || shot.video_status === "error") && !failedToastedIds.current.has(`${shot.id}_video`)) {
                     failedToastedIds.current.add(`${shot.id}_video`);
                     const vidErr = shot.video_error || shot.error_message;
                     toastError(inferVideoErrorMessage(vidErr));
@@ -195,12 +195,19 @@ export const useShotManager = (
             provider: VideoProvider = 'seedance-2',
             endFrameUrl?: string | null,
             options?: AnimateOptions
-        ) => videoGen.handleAnimateShot(shot, provider, endFrameUrl, options),
+        ) => {
+            // Clear toast-dedup so a repeated failure still fires a toast
+            failedToastedIds.current.delete(`${shot.id}_video`);
+            return videoGen.handleAnimateShot(shot, provider, endFrameUrl, options);
+        },
 
         handleText2Video: (
             shot: any,
             options?: AnimateOptions & { negative_prompt?: string }
-        ) => videoGen.handleText2Video(shot, options),
+        ) => {
+            failedToastedIds.current.delete(`${shot.id}_video`);
+            return videoGen.handleText2Video(shot, options);
+        },
 
         // Audio
         handleGenerateVoiceover: audioGen.handleGenerateVoiceover,

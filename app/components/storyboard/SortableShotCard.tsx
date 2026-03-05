@@ -6,11 +6,12 @@ import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film,
     ImagePlus, Link2, Plus, CheckCircle2,
-    Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin, Volume2
+    Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin, Volume2, AlertTriangle
 } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 import type { VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
 import { usePricing } from '@/app/hooks/usePricing';
+import { inferVideoErrorMessage } from '@/lib/apiErrors';
 
 interface CastMember { id: string; name: string; }
 interface Location { id: string; name: string; }
@@ -28,6 +29,8 @@ interface Shot {
     video_url?: string;
     lipsync_url?: string;
     video_status?: string;
+    video_error?: string;
+    error_message?: string;
     status?: string;
     morph_to_next?: boolean;
     prompt: string;
@@ -113,6 +116,7 @@ export const SortableShotCard = ({
     // Loading States
     const isGenerating = isRendering || shot.status === 'generating';
     const isAnimating = ['animating', 'processing', 'queued', 'pending'].includes(shot.video_status || '');
+    const isVideoError = shot.video_status === 'error' || shot.video_status === 'failed';
     const isUpscaled = shot.is_upscaled === true;
     const isUpscaling = !isUpscaled && (shot.status === 'upscaling' || shot.upscale_status === 'processing');
     const isBusy = isGenerating || isAnimating || isUpscaling;
@@ -371,6 +375,17 @@ export const SortableShotCard = ({
                 )}
                 {children}
             </div>
+
+            {/* ── Video Error Indicator ── */}
+            {isVideoError && (
+                <div className="flex items-start gap-1.5 mb-2 px-2.5 py-2 rounded-lg bg-red-500/10 border border-red-500/30">
+                    <AlertTriangle size={12} className="text-red-400 shrink-0 mt-0.5" />
+                    <div className="text-[10px] text-red-300 leading-tight">
+                        <span className="font-semibold">{inferVideoErrorMessage(shot.video_error || shot.error_message)}</span>
+                        <span className="block text-red-400/70 mt-0.5">Credits refunded. Tap Animate to retry.</span>
+                    </div>
+                </div>
+            )}
 
             {/* ── Metadata ── */}
             <div className="flex gap-2 mb-3">

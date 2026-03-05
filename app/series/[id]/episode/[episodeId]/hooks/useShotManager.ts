@@ -4,6 +4,7 @@ import { ref, deleteObject, getStorage } from "firebase/storage";
 import { db, auth, storage } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { inferVideoErrorMessage } from "@/lib/apiErrors";
 import { arrayMove } from "@dnd-kit/sortable";
 
 export const useShotManager = (seriesId: string, episodeId: string, activeSceneId: string | null, onLowCredits?: () => void) => {
@@ -20,6 +21,9 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
 
     // Cancellation Ref
     const cancelGenerationRef = useRef(false);
+
+    // Track which shot errors have already been toasted
+    const failedToastedIds = useRef<Set<string>>(new Set());
 
     // State Ref to fix Stale Closures during batch generation
     const shotsRef = useRef<any[]>([]);
@@ -41,6 +45,15 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                 const timeA = new Date(a.created_at || 0).getTime();
                 const timeB = new Date(b.created_at || 0).getTime();
                 return timeA - timeB;
+            });
+
+            // Surface async failures via toast (once per event)
+            shotData.forEach((shot: any) => {
+                if ((shot.video_status === "failed" || shot.video_status === "error") && !failedToastedIds.current.has(`${shot.id}_video`)) {
+                    failedToastedIds.current.add(`${shot.id}_video`);
+                    const vidErr = shot.video_error || shot.error_message;
+                    toastError(inferVideoErrorMessage(vidErr));
+                }
             });
 
             setShots(shotData);
@@ -427,6 +440,9 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     // UPDATE: Accept 'endFrameUrl' as a function argument
     const handleAnimateShot = async (shot: any, provider: string = 'kling', endFrameUrl?: string | null) => {
         if (!shot.image_url) return toastError("Generate image first");
+
+        // Clear toast-dedup so a repeated failure still fires a toast
+        failedToastedIds.current.delete(`${shot.id}_video`);
 
         try {
             const idToken = await auth.currentUser?.getIdToken();

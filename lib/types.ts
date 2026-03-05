@@ -207,7 +207,7 @@ export interface Shot {
     camera_transform?: CameraTransform;
     camera_shot_type?: string;
 
-    video_status?: 'queued' | 'processing' | 'completed' | 'failed' | null;
+    video_status?: 'queued' | 'processing' | 'completed' | 'failed' | 'error' | null;
     status?: 'draft' | 'rendered' | 'animating' | 'completed' | 'finalized';
 
     morph_to_next?: boolean; // Added for UI logic
