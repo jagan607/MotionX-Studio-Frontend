@@ -116,7 +116,7 @@ export const SortableShotCard = ({
     // Loading States
     const isGenerating = isRendering || shot.status === 'generating';
     const isAnimating = ['animating', 'processing', 'queued', 'pending'].includes(shot.video_status || '');
-    const isVideoError = shot.video_status === 'error' || shot.video_status === 'failed';
+    const isVideoError = (shot.video_status === 'error' || shot.video_status === 'failed') && !isMorphedByPrev;
     const isUpscaled = shot.is_upscaled === true;
     const isUpscaling = !isUpscaled && (shot.status === 'upscaling' || shot.upscale_status === 'processing');
     const isBusy = isGenerating || isAnimating || isUpscaling;
