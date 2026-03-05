@@ -56,7 +56,11 @@ export const useShotAudioGen = (
         if (!sceneId) return;
 
         const shotRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId, "shots", shot.id);
-        await setDoc(shotRef, { video_status: "processing" }, { merge: true });
+        await setDoc(shotRef, {
+            video_status: "processing",
+            // Clear stale ElevenLabs voice state when user uploads native audio
+            ...(audioFile ? { voice_id: null, audio_url: null, audio_status: null } : {})
+        }, { merge: true });
 
         try {
             let finalAudioUrl = audioUrl;
