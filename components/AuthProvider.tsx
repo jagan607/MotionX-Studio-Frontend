@@ -14,59 +14,63 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const pathname = usePathname();
 
   // 1. SYNC AUTH STATE ON MOUNT (RUNS ONCE)
+  // CRITICAL: The callback is async so Firestore sync completes BEFORE
+  // authCheckComplete is set. This prevents the redirect effect from
+  // navigating away from /login before the user document is written.
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      setAuthCheckComplete(true);
 
       // JIT provisioning: sync tenant UID to Firestore on every login
       if (currentUser) {
-        (async () => {
-          try {
-            const userRef = doc(db, "users", currentUser.uid);
-            const userSnap = await getDoc(userRef);
+        try {
+          const userRef = doc(db, "users", currentUser.uid);
+          const userSnap = await getDoc(userRef);
 
-            if (!userSnap.exists()) {
-              // 🛡️ FIRST TIME LOGIN: Document doesn't exist yet
-              // Pull true creation time from Google Auth metadata
-              const authCreationTime = currentUser.metadata.creationTime
-                ? new Date(currentUser.metadata.creationTime)
-                : serverTimestamp();
+          if (!userSnap.exists()) {
+            // 🛡️ FIRST TIME LOGIN: Document doesn't exist yet
+            // Pull true creation time from Google Auth metadata
+            const authCreationTime = currentUser.metadata.creationTime
+              ? new Date(currentUser.metadata.creationTime)
+              : serverTimestamp();
 
-              await setDoc(userRef, {
-                uid: currentUser.uid,
-                email: currentUser.email,
-                displayName: currentUser.displayName || "",
-                photoURL: currentUser.photoURL || "",
-                tenant_id: currentUser.tenantId || null,
-                plan: "free",
-                credits: 10,
-                createdAt: authCreationTime,
-                lastActiveAt: serverTimestamp(),
-                onboarding: {
-                  asset_manager_tour: false,
-                  dashboard_tour: false,
-                  episode_tour: false,
-                  series_tour: false,
-                  storyboard_tour: false,
-                  studio_tour: false,
-                },
-              });
-            } else {
-              // 🔄 ROUTINE LOGIN: Document already exists.
-              // Strictly update ONLY the last active timestamp.
-              await setDoc(userRef, {
-                lastActiveAt: serverTimestamp(),
-              }, { merge: true });
-            }
-
-            console.log("✅ FIRESTORE SYNC SUCCESS | UID:", currentUser.uid);
-          } catch (error: any) {
-            console.error("❌ FIRESTORE SYNC FAILED:", error);
-            toast.error(`Database Sync Error: ${error?.message || error}`, { duration: 10000 });
+            await setDoc(userRef, {
+              uid: currentUser.uid,
+              email: currentUser.email,
+              displayName: currentUser.displayName || "",
+              photoURL: currentUser.photoURL || "",
+              tenant_id: currentUser.tenantId || null,
+              plan: "free",
+              credits: 10,
+              createdAt: authCreationTime,
+              lastActiveAt: serverTimestamp(),
+              onboarding: {
+                asset_manager_tour: false,
+                dashboard_tour: false,
+                episode_tour: false,
+                series_tour: false,
+                storyboard_tour: false,
+                studio_tour: false,
+              },
+            });
+            console.log("✅ NEW USER DOCUMENT CREATED | UID:", currentUser.uid);
+          } else {
+            // 🔄 ROUTINE LOGIN: Document already exists.
+            // Update last-active timestamp (fire-and-forget is fine here).
+            setDoc(userRef, { lastActiveAt: serverTimestamp() }, { merge: true }).catch(
+              (e) => console.warn("⚠️ lastActiveAt update failed:", e)
+            );
           }
-        })();
+
+          console.log("✅ FIRESTORE SYNC SUCCESS | UID:", currentUser.uid);
+        } catch (error: any) {
+          console.error("❌ FIRESTORE SYNC FAILED:", error);
+          toast.error(`Database Sync Error: ${error?.message || error}`, { duration: 10000 });
+        }
       }
+
+      // Mark auth check complete AFTER sync — prevents premature redirects
+      setAuthCheckComplete(true);
     });
     return () => unsubscribe();
   }, []);

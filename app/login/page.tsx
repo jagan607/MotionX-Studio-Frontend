@@ -13,11 +13,11 @@ import { API_BASE_URL } from "@/lib/config";
 // --- FIRESTORE SYNC HELPER ---
 const syncUserToFirestore = async (user: any) => {
   if (!user) return;
-  const userRef = doc(db, "users", user.uid);
-  const userSnap = await getDoc(userRef);
+  try {
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
 
-  if (!userSnap.exists()) {
-    try {
+    if (!userSnap.exists()) {
       await setDoc(userRef, {
         uid: user.uid,
         email: user.email,
@@ -37,16 +37,16 @@ const syncUserToFirestore = async (user: any) => {
           studio_tour: false,
         },
       });
-      console.log("✅ New user foundational document created.");
-    } catch (error) {
-      console.error("❌ Failed to create initial user document:", error);
-    }
-  } else {
-    try {
+      console.log("✅ New user foundational document created | UID:", user.uid);
+    } else {
       await setDoc(userRef, { lastActiveAt: serverTimestamp() }, { merge: true });
-    } catch (error) {
-      console.error("❌ Failed to update lastActiveAt:", error);
+      console.log("✅ Existing user lastActiveAt updated | UID:", user.uid);
     }
+  } catch (error: any) {
+    console.error("❌ syncUserToFirestore FAILED:", error);
+    toast.error(`User sync failed: ${error?.message || error}`, { duration: 10000 });
+    // Re-throw so the caller knows the sync failed
+    throw error;
   }
 };
 
