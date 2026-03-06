@@ -1076,6 +1076,12 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         if (shot) shotMgr.handleText2Video(shot, options);
                     }}
                     isGenerating={editingShotId ? shotMgr.loadingShots.has(editingShotId) : false}
+                    sceneCharacters={castMembers.map((c: any) => ({ name: c.name, image_url: c.image_url || '' }))}
+                    sceneContext={{
+                        genre: currentScene?.genre,
+                        location: sceneLoc,
+                        scene_action: currentScene?.summary || currentScene?.visual_prompt,
+                    }}
                 />
 
                 <TourOverlay step={tourStep} steps={tourSteps} onNext={onTourNext} onComplete={onTourComplete} />

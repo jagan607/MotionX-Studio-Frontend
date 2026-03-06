@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2, Check } from 'lucide-react';
 import { VideoSettingsPanel } from './VideoSettingsPanel';
 import { ElementLibraryModal } from './ElementLibraryModal';
 import { KlingElement, useElementLibrary } from '@/app/hooks/shot-manager/useElementLibrary';
@@ -58,6 +58,13 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     const [elementList, setElementList] = useState<string[]>([]);
     const [manualElements, setManualElements] = useState<KlingElement[]>([]);
 
+    // ── AI Prompt Suggestion State ──
+    const suggestionCacheRef = useRef<Map<string, string>>(new Map());
+    const dismissedRef = useRef<Set<string>>(new Set());
+    const userEditedRef = useRef(false);
+    const [suggestion, setSuggestion] = useState<string | null>(null);
+    const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
+
     // Fetch elements on mount
     useEffect(() => {
         fetchElements();
@@ -69,6 +76,76 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
             setElementList(shot.video_settings?.element_list || []);
         }
     }, [shot?.id, shot?.video_settings?.element_list]);
+
+    // ── Background AI Suggestion Fetch ──
+    useEffect(() => {
+        if (!isOpen || !shot) {
+            setSuggestion(null);
+            return;
+        }
+
+        const shotId = shot.id;
+        userEditedRef.current = false;
+
+        // Already dismissed for this shot
+        if (dismissedRef.current.has(shotId)) {
+            setSuggestion(null);
+            return;
+        }
+
+        // Already cached
+        if (suggestionCacheRef.current.has(shotId)) {
+            setSuggestion(suggestionCacheRef.current.get(shotId)!);
+            return;
+        }
+
+        const prompt = shot.video_prompt || shot.visual_action || '';
+        if (!prompt.trim()) {
+            setSuggestion(null);
+            return;
+        }
+
+        const controller = new AbortController();
+        setIsFetchingSuggestion(true);
+
+        (async () => {
+            try {
+                const res = await api.post('/api/v1/shot/enhance_prompt', {
+                    prompt,
+                    provider: shot.video_settings?.provider || 'seedance-2',
+                    duration: shot.video_settings?.duration || '5',
+                    aspect_ratio: shot.video_settings?.aspect_ratio || '16:9',
+                    shot_type: shot.shot_type || shot.camera_shot_type,
+                    characters: sceneCharacters?.map(c => c.name).join(', ') || undefined,
+                    location: sceneContext?.location || undefined,
+                    genre: sceneContext?.genre || undefined,
+                    scene_action: sceneContext?.scene_action || shot.visual_action || undefined,
+                }, { signal: controller.signal });
+
+                if (controller.signal.aborted) return;
+
+                const enhanced = res.data?.enhanced_prompt;
+                if (enhanced && enhanced !== prompt) {
+                    suggestionCacheRef.current.set(shotId, enhanced);
+                    // Only show if user hasn't edited since we started
+                    if (!userEditedRef.current) {
+                        setSuggestion(enhanced);
+                    }
+                }
+            } catch {
+                // Fail silently — no toast, no error UI
+            } finally {
+                if (!controller.signal.aborted) {
+                    setIsFetchingSuggestion(false);
+                }
+            }
+        })();
+
+        return () => {
+            controller.abort();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, shot?.id]);
 
     // Derive full element objects (merge fresh fetch + manual cache)
     const combinedElements = [...allElements, ...manualElements];
@@ -160,7 +237,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                             <label className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Prompt</label>
                             <button
                                 type="button"
-                                disabled={isEnhancing || !(shot.video_prompt || shot.visual_action)}
+                                disabled={isEnhancing || isFetchingSuggestion || !(shot.video_prompt || shot.visual_action)}
                                 onClick={async () => {
                                     const prompt = shot.video_prompt || shot.visual_action || '';
                                     if (!prompt.trim()) return;
@@ -187,19 +264,23 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                     }
                                 }}
                                 className={`flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold transition-all
-                                    ${isEnhancing
-                                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 cursor-wait'
-                                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500/50 cursor-pointer'}
+                                    ${(isEnhancing || isFetchingSuggestion)
+                                        ? 'bg-white/[0.08] text-neutral-300 border border-white/[0.15] cursor-wait'
+                                        : 'bg-white/[0.05] text-neutral-400 border border-white/[0.1] hover:bg-white/[0.1] hover:border-white/[0.2] hover:text-white cursor-pointer'}
                                     disabled:opacity-30 disabled:cursor-not-allowed`}
                             >
-                                {isEnhancing ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                                {isEnhancing ? 'Enhancing...' : 'Enhance'}
+                                {(isEnhancing || isFetchingSuggestion) ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                                {isEnhancing ? 'Enhancing...' : isFetchingSuggestion ? 'Analyzing...' : 'Enhance'}
                             </button>
                         </div>
                         <div className="relative">
                             <textarea
                                 value={shot.video_prompt ?? shot.visual_action ?? ""}
-                                onChange={(e) => onUpdateShot(shot.id, 'video_prompt', e.target.value)}
+                                onChange={(e) => {
+                                    userEditedRef.current = true;
+                                    setSuggestion(null);
+                                    onUpdateShot(shot.id, 'video_prompt', e.target.value);
+                                }}
                                 placeholder="Describe the shot..."
                                 className={`w-full h-32 bg-[#1a1a1a] border border-white/[0.1] rounded-lg px-3 py-3 text-xs text-white outline-none focus:border-white/[0.3] resize-none leading-relaxed transition-all
                                     ${isEnhancing ? 'animate-pulse opacity-60' : ''}`}
@@ -215,6 +296,42 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                 )}
                             </div>
                         </div>
+
+                        {/* ── AI Suggestion Banner ── */}
+                        {suggestion && !isEnhancing && (
+                            <div className="mt-1.5 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.1]">
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Sparkles size={10} className="text-neutral-500" /> AI Suggestion
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                onUpdateShot(shot.id, 'video_prompt', suggestion);
+                                                setSuggestion(null);
+                                            }}
+                                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold bg-white/[0.06] text-neutral-300 border border-white/[0.1] hover:bg-white/[0.1] hover:border-white/[0.2] hover:text-white transition-all cursor-pointer"
+                                        >
+                                            <Check size={10} /> Apply
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                dismissedRef.current.add(shot.id);
+                                                setSuggestion(null);
+                                            }}
+                                            className="p-1 rounded-md text-neutral-600 hover:text-neutral-300 hover:bg-white/[0.05] transition-all cursor-pointer"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="text-[11px] text-neutral-400 leading-relaxed">
+                                    {suggestion}
+                                </p>
+                            </div>
+                        )}
 
                         {/* Camera Direction Hints */}
                         {(shot.video_settings?.provider === 'seedance-2' || shot.video_settings?.provider === 'seedance' || !shot.video_settings?.provider) && (
