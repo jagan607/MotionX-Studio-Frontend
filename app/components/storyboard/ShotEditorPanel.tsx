@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2, Check, Film, RefreshCw, Link2, Plus } from 'lucide-react';
 import { VideoSettingsPanel } from './VideoSettingsPanel';
 import { ElementLibraryModal } from './ElementLibraryModal';
 import { KlingElement, useElementLibrary } from '@/app/hooks/shot-manager/useElementLibrary';
@@ -64,6 +64,19 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     const userEditedRef = useRef(false);
     const [suggestion, setSuggestion] = useState<string | null>(null);
     const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
+
+    // ── Animate Info (reported by VideoSettingsPanel) ──
+    const [animateInfo, setAnimateInfo] = useState<{
+        handleAnimate: () => void;
+        cost: number;
+        disabled: boolean;
+        label: string;
+        icon: 'animate' | 're-animate' | 'morph' | 'busy';
+        extendAction?: { handleExtend: () => void; cost: number };
+    } | null>(null);
+    const handleAnimateInfoChange = useCallback((info: typeof animateInfo) => {
+        setAnimateInfo(info);
+    }, []);
 
     // Fetch elements on mount
     useEffect(() => {
@@ -388,6 +401,8 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                     sceneCharacters={sceneCharacters}
                                     locationImage={locationImage}
                                     onExtend={handleExtend}
+                                    hideActions
+                                    onAnimateInfoChange={handleAnimateInfoChange}
                                 />
                             </div>
                         </div>
@@ -399,6 +414,53 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                         </div>
                     )}
                 </div>
+
+                {/* ── Sticky Bottom Footer ── */}
+                {shot.image_url && animateInfo && (
+                    <div className="px-5 py-3 border-t border-white/[0.08] bg-[#141414] space-y-2 flex-shrink-0">
+                        <button
+                            onClick={animateInfo.handleAnimate}
+                            disabled={animateInfo.disabled}
+                            className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg text-[12px] font-bold transition-all
+                                ${animateInfo.icon === 'morph'
+                                    ? 'bg-[#E50914] text-white border border-[#E50914] hover:bg-[#E50914]/90'
+                                    : animateInfo.disabled
+                                        ? 'bg-white/[0.03] text-neutral-600 border border-white/[0.05] cursor-not-allowed'
+                                        : 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
+                                }
+                                ${animateInfo.icon === 'busy' ? '!cursor-not-allowed opacity-50' : ''}
+                            `}
+                        >
+                            {animateInfo.icon === 'busy' ? (
+                                <><Loader2 size={14} className="animate-spin" /> {animateInfo.label}</>
+                            ) : animateInfo.icon === 'morph' ? (
+                                <><Link2 size={14} /> {animateInfo.label}</>
+                            ) : (
+                                <>
+                                    {animateInfo.icon === 're-animate' ? <RefreshCw size={14} /> : <Film size={14} />}
+                                    {animateInfo.label}
+                                    {animateInfo.cost > 0 && (
+                                        <span className="opacity-60 text-[10px] font-normal">· {animateInfo.cost} cr</span>
+                                    )}
+                                </>
+                            )}
+                        </button>
+
+                        {animateInfo.extendAction && (
+                            <button
+                                type="button"
+                                onClick={animateInfo.extendAction.handleExtend}
+                                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold transition-all cursor-pointer
+                                    bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30
+                                    text-amber-300 hover:border-amber-500/60 hover:from-amber-500/15 hover:to-orange-500/15
+                                    shadow-[0_0_12px_rgba(245,158,11,0.08)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
+                            >
+                                <Plus size={12} /> Extend Video
+                                {animateInfo.extendAction.cost > 0 && <span className="opacity-60 text-[9px] font-normal">· {animateInfo.extendAction.cost} cr</span>}
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             <ElementLibraryModal

@@ -38,6 +38,17 @@ interface VideoSettingsPanelProps {
     // Persistence
     initialSettings?: any;
     onSettingsChange?: (settings: any) => void;
+
+    // External action button
+    hideActions?: boolean;
+    onAnimateInfoChange?: (info: {
+        handleAnimate: () => void;
+        cost: number;
+        disabled: boolean;
+        label: string;
+        icon: 'animate' | 're-animate' | 'morph' | 'busy';
+        extendAction?: { handleExtend: () => void; cost: number };
+    }) => void;
 }
 
 export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
@@ -58,7 +69,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     shot: shotData,
     sceneCharacters = [],
     locationImage,
-    onExtend
+    onExtend,
+    hideActions = false,
+    onAnimateInfoChange
 }) => {
     // --- State ---
     const [provider, setProvider] = useState<VideoProvider>(initialSettings?.provider || 'seedance-2');
@@ -219,6 +232,31 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         const endFrame = isLinked ? nextShotImage : (endFrameUrl || null);
         onAnimate(provider, endFrame, options);
     };
+
+    // Report animate info to parent when hideActions is on
+    React.useEffect(() => {
+        if (!onAnimateInfoChange) return;
+        const extendAction = (!isBusy && shotData?.seedance_task_id && shotData?.video_url && onExtend)
+            ? {
+                handleExtend: () => onExtend(shotData.seedance_task_id!, buildOptions()),
+                cost: videoCost
+            } : undefined;
+        onAnimateInfoChange({
+            handleAnimate,
+            cost: videoCost,
+            disabled: !hasImage || isBusy || !isDurationValid,
+            label: isBusy
+                ? (hasVideo ? 'Animating...' : 'Generating...')
+                : isLinked
+                    ? 'Morph to Next'
+                    : (hasVideo ? 'Re-Animate' : 'Animate'),
+            icon: isBusy ? 'busy' : isLinked ? 'morph' : (hasVideo ? 're-animate' : 'animate'),
+            extendAction,
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [provider, duration, mode, quality, aspectRatio, endFrameUrl, negativePrompt, cfgScale, sound,
+        watermark, multiShot, shotType, segments, elementList, voiceList, refImages,
+        hasImage, hasVideo, isBusy, isLinked, isDurationValid, videoCost]);
 
     // --- Helpers ---
     const addSegment = () => {
@@ -730,68 +768,72 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             }
 
             {/* ── Action Buttons ── */}
-            <div className="flex gap-2">
-                <button
-                    onClick={handleAnimate}
-                    disabled={!hasImage || isBusy}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[11px] font-bold transition-all
-                        ${isLinked
-                            ? 'bg-[#E50914] text-white border border-[#E50914] hover:bg-[#E50914]/90'
-                            : hasImage
-                                ? 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
-                                : 'bg-white/[0.03] text-neutral-600 border border-white/[0.05] cursor-not-allowed'
-                        }
-                        ${isBusy ? '!cursor-not-allowed opacity-50' : ''}
-                    `}
-                >
-                    {isBusy ? (
-                        <>
-                            <Loader2 size={13} className="animate-spin" />
-                            {hasVideo ? 'Animating...' : 'Generating...'}
-                        </>
-                    ) : isLinked ? (
-                        <><Link2 size={13} /> Morph to Next</>
-                    ) : (
-                        <>
-                            {hasVideo ? <RefreshCw size={13} /> : <Film size={13} />}
-                            {hasVideo ? 'Re-Animate' : 'Animate'}
-                            {videoCost > 0 && (
-                                <span className="opacity-60 text-[9px] font-normal">· {videoCost} cr</span>
+            {!hideActions && (
+                <>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleAnimate}
+                            disabled={!hasImage || isBusy}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[11px] font-bold transition-all
+                                ${isLinked
+                                    ? 'bg-[#E50914] text-white border border-[#E50914] hover:bg-[#E50914]/90'
+                                    : hasImage
+                                        ? 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
+                                        : 'bg-white/[0.03] text-neutral-600 border border-white/[0.05] cursor-not-allowed'
+                                }
+                                ${isBusy ? '!cursor-not-allowed opacity-50' : ''}
+                            `}
+                        >
+                            {isBusy ? (
+                                <>
+                                    <Loader2 size={13} className="animate-spin" />
+                                    {hasVideo ? 'Animating...' : 'Generating...'}
+                                </>
+                            ) : isLinked ? (
+                                <><Link2 size={13} /> Morph to Next</>
+                            ) : (
+                                <>
+                                    {hasVideo ? <RefreshCw size={13} /> : <Film size={13} />}
+                                    {hasVideo ? 'Re-Animate' : 'Animate'}
+                                    {videoCost > 0 && (
+                                        <span className="opacity-60 text-[9px] font-normal">· {videoCost} cr</span>
+                                    )}
+                                </>
                             )}
-                        </>
-                    )}
-                </button>
-            </div>
-
-            {/* Disabled Reason Helper */}
-            {
-                (!isBusy && !isLinked) && !hasImage && (
-                    <div className="text-[9px] text-center min-h-[14px]">
-                        <span className="text-red-400/80">Image required to animate.</span>
+                        </button>
                     </div>
-                )
-            }
 
-            {/* ── Extend + (Seedance 2.0 video continuation) ── */}
-            {
-                !isBusy && shotData?.seedance_task_id && shotData?.video_url && (
-                    <button
-                        type="button"
-                        onClick={() => {
-                            if (onExtend && shotData.seedance_task_id) {
-                                onExtend(shotData.seedance_task_id, buildOptions());
-                            }
-                        }}
-                        className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold transition-all cursor-pointer
-                        bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30
-                        text-amber-300 hover:border-amber-500/60 hover:from-amber-500/15 hover:to-orange-500/15
-                        shadow-[0_0_12px_rgba(245,158,11,0.08)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
-                    >
-                        <Plus size={12} /> Extend Video
-                        {videoCost > 0 && <span className="opacity-60 text-[9px] font-normal">· {videoCost} cr</span>}
-                    </button>
-                )
-            }
+                    {/* Disabled Reason Helper */}
+                    {
+                        (!isBusy && !isLinked) && !hasImage && (
+                            <div className="text-[9px] text-center min-h-[14px]">
+                                <span className="text-red-400/80">Image required to animate.</span>
+                            </div>
+                        )
+                    }
+
+                    {/* ── Extend + (Seedance 2.0 video continuation) ── */}
+                    {
+                        !isBusy && shotData?.seedance_task_id && shotData?.video_url && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (onExtend && shotData.seedance_task_id) {
+                                        onExtend(shotData.seedance_task_id, buildOptions());
+                                    }
+                                }}
+                                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold transition-all cursor-pointer
+                                bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30
+                                text-amber-300 hover:border-amber-500/60 hover:from-amber-500/15 hover:to-orange-500/15
+                                shadow-[0_0_12px_rgba(245,158,11,0.08)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
+                            >
+                                <Plus size={12} /> Extend Video
+                                {videoCost > 0 && <span className="opacity-60 text-[9px] font-normal">· {videoCost} cr</span>}
+                            </button>
+                        )
+                    }
+                </>
+            )}
         </div >
     );
 };
