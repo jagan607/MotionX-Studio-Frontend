@@ -74,10 +74,10 @@ async function getUsers(query: string) {
         };
     }));
 
-    // Sort users descending by createdAt (fallback to lastActiveAt)
+    // Sort users descending by lastActiveAt (fallback to createdAt)
     users.sort((a, b) => {
-        const dateA = a.createdAtRaw || a.lastActiveRaw || new Date(0);
-        const dateB = b.createdAtRaw || b.lastActiveRaw || new Date(0);
+        const dateA = a.lastActiveRaw || a.createdAtRaw || new Date(0);
+        const dateB = b.lastActiveRaw || b.createdAtRaw || new Date(0);
         return dateB.getTime() - dateA.getTime();
     });
 

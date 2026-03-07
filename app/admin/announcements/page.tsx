@@ -1,7 +1,8 @@
 import { adminDb } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
-import { Megaphone, Plus, Trash2, ToggleLeft, ToggleRight, Sparkles, Wrench, Zap, Image as ImageIcon, Film } from 'lucide-react';
+import { Megaphone, Plus, Trash2, ToggleLeft, ToggleRight, Sparkles, Wrench, Zap, Image as ImageIcon, Film, Mail } from 'lucide-react';
 import { AnnouncementForm } from './AnnouncementForm';
+import { EmailBlastForm } from './EmailBlastForm';
 
 // --- SERVER ACTIONS ---
 
@@ -157,6 +158,16 @@ export default async function AnnouncementsPage() {
                         );
                     })
                 )}
+            </div>
+
+            {/* EMAIL BLAST SECTION */}
+            <div className="bg-[#080808] border border-[#222] p-6">
+                <div className="flex items-center gap-3 mb-6 border-b border-[#222] pb-4">
+                    <Mail className="text-[#E50914]" size={16} />
+                    <h3 className="font-anton text-lg text-white uppercase tracking-wide">Email Blast</h3>
+                    <span className="text-[8px] font-mono text-[#444] uppercase tracking-widest ml-auto">Compose &amp; Send</span>
+                </div>
+                <EmailBlastForm />
             </div>
         </div>
     );

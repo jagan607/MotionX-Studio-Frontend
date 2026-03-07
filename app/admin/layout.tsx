@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { adminAuth } from '@/lib/firebase-admin';
 import Link from 'next/link';
-import { LayoutDashboard, Users, CreditCard, Activity, Terminal, ShieldAlert, Megaphone, Building, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Users, CreditCard, Activity, Terminal, ShieldAlert, Megaphone, Building, ShieldCheck, Mail } from 'lucide-react';
 
 // 🔒 SECURITY CONFIGURATION
 const ALLOWED_ADMINS = [
@@ -70,6 +70,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                     <AdminNavLink href="/admin" icon={LayoutDashboard} label="Command Center" />
                     <AdminNavLink href="/admin/users" icon={Users} label="User Database" />
                     <AdminNavLink href="/admin/announcements" icon={Megaphone} label="Announcements" />
+                    <AdminNavLink href="/admin/announcements#email-blast" icon={Mail} label="Email Blast" />
                     <AdminNavLink href="/admin/enterprise" icon={Building} label="Enterprise Setup" />
                     <AdminNavLink href="/admin/enterprise/configure" icon={ShieldCheck} label="SSO Configuration" />
                     <AdminNavLink href="/admin/finance" icon={CreditCard} label="Revenue Stream" />
