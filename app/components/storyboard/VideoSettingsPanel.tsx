@@ -161,6 +161,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         if (isSeedance2) setSound('on');
     }, [isSeedance2]);
 
+    // Auto-select Seedance 2.0 when morph-to-next is linked
+    React.useEffect(() => {
+        if (isLinked) setProvider('seedance-2');
+    }, [isLinked]);
+
     // Auto-populate reference images from scene assets
     React.useEffect(() => {
         if (!isSeedance2) return;
@@ -314,9 +319,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                 <div className="flex gap-1.5 flex-wrap">
                     <button
                         type="button"
-                        onClick={() => { if (!isLinked) setProvider('seedance-2'); }}
-                        disabled={isLinked}
-                        className={pill(isSeedance2, isLinked)}
+                        onClick={() => setProvider('seedance-2')}
+                        className={pill(isSeedance2)}
                     >
                         Seedance 2.0
                     </button>
