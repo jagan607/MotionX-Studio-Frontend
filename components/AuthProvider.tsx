@@ -1,11 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter, usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import toast from "react-hot-toast";
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -13,63 +11,12 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const router = useRouter();
   const pathname = usePathname();
 
-  // 1. SYNC AUTH STATE ON MOUNT (RUNS ONCE)
-  // CRITICAL: The callback is async so Firestore sync completes BEFORE
-  // authCheckComplete is set. This prevents the redirect effect from
-  // navigating away from /login before the user document is written.
+  // 1. LISTEN TO AUTH STATE (PASSIVE — no Firestore writes)
+  // All DB provisioning (user document, credits, welcome email) is handled
+  // exclusively by login/page.tsx to avoid dual-write race conditions.
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-
-      // JIT provisioning: sync tenant UID to Firestore on every login
-      if (currentUser) {
-        try {
-          const userRef = doc(db, "users", currentUser.uid);
-          const userSnap = await getDoc(userRef);
-
-          if (!userSnap.exists()) {
-            // 🛡️ FIRST TIME LOGIN: Document doesn't exist yet
-            // Pull true creation time from Google Auth metadata
-            const authCreationTime = currentUser.metadata.creationTime
-              ? new Date(currentUser.metadata.creationTime)
-              : serverTimestamp();
-
-            await setDoc(userRef, {
-              uid: currentUser.uid,
-              email: currentUser.email,
-              displayName: currentUser.displayName || "",
-              photoURL: currentUser.photoURL || "",
-              tenant_id: currentUser.tenantId || null,
-              plan: "free",
-              credits: 10,
-              createdAt: authCreationTime,
-              lastActiveAt: serverTimestamp(),
-              onboarding: {
-                asset_manager_tour: false,
-                dashboard_tour: false,
-                episode_tour: false,
-                series_tour: false,
-                storyboard_tour: false,
-                studio_tour: false,
-              },
-            });
-            console.log("✅ NEW USER DOCUMENT CREATED | UID:", currentUser.uid);
-          } else {
-            // 🔄 ROUTINE LOGIN: Document already exists.
-            // Update last-active timestamp (fire-and-forget is fine here).
-            setDoc(userRef, { lastActiveAt: serverTimestamp() }, { merge: true }).catch(
-              (e) => console.warn("⚠️ lastActiveAt update failed:", e)
-            );
-          }
-
-          console.log("✅ FIRESTORE SYNC SUCCESS | UID:", currentUser.uid);
-        } catch (error: any) {
-          console.error("❌ FIRESTORE SYNC FAILED:", error);
-          toast.error(`Database Sync Error: ${error?.message || error}`, { duration: 10000 });
-        }
-      }
-
-      // Mark auth check complete AFTER sync — prevents premature redirects
       setAuthCheckComplete(true);
     });
     return () => unsubscribe();
@@ -86,10 +33,8 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     if (!user && !isPublicPath) {
       router.push("/");
     }
-    // If user is logged in & trying to access Login -> Go Dashboard
-    else if (user && pathname === "/login") {
-      router.push("/dashboard");
-    }
+    // NOTE: Logged-in redirect from /login is handled inside login/page.tsx
+    // to avoid interrupting the onboarding pipeline (syncUserToFirestore, etc.)
   }, [user, authCheckComplete, pathname, router]);
 
 
@@ -101,10 +46,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     return <FullScreenLoader />;
   }
 
-  // B. User is logged in, but on Login Page (Wait for redirect)
-  if (user && pathname === "/login") {
-    return <FullScreenLoader />;
-  }
+  // B. Logged-in redirect from /login is handled by login/page.tsx itself
 
   // C. User is NOT logged in, but on Protected Page (Wait for redirect)
   const publicPaths = ["/", "/login", "/pricing"];

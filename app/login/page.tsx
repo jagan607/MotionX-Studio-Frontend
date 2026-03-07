@@ -74,6 +74,17 @@ export default function LoginPage() {
     setIsRestrictedBrowser(isInApp);
   }, []);
 
+  // 1b. REDIRECT ALREADY-LOGGED-IN USERS
+  // If someone manually navigates to /login while already authenticated,
+  // send them to dashboard. The isLoading guard ensures this never fires
+  // during an active login pipeline (syncUserToFirestore, user/init, etc.)
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (currentUser && !isLoading) {
+      router.push("/dashboard");
+    }
+  }, [isLoading, router]);
+
   // 2. HANDLE SSO REDIRECT CALLBACK
   useEffect(() => {
     const handleRedirectResult = async () => {

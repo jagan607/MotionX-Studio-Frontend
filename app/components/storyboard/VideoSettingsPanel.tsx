@@ -80,6 +80,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     // --- Provider Flags ---
     const isV3 = provider === 'kling-v3';
     const isSeedance2 = provider === 'seedance-2' || provider === 'seedance';
+    const isKling26 = provider === 'kling';
+    const isSeedance15 = provider === 'seedance-1.5';
+    const showSoundToggle = isKling26 || isSeedance15;
 
     // --- Pricing ---
     const { getVideoCost, getLipSyncCost } = usePricing();
@@ -212,6 +215,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             quality,
             reference_image_urls: refImages.length > 0 ? refImages : undefined,
         } : {}),
+        ...(showSoundToggle ? { sound } : {}),
         ...(isV3 && negativePrompt ? { negative_prompt: negativePrompt } : {}),
         ...(isV3 ? {
             cfg_scale: cfgScale,
@@ -352,6 +356,24 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         </button>
                         <button type="button" onClick={() => setMode('pro')} className={pill(mode === 'pro')}>
                             1080p
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Sound Toggle (Kling 2.6 & Seedance 1.5) ── */}
+            {showSoundToggle && !isBusy && (
+                <div className="flex items-center justify-between px-1">
+                    <span className="text-[10px] font-semibold text-neutral-400 flex items-center gap-1.5">
+                        <Volume2 size={12} className={sound === 'on' ? 'text-emerald-400' : 'text-neutral-600'} />
+                        Sound
+                    </span>
+                    <div className="flex gap-1">
+                        <button type="button" onClick={() => setSound('off')} className={pill(sound === 'off')}>
+                            Off
+                        </button>
+                        <button type="button" onClick={() => setSound('on')} className={pill(sound === 'on')}>
+                            On
                         </button>
                     </div>
                 </div>
