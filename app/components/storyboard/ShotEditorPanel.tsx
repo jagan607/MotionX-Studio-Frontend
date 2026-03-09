@@ -6,6 +6,7 @@ import { VideoSettingsPanel } from './VideoSettingsPanel';
 import { ElementLibraryModal } from './ElementLibraryModal';
 import { KlingElement, useElementLibrary } from '@/app/hooks/shot-manager/useElementLibrary';
 import { AnimateOptions, VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
+import { formatCredits } from '@/app/hooks/usePricing';
 import { api } from '@/lib/api';
 import Image from 'next/image';
 import { Shot } from '@/lib/types';
@@ -434,13 +435,13 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                             {animateInfo.icon === 'busy' ? (
                                 <><Loader2 size={14} className="animate-spin" /> {animateInfo.label}</>
                             ) : animateInfo.icon === 'morph' ? (
-                                <><Link2 size={14} /> {animateInfo.label}</>
+                                <><Link2 size={14} /> {animateInfo.label} {animateInfo.cost > 0 && <span className="opacity-60 text-[10px] font-normal">· {formatCredits(animateInfo.cost)} cr</span>}</>
                             ) : (
                                 <>
                                     {animateInfo.icon === 're-animate' ? <RefreshCw size={14} /> : <Film size={14} />}
                                     {animateInfo.label}
                                     {animateInfo.cost > 0 && (
-                                        <span className="opacity-60 text-[10px] font-normal">· {animateInfo.cost} cr</span>
+                                        <span className="opacity-60 text-[10px] font-normal">· {formatCredits(animateInfo.cost)} cr</span>
                                     )}
                                 </>
                             )}
@@ -456,7 +457,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                     shadow-[0_0_12px_rgba(245,158,11,0.08)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
                             >
                                 <Plus size={12} /> Extend Video
-                                {animateInfo.extendAction.cost > 0 && <span className="opacity-60 text-[9px] font-normal">· {animateInfo.extendAction.cost} cr</span>}
+                                {animateInfo.extendAction.cost > 0 && <span className="opacity-60 text-[9px] font-normal">· {formatCredits(animateInfo.extendAction.cost)} cr</span>}
                             </button>
                         )}
                     </div>

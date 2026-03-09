@@ -122,7 +122,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const surchargeFlags = {
         sound: isV3 ? sound === 'on' : (showSoundToggle ? sound === 'on' : false),
         multiShot: isV3 && multiShot,
-        hasEndFrame: (isSeedance2 || isV3) && !!endFrameUrl,
+        hasEndFrame: (isSeedance2 || isV3) && (!!endFrameUrl || (isLinked && !!nextShotImage)),
     };
     const videoCost = getVideoCost(pricingKey, mode, duration, surchargeFlags);
     const finalCost = isSeedance2 ? getVideoCost('seedance-2', mode, duration, surchargeFlags) : videoCost;
@@ -859,7 +859,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     {hasVideo ? 'Animating...' : 'Generating...'}
                                 </>
                             ) : isLinked ? (
-                                <><Link2 size={13} /> Morph to Next</>
+                                <><Link2 size={13} /> Morph to Next {videoCost > 0 && <span className="opacity-60 text-[9px] font-normal">· {formatCredits(videoCost)} cr</span>}</>
                             ) : (
                                 <>
                                     {hasVideo ? <RefreshCw size={13} /> : <Film size={13} />}
