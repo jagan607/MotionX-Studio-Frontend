@@ -176,10 +176,12 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         if (isSeedance2) setSound('on');
     }, [isSeedance2]);
 
-    // Auto-select Seedance 2.0 when morph-to-next is linked
+    // Auto-switch from legacy models when morph-to-next is linked
     React.useEffect(() => {
-        if (isLinked) setProvider('seedance-2');
-    }, [isLinked]);
+        if (isLinked && (provider === 'kling' || provider === 'seedance-1.5')) {
+            setProvider('kling-v3');
+        }
+    }, [isLinked, provider]);
 
     // Auto-populate reference images from scene assets
     React.useEffect(() => {
@@ -343,10 +345,20 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                     <button type="button" onClick={() => setProvider('kling-v3')} className={pill(provider === 'kling-v3')}>
                         Kling v3
                     </button>
-                    <button type="button" onClick={() => setProvider('seedance-1.5')} className={pill(provider === 'seedance-1.5')}>
+                    <button
+                        type="button"
+                        disabled={isLinked}
+                        onClick={() => setProvider('seedance-1.5')}
+                        className={`${pill(provider === 'seedance-1.5')} ${isLinked ? 'opacity-30 !cursor-not-allowed' : ''}`}
+                    >
                         Seedance 1.5
                     </button>
-                    <button type="button" onClick={() => setProvider('kling')} className={pill(provider === 'kling')}>
+                    <button
+                        type="button"
+                        disabled={isLinked}
+                        onClick={() => setProvider('kling')}
+                        className={`${pill(provider === 'kling')} ${isLinked ? 'opacity-30 !cursor-not-allowed' : ''}`}
+                    >
                         Kling 2.6
                     </button>
                 </div>
@@ -757,6 +769,98 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         )}
                                     </div>
                                 )}
+
+                                {/* ── End Frame (Kling v3) ── */}
+                                <div>
+                                    <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex items-center justify-between">
+                                        <span>
+                                            End Frame
+                                            {isLinked && nextShotImage
+                                                ? <span className="text-[#E50914] font-normal ml-1">· Linked</span>
+                                                : <span className="text-neutral-600 font-normal ml-1">(optional)</span>
+                                            }
+                                        </span>
+                                        {!isLinked && endFrameUrl && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setEndFrameUrl(null)}
+                                                className="text-[8px] text-red-400/70 hover:text-red-400 transition-colors"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </label>
+
+                                    {isLinked && nextShotImage ? (
+                                        <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-[#E50914]/30 bg-black">
+                                            <img src={nextShotImage} alt="Next Shot (Linked)" className="w-full h-full object-cover" />
+                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2.5 py-2">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Link2 size={9} className="text-[#E50914]" />
+                                                    <span className="text-[8px] text-neutral-300">Linked to next shot — morph target</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : endFrameUrl ? (
+                                        <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-white/[0.1] bg-black group">
+                                            <img src={endFrameUrl} alt="End Frame" className="w-full h-full object-cover" />
+                                            <button
+                                                type="button"
+                                                onClick={() => setEndFrameUrl(null)}
+                                                className="absolute top-1.5 right-1.5 p-1 bg-black/60 hover:bg-red-500/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all"
+                                            >
+                                                <X size={10} />
+                                            </button>
+                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
+                                                <span className="text-[8px] text-neutral-300">Target frame — video will transition to this image</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                ref={endFrameInputRef}
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    try {
+                                                        setIsUploadingEndFrame(true);
+                                                        const path = `end_frames/${Date.now()}_${file.name}`;
+                                                        const storageRef = ref(storage, path);
+                                                        await uploadBytes(storageRef, file);
+                                                        const url = await getDownloadURL(storageRef);
+                                                        setEndFrameUrl(url);
+                                                    } catch (err) {
+                                                        console.error('[EndFrameUpload] Failed:', err);
+                                                    } finally {
+                                                        setIsUploadingEndFrame(false);
+                                                        if (endFrameInputRef.current) endFrameInputRef.current.value = '';
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                disabled={isUploadingEndFrame}
+                                                onClick={() => endFrameInputRef.current?.click()}
+                                                className="w-full py-3 rounded-lg border border-dashed border-white/[0.12] flex flex-col items-center justify-center gap-1.5
+                                                    bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#E50914]/30 transition-all cursor-pointer
+                                                    disabled:opacity-40 disabled:cursor-wait"
+                                            >
+                                                {isUploadingEndFrame ? (
+                                                    <Loader2 size={16} className="text-[#E50914] animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        <ImagePlus size={16} className="text-neutral-500" />
+                                                        <span className="text-[9px] text-neutral-500">Add End Frame</span>
+                                                        <span className="text-[7px] text-neutral-600">Video will smoothly transition to this image</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
 
                                 {/* TODO: Uncomment Elements & Voices sections when switching to official Kling API
                                 <div className="space-y-3">
