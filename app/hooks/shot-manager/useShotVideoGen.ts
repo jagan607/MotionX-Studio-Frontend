@@ -11,7 +11,7 @@ export interface PromptSegment {
 }
 
 export interface AnimateOptions {
-    duration?: '3' | '5' | '10' | '15';
+    duration?: string;
     mode?: 'std' | 'pro';
     aspect_ratio?: '16:9' | '9:16' | '4:3' | '3:4' | '1:1';
 

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import type { VideoProvider, AnimateOptions, PromptSegment } from '@/app/hooks/shot-manager/useShotVideoGen';
 import type { KlingElement } from '@/app/hooks/shot-manager/useElementLibrary';
-import { usePricing } from '@/app/hooks/usePricing';
+import { usePricing, formatCredits } from '@/app/hooks/usePricing';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { api } from '@/lib/api';
@@ -75,7 +75,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 }) => {
     // --- State ---
     const [provider, setProvider] = useState<VideoProvider>(initialSettings?.provider || 'seedance-2');
-    const [duration, setDuration] = useState<'3' | '5' | '10' | '15'>(initialSettings?.duration || '5');
+    const [duration, setDuration] = useState<string>(initialSettings?.duration || '5');
     const [mode, setMode] = useState<'std' | 'pro'>(initialSettings?.mode || 'pro');
     // --- Provider Flags ---
     const isV3 = provider === 'kling-v3';
@@ -92,15 +92,13 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const [isUploadingRef, setIsUploadingRef] = useState(false);
     const refInputRef = useRef<HTMLInputElement>(null);
 
-    // End Frame (Seedance 2.0 start-to-end)
+     // End Frame (Seedance 2.0 start-to-end)
     const [endFrameUrl, setEndFrameUrl] = useState<string | null>(initialSettings?.end_frame_url || null);
     const [isUploadingEndFrame, setIsUploadingEndFrame] = useState(false);
     const endFrameInputRef = useRef<HTMLInputElement>(null);
 
     // Compute pricing key — seedance-2 draft uses 'seedance-2-fast' pricing
     const pricingKey = (isSeedance2 && quality === 'fast') ? 'seedance-2-fast' : provider;
-    const videoCost = getVideoCost(pricingKey, mode, duration);
-    const finalCost = isSeedance2 ? getVideoCost('seedance-2', mode, duration) : videoCost;
     const [showAdvanced, setShowAdvanced] = useState(false);
 
     // Advanced
@@ -119,6 +117,15 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const [internalElementList, setInternalElementList] = useState<string[]>(initialSettings?.element_list || []);
     const [voiceIdInput, setVoiceIdInput] = useState('');
     const [voiceList, setVoiceList] = useState<string[]>(initialSettings?.voice_list || []);
+
+    // Surcharge-aware pricing (must be after state declarations)
+    const surchargeFlags = {
+        sound: isV3 ? sound === 'on' : (showSoundToggle ? sound === 'on' : false),
+        multiShot: isV3 && multiShot,
+        hasEndFrame: (isSeedance2 || isV3) && !!endFrameUrl,
+    };
+    const videoCost = getVideoCost(pricingKey, mode, duration, surchargeFlags);
+    const finalCost = isSeedance2 ? getVideoCost('seedance-2', mode, duration, surchargeFlags) : videoCost;
 
     // Peak Hours Detection
     const [peakStatus, setPeakStatus] = useState<{ is_peak: boolean; wait: string; message: string } | null>(null);
@@ -151,9 +158,17 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
     // Auto-correct duration if not available for selected provider
     React.useEffect(() => {
-        if (!availableDurations.includes(duration as any)) {
+        if (provider === 'kling-v3') {
+            const val = parseInt(duration);
+            if (isNaN(val) || val < 3 || val > 15) setDuration('5');
+        } else if (!availableDurations.includes(duration as any)) {
             setDuration(availableDurations[1] as any); // default to 5s
         }
+    }, [provider]);
+
+    // Auto-expand Advanced Settings for Kling v3
+    React.useEffect(() => {
+        if (provider === 'kling-v3') setShowAdvanced(true);
     }, [provider]);
 
     // Seedance 2.0 has native audio — force sound on
@@ -342,16 +357,31 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                 <div className="flex gap-1.5 flex-wrap">
                     {/* Duration */}
                     <div className="flex gap-1 flex-1 min-w-[100px]">
-                        {availableDurations.map(d => (
-                            <button
-                                key={d}
-                                type="button"
-                                onClick={() => setDuration(d as any)}
-                                className={pill(duration === d)}
-                            >
-                                {d}s
-                            </button>
-                        ))}
+                        {isV3 ? (
+                            <div className="flex items-center gap-2 flex-1 px-2 py-1 bg-white/[0.03] border border-white/[0.08] rounded-md group hover:border-white/20 transition-colors">
+                                <span className="text-[10px] font-semibold text-neutral-400 group-hover:text-neutral-300 w-4">{duration}s</span>
+                                <input
+                                    type="range"
+                                    min="3"
+                                    max="15"
+                                    step="1"
+                                    value={duration}
+                                    onChange={(e) => setDuration(e.target.value)}
+                                    className="flex-1 h-1 bg-white/[0.08] rounded-full appearance-none cursor-pointer accent-[#E50914] min-w-[60px]"
+                                />
+                            </div>
+                        ) : (
+                            availableDurations.map(d => (
+                                <button
+                                    key={d}
+                                    type="button"
+                                    onClick={() => setDuration(d as any)}
+                                    className={pill(duration === d)}
+                                >
+                                    {d}s
+                                </button>
+                            ))
+                        )}
                     </div>
 
                     {/* Quality */}
@@ -410,7 +440,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <FastForward size={10} />
                                 <span className="text-[10px] font-bold">Draft</span>
                             </div>
-                            <div className="text-[8px] mt-0.5 opacity-60">{getVideoCost('seedance-2-fast', mode, duration)} cr</div>
+                            <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost('seedance-2-fast', mode, duration, surchargeFlags))} cr</div>
                         </button>
                         <button type="button" onClick={() => setQuality('pro')}
                             className={`flex-1 px-2 py-2 rounded-md text-center transition-all cursor-pointer select-none border
@@ -422,7 +452,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <Film size={10} />
                                 <span className="text-[10px] font-bold">Final</span>
                             </div>
-                            <div className="text-[8px] mt-0.5 opacity-60">{getVideoCost('seedance-2', mode, duration)} cr</div>
+                            <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost('seedance-2', mode, duration, surchargeFlags))} cr</div>
                         </button>
                     </div>
 
@@ -835,7 +865,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     {hasVideo ? <RefreshCw size={13} /> : <Film size={13} />}
                                     {hasVideo ? 'Re-Animate' : 'Animate'}
                                     {videoCost > 0 && (
-                                        <span className="opacity-60 text-[9px] font-normal">· {videoCost} cr</span>
+                                        <span className="opacity-60 text-[9px] font-normal">· {formatCredits(videoCost)} cr</span>
                                     )}
                                 </>
                             )}
@@ -867,7 +897,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 shadow-[0_0_12px_rgba(245,158,11,0.08)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
                             >
                                 <Plus size={12} /> Extend Video
-                                {videoCost > 0 && <span className="opacity-60 text-[9px] font-normal">· {videoCost} cr</span>}
+                                {videoCost > 0 && <span className="opacity-60 text-[9px] font-normal">· {formatCredits(videoCost)} cr</span>}
                             </button>
                         )
                     }

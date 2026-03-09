@@ -8,8 +8,12 @@ interface ModePricing {
     [duration: string]: number; // e.g. "3s": 5, "5s": 8
 }
 
+interface SurchargePricing {
+    [mode: string]: number; // e.g. "standard": 1.0, "pro": 1.0
+}
+
 interface ProviderPricing {
-    [mode: string]: ModePricing; // e.g. "standard": {...}, "pro": {...}
+    [key: string]: ModePricing | SurchargePricing; // modes + surcharge keys
 }
 
 interface LipsyncPricing {
@@ -28,10 +32,16 @@ export interface Pricing {
     lipsync: LipsyncPricing;
 }
 
+export interface VideoCostOptions {
+    sound?: boolean;
+    multiShot?: boolean;
+    hasEndFrame?: boolean;
+}
+
 interface PricingContextValue {
     pricing: Pricing | null;
     isLoaded: boolean;
-    getVideoCost: (provider: string, mode: string, duration: string) => number;
+    getVideoCost: (provider: string, mode: string, duration: string, options?: VideoCostOptions) => number;
     getLipSyncCost: (durationSeconds: number) => number;
     getImageCost: (tier?: 'flash' | 'pro') => number;
     getUpscaleCost: (tier?: 'flash' | 'pro') => number;
@@ -41,16 +51,27 @@ interface PricingContextValue {
     getEditCost: () => number;
 }
 
+// --- Formatting Helper ---
+export const formatCredits = (n: number | null | undefined): string => {
+    if (n === null || n === undefined) return '---';
+    if (n % 1 === 0) return n.toLocaleString();
+    return n.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+};
+
 // --- Default fallback pricing (used before API responds) ---
 const DEFAULT_PRICING: Pricing = {
     video: {
         "kling-v3": {
-            "standard": { "3s": 2, "5s": 3, "10s": 5, "15s": 8 },
-            "pro": { "3s": 3, "5s": 5, "10s": 8, "15s": 12 }
+            "standard": { "5s": 2.0, "10s": 4.0, "15s": 6.0 },
+            "pro": { "5s": 3.0, "10s": 6.0, "15s": 9.0 },
+            "audio_surcharge": { "standard": 1.0, "pro": 1.0 },
+            "multi_shot_surcharge": { "standard": 1.0, "pro": 1.0 },
+            "end_frame_surcharge": { "standard": 1.0, "pro": 1.0 }
         },
         "kling": {
-            "standard": { "5s": 2, "10s": 3 },
-            "pro": { "5s": 3, "10s": 5 }
+            "standard": { "5s": 1.0, "10s": 2.0 },
+            "pro": { "5s": 2.0, "10s": 4.0 },
+            "audio_surcharge": { "standard": 0.5, "pro": 1.0 }
         },
         "seedance-2": {
             "standard": { "3s": 2, "5s": 3, "10s": 5, "15s": 8 },
@@ -114,13 +135,33 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, []);
 
     // mode = "standard" | "pro", maps from UI "std" → "standard"
-    const getVideoCost = (provider: string, mode: string, duration: string): number => {
+    const getVideoCost = (provider: string, mode: string, duration: string, options?: VideoCostOptions): number => {
         const modeKey = mode === "std" ? "standard" : mode;
-        const durationKey = duration.endsWith("s") ? duration : `${duration}s`;
-        // Try API pricing first, fall back to defaults if provider/key missing
-        return pricing.video[provider]?.[modeKey]?.[durationKey]
-            ?? DEFAULT_PRICING.video[provider]?.[modeKey]?.[durationKey]
-            ?? 0;
+        const providerData = pricing.video[provider] ?? DEFAULT_PRICING.video[provider];
+        if (!providerData) return 0;
+
+        // 1. Get 5s base cost
+        const baseCost5s = (providerData[modeKey] as ModePricing)?.["5s"] ?? 0;
+
+        // 2. Collect surcharges
+        let surcharges = 0;
+        if (options?.sound === true) {
+            surcharges += (providerData.audio_surcharge as SurchargePricing)?.[modeKey] ?? 0;
+        }
+        if (options?.multiShot === true) {
+            surcharges += (providerData.multi_shot_surcharge as SurchargePricing)?.[modeKey] ?? 0;
+        }
+        if (options?.hasEndFrame === true) {
+            surcharges += (providerData.end_frame_surcharge as SurchargePricing)?.[modeKey] ?? 0;
+        }
+
+        // 3. Combine & interpolate
+        const total5sBase = baseCost5s + surcharges;
+        const numDuration = parseInt(duration) || 5;
+        const rawCost = (total5sBase / 5) * numDuration;
+
+        // 4. Round to 1 decimal
+        return Math.round(rawCost * 10) / 10;
     };
 
     const getLipSyncCost = (durationSeconds: number): number => {

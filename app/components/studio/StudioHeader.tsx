@@ -8,6 +8,7 @@ import {
     Plus, ChevronDown, Check, Wand2, Loader2, FileText, Database, RefreshCw, Palette
 } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
+import { formatCredits } from "@/app/hooks/usePricing";
 import CreditModal from "@/app/components/modals/CreditModal";
 import { auth } from "@/lib/firebase";
 import { fetchUserProjectsBasic, DashboardProject } from "@/lib/api";
@@ -239,7 +240,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                 {credits !== null && <div className="w-1 h-1 rounded-full bg-green-500 animate-pulse" />}
                             </div>
                             <div className="text-[13px] text-white font-bold font-mono tracking-wider leading-none">
-                                {credits !== null ? credits.toLocaleString() : <span className="text-[#333] animate-pulse">---</span>}
+                                {credits !== null ? formatCredits(credits) : <span className="text-[#333] animate-pulse">---</span>}
                             </div>
                         </div>
                         <button onClick={() => {

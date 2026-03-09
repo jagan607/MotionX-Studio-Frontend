@@ -5,6 +5,7 @@ import { X, Zap, ShieldCheck } from "lucide-react";
 import { TopUpCard } from "../TopUpCard";
 import { usePayment, getUserCurrency } from "@/lib/payment"; // Import helper
 import { useCredits } from "@/hooks/useCredits";
+import { formatCredits } from "@/app/hooks/usePricing";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -89,7 +90,7 @@ export default function CreditModal({ isOpen, onClose }: CreditModalProps) {
                             </h2>
                             <div className="flex items-center gap-4 mt-2">
                                 <p className="text-[#666] text-xs font-mono uppercase tracking-wider">
-                                    Current Balance: <span className="text-white font-bold">{credits ?? '---'}</span>
+                                    Current Balance: <span className="text-white font-bold">{formatCredits(credits)}</span>
                                 </p>
                                 <div className="h-3 w-[1px] bg-[#333]" />
                                 <p className="text-[#666] text-xs font-mono uppercase tracking-wider">

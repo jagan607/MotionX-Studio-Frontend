@@ -39,7 +39,7 @@ import Link from "next/link";
 
 // --- CONTEXT IMPORT ---
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
-import { PricingProvider } from "@/app/hooks/usePricing";
+import { PricingProvider, formatCredits } from "@/app/hooks/usePricing";
 import { useCredits } from '@/hooks/useCredits';
 
 //db
@@ -745,7 +745,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     {credits !== null && <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#22c55e' }} className="animate-pulse" />}
                                 </div>
                                 <div style={{ fontSize: '13px', color: 'white', fontWeight: 700, fontFamily: 'monospace', letterSpacing: '0.05em', lineHeight: 1 }}>
-                                    {credits !== null ? credits.toLocaleString() : <span style={{ color: '#333' }}>---</span>}
+                                    {credits !== null ? formatCredits(credits) : <span style={{ color: '#333' }}>---</span>}
                                 </div>
                             </div>
 
