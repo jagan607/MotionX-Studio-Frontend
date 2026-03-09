@@ -221,16 +221,17 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             reference_image_urls: refImages.length > 0 ? refImages : undefined,
         } : {}),
         ...(showSoundToggle ? { sound } : {}),
-        ...(isV3 && negativePrompt ? { negative_prompt: negativePrompt } : {}),
+        // TODO: Uncomment when switching to official Kling API
+        // ...(isV3 && negativePrompt ? { negative_prompt: negativePrompt } : {}),
         ...(isV3 ? {
-            cfg_scale: cfgScale,
+            // cfg_scale: cfgScale,        // TODO: Uncomment for official Kling API
             sound,
-            watermark,
+            // watermark,                  // TODO: Uncomment for official Kling API
             multi_shot: multiShot,
             shot_type: multiShot ? shotType : undefined,
             multi_prompt: (multiShot && shotType === 'customize') ? segments : undefined,
-            element_list: elementList.length > 0 ? elementList.map(id => ({ element_id: String(id) })) : undefined,
-            voice_list: voiceList.length > 0 ? voiceList.map(id => ({ voice_id: id })) : undefined,
+            // element_list: elementList.length > 0 ? elementList.map(id => ({ element_id: String(id) })) : undefined,  // TODO: Uncomment for official Kling API
+            // voice_list: voiceList.length > 0 ? voiceList.map(id => ({ voice_id: id })) : undefined,                  // TODO: Uncomment for official Kling API
         } : {}),
     });
 
@@ -627,7 +628,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
                         {showAdvanced && (
                             <div className="px-3 pb-3 space-y-4 border-t border-white/[0.04] bg-black/20 pt-3">
-                                {/* Negative Prompt */}
+                                {/* TODO: Uncomment Negative Prompt when switching to official Kling API
                                 <div>
                                     <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Negative Prompt</label>
                                     <textarea
@@ -638,8 +639,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         rows={2}
                                     />
                                 </div>
+                                */}
 
-                                {/* CFG Scale */}
+                                {/* TODO: Uncomment CFG Scale when switching to official Kling API
                                 <div>
                                     <label className="text-[9px] font-semibold text-neutral-500 mb-1.5 flex items-center justify-between">
                                         <span>Creativity (CFG)</span>
@@ -655,17 +657,34 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         className="w-full h-1 bg-white/[0.08] rounded-full appearance-none cursor-pointer accent-[#E50914]"
                                     />
                                 </div>
+                                */}
 
-                                {/* Sound + Watermark + Multi-Shot Toggles */}
+                                {/* Sound + Multi-Shot Toggles */}
                                 <div className="flex flex-wrap gap-4">
-                                    {[{ label: 'Sound', val: sound === 'on', set: () => setSound(sound === 'on' ? 'off' : 'on') }, { label: 'Watermark', val: watermark, set: () => setWatermark(!watermark) }, { label: 'Multi-Shot', val: multiShot, set: () => setMultiShot(!multiShot) }].map((t, i) => (
-                                        <label key={i} className="flex items-center gap-2 cursor-pointer group">
-                                            <div onClick={t.set} className={`w-7 h-3.5 rounded-full transition-colors relative ${t.val ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
-                                                <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${t.val ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
-                                            </div>
-                                            <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">{t.label}</span>
-                                        </label>
-                                    ))}
+                                    {/* Sound Toggle */}
+                                    <label className="flex items-center gap-2 cursor-pointer group">
+                                        <div onClick={() => setSound(sound === 'on' ? 'off' : 'on')} className={`w-7 h-3.5 rounded-full transition-colors relative ${sound === 'on' ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
+                                            <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${sound === 'on' ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                        </div>
+                                        <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">Sound</span>
+                                    </label>
+
+                                    {/* TODO: Uncomment Watermark toggle when switching to official Kling API
+                                    <label className="flex items-center gap-2 cursor-pointer group">
+                                        <div onClick={() => setWatermark(!watermark)} className={`w-7 h-3.5 rounded-full transition-colors relative ${watermark ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
+                                            <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${watermark ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                        </div>
+                                        <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">Watermark</span>
+                                    </label>
+                                    */}
+
+                                    {/* Multi-Shot Toggle */}
+                                    <label className="flex items-center gap-2 cursor-pointer group">
+                                        <div onClick={() => setMultiShot(!multiShot)} className={`w-7 h-3.5 rounded-full transition-colors relative ${multiShot ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
+                                            <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${multiShot ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                        </div>
+                                        <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">Multi-Shot</span>
+                                    </label>
                                 </div>
 
                                 {/* ── Multi-Shot Editor ── */}
@@ -709,18 +728,15 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     </div>
                                 )}
 
-                                {/* ── Elements & Voices ── */}
+                                {/* TODO: Uncomment Elements & Voices sections when switching to official Kling API
                                 <div className="space-y-3">
-                                    {/* Elements */}
                                     <div className={voiceList.length > 0 ? 'opacity-30 pointer-events-none' : ''}>
                                         <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex justify-between items-center">
                                             <span>Elements (Max 6)</span>
                                             <span className="text-neutral-500">{elementList.length}/6</span>
                                         </label>
 
-                                        {/* Element Grid */}
                                         <div className="grid grid-cols-3 gap-2">
-                                            {/* Render Selected */}
                                             {elementList.map((id) => {
                                                 const el = selectedElements.find(e => e.id === id || e.local_id === id);
                                                 return (
@@ -733,12 +749,10 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                             </div>
                                                         )}
 
-                                                        {/* ID Badge */}
                                                         <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-sm px-1.5 py-1 text-[8px] text-white font-mono truncate">
                                                             {el?.name || id}
                                                         </div>
 
-                                                        {/* Remove Button */}
                                                         <button
                                                             onClick={() => handleElementListChange(elementList.filter(e => e !== id))}
                                                             className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-red-500/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all"
@@ -749,7 +763,6 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                 );
                                             })}
 
-                                            {/* Add Button */}
                                             {elementList.length < 6 && (
                                                 <button
                                                     type="button"
@@ -763,7 +776,6 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         </div>
                                     </div>
 
-                                    {/* Voices (Simple List) */}
                                     <div className={elementList.length > 0 ? 'opacity-30 pointer-events-none' : ''}>
                                         <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Voices (Max 2)</label>
                                         <div className="flex gap-1.5 mb-1.5">
@@ -786,6 +798,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         </div>
                                     </div>
                                 </div>
+                                */}
 
                             </div>
                         )}
