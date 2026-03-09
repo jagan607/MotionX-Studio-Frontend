@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-    ArrowLeft,
+    ArrowLeft, Clapperboard,
     Plus, ChevronDown, Check, Wand2, Loader2, FileText, Database, RefreshCw, Palette
 } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
@@ -83,11 +83,10 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
 
             <header className={`h-20 border-b border-white/[0.06] bg-[#050505]/85 backdrop-blur-xl flex items-center justify-between px-8 shrink-0 z-50 ${className}`}>
 
-                {/* --- LEFT: BACK + STUDIO TITLE --- */}
                 <div className="flex items-center h-full gap-6">
-                    <Link href="/dashboard" className="flex items-center gap-3 text-[#555] hover:text-white transition-colors group h-full">
+                    <Link href={`/project/${projectId}`} className="flex items-center gap-3 text-[#555] hover:text-white transition-colors group h-full">
                         <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-[10px] font-bold tracking-[0.2em] uppercase">Dashboard</span>
+                        <span className="text-[10px] font-bold tracking-[0.2em] uppercase">Project Hub</span>
                     </Link>
                 </div>
 
@@ -200,31 +199,11 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                     </button>
                                 )}
                                 <Link
-                                    href={`/project/${projectId}/moodboard${activeEpisodeId ? `?episode_id=${activeEpisodeId}` : ''}`}
-                                    className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md no-underline"
+                                    href={`/project/${projectId}/preproduction`}
+                                    className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-[#D4A843] uppercase tracking-wide transition-colors rounded-md no-underline"
+                                    title="Go back to Pre-Production Canvas (Script, Cast, Locations)"
                                 >
-                                    <Palette size={14} /> Moodboard
-                                </Link>
-                                {onOpenAssets ? (
-                                    <button
-                                        onClick={onOpenAssets}
-                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md cursor-pointer"
-                                    >
-                                        <Database size={14} /> Assets
-                                    </button>
-                                ) : (
-                                    <Link
-                                        href={`/project/${projectId}/assets`}
-                                        className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md no-underline"
-                                    >
-                                        <Database size={14} /> Assets
-                                    </Link>
-                                )}
-                                <Link
-                                    href={`/project/${projectId}/treatment`}
-                                    className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md no-underline cursor-pointer"
-                                >
-                                    <FileText size={14} /> Treatment
+                                    <Clapperboard size={14} /> Pre-Production
                                 </Link>
                             </div>
                             <div className="h-8 w-[1px] bg-[#222]" />

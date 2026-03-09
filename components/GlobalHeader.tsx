@@ -34,7 +34,9 @@ export default function GlobalHeader() {
         pathname.includes('/editor') ||
         pathname.includes('/moodboard') ||
         pathname.includes('/treatment') ||
-        pathname.includes('/ugc')
+        pathname.includes('/preproduction') ||
+        // Check if it's strictly /project/[id]
+        pathname.match(/^\/project\/[a-zA-Z0-9_-]+$/) !== null
     );
 
     if (pathname === "/login" || pathname === "/" || pathname === "/pricing" || isEditorPage) {
