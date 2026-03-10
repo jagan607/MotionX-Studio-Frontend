@@ -197,14 +197,6 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         }
     }, [isLinked, provider]);
 
-    // Auto-populate reference images from scene assets
-    React.useEffect(() => {
-        if (!isSeedance2) return;
-        const autoRefs: string[] = [];
-        sceneCharacters.forEach(c => { if (c.image_url && !autoRefs.includes(c.image_url)) autoRefs.push(c.image_url); });
-        if (locationImage && !autoRefs.includes(locationImage)) autoRefs.push(locationImage);
-        if (autoRefs.length > 0 && refImages.length === 0) setRefImages(autoRefs.slice(0, 5));
-    }, [isSeedance2, sceneCharacters, locationImage]);
 
     // Derived state for controlled vs uncontrolled
     const elementList = propElementList || internalElementList;
