@@ -187,6 +187,18 @@ export interface CameraTransform {
     fov: number; // Field of view / focal length equiv
 }
 
+export interface VideoHistoryEntry {
+    url: string;
+    provider: string;       // e.g., 'kling-v3', 'seedance-2'
+    prompt: string;
+    mode: string;
+    duration: number;
+    aspect_ratio: string;
+    credits_charged: number;
+    created_at: any;         // Firestore Timestamp
+    task_id: string;
+}
+
 export interface Shot {
     id: string;
     shot_type: string;
@@ -203,6 +215,9 @@ export interface Shot {
     image_url?: string;
     video_url?: string;
     lipsync_url?: string; // Added for UI
+
+    // [NEW] Video generation history (1:N)
+    video_history?: VideoHistoryEntry[];
 
     camera_transform?: CameraTransform;
     camera_shot_type?: string;

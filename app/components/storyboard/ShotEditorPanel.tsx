@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2, Check, Film, RefreshCw, Link2, Plus } from 'lucide-react';
+import { VideoHistoryStrip } from './VideoHistoryStrip';
 import { VideoSettingsPanel } from './VideoSettingsPanel';
 import { ElementLibraryModal } from './ElementLibraryModal';
 import { KlingElement, useElementLibrary } from '@/app/hooks/shot-manager/useElementLibrary';
@@ -9,7 +10,7 @@ import { AnimateOptions, VideoProvider } from '@/app/hooks/shot-manager/useShotV
 import { formatCredits } from '@/app/hooks/usePricing';
 import { api } from '@/lib/api';
 import Image from 'next/image';
-import { Shot } from '@/lib/types';
+import { Shot, VideoHistoryEntry } from '@/lib/types';
 
 interface ShotEditorPanelProps {
     shot: Shot | null;
@@ -65,6 +66,13 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     const userEditedRef = useRef(false);
     const [suggestion, setSuggestion] = useState<string | null>(null);
     const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
+
+    // ── Video History Preview State ──
+    const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
+    // Reset preview when shot changes
+    useEffect(() => {
+        setPreviewVideoUrl(null);
+    }, [shot?.id]);
 
     // ── Animate Info (reported by VideoSettingsPanel) ──
     const [animateInfo, setAnimateInfo] = useState<{
@@ -233,8 +241,8 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                 <div className="flex-1 overflow-y-auto p-5 space-y-6">
                     {/* Preview Area */}
                     <div className="aspect-video bg-black rounded-lg overflow-hidden border border-white/[0.1] relative group">
-                        {shot.video_url ? (
-                            <video src={shot.video_url} controls className="w-full h-full object-contain" />
+                        {(previewVideoUrl || shot.video_url) ? (
+                            <video key={previewVideoUrl || shot.video_url} src={previewVideoUrl || shot.video_url} controls className="w-full h-full object-contain" />
                         ) : shot.image_url ? (
                             <Image src={shot.image_url} alt="Shot Preview" fill className="object-cover" />
                         ) : (
@@ -244,6 +252,17 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                             </div>
                         )}
                     </div>
+
+                    {/* Video History Strip */}
+                    <VideoHistoryStrip
+                        history={shot.video_history || []}
+                        activeVideoUrl={shot.video_url}
+                        onPreview={(entry) => setPreviewVideoUrl(entry.url)}
+                        onRestore={(entry) => {
+                            onUpdateShot(shot.id, 'video_url', entry.url);
+                            setPreviewVideoUrl(null);
+                        }}
+                    />
 
                     {/* Prompt Editor */}
                     <div className="space-y-2">
