@@ -56,6 +56,11 @@ export default function LoginPage() {
   const [isHovered, setIsHovered] = useState(false);
   const [isRestrictedBrowser, setIsRestrictedBrowser] = useState(false);
 
+  // Track if we're redirecting an already-authenticated user.
+  // Initialized synchronously from auth.currentUser so the login UI
+  // NEVER flashes — we show a loader from the very first render frame.
+  const [isRedirecting, setIsRedirecting] = useState(() => !!auth.currentUser);
+
   // SSO Toggle State
   const [isSSOView, setIsSSOView] = useState(false);
   const [ssoInput, setSsoInput] = useState("");
@@ -81,6 +86,7 @@ export default function LoginPage() {
   useEffect(() => {
     const currentUser = auth.currentUser;
     if (currentUser && !isLoading) {
+      setIsRedirecting(true);
       router.push("/dashboard");
     }
   }, [isLoading, router]);
@@ -359,6 +365,15 @@ export default function LoginPage() {
     ssoInput: { width: '100%', padding: '16px 18px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#EDEDED', fontFamily: 'Inter, sans-serif', fontSize: '13px', outline: 'none', marginBottom: '12px', transition: 'border-color 0.2s ease', boxSizing: 'border-box' as const },
     fadeIn: { animation: 'fadeSlideIn 0.3s ease-out' }
   };
+
+  // If already authenticated, show a loader instead of flashing the login UI
+  if (isRedirecting) {
+    return (
+      <div className="h-screen w-screen bg-[#050505] flex items-center justify-center">
+        <Activity size={32} className="animate-spin text-[#E50914]" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col lg:flex-row h-screen w-screen bg-[#050505] text-[#EDEDED] font-sans overflow-hidden">

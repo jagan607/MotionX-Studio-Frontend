@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { doc, onSnapshot, deleteDoc, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, Plus, Film, Radio, Image as ImageIcon, Crosshair, Maximize, Play, ChevronLeft, ChevronRight, Trash2, ArrowRight, Megaphone, Sparkles, Zap, Wrench, X, Share2, Globe, Users as UsersIcon, Lock } from "lucide-react";
@@ -180,44 +180,48 @@ export default function Dashboard() {
     };
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // FIX #3: Clean up previous credits listener before creating new one
-                creditsUnsubRef.current?.();
-                creditsUnsubRef.current = onSnapshot(
-                    doc(db, "users", user.uid),
-                    (d) => setUserCredits(d.data()?.credits || 0)
-                );
+        // AuthProvider guarantees auth is resolved before rendering children,
+        // so auth.currentUser is always available here. No need for a separate
+        // onAuthStateChanged listener (which races with AuthProvider and causes
+        // a login-page flicker when it fires with null before session restores).
+        const user = auth.currentUser;
+        if (!user) return; // AuthProvider handles redirect for unauthenticated users
 
-                // 1. FAST LOAD: Metadata
-                const feedPromise = fetchGlobalFeed();
-                const basicsPromise = fetchUserProjectsBasic(user.uid);
+        // FIX #3: Clean up previous credits listener before creating new one
+        creditsUnsubRef.current?.();
+        creditsUnsubRef.current = onSnapshot(
+            doc(db, "users", user.uid),
+            (d) => setUserCredits(d.data()?.credits || 0)
+        );
 
-                const [basics, feed] = await Promise.all([basicsPromise, feedPromise]);
+        // 1. FAST LOAD: Metadata
+        const loadData = async () => {
+            const feedPromise = fetchGlobalFeed();
+            const basicsPromise = fetchUserProjectsBasic(user.uid);
 
-                setMyProjects(basics);
-                setGlobalShots(feed);
-                setBootState('ready');
+            const [basics, feed] = await Promise.all([basicsPromise, feedPromise]);
 
-                // 2. SLOW LOAD: Hydrate media one by one
-                for (const p of basics) {
-                    enrichProjectPreview(p).then(enriched => {
-                        setMyProjects(prev => prev.map(item =>
-                            item.id === enriched.id ? enriched : item
-                        ));
-                    });
-                }
-            } else {
-                router.replace("/login");
+            setMyProjects(basics);
+            setGlobalShots(feed);
+            setBootState('ready');
+
+            // 2. SLOW LOAD: Hydrate media one by one
+            for (const p of basics) {
+                enrichProjectPreview(p).then(enriched => {
+                    setMyProjects(prev => prev.map(item =>
+                        item.id === enriched.id ? enriched : item
+                    ));
+                });
             }
-        });
+        };
+        loadData();
+
         return () => {
-            unsubscribe();
             // FIX #3: Cleanup listeners on unmount
             creditsUnsubRef.current?.();
             projectTypeUnsubRef.current?.();
         };
-    }, [router]);
+    }, []);
 
     // Navigate to a project's studio page
     const navigateToProject = useCallback((project: DashboardProject, type?: string) => {
