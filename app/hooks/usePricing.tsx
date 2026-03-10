@@ -36,6 +36,7 @@ export interface VideoCostOptions {
     sound?: boolean;
     multiShot?: boolean;
     hasEndFrame?: boolean;
+    resolution?: 'std' | 'pro'; // For providers where resolution affects pricing independently (e.g., Seedance 1.5)
 }
 
 interface PricingContextValue {
@@ -74,20 +75,21 @@ const DEFAULT_PRICING: Pricing = {
             "audio_surcharge": { "standard": 0.5, "pro": 1.0 }
         },
         "seedance-2": {
-            "standard": { "3s": 2, "5s": 3, "10s": 5, "15s": 8 },
-            "pro": { "3s": 3, "5s": 4, "10s": 8, "15s": 12 }
+            "standard": { "5s": 2.0, "10s": 4.0, "15s": 6.0 },
+            "pro": { "5s": 3.0, "10s": 6.0, "15s": 9.0 },
+            "audio_surcharge": { "standard": 0.0, "pro": 0.0 },
+            "end_frame_surcharge": { "standard": 0.3, "pro": 0.3 }
         },
         "seedance": {
-            "standard": { "3s": 2, "5s": 3, "10s": 5, "15s": 8 },
-            "pro": { "3s": 3, "5s": 4, "10s": 8, "15s": 12 }
+            "standard": { "5s": 2.0, "10s": 4.0, "15s": 6.0 },
+            "pro": { "5s": 3.0, "10s": 6.0, "15s": 9.0 },
+            "audio_surcharge": { "standard": 0.0, "pro": 0.0 },
+            "end_frame_surcharge": { "standard": 0.3, "pro": 0.3 }
         },
         "seedance-1.5": {
-            "standard": { "5s": 3, "10s": 5 },
-            "pro": { "5s": 4, "10s": 8 }
-        },
-        "seedance-2-fast": {
-            "standard": { "3s": 1, "5s": 2, "10s": 3, "15s": 5 },
-            "pro": { "3s": 2, "5s": 2, "10s": 4, "15s": 7 }
+            "standard": { "5s": 1.0, "10s": 2.0 },
+            "pro": { "5s": 2.0, "10s": 4.0 },
+            "audio_surcharge": { "standard": 0.0, "pro": 0.0 }
         }
     },
     image: { flash: 1, pro: 2 },
@@ -140,8 +142,37 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const providerData = pricing.video[provider] ?? DEFAULT_PRICING.video[provider];
         if (!providerData) return 0;
 
-        // 1. Get 5s base cost
-        const baseCost5s = (providerData[modeKey] as ModePricing)?.["5s"] ?? 0;
+        // Duration key: append _1080p suffix when resolution is 'pro' (for providers like Seedance 1.5)
+        const dur = parseInt(duration) || 5;
+        const baseDurKey = `${dur}s`;
+        const durKey = options?.resolution === 'pro' ? `${dur}s_1080p` : baseDurKey;
+
+        // 1. Get base cost — try resolution-specific key first, fallback to standard key
+        const tierData = providerData[modeKey] as ModePricing;
+        const baseCost = tierData?.[durKey] ?? tierData?.[baseDurKey] ?? 0;
+
+        // If we found an exact match for the duration, use it directly (no interpolation needed)
+        if (baseCost > 0) {
+            // Still apply surcharges on top
+            let surcharges = 0;
+            if (options?.sound === true) {
+                surcharges += (providerData.audio_surcharge as SurchargePricing)?.[modeKey] ?? 0;
+            }
+            if (options?.multiShot === true) {
+                surcharges += (providerData.multi_shot_surcharge as SurchargePricing)?.[modeKey] ?? 0;
+            }
+            if (options?.hasEndFrame === true) {
+                surcharges += (providerData.end_frame_surcharge as SurchargePricing)?.[modeKey] ?? 0;
+            }
+            // Interpolate from 5s base
+            const base5s = tierData?.[options?.resolution === 'pro' ? '5s_1080p' : '5s'] ?? tierData?.['5s'] ?? 0;
+            const total5sBase = base5s + surcharges;
+            const rawCost = (total5sBase / 5) * dur;
+            return Math.round(rawCost * 10) / 10;
+        }
+
+        // Fallback: proportional from 5s base
+        const base5s = tierData?.[options?.resolution === 'pro' ? '5s_1080p' : '5s'] ?? tierData?.['5s'] ?? 0;
 
         // 2. Collect surcharges
         let surcharges = 0;
@@ -156,9 +187,8 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
 
         // 3. Combine & interpolate
-        const total5sBase = baseCost5s + surcharges;
-        const numDuration = parseInt(duration) || 5;
-        const rawCost = (total5sBase / 5) * numDuration;
+        const total5sBase = base5s + surcharges;
+        const rawCost = (total5sBase / 5) * dur;
 
         // 4. Round to 1 decimal
         return Math.round(rawCost * 10) / 10;

@@ -97,8 +97,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const [isUploadingEndFrame, setIsUploadingEndFrame] = useState(false);
     const endFrameInputRef = useRef<HTMLInputElement>(null);
 
-    // Compute pricing key — seedance-2 draft uses 'seedance-2-fast' pricing
-    const pricingKey = (isSeedance2 && quality === 'fast') ? 'seedance-2-fast' : provider;
+
     const [showAdvanced, setShowAdvanced] = useState(false);
 
     // Advanced
@@ -119,13 +118,15 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const [voiceList, setVoiceList] = useState<string[]>(initialSettings?.voice_list || []);
 
     // Surcharge-aware pricing (must be after state declarations)
+    // For Seedance 1.5: Sound toggle determines the pricing TIER (std/pro), not a surcharge
+    const pricingMode = isSeedance15 ? (sound === 'on' ? 'pro' : 'std') : mode;
     const surchargeFlags = {
-        sound: isV3 ? sound === 'on' : (showSoundToggle ? sound === 'on' : false),
+        sound: isV3 ? sound === 'on' : (!isSeedance15 && showSoundToggle ? sound === 'on' : false),
         multiShot: isV3 && multiShot,
         hasEndFrame: (isSeedance2 || isV3) && (!!endFrameUrl || (isLinked && !!nextShotImage)),
+        resolution: mode as 'std' | 'pro',
     };
-    const videoCost = getVideoCost(pricingKey, mode, duration, surchargeFlags);
-    const finalCost = isSeedance2 ? getVideoCost('seedance-2', mode, duration, surchargeFlags) : videoCost;
+    const videoCost = getVideoCost(provider, pricingMode, duration, surchargeFlags);
 
     // Peak Hours Detection
     const [peakStatus, setPeakStatus] = useState<{ is_peak: boolean; wait: string; message: string } | null>(null);
@@ -153,7 +154,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const availableDurations = (() => {
         if (provider === 'kling') return ['5', '10'] as const;
         if (provider === 'seedance-1.5') return ['5', '10'] as const;
-        return ['3', '5', '10', '15'] as const; // seedance-2, kling-v3
+        if (isSeedance2) return ['5', '10', '15'] as const;
+        return ['3', '5', '10', '15'] as const; // kling-v3
     })();
 
     // Auto-correct duration if not available for selected provider
@@ -175,6 +177,18 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     React.useEffect(() => {
         if (isSeedance2) setSound('on');
     }, [isSeedance2]);
+
+    // Seedance 2.0: resolution is dictated by Draft/Final tier
+    React.useEffect(() => {
+        if (isSeedance2) {
+            setMode(quality === 'fast' ? 'std' : 'pro');
+        }
+    }, [isSeedance2, quality]);
+
+    // Seedance 1.5: 1080p not supported — force 720p
+    React.useEffect(() => {
+        if (isSeedance15) setMode('std');
+    }, [isSeedance15]);
 
     // Auto-switch from legacy models when morph-to-next is linked
     React.useEffect(() => {
@@ -398,10 +412,20 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
                     {/* Quality */}
                     <div className="flex gap-1 flex-shrink-0">
-                        <button type="button" onClick={() => setMode('std')} className={pill(mode === 'std')}>
+                        <button
+                            type="button"
+                            disabled={isSeedance2 && quality === 'pro'}
+                            onClick={() => setMode('std')}
+                            className={`${pill(mode === 'std')} ${isSeedance2 && quality === 'pro' ? 'opacity-30 !cursor-not-allowed' : ''}`}
+                        >
                             720p
                         </button>
-                        <button type="button" onClick={() => setMode('pro')} className={pill(mode === 'pro')}>
+                        <button
+                            type="button"
+                            disabled={(isSeedance2 && quality === 'fast') || isSeedance15}
+                            onClick={() => setMode('pro')}
+                            className={`${pill(mode === 'pro')} ${(isSeedance2 && quality === 'fast') || isSeedance15 ? 'opacity-30 !cursor-not-allowed' : ''}`}
+                        >
                             1080p
                         </button>
                     </div>
@@ -452,7 +476,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <FastForward size={10} />
                                 <span className="text-[10px] font-bold">Draft</span>
                             </div>
-                            <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost('seedance-2-fast', mode, duration, surchargeFlags))} cr</div>
+                            <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost('seedance-2', 'std', duration, surchargeFlags))} cr</div>
                         </button>
                         <button type="button" onClick={() => setQuality('pro')}
                             className={`flex-1 px-2 py-2 rounded-md text-center transition-all cursor-pointer select-none border
@@ -464,7 +488,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <Film size={10} />
                                 <span className="text-[10px] font-bold">Final</span>
                             </div>
-                            <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost('seedance-2', mode, duration, surchargeFlags))} cr</div>
+                            <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost('seedance-2', 'pro', duration, surchargeFlags))} cr</div>
                         </button>
                     </div>
 
