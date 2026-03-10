@@ -45,6 +45,18 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     locationImage,
     sceneContext
 }) => {
+    // ── Stable callbacks for VideoSettingsPanel (breaks Firestore write loops) ──
+    const handleSettingsChange = useCallback((newSettings: any) => {
+        if (shot) onUpdateShot(shot.id, 'video_settings', newSettings);
+    }, [shot?.id, onUpdateShot]);
+
+    const handleElementListChangeForSettings = useCallback((list: string[]) => {
+        if (!shot) return;
+        setElementList(list);
+        const currentSettings = shot.video_settings || {};
+        onUpdateShot(shot.id, 'video_settings', { ...currentSettings, element_list: list });
+    }, [shot?.id, shot?.video_settings, onUpdateShot]);
+
     const [isEnhancing, setIsEnhancing] = useState(false);
     const {
         elements: allElements,
@@ -93,11 +105,15 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     }, [fetchElements]);
 
     // Reset state when shot changes
+    // NOTE: Use serialized string for element_list dep to avoid infinite loop —
+    // each Firestore snapshot creates a new [] reference even if content is identical.
+    const elementListKey = shot?.video_settings?.element_list?.join(',') ?? '';
     useEffect(() => {
         if (shot) {
             setElementList(shot.video_settings?.element_list || []);
         }
-    }, [shot?.id, shot?.video_settings?.element_list]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [shot?.id, elementListKey]);
 
     // ── Background AI Suggestion Fetch ──
     useEffect(() => {
@@ -367,7 +383,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                         )}
 
                         {/* Camera Direction Hints */}
-                        {(shot.video_settings?.provider === 'seedance-2' || shot.video_settings?.provider === 'seedance' || !shot.video_settings?.provider) && (
+                        {(shot.video_settings?.provider === 'seedance-2' || shot.video_settings?.provider === 'seedance') && (
                             <div className="flex flex-wrap gap-1 mt-1">
                                 {['slow dolly in', 'tracking shot', 'pan left', 'zoom out', 'static close-up', 'crane up'].map(hint => (
                                     <button
@@ -403,16 +419,10 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                     onLipSync={() => onLipSync(shot)}
                                     selectedElements={selectedElements}
                                     elementList={elementList}
-                                    onElementListChange={(list) => {
-                                        setElementList(list);
-                                        const currentSettings = shot.video_settings || {};
-                                        onUpdateShot(shot.id, 'video_settings', { ...currentSettings, element_list: list });
-                                    }}
+                                    onElementListChange={handleElementListChangeForSettings}
                                     onOpenElementLibrary={() => setIsLibraryOpen(true)}
                                     initialSettings={shot.video_settings}
-                                    onSettingsChange={(newSettings) => {
-                                        onUpdateShot(shot.id, 'video_settings', newSettings);
-                                    }}
+                                    onSettingsChange={handleSettingsChange}
                                     shot={{
                                         seedance_task_id: (shot as any).seedance_task_id,
                                         video_url: shot.video_url,
