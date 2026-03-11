@@ -86,6 +86,8 @@ export function CanvasNode({
                 width,
                 transform: `rotate(${rotation}deg)`,
                 filter: isDragging ? "drop-shadow(0 20px 40px rgba(0,0,0,0.8))" : undefined,
+                animation: `nodeEntrance 0.5s cubic-bezier(0.23, 1, 0.32, 1) ${index * 60}ms both`,
+                transition: isDragging ? 'none' : 'filter 0.3s ease',
             }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}

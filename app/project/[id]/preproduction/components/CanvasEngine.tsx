@@ -8,6 +8,10 @@ interface CanvasTransform {
     scale: number;
 }
 
+export interface CanvasJumpTo {
+    (worldX: number, worldY: number, scale?: number): void;
+}
+
 interface CanvasEngineProps {
     children: ReactNode;
     onTransformChange?: (transform: CanvasTransform) => void;
@@ -16,18 +20,38 @@ interface CanvasEngineProps {
     accentColor?: string;
     /** Optional moodboard image to use as canvas background */
     backgroundImageUrl?: string | null;
+    /** Called once with a jumpTo function that can center the canvas on world coords */
+    onReady?: (jumpTo: CanvasJumpTo) => void;
 }
 
 const MIN_SCALE = 0.15;
 const MAX_SCALE = 3;
 const ZOOM_SENSITIVITY = 0.002;
 
-export function CanvasEngine({ children, onTransformChange, initialTransform, accentColor = "rgba(229, 9, 20, 0.08)", backgroundImageUrl }: CanvasEngineProps) {
+export function CanvasEngine({ children, onTransformChange, initialTransform, accentColor = "rgba(229, 9, 20, 0.08)", backgroundImageUrl, onReady }: CanvasEngineProps) {
     const [transform, setTransform] = useState<CanvasTransform>({
         x: initialTransform?.x ?? 0,
         y: initialTransform?.y ?? 0,
         scale: initialTransform?.scale ?? 1,
     });
+
+    // Expose jumpTo function to parent
+    const readyFired = useRef(false);
+    const jumpTo = useCallback((worldX: number, worldY: number, scale?: number) => {
+        const container = containerRef.current;
+        if (!container) return;
+        const s = scale ?? 0.7;
+        const cx = container.clientWidth / 2;
+        const cy = container.clientHeight / 2;
+        setTransform({ x: cx - worldX * s, y: cy - worldY * s, scale: s });
+    }, []);
+
+    useEffect(() => {
+        if (onReady && !readyFired.current) {
+            readyFired.current = true;
+            onReady(jumpTo);
+        }
+    }, [onReady, jumpTo]);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const isPanning = useRef(false);
@@ -87,6 +111,45 @@ export function CanvasEngine({ children, onTransformChange, initialTransform, ac
         return () => el.removeEventListener("wheel", handleWheel);
     }, [handleWheel]);
 
+    // --- KEYBOARD SHORTCUTS ---
+    useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            // Don't trigger in input/textarea
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) return;
+
+            const PAN_STEP = 80;
+            switch (e.key) {
+                case '=':
+                case '+':
+                    e.preventDefault();
+                    setTransform(prev => ({ ...prev, scale: Math.min(MAX_SCALE, prev.scale + 0.15) }));
+                    break;
+                case '-':
+                    e.preventDefault();
+                    setTransform(prev => ({ ...prev, scale: Math.max(MIN_SCALE, prev.scale - 0.15) }));
+                    break;
+                case '0':
+                    e.preventDefault();
+                    setTransform({ x: 40, y: 20, scale: 0.55 });
+                    break;
+                case 'ArrowLeft':
+                    setTransform(prev => ({ ...prev, x: prev.x + PAN_STEP }));
+                    break;
+                case 'ArrowRight':
+                    setTransform(prev => ({ ...prev, x: prev.x - PAN_STEP }));
+                    break;
+                case 'ArrowUp':
+                    setTransform(prev => ({ ...prev, y: prev.y + PAN_STEP }));
+                    break;
+                case 'ArrowDown':
+                    setTransform(prev => ({ ...prev, y: prev.y - PAN_STEP }));
+                    break;
+            }
+        };
+        window.addEventListener('keydown', handleKey);
+        return () => window.removeEventListener('keydown', handleKey);
+    }, []);
+
     const zoomPercent = Math.round(transform.scale * 100);
 
     return (
@@ -125,16 +188,13 @@ export function CanvasEngine({ children, onTransformChange, initialTransform, ac
                 }}
             />
 
-            {/* ── Crosshatch grid (subtle, like a drafting table) ── */}
+            {/* ── Dot grid (subtle, modern) ── */}
             <div
-                className="absolute inset-0 pointer-events-none z-0 opacity-[0.04]"
+                className="absolute inset-0 pointer-events-none z-0 opacity-[0.06]"
                 style={{
-                    backgroundImage: `
-                        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)
-                    `,
-                    backgroundSize: `${40 * transform.scale}px ${40 * transform.scale}px`,
-                    backgroundPosition: `${transform.x % (40 * transform.scale)}px ${transform.y % (40 * transform.scale)}px`,
+                    backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px)`,
+                    backgroundSize: `${30 * transform.scale}px ${30 * transform.scale}px`,
+                    backgroundPosition: `${transform.x % (30 * transform.scale)}px ${transform.y % (30 * transform.scale)}px`,
                 }}
             />
 
@@ -171,6 +231,10 @@ export function CanvasEngine({ children, onTransformChange, initialTransform, ac
                 @keyframes lightLeak {
                     0% { transform: translateX(-20%) translateY(-10%); }
                     100% { transform: translateX(20%) translateY(10%); }
+                }
+                @keyframes nodeEntrance {
+                    0% { opacity: 0; transform: translateY(12px) scale(0.92); }
+                    100% { opacity: 1; transform: translateY(0) scale(1); }
                 }
             `}</style>
 

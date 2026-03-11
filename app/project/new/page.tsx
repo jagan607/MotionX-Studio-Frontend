@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+
 import Image from "next/image";
 
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -19,7 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-    ArrowLeft, Film, Tv, Loader2,
+    Film, Tv, Loader2,
     Megaphone, BrainCircuit, Send,
     Upload, FileText, X, CheckCircle2,
     GripVertical, Pencil, Trash2, Plus,
@@ -163,6 +163,7 @@ export default function NewProjectPage() {
     const [displayedPlaceholder, setDisplayedPlaceholder] = useState("");
     const [isTyping, setIsTyping] = useState(true);
     const [selectedFormat, setSelectedFormat] = useState<string>("film");
+    const [selectedStyle, setSelectedStyle] = useState<"realistic" | "animation">("realistic");
     const [aspectRatio, setAspectRatio] = useState<"16:9" | "21:9" | "9:16" | "4:5">("16:9");
     const [scriptFile, setScriptFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -280,7 +281,7 @@ export default function NewProjectPage() {
             setProcessingStatus("Creating project...");
             const res = await api.post("/api/v1/project/create", {
                 title: projectTitle, genre: vision || "Script uploaded",
-                type, aspect_ratio: aspectRatio, style: "realistic",
+                type, aspect_ratio: aspectRatio, style: selectedStyle,
             });
             const projectId = res.data.id;
             setCreatedProjectId(projectId);
@@ -428,7 +429,7 @@ export default function NewProjectPage() {
 
     // ══════ RENDER ══════
     return (
-        <div className="h-screen bg-[#080808] text-white overflow-hidden flex flex-col relative">
+        <div className="flex-1 min-h-0 bg-[#080808] text-white overflow-hidden flex flex-col relative">
             <style jsx global>{`
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
@@ -461,13 +462,7 @@ export default function NewProjectPage() {
                     style={{ background: "radial-gradient(circle, rgba(229,9,20,0.03) 0%, transparent 70%)", animation: "breathe 10s ease-in-out infinite" }} />
             </div>
 
-            {/* ══════ TOP BAR ══════ */}
-            <div className="relative z-10 shrink-0 h-14 flex items-center justify-between px-8">
-                <Link href="/dashboard" className="text-[10px] text-neutral-600 hover:text-neutral-400 transition-colors tracking-[3px] uppercase flex items-center gap-1.5 group">
-                    <ArrowLeft size={10} className="group-hover:-translate-x-0.5 transition-transform" /> Back
-                </Link>
-                <span className="text-[8px] text-neutral-700 tracking-[5px] uppercase font-mono select-none">MotionX</span>
-            </div>
+
 
             {/* ══════ MAIN CONTENT ══════ */}
             <div className="relative z-10 flex-1 flex flex-col items-center overflow-y-auto">
@@ -588,6 +583,19 @@ export default function NewProjectPage() {
                                     className={`px-3.5 py-1.5 rounded-full border text-[9px] tracking-[2px] uppercase transition-all cursor-pointer flex items-center gap-1.5
                                         ${selectedFormat === h.key ? 'border-white/[0.15] text-white bg-white/[0.06]' : 'border-white/[0.06] text-neutral-500 hover:text-neutral-300 hover:border-white/[0.12] hover:bg-white/[0.03]'}`}>
                                     <h.icon size={10} />{h.text}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="mt-3 flex items-center justify-center gap-2 fade-in-2">
+                            {[
+                                { text: 'Realistic', key: 'realistic' as const },
+                                { text: 'Animation', key: 'animation' as const },
+                            ].map((s) => (
+                                <button key={s.key}
+                                    onClick={() => setSelectedStyle(s.key)}
+                                    className={`px-3.5 py-1.5 rounded-full border text-[9px] tracking-[2px] uppercase transition-all cursor-pointer
+                                        ${selectedStyle === s.key ? 'border-white/[0.15] text-white bg-white/[0.06]' : 'border-white/[0.06] text-neutral-500 hover:text-neutral-300 hover:border-white/[0.12] hover:bg-white/[0.03]'}`}>
+                                    {s.text}
                                 </button>
                             ))}
                         </div>

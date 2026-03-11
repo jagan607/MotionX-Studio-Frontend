@@ -13,11 +13,12 @@ import { ArrowLeft, Loader2, Play, Upload, Palette, Sparkles, ImageIcon, X, Chev
 import { toast } from "react-hot-toast";
 import { AssetModal } from "@/components/AssetModal";
 
-import { CanvasEngine, CanvasTransform } from "./components/CanvasEngine";
+import { CanvasEngine, CanvasTransform, CanvasJumpTo } from "./components/CanvasEngine";
 import { CanvasNode, NodePosition, NodeType } from "./components/CanvasNode";
 import { WireLayer } from "./components/ConnectionWire";
 import { CanvasToolbar } from "./components/CanvasToolbar";
 import { CanvasMinimap } from "./components/CanvasMinimap";
+import { SceneNavigator } from "./components/SceneNavigator";
 import { Lightbox } from "./components/Lightbox";
 import { ScriptSection } from "./components/ScriptSection";
 import { MoodSection } from "./components/MoodSection";
@@ -244,7 +245,8 @@ export default function PreProductionCanvas() {
 
     // Canvas State
     const [nodePositions, setNodePositions] = useState<Record<string, NodePosition>>({});
-    const [canvasTransform, setCanvasTransform] = useState<CanvasTransform>({ x: 20, y: -60, scale: 0.7 });
+    const [canvasTransform, setCanvasTransform] = useState<CanvasTransform>({ x: 0, y: 0, scale: 1 });
+    const canvasJumpToRef = useRef<CanvasJumpTo | null>(null);
     const [generatingMap, setGeneratingMap] = useState<Record<string, boolean>>({});
 
     // Modal State
@@ -268,6 +270,22 @@ export default function PreProductionCanvas() {
     const [isDraggingStyle, setIsDraggingStyle] = useState(false);
     const styleInputRef = useRef<HTMLInputElement>(null);
     const [selectedMoodIdx, setSelectedMoodIdx] = useState(0);
+
+    // ─── LOCK BODY SCROLL & MEASURE HEADER ───
+    const [headerHeight, setHeaderHeight] = useState(0);
+    useEffect(() => {
+        // Measure the GlobalHeader's actual height
+        const header = document.querySelector('header.sticky');
+        if (header) {
+            setHeaderHeight(header.getBoundingClientRect().height);
+        }
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+        };
+    }, []);
 
     // ─── LOAD DATA ───
     useEffect(() => {
@@ -363,9 +381,49 @@ export default function PreProductionCanvas() {
             || (project as any).style_ref_url || null;
     }, [project]);
 
-    // ─── NODE DRAG ───
+    // ─── NODE DRAG (cluster-aware: dragging a scene moves its connected nodes) ───
+    const canvasNodesRef = useRef(canvasNodes);
+    canvasNodesRef.current = canvasNodes;
+
     const handleNodeMove = useCallback((id: string, pos: NodePosition) => {
-        setNodePositions(prev => ({ ...prev, [id]: pos }));
+        setNodePositions(prev => {
+            const next = { ...prev };
+
+            // Look up old position from state, falling back to canvasNodes layout
+            const getPos = (nodeId: string): NodePosition | undefined =>
+                prev[nodeId] || canvasNodesRef.current.find(n => n.id === nodeId)?.position;
+
+            // If dragging a scene node, move the whole cluster
+            if (id.startsWith('scene-')) {
+                const oldPos = getPos(id);
+                if (!oldPos) { next[id] = pos; return next; }
+
+                const sceneId = id.replace('scene-', '');
+                const dx = pos.x - oldPos.x;
+                const dy = pos.y - oldPos.y;
+
+                // Move all cluster members by the same delta
+                for (const node of canvasNodesRef.current) {
+                    if (
+                        node.id === id ||
+                        node.id.startsWith(`char-${sceneId}-`) ||
+                        node.id.startsWith(`loc-${sceneId}-`)
+                    ) {
+                        const curPos = getPos(node.id);
+                        if (curPos) {
+                            next[node.id] = {
+                                x: curPos.x + dx,
+                                y: curPos.y + dy,
+                            };
+                        }
+                    }
+                }
+            } else {
+                // Non-scene nodes move individually
+                next[id] = pos;
+            }
+            return next;
+        });
     }, []);
 
     // ─── ASSET ACTIONS ───
@@ -473,14 +531,24 @@ export default function PreProductionCanvas() {
         } finally { setIsUploadingStyle(false); }
     };
 
-    const handleGenerateMoods = async () => {
+    const handleGenerateMoods = async (referenceMood?: any) => {
         setIsGeneratingMood(true);
         try {
-            await api.post("/api/v1/shot/generate_moodboard", {
+            const payload: any = {
                 project_id: projectId,
                 episode_id: activeEpisodeId || "main",
-            });
-            toast.success("Generating cinematic styles...");
+            };
+            if (referenceMood) {
+                payload.reference_mood = {
+                    name: referenceMood.name,
+                    color_palette: referenceMood.color_palette,
+                    lighting: referenceMood.lighting,
+                    texture: referenceMood.texture,
+                    atmosphere: referenceMood.atmosphere,
+                };
+            }
+            await api.post("/api/v1/shot/generate_moodboard", payload);
+            toast.success(referenceMood ? `Generating variations of "${referenceMood.name}"...` : "Generating cinematic styles...");
         } catch (e: any) {
             toast.error(e.response?.data?.detail || "Generation failed");
         } finally { setIsGeneratingMood(false); }
@@ -518,21 +586,17 @@ export default function PreProductionCanvas() {
 
     // ─── RENDER ───
     return (
-        <div ref={containerRef} className="fixed inset-0 bg-[#060606] text-white overflow-hidden flex flex-col">
+        <div ref={containerRef} className="fixed left-0 right-0 bottom-0 bg-[#060606] text-white overflow-hidden flex flex-col"
+            style={{ top: `${headerHeight}px` }}>
 
             {/* ── Top Bar (minimal) ── */}
-            <header className="relative z-[30] h-12 border-b border-white/[0.04] bg-[#050505]/70 backdrop-blur-xl flex items-center justify-between px-5 shrink-0">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => router.push(`/project/${projectId}`)} className="p-1.5 text-white/30 hover:text-white transition-colors hover:bg-white/5 rounded-lg group">
-                        <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-                    </button>
-                    <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
-                        <h1 className="text-xs font-bold tracking-wider uppercase text-white/80 truncate max-w-[200px]">
-                            {project.title}
-                        </h1>
-                        <span className="text-[8px] text-white/20 font-mono tracking-[3px] uppercase">Pre-Production</span>
-                    </div>
+            <header className="relative z-[30] h-10 border-b border-white/[0.04] bg-[#050505]/70 backdrop-blur-xl flex items-center justify-between px-5 shrink-0">
+                <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
+                    <h1 className="text-xs font-bold tracking-wider uppercase text-white/80 truncate max-w-[200px]">
+                        {project.title}
+                    </h1>
+                    <span className="text-[8px] text-white/20 font-mono tracking-[3px] uppercase">Pre-Production</span>
                 </div>
 
                 {hasScript && (
@@ -547,7 +611,7 @@ export default function PreProductionCanvas() {
             </header>
 
             {/* ── MAIN CANVAS ── */}
-            <div className="relative flex-1 overflow-hidden">
+            <div className="relative flex-1 overflow-hidden" style={{ maxHeight: '100%' }}>
                 <style jsx>{`
                     @keyframes mbHeroFade { from { opacity: 0; } to { opacity: 1; } }
                     @keyframes mbLabelReveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -667,7 +731,7 @@ export default function PreProductionCanvas() {
                                                     </span>
                                                 </div>
 
-                                                <h1 className="text-5xl md:text-6xl font-anton uppercase tracking-tight leading-[0.9] mb-6 text-white">
+                                                <h1 className="text-4xl md:text-5xl font-anton uppercase tracking-tight leading-[0.9] mb-5 text-white">
                                                     {currentMood?.name || 'Untitled'}
                                                 </h1>
 
@@ -718,6 +782,18 @@ export default function PreProductionCanvas() {
                                                         <span className="text-[9px] text-white/20 uppercase tracking-[3px] font-mono">Rendering preview...</span>
                                                     </div>
                                                 )}
+
+                                                {/* Generate More Like This */}
+                                                {currentMood?.status === 'ready' && (
+                                                    <button
+                                                        onClick={() => handleGenerateMoods(currentMood)}
+                                                        disabled={isGeneratingMood}
+                                                        className="pointer-events-auto mt-5 flex items-center gap-2 px-4 py-2 text-[9px] font-bold text-white/40 uppercase tracking-[1.5px] border border-white/[0.08] rounded-lg hover:text-white hover:border-white/20 hover:bg-white/[0.05] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur-sm"
+                                                    >
+                                                        <RefreshCw size={10} className={isGeneratingMood ? 'animate-spin' : ''} />
+                                                        Generate More Like This
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
 
@@ -744,7 +820,7 @@ export default function PreProductionCanvas() {
                                                 ))}
                                             </div>
 
-                                            <div className="flex h-[90px] border-t border-white/[0.04] bg-[#020202]/80 backdrop-blur-md">
+                                            <div className="flex h-[64px] border-t border-white/[0.04] bg-[#020202]/80 backdrop-blur-md">
                                                 {moodOptions.map((mood, idx) => {
                                                     const active = idx === selectedMoodIdx;
                                                     const hasImage = mood.status === 'ready' && mood.image_url;
@@ -791,7 +867,7 @@ export default function PreProductionCanvas() {
                                             </div>
 
                                             {/* CTA Bar */}
-                                            <div className="flex items-center justify-between px-6 py-2.5 bg-[#020202]">
+                                            <div className="flex items-center justify-between px-6 py-1.5 bg-[#020202]">
                                                 <div className="flex items-center gap-4">
                                                     <span className="text-[8px] font-mono text-white/10 uppercase tracking-[3px]">
                                                         ← → Navigate
@@ -830,6 +906,7 @@ export default function PreProductionCanvas() {
                             onTransformChange={setCanvasTransform}
                             initialTransform={{ x: 20, y: -60, scale: 0.7 }}
                             backgroundImageUrl={moodboardBgUrl}
+                            onReady={(jumpTo) => { canvasJumpToRef.current = jumpTo; }}
                         >
                             {canvasSectionLabels.map(label => (
                                 <div key={label.id} className="absolute pointer-events-none"
@@ -901,6 +978,21 @@ export default function PreProductionCanvas() {
                             transform={canvasTransform}
                             containerWidth={containerRef.current?.clientWidth || 1200}
                             containerHeight={containerRef.current?.clientHeight || 800}
+                            onJumpTo={(x, y) => canvasJumpToRef.current?.(x, y)}
+                        />
+                        <SceneNavigator
+                            scenes={scenes.map(s => {
+                                const sceneNode = canvasNodes.find(n => n.id === `scene-${s.id}`);
+                                return {
+                                    id: s.id,
+                                    sceneNumber: s.scene_number,
+                                    title: s.header || `Scene ${s.scene_number}`,
+                                    characterCount: (s.characters || []).length,
+                                    locationCount: s.location_id ? 1 : 0,
+                                    position: sceneNode?.position || { x: 0, y: 0 },
+                                };
+                            })}
+                            onJumpToScene={(pos) => canvasJumpToRef.current?.(pos.x - 100, pos.y - 100)}
                         />
                     </>
                 )}

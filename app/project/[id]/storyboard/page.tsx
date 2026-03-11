@@ -56,12 +56,17 @@ export default function StoryboardPage() {
                     return;
                 }
 
-                // Resolve episode ID
-                const epsData = await fetchEpisodes(projectId);
-                const eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
-                const mainEpId = proj.default_episode_id || "main";
-                const targetEp = eps.find((e: any) => e.id === mainEpId) || eps[0];
-                const epId = targetEp?.id || mainEpId;
+                // Resolve episode ID (episodes endpoint may 404 for non-series)
+                let epId = proj.default_episode_id || "main";
+                try {
+                    const epsData = await fetchEpisodes(projectId);
+                    const eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
+                    const targetEp = eps.find((e: any) => e.id === epId) || eps[0];
+                    if (targetEp?.id) epId = targetEp.id;
+                } catch {
+                    // Films/ads may not have episodes — use default
+                    console.warn("Episodes not found, using default:", epId);
+                }
                 setEpisodeId(epId);
 
                 // Load scenes
