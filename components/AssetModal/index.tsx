@@ -459,7 +459,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center backdrop-blur-sm">
             <style>{`.modal-scroll::-webkit-scrollbar { width: 6px; } .modal-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }`}</style>
 
-            <div className="bg-[#090909] border border-[#222] rounded-xl w-[780px] max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="bg-[#090909] border border-[#222] rounded-xl w-[880px] max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
 
                 {/* HEADER */}
                 <div className="p-5 border-b border-[#222] flex justify-between items-center bg-[#0a0a0a] shrink-0">
