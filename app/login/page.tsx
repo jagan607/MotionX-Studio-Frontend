@@ -25,7 +25,7 @@ const syncUserToFirestore = async (user: any) => {
         photoURL: user.photoURL || "",
         tenant_id: user.tenantId || null,
         plan: "free",
-        credits: 10,
+        credits: 5,
         createdAt: serverTimestamp(),
         lastActiveAt: serverTimestamp(),
         onboarding: {
