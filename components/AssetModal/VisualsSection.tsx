@@ -1,10 +1,12 @@
 import React from 'react';
-import { Upload, Terminal, Loader2, Image as ImageIcon, RefreshCw, CheckSquare, Square } from 'lucide-react';
+import { Upload, Terminal, Loader2, Image as ImageIcon, RefreshCw, CheckSquare, Square, UploadCloud } from 'lucide-react';
 
 interface VisualsSectionProps {
     displayImage?: string;
     refImage?: string | null;
     isProcessing: boolean;
+    isUploadingRef?: boolean;
+    isUploadingMain?: boolean;
     genPrompt: string;
     setGenPrompt: (val: string) => void;
 
@@ -30,7 +32,9 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
     onUploadRef,
     onUploadMain,
     useRef,
-    onToggleUseRef
+    onToggleUseRef,
+    isUploadingRef,
+    isUploadingMain
 }) => {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, handler: (f: File) => void) => {
@@ -116,6 +120,16 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
                     </div>
                 )}
 
+                {/* UPLOAD OVERLAY (Ref or Main) */}
+                {(isUploadingRef || isUploadingMain) && (
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-20 animate-in fade-in duration-300">
+                        <UploadCloud className="animate-pulse text-green-400 mb-3" size={32} />
+                        <span className="text-[11px] font-mono text-green-400 animate-pulse tracking-widest uppercase">
+                            {isUploadingMain ? 'UPLOADING VISUAL...' : 'UPLOADING REFERENCE...'}
+                        </span>
+                    </div>
+                )}
+
                 {/* MAIN RESULT IMAGE */}
                 {displayImage ? (
                     <img src={displayImage} alt="Asset Result" className="w-full h-full object-contain z-0" />
@@ -138,9 +152,15 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
                             absolute top-0 left-0 text-[8px] font-bold px-1 py-0.5 backdrop-blur-md
                             ${useRef ? "bg-green-900/80 text-white" : "bg-neutral-800/80 text-neutral-400"}
                          `}>
-                            {useRef ? "ACTIVE REF" : "IGNORED"}
+                            {isUploadingRef ? "UPLOADING..." : useRef ? "ACTIVE REF" : "IGNORED"}
                         </div>
-                        <img src={refImage} alt="Reference" className="w-full h-full object-cover" />
+                        {isUploadingRef ? (
+                            <div className="w-full h-full flex items-center justify-center bg-black">
+                                <Loader2 className="animate-spin text-green-400" size={16} />
+                            </div>
+                        ) : (
+                            <img src={refImage} alt="Reference" className="w-full h-full object-cover" />
+                        )}
                     </div>
                 )}
             </div>

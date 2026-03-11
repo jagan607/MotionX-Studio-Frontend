@@ -58,6 +58,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     // Local processing state
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isUploadingRef, setIsUploadingRef] = useState(false);
+    const [isUploadingMain, setIsUploadingMain] = useState(false);
     const isProcessing = parentIsProcessing || isGenerating;
 
     // Visuals State
@@ -336,17 +338,19 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             }
         }
 
-        const toastId = toast.loading("Uploading reference...");
+        setIsUploadingRef(true);
         try {
             const res = await uploadAssetReference(props.projectId, assetType, targetId, file);
             if (res.data.ref_image_url) {
                 setRefImage(res.data.ref_image_url);
                 setUseRefForGen(true);
-                toast.success("Reference Linked", { id: toastId });
+                toast.success("Reference Linked");
             }
         } catch (e) {
             console.error(e);
-            toast.error("Upload failed", { id: toastId });
+            toast.error("Upload failed");
+        } finally {
+            setIsUploadingRef(false);
         }
     };
 
@@ -371,16 +375,18 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             }
         }
 
-        const toastId = toast.loading("Uploading visual...");
+        setIsUploadingMain(true);
         try {
             const res = await uploadAssetMain(props.projectId, assetType, targetId, file);
             if (res.data.image_url) {
                 setLocalDisplayImage(res.data.image_url);
-                toast.success("Visual Updated", { id: toastId });
+                toast.success("Visual Updated");
             }
         } catch (e) {
             console.error(e);
-            toast.error("Upload failed", { id: toastId });
+            toast.error("Upload failed");
+        } finally {
+            setIsUploadingMain(false);
         }
     };
 
@@ -532,6 +538,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                 displayImage={localDisplayImage}
                                 refImage={refImage}
                                 isProcessing={isProcessing}
+                                isUploadingRef={isUploadingRef}
+                                isUploadingMain={isUploadingMain}
                                 genPrompt={genPrompt}
                                 setGenPrompt={setGenPrompt}
 
