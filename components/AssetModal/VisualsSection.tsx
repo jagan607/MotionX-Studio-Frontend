@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Terminal, Loader2, Image as ImageIcon, RefreshCw, CheckSquare, Square, UploadCloud, Wand2 } from 'lucide-react';
+import { Upload, Terminal, Loader2, Image as ImageIcon, RefreshCw, CheckSquare, Square, UploadCloud, Wand2, Download } from 'lucide-react';
 
 interface VisualsSectionProps {
     displayImage?: string;
@@ -56,7 +56,7 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
                 </div>
                 <div className="flex gap-2">
 
-                    {/* 0. INPAINT / EDIT */}
+                    {/* 0. EDIT (Inpaint) */}
                     {onInpaint && (
                         <button
                             onClick={onInpaint}
@@ -64,9 +64,43 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
                             title="Edit image with AI inpainting"
                         >
                             <Wand2 size={10} />
-                            INPAINT / EDIT
+                            EDIT
                         </button>
                     )}
+
+                    {/* 0.5 DOWNLOAD */}
+                    {displayImage && (() => {
+                        const [isDownloading, setIsDownloading] = React.useState(false);
+                        return (
+                            <button
+                                onClick={async () => {
+                                    setIsDownloading(true);
+                                    try {
+                                        const res = await fetch(displayImage);
+                                        const blob = await res.blob();
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = 'asset_image.jpg';
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        document.body.removeChild(a);
+                                        URL.revokeObjectURL(url);
+                                    } catch {
+                                        window.open(displayImage, '_blank');
+                                    } finally {
+                                        setIsDownloading(false);
+                                    }
+                                }}
+                                disabled={isDownloading}
+                                className="flex items-center gap-1.5 text-[11px] text-neutral-400 hover:text-white px-2.5 py-1.5 border border-neutral-800 hover:border-neutral-600 rounded bg-neutral-900 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Download image"
+                            >
+                                {isDownloading ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
+                                {isDownloading ? 'DOWNLOADING...' : 'DOWNLOAD'}
+                            </button>
+                        );
+                    })()}
 
                     {/* 1. UPLOAD MAIN/FINAL IMAGE */}
                     <label className="cursor-pointer flex items-center gap-1.5 text-[11px] text-neutral-400 hover:text-white px-2.5 py-1.5 border border-neutral-800 hover:border-neutral-600 rounded bg-neutral-900 transition-all" title="Upload Final Visual">
