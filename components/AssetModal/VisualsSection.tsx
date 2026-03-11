@@ -43,13 +43,13 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
         <div className="animate-in fade-in duration-500 delay-100">
             {/* HEADER: TITLE + ACTIONS */}
             <div className="flex justify-between items-center mb-3">
-                <div className="text-[10px] font-bold text-neutral-500 tracking-widest uppercase">
+                <div className="text-[11px] font-bold text-neutral-500 tracking-widest uppercase">
                     Visual Representation
                 </div>
                 <div className="flex gap-2">
 
                     {/* 1. UPLOAD MAIN/FINAL IMAGE */}
-                    <label className="cursor-pointer flex items-center gap-1.5 text-[10px] text-neutral-400 hover:text-white px-2 py-1 border border-neutral-800 hover:border-neutral-600 rounded bg-neutral-900 transition-all" title="Upload Final Visual">
+                    <label className="cursor-pointer flex items-center gap-1.5 text-[11px] text-neutral-400 hover:text-white px-2.5 py-1.5 border border-neutral-800 hover:border-neutral-600 rounded bg-neutral-900 transition-all" title="Upload Final Visual">
                         <ImageIcon size={10} />
                         UPLOAD FINAL
                         <input type="file" hidden onChange={(e) => handleFileChange(e, onUploadMain)} accept="image/*" />
@@ -58,7 +58,7 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
                     {/* 2. REFERENCE CONTROL (CONDITIONAL) */}
                     {!refImage ? (
                         // CASE A: No Ref -> Simple Upload Button
-                        <label className="cursor-pointer flex items-center gap-1.5 text-[10px] text-neutral-400 hover:text-white px-2 py-1 border border-neutral-800 hover:border-neutral-600 rounded bg-neutral-900 transition-all" title="Upload Reference for AI">
+                        <label className="cursor-pointer flex items-center gap-1.5 text-[11px] text-neutral-400 hover:text-white px-2.5 py-1.5 border border-neutral-800 hover:border-neutral-600 rounded bg-neutral-900 transition-all" title="Upload Reference for AI">
                             <Upload size={10} />
                             UPLOAD REF
                             <input type="file" hidden onChange={(e) => handleFileChange(e, onUploadRef)} accept="image/*" />
@@ -93,18 +93,18 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
             <div className="bg-[#050505] border border-neutral-800 rounded-lg overflow-hidden mb-4 group focus-within:border-neutral-600 transition-colors">
                 <div className="bg-[#0a0a0a] px-3 py-2 border-b border-neutral-800 flex items-center gap-2">
                     <Terminal size={10} className="text-green-500" />
-                    <span className="text-[9px] font-mono text-green-500/70 tracking-widest uppercase">Prompt Terminal</span>
+                    <span className="text-[10px] font-mono text-green-500/70 tracking-widest uppercase">Prompt Terminal</span>
                 </div>
                 <textarea
                     value={genPrompt}
                     onChange={(e) => setGenPrompt(e.target.value)}
-                    className="w-full bg-transparent text-xs font-mono text-neutral-300 p-3 outline-none resize-y min-h-[80px] selection:bg-green-900/30 placeholder-neutral-700"
+                    className="w-full bg-transparent text-sm font-mono text-neutral-300 p-3 outline-none resize-y min-h-[80px] selection:bg-green-900/30 placeholder-neutral-700"
                     placeholder="Describe the visual style, lighting, and camera angle..."
                 />
             </div>
 
             {/* MAIN IMAGE PREVIEW AREA */}
-            <div className="w-full h-[220px] bg-[#050505] border border-dashed border-neutral-800 rounded-lg overflow-hidden flex items-center justify-center relative group">
+            <div className="w-full h-[260px] bg-[#050505] border border-dashed border-neutral-800 rounded-lg overflow-hidden flex items-center justify-center relative group">
 
                 {/* LOADING OVERLAY */}
                 {isProcessing && (

@@ -35,15 +35,15 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
 
     return (
         <div className="w-full">
-            <div className="grid grid-cols-2 gap-3 w-full p-0.5">
+            <div className="grid grid-cols-2 gap-4 w-full p-0.5">
 
                 {/* --- 1. ASSET NAME (Full Width) --- */}
                 <div className="col-span-2">
-                    <label className="block text-[9px] text-motion-red font-bold mb-1.5 tracking-wider uppercase">
+                    <label className="block text-[10px] text-motion-red font-bold mb-1.5 tracking-wider uppercase">
                         Asset Name
                     </label>
                     <input
-                        className="w-full bg-[#0a0a0a] border border-[#333] rounded px-3 py-2.5 text-white text-[11px] font-bold outline-none focus:border-motion-red transition-colors placeholder-[#444]"
+                        className="w-full bg-[#0a0a0a] border border-[#333] rounded px-3 py-3 text-white text-[13px] font-bold outline-none focus:border-motion-red transition-colors placeholder-[#444]"
                         placeholder="e.g. Spike, Old House"
                         value={editableName}
                         onChange={(e) => onNameChange(e.target.value)}
@@ -56,11 +56,11 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
                         key={field.k}
                         className={field.k === 'visual_traits' || field.k === 'vibe' ? 'col-span-2' : ''}
                     >
-                        <label className="block text-[9px] text-[#666] font-bold mb-1.5 tracking-wider uppercase">
+                        <label className="block text-[10px] text-[#666] font-bold mb-1.5 tracking-wider uppercase">
                             {field.l}
                         </label>
                         <input
-                            className="w-full bg-[#0a0a0a] border border-[#333] rounded px-3 py-2.5 text-[#EEE] text-[11px] outline-none focus:border-[#555] transition-colors placeholder-[#444]"
+                            className="w-full bg-[#0a0a0a] border border-[#333] rounded px-3 py-3 text-[#EEE] text-[13px] outline-none focus:border-[#555] transition-colors placeholder-[#444]"
                             placeholder={field.p}
                             value={getDisplayValue(field.k)}
                             onChange={(e) => handleTraitChange(field.k, e.target.value)}

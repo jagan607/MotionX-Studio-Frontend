@@ -459,7 +459,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center backdrop-blur-sm">
             <style>{`.modal-scroll::-webkit-scrollbar { width: 6px; } .modal-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }`}</style>
 
-            <div className="bg-[#090909] border border-[#222] rounded-xl w-[600px] max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="bg-[#090909] border border-[#222] rounded-xl w-[780px] max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
 
                 {/* HEADER */}
                 <div className="p-5 border-b border-[#222] flex justify-between items-center bg-[#0a0a0a] shrink-0">
@@ -467,10 +467,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         {isVoiceMode && <ArrowLeft size={20} className="cursor-pointer hover:text-motion-red" onClick={() => setIsVoiceMode(false)} />}
                         {getHeaderIcon()}
                         <div>
-                            <h2 className="text-lg font-display uppercase text-white leading-none">
+                            <h2 className="text-xl font-display uppercase text-white leading-none">
                                 {editableName || (isCreationMode ? "New Asset" : "Untitled")}
                             </h2>
-                            <div className="text-[10px] text-neutral-500 tracking-widest mt-1">
+                            <div className="text-[11px] text-neutral-500 tracking-widest mt-1">
                                 {isVoiceMode ? "VOICE LIBRARY" : "CONFIGURATION STUDIO"}
                             </div>
                         </div>
@@ -502,7 +502,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                     ) : (
                         <>
                             <div className="animate-in fade-in duration-300">
-                                <div className="text-[10px] font-bold text-neutral-500 mb-3 tracking-widest uppercase">Asset Definition</div>
+                                <div className="text-[11px] font-bold text-neutral-500 mb-4 tracking-widest uppercase">Asset Definition</div>
 
                                 {/* [NEW] Conditional Rendering of ProductTab vs TraitsTab */}
                                 {assetType === 'product' ? (
@@ -562,7 +562,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         <button
                             onClick={handleSaveOnly}
                             disabled={isSaveDisabled}
-                            className="w-full py-3 bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 hover:border-neutral-700 text-neutral-300 font-bold text-xs tracking-widest rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full py-3.5 bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 hover:border-neutral-700 text-neutral-300 font-bold text-sm tracking-widest rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSavingTraits ? "SAVING..." : "SAVE CONFIGURATION"}
                         </button>
@@ -570,7 +570,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         <button
                             onClick={handleGenerateClick}
                             disabled={isSaveDisabled}
-                            className="w-full py-3 bg-white hover:bg-neutral-200 text-black font-bold text-xs tracking-widest rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="w-full py-3.5 bg-white hover:bg-neutral-200 text-black font-bold text-sm tracking-widest rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {isGenerating ? (
                                 <>GENERATING...</>
