@@ -3,10 +3,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, User, MapPin, ArrowLeft, Sparkles, ShoppingBag } from 'lucide-react';
 import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
-import { uploadAssetReference, uploadAssetMain } from '@/lib/api';
+import { api, uploadAssetReference, uploadAssetMain } from '@/lib/api';
 import { constructLocationPrompt, constructCharacterPrompt, constructProductPrompt } from '@/lib/promptUtils';
 import { toast } from 'react-hot-toast';
 import { Asset } from '@/lib/types';
+import { InpaintEditor } from '@/app/components/storyboard/InpaintEditor';
 
 // --- SUB-COMPONENTS ---
 import { TraitsTab } from './TraitsTab';
@@ -78,6 +79,9 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [isLinkingVoice, setIsLinkingVoice] = useState(false);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Inpaint State
+    const [inpaintData, setInpaintData] = useState<{ src: string } | null>(null);
 
     // --- DERIVED STATE ---
     const isCreationMode = currentData.id === 'new';
@@ -548,6 +552,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
                                 useRef={useRefForGen}
                                 onToggleUseRef={() => setUseRefForGen(!useRefForGen)}
+
+                                onInpaint={localDisplayImage ? () => setInpaintData({ src: localDisplayImage }) : undefined}
                             />
 
                             {assetType === 'character' && (
@@ -589,6 +595,44 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                     </div>
                 )}
             </div>
+            {inpaintData && (
+                <InpaintEditor
+                    src={inpaintData.src}
+                    styles={{}}
+                    onClose={() => setInpaintData(null)}
+                    onSave={async (prompt: string, maskBase64: string, refImages: File[]) => {
+                        try {
+                            const formData = new FormData();
+                            formData.append('project_id', props.projectId);
+                            formData.append('shot_id', currentData.id);
+                            formData.append('prompt', prompt);
+                            formData.append('original_image_url', inpaintData.src);
+                            formData.append('mask_image_base64', maskBase64);
+                            refImages.forEach((file) => {
+                                formData.append('reference_images', file);
+                            });
+                            const res = await api.post('/api/v1/shot/inpaint_shot', formData);
+                            if (res.data.image_url) return res.data.image_url;
+                            return null;
+                        } catch (e: any) {
+                            console.error('Inpaint failed:', e);
+                            toast.error(e.response?.data?.detail || 'Inpaint failed');
+                            return null;
+                        }
+                    }}
+                    onApply={async (newImageUrl: string) => {
+                        try {
+                            await props.onUpdateTraits({ image_url: newImageUrl });
+                            setLocalDisplayImage(newImageUrl);
+                            setInpaintData(null);
+                            toast.success('Image updated with edits');
+                        } catch (e) {
+                            console.error('Failed to apply inpaint:', e);
+                            toast.error('Failed to save edited image');
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };

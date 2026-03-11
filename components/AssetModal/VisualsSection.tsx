@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Terminal, Loader2, Image as ImageIcon, RefreshCw, CheckSquare, Square, UploadCloud } from 'lucide-react';
+import { Upload, Terminal, Loader2, Image as ImageIcon, RefreshCw, CheckSquare, Square, UploadCloud, Wand2 } from 'lucide-react';
 
 interface VisualsSectionProps {
     displayImage?: string;
@@ -18,6 +18,9 @@ interface VisualsSectionProps {
     useRef: boolean;
     onToggleUseRef: () => void;
 
+    // Inpaint
+    onInpaint?: () => void;
+
     // Optional fallback (unused now but kept for safety)
     onUpload?: (e: any) => void;
     onGenerate?: () => void; // Kept optional as we moved the trigger out
@@ -34,7 +37,8 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
     useRef,
     onToggleUseRef,
     isUploadingRef,
-    isUploadingMain
+    isUploadingMain,
+    onInpaint
 }) => {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, handler: (f: File) => void) => {
@@ -51,6 +55,18 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
                     Visual Representation
                 </div>
                 <div className="flex gap-2">
+
+                    {/* 0. INPAINT / EDIT */}
+                    {onInpaint && (
+                        <button
+                            onClick={onInpaint}
+                            className="flex items-center gap-1.5 text-[11px] text-amber-400 hover:text-amber-300 px-2.5 py-1.5 border border-amber-900/40 hover:border-amber-700/60 rounded bg-amber-950/30 transition-all cursor-pointer"
+                            title="Edit image with AI inpainting"
+                        >
+                            <Wand2 size={10} />
+                            INPAINT / EDIT
+                        </button>
+                    )}
 
                     {/* 1. UPLOAD MAIN/FINAL IMAGE */}
                     <label className="cursor-pointer flex items-center gap-1.5 text-[11px] text-neutral-400 hover:text-white px-2.5 py-1.5 border border-neutral-800 hover:border-neutral-600 rounded bg-neutral-900 transition-all" title="Upload Final Visual">
