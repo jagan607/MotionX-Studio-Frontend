@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download } from 'lucide-react';
+import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download, MoreVertical, Upload } from 'lucide-react';
 import JSZip from 'jszip';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
@@ -21,6 +21,7 @@ import { SceneContextStrip } from "./SceneContextStrip";
 import { LipSyncModal } from "./LipSyncModal";
 import { DownloadModal } from "./DownloadModal";
 import { ShotEditorPanel } from "./ShotEditorPanel";
+import { ShotDivisionModal } from "./ShotDivisionModal";
 import dynamic from 'next/dynamic';
 const ParticleField = dynamic(() => import('./ParticleField'), { ssr: false });
 import { styles } from "./BoardStyles";
@@ -163,6 +164,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
             if (exportDropdownRef.current && !exportDropdownRef.current.contains(e.target as Node)) {
                 setShowExportDropdown(false);
             }
+            if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+                setShowMoreMenu(false);
+            }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -175,9 +179,12 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [showTopUp, setShowTopUp] = useState(false);
     const [showAssets, setShowAssets] = useState(false);
     const [showScript, setShowScript] = useState(false);
+    const [showShotDivision, setShowShotDivision] = useState(false);
     const [showExportDropdown, setShowExportDropdown] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const exportDropdownRef = useRef<HTMLDivElement>(null);
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const moreMenuRef = useRef<HTMLDivElement>(null);
 
     // Data State (Episode Title Correction)
     const [realEpisodeTitle, setRealEpisodeTitle] = useState(episodeTitle);
@@ -510,6 +517,17 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     onSuccess={() => setShowScript(false)}
                 />
 
+                {activeSceneId && (
+                    <ShotDivisionModal
+                        isOpen={showShotDivision}
+                        onClose={() => setShowShotDivision(false)}
+                        projectId={seriesId}
+                        episodeId={episodeId}
+                        sceneId={activeSceneId}
+                        currentScene={currentScene}
+                    />
+                )}
+
                 {/* --- HEADER --- */}
                 <div style={styles.sbHeader}>
                     {/* LEFT */}
@@ -673,63 +691,71 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             <Database size={14} /> ASSETS
                         </button>
 
-                        {/* TREATMENT */}
-                        <Link
-                            href={`/project/${seriesId}/treatment`}
-                            style={{
-                                height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
-                                border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                                transition: 'border-color 0.2s', textDecoration: 'none'
-                            }}
-                            onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#555'; }}
-                            onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#333'; }}
-                        >
-                            <FileText size={14} /> TREATMENT
-                        </Link>
-
-                        {/* EXPORT */}
-                        <div className="relative" ref={exportDropdownRef}>
+                        {/* THREE-DOT MORE MENU */}
+                        <div className="relative" ref={moreMenuRef}>
                             <button
-                                onClick={() => setShowExportDropdown(!showExportDropdown)}
-                                disabled={isExporting || shotMgr.shots.length === 0}
+                                onClick={() => setShowMoreMenu(!showMoreMenu)}
                                 style={{
-                                    height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
-                                    border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                                    transition: 'border-color 0.2s',
-                                    opacity: (isExporting || shotMgr.shots.length === 0) ? 0.5 : 1
+                                    height: '40px', width: '40px', backgroundColor: '#1A1A1A', color: '#EEE',
+                                    border: '1px solid #333', borderRadius: '4px',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'border-color 0.2s'
                                 }}
                                 onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
                                 onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
                             >
-                                {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                                {isExporting ? 'EXPORTING...' : 'EXPORT'}
+                                <MoreVertical size={16} />
                             </button>
 
-                            {showExportDropdown && (
-                                <div className="absolute top-full right-0 mt-1 w-48 bg-[#1A1A1A] border border-[#333] rounded-md shadow-2xl shadow-black/80 z-[9999] overflow-hidden">
+                            {showMoreMenu && (
+                                <div className="absolute top-full right-0 mt-1 w-52 bg-[#1A1A1A] border border-[#333] rounded-md shadow-2xl shadow-black/80 z-[9999] overflow-hidden">
                                     <div className="px-4 py-2 border-b border-[#222] bg-[#111]">
-                                        <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Export Scene</span>
+                                        <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">More Actions</span>
                                     </div>
+
+                                    {/* TREATMENT */}
                                     <button
-                                        onClick={() => handleExportScene('images')}
+                                        onClick={() => { setShowMoreMenu(false); window.location.href = `/project/${seriesId}/treatment`; }}
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
                                     >
-                                        <span className="text-[#666]">🖼</span> Export Images
+                                        <FileText size={13} className="text-[#666]" /> Treatment
                                     </button>
+
+                                    {/* UPLOAD SHOTS */}
                                     <button
-                                        onClick={() => handleExportScene('videos')}
+                                        onClick={() => { setShowMoreMenu(false); setShowShotDivision(true); }}
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
                                     >
-                                        <span className="text-[#666]">🎬</span> Export Videos
+                                        <Upload size={13} className="text-[#666]" /> Upload Shots
                                     </button>
-                                    <button
-                                        onClick={() => handleExportScene('all')}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer border-t border-[#222]"
-                                    >
-                                        <span className="text-[#666]">📦</span> Export All
-                                    </button>
+
+                                    {/* EXPORT SUB-SECTION */}
+                                    <div className="border-t border-[#222]">
+                                        <div className="px-4 py-1.5 bg-[#111]">
+                                            <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Export Scene</span>
+                                        </div>
+                                        <button
+                                            onClick={() => { setShowMoreMenu(false); handleExportScene('images'); }}
+                                            disabled={isExporting || shotMgr.shots.length === 0}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="text-[#666]">🖼</span> Export Images
+                                        </button>
+                                        <button
+                                            onClick={() => { setShowMoreMenu(false); handleExportScene('videos'); }}
+                                            disabled={isExporting || shotMgr.shots.length === 0}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="text-[#666]">🎬</span> Export Videos
+                                        </button>
+                                        <button
+                                            onClick={() => { setShowMoreMenu(false); handleExportScene('all'); }}
+                                            disabled={isExporting || shotMgr.shots.length === 0}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed border-t border-[#222]"
+                                        >
+                                            <span className="text-[#666]">📦</span> Export All
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
