@@ -248,6 +248,7 @@ export default function PreProductionCanvas() {
     const [canvasTransform, setCanvasTransform] = useState<CanvasTransform>({ x: 0, y: 0, scale: 1 });
     const canvasJumpToRef = useRef<CanvasJumpTo | null>(null);
     const [generatingMap, setGeneratingMap] = useState<Record<string, boolean>>({});
+    const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
 
     // Modal State
     const [selectedAsset, setSelectedAsset] = useState<{ data: any; type: "character" | "location" | "product" } | null>(null);
@@ -933,8 +934,34 @@ export default function PreProductionCanvas() {
                                     badges={node.badges}
                                     isGenerating={node.isGenerating}
                                     index={idx}
-                                    onPositionChange={handleNodeMove}
-                                    onEdit={() => handleNodeClick(node)}
+                                    isSelected={selectedNodeIds.has(node.id)}
+                                    onEdit={() => {
+                                        // Shift+click = toggle selection
+                                        handleNodeClick(node);
+                                    }}
+                                    onPositionChange={(id, pos) => {
+                                        // If this node is selected and part of batch, move all selected
+                                        if (selectedNodeIds.has(id) && selectedNodeIds.size > 1) {
+                                            const oldPos = canvasNodesRef.current.find(n => n.id === id)?.position;
+                                            if (oldPos) {
+                                                const dx = pos.x - (nodePositions[id]?.x ?? oldPos.x);
+                                                const dy = pos.y - (nodePositions[id]?.y ?? oldPos.y);
+                                                setNodePositions(prev => {
+                                                    const next = { ...prev };
+                                                    for (const selId of selectedNodeIds) {
+                                                        const curNode = canvasNodesRef.current.find(n => n.id === selId);
+                                                        const curPos = prev[selId] || curNode?.position;
+                                                        if (curPos) {
+                                                            next[selId] = { x: curPos.x + dx, y: curPos.y + dy };
+                                                        }
+                                                    }
+                                                    return next;
+                                                });
+                                                return;
+                                            }
+                                        }
+                                        handleNodeMove(id, pos);
+                                    }}
                                     onImageClick={() => {
                                         if (node.imageUrl) setLightboxData({ url: node.imageUrl, title: node.title });
                                         else handleNodeClick(node);
