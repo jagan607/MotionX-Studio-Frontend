@@ -117,7 +117,24 @@ export const triggerAssetGeneration = async (
     return res.data;
 };
 
-// --- 7. SHOT GENERATION (NEW - Fixes 422 Error) ---
+// --- 7. WORLD DETECTION ---
+
+export const detectWorlds = async (
+    projectId: string,
+    source: 'existing' | 'upload' = 'existing',
+    file?: File,
+    scriptText?: string
+): Promise<{ status: string; job_id: string }> => {
+    const formData = new FormData();
+    formData.append('project_id', projectId);
+    formData.append('source', source);
+    if (source === 'upload' && file) formData.append('file', file);
+    if (source === 'upload' && scriptText) formData.append('script_text', scriptText);
+    const res = await api.post('/api/v1/script/detect-worlds', formData);
+    return res.data;
+};
+
+// --- 8. SHOT GENERATION (NEW - Fixes 422 Error) ---
 
 export const generateShotImage = async (
     projectId: string,

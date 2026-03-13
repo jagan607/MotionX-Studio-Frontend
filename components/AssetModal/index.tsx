@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, User, MapPin, ArrowLeft, Sparkles, ShoppingBag } from 'lucide-react';
+import { X, User, MapPin, ArrowLeft, Sparkles, ShoppingBag, Globe } from 'lucide-react';
 import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
 import { api, uploadAssetReference, uploadAssetMain } from '@/lib/api';
-import { constructLocationPrompt, constructCharacterPrompt, constructProductPrompt } from '@/lib/promptUtils';
+import { constructLocationPrompt, constructCharacterPrompt, constructProductPrompt, constructWorldPrompt } from '@/lib/promptUtils';
 import { toast } from 'react-hot-toast';
 import { Asset } from '@/lib/types';
 import { InpaintEditor } from '@/app/components/storyboard/InpaintEditor';
@@ -12,6 +12,7 @@ import { InpaintEditor } from '@/app/components/storyboard/InpaintEditor';
 // --- SUB-COMPONENTS ---
 import { TraitsTab } from './TraitsTab';
 import { ProductTab } from './ProductTab'; // [NEW]
+import { WorldTab } from './WorldTab';
 import { VoiceTab } from './VoiceTab';
 import { VisualsSection } from './VisualsSection';
 import { VoicePreviewBar } from './VoicePreviewBar';
@@ -22,7 +23,7 @@ interface AssetModalProps {
     projectId: string;
     assetId: string;
     assetName: string;
-    assetType: 'character' | 'location' | 'product';
+    assetType: 'character' | 'location' | 'product' | 'world';
     currentData: Asset;
 
     mode: 'upload' | 'generate';
@@ -65,7 +66,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     // Visuals State
     const [refImage, setRefImage] = useState<string | null>(null);
-    const [localDisplayImage, setLocalDisplayImage] = useState<string | undefined>(currentData.image_url);
+    const [localDisplayImage, setLocalDisplayImage] = useState<string | undefined>(currentData.image_url || undefined);
     const [useRefForGen, setUseRefForGen] = useState(true);
 
     // Voice State
@@ -96,7 +97,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
     useEffect(() => {
-        setLocalDisplayImage(currentData.image_url);
+        setLocalDisplayImage(currentData.image_url || undefined);
     }, [currentData.image_url]);
 
     useEffect(() => {
@@ -144,6 +145,23 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 colors: Array.isArray(dna.brand_colors) ? dna.brand_colors.join(', ') : "",
                 features: Array.isArray(mkt.key_features) ? mkt.key_features.join(', ') : ""
             };
+        } else if (assetType === 'world') {
+            // World
+            const vt = rawData.visual_traits;
+            const vtString = Array.isArray(vt) ? vt.join(', ') : (typeof vt === 'string' ? vt : '');
+            const mood = rawData.moodboard_style || {};
+            initialData = {
+                description: rawData.description || '',
+                geography: rawData.geography || '',
+                time_period: rawData.time_period || '',
+                technology_level: rawData.technology_level || '',
+                atmosphere: rawData.atmosphere || '',
+                visual_traits: vtString,
+                color_palette: mood.color_palette || '',
+                mood_lighting: mood.lighting || '',
+                texture: mood.texture || '',
+                mood_atmosphere: mood.atmosphere || '',
+            };
         } else {
             // Character
             const charTraits = (vt && !Array.isArray(vt)) ? vt : {};
@@ -185,6 +203,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
         } else if (assetType === 'product') {
             // Use local helper
             constructed = constructProductPrompt(name || "Product", traits, genre, style);
+        } else if (assetType === 'world') {
+            constructed = constructWorldPrompt(name || "World", traits, genre, style);
         } else {
             constructed = constructCharacterPrompt(name || "Character", traits, traits, genre, style);
         }
@@ -303,6 +323,24 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         key_features: split(editableTraits.features)
                     }
                 }
+            };
+        } else if (assetType === 'world') {
+            payload = {
+                name: editableName,
+                type: 'world',
+                description: editableTraits.description || '',
+                geography: editableTraits.geography || '',
+                time_period: editableTraits.time_period || '',
+                technology_level: editableTraits.technology_level || '',
+                atmosphere: editableTraits.atmosphere || '',
+                visual_traits: split(editableTraits.visual_traits),
+                moodboard_style: {
+                    color_palette: editableTraits.color_palette || '',
+                    lighting: editableTraits.mood_lighting || '',
+                    texture: editableTraits.texture || '',
+                    atmosphere: editableTraits.mood_atmosphere || '',
+                },
+                prompt: genPrompt
             };
         } else {
             // Character Payload
@@ -462,6 +500,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const getHeaderIcon = () => {
         if (assetType === 'location') return <MapPin size={20} className="text-motion-red" />;
         if (assetType === 'product') return <ShoppingBag size={20} className="text-motion-red" />;
+        if (assetType === 'world') return <Globe size={20} className="text-motion-red" />;
         return <User size={20} className="text-motion-red" />;
     };
 
@@ -525,6 +564,22 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                         materials={editableTraits.materials || ""}
                                         colors={editableTraits.colors || ""}
                                         features={editableTraits.features || ""}
+                                        onChange={handleTraitChange}
+                                    />
+                                ) : assetType === 'world' ? (
+                                    <WorldTab
+                                        editableName={editableName}
+                                        onNameChange={handleNameChange}
+                                        description={editableTraits.description || ""}
+                                        geography={editableTraits.geography || ""}
+                                        timePeriod={editableTraits.time_period || ""}
+                                        technologyLevel={editableTraits.technology_level || ""}
+                                        atmosphere={editableTraits.atmosphere || ""}
+                                        visualTraits={editableTraits.visual_traits || ""}
+                                        colorPalette={editableTraits.color_palette || ""}
+                                        lighting={editableTraits.mood_lighting || ""}
+                                        texture={editableTraits.texture || ""}
+                                        moodAtmosphere={editableTraits.mood_atmosphere || ""}
                                         onChange={handleTraitChange}
                                     />
                                 ) : (

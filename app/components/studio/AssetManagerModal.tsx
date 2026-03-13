@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
     X, Users, MapPin, ShoppingBag, Plus, Loader2,
-    Search, Sparkles
+    Search, Sparkles, Globe
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -16,13 +16,17 @@ import {
     createAsset,
     triggerAssetGeneration,
     updateAsset,
+    detectWorlds,
+    checkJobStatus,
 } from "@/lib/api";
-import { Asset, CharacterProfile, LocationProfile, ProductProfile, Project } from "@/lib/types";
-import { constructLocationPrompt, constructCharacterPrompt } from "@/lib/promptUtils";
+import { Asset, CharacterProfile, LocationProfile, ProductProfile, WorldProfile, Project } from "@/lib/types";
+import { constructLocationPrompt, constructCharacterPrompt, constructWorldPrompt } from "@/lib/promptUtils";
 
 // --- COMPONENTS ---
 import { AssetCard } from "@/components/AssetCard";
 import { AssetModal } from "@/components/AssetModal";
+import { WorldsEmptyState } from "./WorldsEmptyState";
+import { WorldCard } from "./WorldCard";
 
 // --- CONTEXT ---
 import { useMediaViewer, MediaItem } from "@/app/context/MediaViewerContext";
@@ -57,18 +61,25 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
     const amTour = useTour("asset_manager_tour");
 
     // --- STATE ---
-    const [activeTab, setActiveTab] = useState<'cast' | 'locations' | 'products'>('cast');
+    const [activeTab, setActiveTab] = useState<'cast' | 'locations' | 'products' | 'worlds'>('cast');
 
     const [assets, setAssets] = useState<{
         characters: CharacterProfile[];
         locations: LocationProfile[];
         products: ProductProfile[];
-    }>({ characters: [], locations: [], products: [] });
+        worlds: WorldProfile[];
+    }>({ characters: [], locations: [], products: [], worlds: [] });
 
     const [loading, setLoading] = useState(false);
     const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
     const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
     const [genPrompt, setGenPrompt] = useState("");
+
+    // --- WORLD DETECTION STATE ---
+    const [worldDetecting, setWorldDetecting] = useState(false);
+    const [worldProgress, setWorldProgress] = useState("");
+    const [worldError, setWorldError] = useState<string | null>(null);
+    const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
     // --- LOAD DATA ---
     useEffect(() => {
@@ -87,13 +98,20 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
     // Sync AssetModal when assets refresh
     useEffect(() => {
         if (selectedAsset && selectedAsset.id !== "new") {
-            const allAssets = [...assets.characters, ...assets.locations, ...assets.products];
+            const allAssets = [...assets.characters, ...assets.locations, ...assets.products, ...assets.worlds];
             const freshAsset = allAssets.find(a => a.id === selectedAsset.id);
             if (freshAsset && freshAsset.image_url !== selectedAsset.image_url) {
                 setSelectedAsset(freshAsset);
             }
         }
     }, [assets]);
+
+    // Cleanup polling on unmount
+    useEffect(() => {
+        return () => {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+        };
+    }, []);
 
     const loadData = async () => {
         setLoading(true);
@@ -103,11 +121,13 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             const typedCharacters = (assetsData.characters || []).map((c: any) => ({ ...c, type: 'character' }));
             const typedLocations = (assetsData.locations || []).map((l: any) => ({ ...l, type: 'location' }));
             const typedProducts = (assetsData.products || []).map((p: any) => ({ ...p, type: 'product' }));
+            const typedWorlds = (assetsData.worlds || []).map((w: any) => ({ ...w, type: 'world' }));
 
             setAssets({
                 characters: typedCharacters,
                 locations: typedLocations,
                 products: typedProducts,
+                worlds: typedWorlds,
             });
 
             onAssetsUpdated?.();
@@ -121,10 +141,58 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
 
     // --- ACTIONS ---
 
+    // --- WORLD DETECTION ---
+    const handleDetectWorlds = useCallback(async (source: 'existing' | 'upload' = 'existing', file?: File, scriptText?: string) => {
+        setWorldDetecting(true);
+        setWorldError(null);
+        setWorldProgress("Queued...");
+        try {
+            const { job_id } = await detectWorlds(projectId, source, file, scriptText);
+            // Start polling
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            pollingRef.current = setInterval(async () => {
+                try {
+                    const status = await checkJobStatus(job_id);
+                    setWorldProgress(status.progress || "Processing...");
+                    if (status.status === 'completed') {
+                        if (pollingRef.current) clearInterval(pollingRef.current);
+                        pollingRef.current = null;
+                        setWorldDetecting(false);
+                        toastSuccess(`Detected ${status.world_count || 0} world(s)`);
+                        await loadData();
+                    } else if (status.status === 'failed') {
+                        if (pollingRef.current) clearInterval(pollingRef.current);
+                        pollingRef.current = null;
+                        setWorldDetecting(false);
+                        setWorldError(status.error_message || status.error || 'World detection failed');
+                    }
+                } catch {
+                    if (pollingRef.current) clearInterval(pollingRef.current);
+                    pollingRef.current = null;
+                    setWorldDetecting(false);
+                    setWorldError('Lost connection. Please try again.');
+                }
+            }, 3000);
+        } catch (e: any) {
+            setWorldDetecting(false);
+            const msg = e.response?.data?.detail || e.message || 'Failed to start world detection';
+            setWorldError(msg);
+        }
+    }, [projectId]);
+
+    const handleDetectWithFile = useCallback((file: File) => {
+        handleDetectWorlds('upload', file);
+    }, [handleDetectWorlds]);
+
+    const handleDetectWithText = useCallback((text: string) => {
+        handleDetectWorlds('upload', undefined, text);
+    }, [handleDetectWorlds]);
+
     const handleOpenDraft = () => {
         let type = 'character';
         if (activeTab === 'locations') type = 'location';
         if (activeTab === 'products') type = 'product';
+        if (activeTab === 'worlds') type = 'world';
 
         const draftAsset: any = {
             id: "new",
@@ -132,9 +200,10 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             name: "",
             project_id: projectId,
             status: "pending",
-            visual_traits: {},
+            visual_traits: type === 'world' ? [] : {},
             voice_config: {},
             product_metadata: {},
+            ...(type === 'world' ? { description: '', geography: '', time_period: '', technology_level: '', atmosphere: '', moodboard_style: { color_palette: '', lighting: '', texture: '', atmosphere: '' }, location_ids: [] } : {}),
         };
         setGenPrompt("");
         setSelectedAsset(draftAsset);
@@ -171,6 +240,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                 if (type === 'character') newState.characters = prev.characters.filter(a => a.id !== id);
                 else if (type === 'location') newState.locations = prev.locations.filter(a => a.id !== id);
                 else if (type === 'product') newState.products = prev.products.filter(a => a.id !== id);
+                else if (type === 'world') newState.worlds = prev.worlds.filter(a => a.id !== id);
                 return newState;
             });
             toastSuccess("Asset deleted");
@@ -192,6 +262,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             let requestType = 'characters';
             if (asset.type === 'location') requestType = 'locations';
             if (asset.type === 'product') requestType = 'products';
+            if (asset.type === 'world') requestType = 'world';
 
             let finalPrompt = customPrompt;
             if (!finalPrompt) {
@@ -208,6 +279,13 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                         asset.name,
                         (asset as any).visual_traits,
                         (asset as any).visual_traits,
+                        (project as any)?.genre || "",
+                        project?.moodboard?.lighting || ""
+                    );
+                } else if (asset.type === 'world') {
+                    finalPrompt = constructWorldPrompt(
+                        asset.name,
+                        asset as any,
                         (project as any)?.genre || "",
                         project?.moodboard?.lighting || ""
                     );
@@ -244,6 +322,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
         let type = 'character';
         if (activeTab === 'locations') type = 'location';
         if (activeTab === 'products') type = 'product';
+        if (activeTab === 'worlds') type = 'world';
 
         try {
             const response = await createAsset(projectId, { ...draftData, type });
@@ -261,6 +340,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
         if (activeTab === 'cast') targetList = assets.characters;
         else if (activeTab === 'locations') targetList = assets.locations;
         else if (activeTab === 'products') targetList = assets.products;
+        else if (activeTab === 'worlds') targetList = assets.worlds;
 
         const pending = targetList.filter(a => !a.image_url);
         if (pending.length === 0) { toast.success("All assets are ready"); return; }
@@ -275,7 +355,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
         const mediaItems: MediaItem[] = displayed.map(a => ({
             id: a.id,
             type: 'image',
-            imageUrl: a.image_url,
+            imageUrl: a.image_url || undefined,
             title: a.name,
             description: a.prompt || (a as any).base_prompt,
         }));
@@ -304,6 +384,10 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                         newState.locations = prev.locations.map(l =>
                             l.id === asset.id ? { ...l, kling_element_id: String(res.data.kling_element_id) } : l
                         );
+                    } else if (asset.type === 'world') {
+                        newState.worlds = prev.worlds.map(w =>
+                            w.id === asset.id ? { ...w, kling_element_id: String(res.data.kling_element_id) } : w
+                        );
                     }
                     return newState;
                 });
@@ -322,10 +406,12 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
         if (activeTab === 'cast') return assets.characters;
         if (activeTab === 'locations') return assets.locations;
         if (activeTab === 'products') return assets.products;
+        if (activeTab === 'worlds') return assets.worlds;
         return [];
     };
 
     const displayedAssets = getDisplayedAssets();
+    const isWorldsTab = activeTab === 'worlds';
 
     // Search
     const [searchQuery, setSearchQuery] = useState("");
@@ -334,10 +420,14 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
         : displayedAssets;
 
     // Counts
-    const allAssets = [...assets.characters, ...assets.locations, ...assets.products];
+    const allAssets = [...assets.characters, ...assets.locations, ...assets.products, ...assets.worlds];
     const readyCount = allAssets.filter(a => a.image_url).length;
     const totalCount = allAssets.length;
     const generatingCount = generatingIds.size;
+
+    // World helpers
+    const getLocationCountForWorld = (worldId: string) =>
+        assets.locations.filter(l => l.world_id === worldId).length;
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -353,10 +443,10 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             />
 
             {/* Modal Container */}
-            <div className="w-[95vw] max-w-[1200px] h-[90vh] flex flex-col bg-[#050505] border border-white/[0.06] shadow-2xl shadow-black/80 relative overflow-hidden rounded-xl">
+            <div className="w-[96vw] max-w-[1400px] h-[92vh] flex flex-col bg-[#0C0C0C] border border-white/[0.12] shadow-2xl shadow-black/80 relative overflow-hidden rounded-xl">
 
                 {/* ── HEADER ── */}
-                <div className="h-14 border-b border-white/[0.06] bg-[#0A0A0A] flex items-center justify-between px-6 shrink-0">
+                <div className="h-14 border-b border-white/[0.10] bg-[#111111] flex items-center justify-between px-8 shrink-0">
                     <div className="flex items-center gap-4">
                         <h2 className="text-lg font-bold text-white uppercase tracking-tight">Assets</h2>
                         <div className="flex items-center gap-2">
@@ -385,7 +475,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search..."
-                                className="w-32 h-7 pl-7 pr-3 bg-white/[0.03] border border-white/[0.06] rounded text-[10px] text-white placeholder-neutral-600 focus:outline-none focus:border-white/[0.15] transition-colors"
+                                className="w-36 h-7 pl-7 pr-3 bg-white/[0.04] border border-white/[0.10] rounded text-[10px] text-white placeholder-neutral-600 focus:outline-none focus:border-white/[0.20] transition-colors"
                             />
                         </div>
 
@@ -407,7 +497,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                 </div>
 
                 {/* ── TAB BAR ── */}
-                <div id="tour-am-cast-tab" className="h-11 border-b border-white/[0.06] bg-[#080808] flex items-center px-6 gap-1 shrink-0">
+                <div id="tour-am-cast-tab" className="h-11 border-b border-white/[0.10] bg-[#0F0F0F] flex items-center px-8 gap-1.5 shrink-0">
                     {project?.type === 'ad' && (
                         <TabButton active={activeTab === 'products'} onClick={() => setActiveTab('products')} icon={<ShoppingBag size={12} />} label="Products" count={assets.products.length} />
                     )}
@@ -416,45 +506,96 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                     {project?.type !== 'ad' && (
                         <TabButton active={activeTab === 'products'} onClick={() => setActiveTab('products')} icon={<ShoppingBag size={12} />} label="Products" count={assets.products.length} />
                     )}
+                    {project?.type !== 'ad' && (
+                        <TabButton active={activeTab === 'worlds'} onClick={() => setActiveTab('worlds')} icon={<Globe size={12} />} label="Worlds" count={assets.worlds.length} />
+                    )}
                 </div>
 
                 {/* ── GRID ── */}
-                <div className="flex-1 overflow-y-auto p-6 bg-[#020202]">
-                    <div className={`grid gap-5 ${activeTab === 'locations' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'}`}>
-                        <AssetCard variant="create" tourId="tour-am-register-new" onCreate={handleOpenDraft} label={"ADD " + (activeTab === 'cast' ? 'CHARACTER' : activeTab === 'locations' ? 'LOCATION' : 'PRODUCT')} />
+                <div className="flex-1 overflow-y-auto p-8 bg-[#090909]">
+                    {/* Worlds Tab — special layout */}
+                    {isWorldsTab ? (
+                        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                            {loading ? (
+                                <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-50">
+                                    <Loader2 className="animate-spin text-[#E50914] mb-3" size={22} />
+                                    <span className="text-[10px] tracking-widest text-neutral-600 uppercase">Loading assets...</span>
+                                </div>
+                            ) : (worldDetecting || assets.worlds.length === 0) ? (
+                                <WorldsEmptyState
+                                    isDetecting={worldDetecting}
+                                    progress={worldProgress}
+                                    error={worldError}
+                                    onDetect={() => handleDetectWorlds('existing')}
+                                    onDetectWithFile={handleDetectWithFile}
+                                    onDetectWithText={handleDetectWithText}
+                                    onCreateManual={handleOpenDraft}
+                                />
+                            ) : (
+                                <>
+                                    <AssetCard variant="create" onCreate={handleOpenDraft} label="ADD WORLD" />
+                                    {filteredAssets.map((asset) => (
+                                        <WorldCard
+                                            key={asset.id}
+                                            asset={asset as WorldProfile}
+                                            isGenerating={generatingIds.has(asset.id)}
+                                            locationCount={getLocationCountForWorld(asset.id)}
+                                            onGenerate={(a: Asset) => handleGenerate(a, a.prompt || (a as any).base_prompt)}
+                                            onConfig={(a: Asset) => { setSelectedAsset(a); setGenPrompt(a.prompt || ""); }}
+                                            onDelete={handleDelete}
+                                            onView={handleViewAsset}
+                                            onRegisterKling={handleRegisterKling}
+                                        />
+                                    ))}
+                                    {filteredAssets.length === 0 && displayedAssets.length > 0 && (
+                                        <div className="col-span-full flex flex-col items-center justify-center py-16 opacity-40">
+                                            <span className="text-[10px] tracking-widest text-neutral-600 uppercase">No matches for &quot;{searchQuery}&quot;</span>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    ) : (
+                        /* Standard tabs: Cast / Locations / Products */
+                        <div className={`grid gap-5 ${activeTab === 'locations' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'}`}>
+                            <AssetCard variant="create" tourId="tour-am-register-new" onCreate={handleOpenDraft} label={"ADD " + (activeTab === 'cast' ? 'CHARACTER' : activeTab === 'locations' ? 'LOCATION' : 'PRODUCT')} />
 
-                        {loading ? (
-                            <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-50">
-                                <Loader2 className="animate-spin text-[#E50914] mb-3" size={22} />
-                                <span className="text-[10px] tracking-widest text-neutral-600 uppercase">Loading assets...</span>
-                            </div>
-                        ) : filteredAssets.map((asset, index) => (
-                            <AssetCard
-                                key={asset.id}
-                                tourId={index === 0 ? "tour-am-asset-card" : undefined}
-                                variant="default"
-                                asset={asset}
-                                projectId={projectId}
-                                isGenerating={generatingIds.has(asset.id)}
-                                onGenerate={(a: Asset) => handleGenerate(a, a.prompt || (a as any).base_prompt)}
-                                onConfig={(a: Asset) => { setSelectedAsset(a); setGenPrompt(a.prompt || ""); }}
-                                onDelete={handleDelete}
-                                onView={handleViewAsset}
-                                onRegisterKling={handleRegisterKling}
-                            />
-                        ))}
+                            {loading ? (
+                                <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-50">
+                                    <Loader2 className="animate-spin text-[#E50914] mb-3" size={22} />
+                                    <span className="text-[10px] tracking-widest text-neutral-600 uppercase">Loading assets...</span>
+                                </div>
+                            ) : filteredAssets.map((asset, index) => (
+                                <AssetCard
+                                    key={asset.id}
+                                    tourId={index === 0 ? "tour-am-asset-card" : undefined}
+                                    variant="default"
+                                    asset={asset}
+                                    projectId={projectId}
+                                    isGenerating={generatingIds.has(asset.id)}
+                                    onGenerate={(a: Asset) => handleGenerate(a, a.prompt || (a as any).base_prompt)}
+                                    onConfig={(a: Asset) => { setSelectedAsset(a); setGenPrompt(a.prompt || ""); }}
+                                    onDelete={handleDelete}
+                                    onView={handleViewAsset}
+                                    onRegisterKling={handleRegisterKling}
+                                    worldName={asset.type === 'location' && (asset as LocationProfile).world_id
+                                        ? assets.worlds.find(w => w.id === (asset as LocationProfile).world_id)?.name
+                                        : undefined}
+                                />
+                            ))}
 
-                        {!loading && filteredAssets.length === 0 && displayedAssets.length > 0 && (
-                            <div className="col-span-full flex flex-col items-center justify-center py-16 opacity-40">
-                                <span className="text-[10px] tracking-widest text-neutral-600 uppercase">No matches for &quot;{searchQuery}&quot;</span>
-                            </div>
-                        )}
-                        {!loading && displayedAssets.length === 0 && (
-                            <div className="col-span-full flex flex-col items-center justify-center py-16 opacity-40">
-                                <span className="text-[10px] tracking-widest text-neutral-600 uppercase">No assets yet — add one to get started</span>
-                            </div>
-                        )}
-                    </div>
+                            {!loading && filteredAssets.length === 0 && displayedAssets.length > 0 && (
+                                <div className="col-span-full flex flex-col items-center justify-center py-16 opacity-40">
+                                    <span className="text-[10px] tracking-widest text-neutral-600 uppercase">No matches for &quot;{searchQuery}&quot;</span>
+                                </div>
+                            )}
+                            {!loading && displayedAssets.length === 0 && (
+                                <div className="col-span-full flex flex-col items-center justify-center py-16 opacity-40">
+                                    <span className="text-[10px] tracking-widest text-neutral-600 uppercase">No assets yet — add one to get started</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -492,14 +633,14 @@ function TabButton({ active, onClick, icon, label, count }: {
     return (
         <button
             onClick={onClick}
-            className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase transition-all rounded cursor-pointer
+            className={`flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold tracking-widest uppercase transition-all rounded cursor-pointer
                 ${active
-                    ? "bg-white/[0.06] text-white border border-white/[0.1]"
-                    : "text-neutral-600 hover:text-neutral-400 hover:bg-white/[0.02] border border-transparent"}`}
+                    ? "bg-white/[0.08] text-white border border-white/[0.15] shadow-sm"
+                    : "text-neutral-500 hover:text-neutral-300 hover:bg-white/[0.04] border border-transparent"}`}
         >
             {icon}
             {label}
-            <span className={`font-mono text-[9px] ${active ? "text-[#E50914]" : "text-neutral-700"}`}>
+            <span className={`font-mono text-[9px] ${active ? "text-[#E50914]" : "text-neutral-600"}`}>
                 {String(count).padStart(2, '0')}
             </span>
         </button>

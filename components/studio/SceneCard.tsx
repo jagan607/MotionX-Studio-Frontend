@@ -223,7 +223,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                                         name={asset ? asset.name : scene.location}
                                         type="location"
                                         status={asset ? 'linked' : 'missing'}
-                                        imageUrl={asset?.image_url}
+                                        imageUrl={asset?.image_url || undefined}
                                         // @ts-ignore
                                         hideIcon={true}
                                     />
@@ -248,7 +248,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                                             name={asset ? asset.name : charRef}
                                             type="character"
                                             status={asset ? 'linked' : 'missing'}
-                                            imageUrl={asset?.image_url}
+                                            imageUrl={asset?.image_url || undefined}
                                             // @ts-ignore
                                             hideIcon={true}
                                         />
@@ -274,7 +274,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                                             name={asset ? asset.name : prodRef}
                                             type="product" // Ensure EntityStatusChip handles 'product' type (color logic)
                                             status={asset ? 'linked' : 'missing'}
-                                            imageUrl={asset?.image_url}
+                                            imageUrl={asset?.image_url || undefined}
                                             // @ts-ignore
                                             hideIcon={true}
                                         />

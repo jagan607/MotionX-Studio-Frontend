@@ -132,3 +132,37 @@ export const constructProductPrompt = (
 
     return prompt;
 };
+
+
+// --- [NEW] WORLD PROMPT BUILDER ---
+export const constructWorldPrompt = (
+    worldName: string,
+    traits: any,
+    genre: string,
+    style: string
+): string => {
+    let prompt = `Epic sweeping establishing shot of ${worldName}`;
+
+    if (traits.geography) prompt += `, ${traits.geography}`;
+    prompt += ".";
+
+    // Visual Traits
+    const vt = traits.visual_traits || "";
+    let details: string[] = [];
+    if (typeof vt === 'string') {
+        details = vt.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+    } else if (Array.isArray(vt)) {
+        details = vt;
+    }
+    if (details.length > 0) prompt += ` Visual details: ${details.join(', ')}.`;
+
+    if (traits.atmosphere) prompt += ` Atmosphere: ${traits.atmosphere}.`;
+    if (traits.time_period) prompt += ` Time period: ${traits.time_period}.`;
+
+    if (genre) prompt += ` Genre: ${genre}.`;
+    if (style) prompt += ` Style: ${style}.`;
+
+    prompt += " Sweeping cinematic landscape. No people, no characters. Concept art quality.";
+
+    return prompt;
+};

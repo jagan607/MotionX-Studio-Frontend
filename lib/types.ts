@@ -87,6 +87,7 @@ export interface LocationProfile {
     base_prompt?: string;
     created_at?: any;
     kling_element_id?: string;
+    world_id?: string | null;     // Links to a World document if worlds have been detected
 }
 
 // [FIXED] Product Profile - Added 'prompt' and 'product_metadata'
@@ -125,8 +126,52 @@ export interface ProductProfile {
     kling_element_id?: string; // [NEW] Kling 3.0 Element ID
 }
 
-// --- 4. THE UNIFIED ASSET TYPE ---
-export type Asset = CharacterProfile | LocationProfile | ProductProfile;
+// --- 4. WORLD PROFILE ---
+export interface WorldMoodboardStyle {
+    color_palette: string;
+    lighting: string;
+    texture: string;
+    atmosphere: string;
+}
+
+export interface WorldProfile {
+    id: string;
+    name: string;
+    type: "world";
+    project_id: string;
+
+    description: string;
+    visual_traits: string[];
+    geography: string;
+    technology_level: string;
+    time_period: string;
+    atmosphere: string;
+
+    moodboard_style: WorldMoodboardStyle;
+    moodboard_image_url: string | null;
+    image_url: string | null;
+    ref_image_url?: string | null;
+
+    location_ids: string[];
+
+    status: "active" | "pending";
+    created_at?: string;
+    created_by?: string;
+    prompt?: string;
+    kling_element_id?: string;
+}
+
+export interface WorldDetectionJobStatus {
+    status: "queued" | "processing" | "completed" | "failed";
+    progress?: string;
+    is_multi_world?: boolean;
+    world_count?: number;
+    world_ids?: string[];
+    error_message?: string;
+}
+
+// --- 5. THE UNIFIED ASSET TYPE ---
+export type Asset = CharacterProfile | LocationProfile | ProductProfile | WorldProfile;
 
 // --- 5. PROJECT INTERFACE ---
 export interface Project {
