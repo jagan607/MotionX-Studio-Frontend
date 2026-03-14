@@ -152,26 +152,6 @@ function SortableInlineCard({
    ═══════════════════════════════════════════════════════════ */
 export default function NewProjectPage() {
     const router = useRouter();
-    const [creating, setCreating] = useState(false);
-    type UGCSetup = "podcast" | "talking_head" | "voiceover_broll" | "tutorial" | "vlog";
-    const [formData, setFormData] = useState({
-        title: "",
-        genre: "",
-        type: "movie" as ProjectType,
-        aspect_ratio: "16:9" as "16:9" | "21:9" | "9:16" | "4:5",
-        style: "realistic" as "realistic" | "animation_2d" | "animation_3d",
-        ugc_setup: "talking_head" as UGCSetup,
-    });
-
-    const UGC_SETUP_OPTIONS: { id: UGCSetup; label: string; desc: string; Icon: React.ComponentType<any> }[] = [
-        { id: "podcast", label: "Podcast", desc: "Studio setup", Icon: Mic },
-        { id: "talking_head", label: "Talking Head", desc: "Person to camera", Icon: UserIcon },
-        { id: "voiceover_broll", label: "Faceless", desc: "Voiceover B-roll", Icon: Camera },
-        { id: "tutorial", label: "Tutorial", desc: "Step-by-step", Icon: BookOpen },
-        { id: "vlog", label: "Vlog", desc: "On-location", Icon: Backpack },
-    ];
-    const [adaptationFile, setAdaptationFile] = useState<File | null>(null);
-    const [isSizeError, setIsSizeError] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
 
     // ══════ PHASE STATE ══════
