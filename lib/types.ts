@@ -254,3 +254,41 @@ export interface Shot {
 
     created_at?: string;
 }
+
+// --- 7. TAXONOMY / CINEMATIC ARCHETYPE SYSTEM ---
+
+export interface TaxonomyMetrics {
+    dialogue_action_ratio: number;
+    fragmentation_whitespace: number;
+    character_interiority: number;
+    thematic_subtext: number;
+    scene_duration_pacing: number;
+}
+
+export interface ArchetypeBlueprint {
+    emotional_philosophy: string;
+    camera_movement: string;
+    lens_rules: string;
+    lighting_color: string;
+}
+
+export interface ArchetypeMatch {
+    id: string;
+    name: string;
+    match_percentage: number;
+    ideal_metrics: TaxonomyMetrics;
+    blueprint: ArchetypeBlueprint;
+}
+
+export interface TaxonomyResponse {
+    status?: string;
+    // Backend returns metrics at top level
+    dialogue_action_ratio?: number;
+    fragmentation_whitespace?: number;
+    character_interiority?: number;
+    thematic_subtext?: number;
+    scene_duration_pacing?: number;
+    // Also support nested form for forward-compat
+    script_metrics?: TaxonomyMetrics;
+    top_matches: ArchetypeMatch[];
+}
