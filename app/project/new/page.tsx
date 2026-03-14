@@ -40,7 +40,7 @@ export default function NewProjectPage() {
         genre: "",
         type: "movie" as ProjectType,
         aspect_ratio: "16:9" as "16:9" | "21:9" | "9:16" | "4:5",
-        style: "realistic" as "realistic" | "anime",
+        style: "realistic" as "realistic" | "animation_2d" | "animation_3d",
         ugc_setup: "talking_head" as UGCSetup,
     });
 
@@ -196,10 +196,11 @@ export default function NewProjectPage() {
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-semibold tracking-[3px] uppercase text-neutral-500">Engine</label>
                                     <div className="space-y-1.5">
-                                        {[
+                                        {([
                                             { id: 'realistic' as const, label: 'Realistic', desc: 'Ultra Realism' },
-                                            { id: 'anime' as const, label: 'Animation', desc: 'Anime style' }
-                                        ].map(s => {
+                                            { id: 'animation_2d' as const, label: 'Animation (2D)', desc: 'Traditional, Vector, Anime' },
+                                            { id: 'animation_3d' as const, label: 'Animation (3D)', desc: 'CGI, Ray-traced, Stop-Motion' },
+                                        ] as const).map(s => {
                                             const active = formData.style === s.id;
                                             return (
                                                 <button key={s.id} onClick={() => setFormData({ ...formData, style: s.id })}

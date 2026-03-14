@@ -266,10 +266,17 @@ export interface TaxonomyMetrics {
 }
 
 export interface ArchetypeBlueprint {
-    emotional_philosophy: string;
-    camera_movement: string;
-    lens_rules: string;
-    lighting_color: string;
+    // Live-Action Keys
+    emotional_philosophy?: string;
+    camera_movement?: string;
+    lens_rules?: string;
+    lighting_color?: string;
+
+    // Animation Keys
+    dimensionality?: string;
+    physics_logic?: string;
+    rendering_style?: string;
+    frame_rate?: string;
 }
 
 export interface ArchetypeMatch {

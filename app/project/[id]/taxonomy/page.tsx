@@ -5,23 +5,24 @@ import { useParams, useRouter } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { api, generateTaxonomy, selectTaxonomy, processScript, checkJobStatus } from "@/lib/api";
-import { TaxonomyMetrics, ArchetypeMatch, TaxonomyResponse } from "@/lib/types";
+import { TaxonomyMetrics, ArchetypeMatch, ArchetypeBlueprint, TaxonomyResponse } from "@/lib/types";
 import {
     Loader2, Check, Lock, ArrowLeft, AlertCircle,
-    RefreshCw, ChevronRight, Clapperboard, Camera,
-    Lightbulb, Palette, Aperture, Zap
+    RefreshCw, ChevronRight, ChevronDown, Clapperboard, Camera,
+    Lightbulb, Palette, Aperture, Zap, Box, Atom, Paintbrush, Timer
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
 import Link from "next/link";
 import TaxonomyHeatmap from "@/components/taxonomy/TaxonomyHeatmap";
+import { MotionButton } from "@/components/ui/MotionButton";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BLUEPRINT ICONS
+// BLUEPRINT FIELD DEFINITIONS — Live-Action vs Animation
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BLUEPRINT_FIELDS: {
-    key: keyof ArchetypeMatch["blueprint"];
+const LIVE_ACTION_FIELDS: {
+    key: keyof ArchetypeBlueprint;
     label: string;
     Icon: React.ComponentType<any>;
 }[] = [
@@ -30,6 +31,24 @@ const BLUEPRINT_FIELDS: {
     { key: "lens_rules", label: "Lens Rules", Icon: Aperture },
     { key: "lighting_color", label: "Lighting & Color", Icon: Palette },
 ];
+
+const ANIMATION_FIELDS: {
+    key: keyof ArchetypeBlueprint;
+    label: string;
+    Icon: React.ComponentType<any>;
+}[] = [
+    { key: "dimensionality", label: "Dimensionality", Icon: Box },
+    { key: "physics_logic", label: "Physics Logic", Icon: Atom },
+    { key: "rendering_style", label: "Rendering Style", Icon: Paintbrush },
+    { key: "frame_rate", label: "Frame Rate", Icon: Timer },
+];
+
+/**
+ * Detect whether an archetype is animation based on the blueprint keys.
+ */
+const isAnimationArchetype = (blueprint: ArchetypeBlueprint): boolean => {
+    return !!blueprint.dimensionality;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
@@ -49,6 +68,7 @@ export default function TaxonomyPage() {
     const [projectTitle, setProjectTitle] = useState("");
     const [projectMeta, setProjectMeta] = useState<any>(null);
     const [processingProgress, setProcessingProgress] = useState("");
+    const [visibleCount, setVisibleCount] = useState(3);
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     // Cleanup poll interval on unmount
@@ -89,8 +109,10 @@ export default function TaxonomyPage() {
 
             if (result.top_matches?.length > 0) {
                 setScriptMetrics(extractedMetrics);
-                setTopMatches(result.top_matches.slice(0, 3));
+                // Store ALL matches (up to 10) — visibleCount controls how many render
+                setTopMatches(result.top_matches);
                 setSelectedId(result.top_matches[0].id);
+                setVisibleCount(3); // reset on fresh load
                 setPhase("select");
             } else {
                 setErrorMessage("No archetype matches were generated. Please try again.");
@@ -165,7 +187,9 @@ export default function TaxonomyPage() {
         }
     };
 
-    // --- Selected archetype object ---
+    // --- Derived ---
+    const visibleMatches = topMatches.slice(0, visibleCount);
+    const hasMore = visibleCount < topMatches.length;
     const selectedArchetype = topMatches.find((m) => m.id === selectedId) || null;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -291,12 +315,12 @@ export default function TaxonomyPage() {
                             Choose Your Visual Identity
                         </h1>
                         <p className="text-[12px] text-white/30 max-w-lg mx-auto leading-relaxed">
-                            We analyzed your script and found the closest cinematic archetypes.
+                            We analyzed your script and found {topMatches.length} cinematic archetypes.
                             Select one to define the visual language of your project.
                         </p>
                     </div>
 
-                    {/* ── HEATMAP ── */}
+                    {/* ── HEATMAP (dynamic with visibleCount) ── */}
                     <div className="mb-12 bg-[#080808] border border-white/[0.06] rounded-xl p-6">
                         <div className="flex items-center gap-2 mb-5">
                             <div className="w-2 h-2 rounded-full bg-[#E50914]" />
@@ -306,14 +330,17 @@ export default function TaxonomyPage() {
                         </div>
                         <TaxonomyHeatmap
                             scriptMetrics={scriptMetrics}
-                            topMatches={topMatches}
+                            topMatches={visibleMatches}
                         />
                     </div>
 
-                    {/* ── ARCHETYPE CARDS ── */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-                        {topMatches.map((archetype, idx) => {
+                    {/* ── ARCHETYPE CARDS (Conditional Blueprint Rendering) ── */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        {visibleMatches.map((archetype, idx) => {
                             const isSelected = selectedId === archetype.id;
+                            const isAnimation = isAnimationArchetype(archetype.blueprint);
+                            const fields = isAnimation ? ANIMATION_FIELDS : LIVE_ACTION_FIELDS;
+
                             return (
                                 <button
                                     key={archetype.id}
@@ -323,14 +350,22 @@ export default function TaxonomyPage() {
                                             ? "bg-[#E50914]/[0.06] border-[#E50914] shadow-[0_0_30px_rgba(229,9,20,0.15)]"
                                             : "bg-[#080808] border-white/[0.06] hover:border-white/[0.15] hover:bg-[#0A0A0A]"
                                     }`}
+                                    style={{ animation: `taxFadeIn 0.4s ease ${idx * 0.08}s both` }}
                                 >
                                     {/* Match badge */}
                                     <div className="flex items-center justify-between mb-4">
-                                        <span className={`text-[9px] font-mono uppercase tracking-[3px] ${
-                                            isSelected ? "text-[#E50914]" : "text-white/30"
-                                        }`}>
-                                            #{idx + 1} Match
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`text-[9px] font-mono uppercase tracking-[3px] ${
+                                                isSelected ? "text-[#E50914]" : "text-white/30"
+                                            }`}>
+                                                #{idx + 1} Match
+                                            </span>
+                                            {isAnimation && (
+                                                <span className="text-[7px] font-mono px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-400 border border-purple-500/20 uppercase tracking-wider">
+                                                    Anim
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${
                                             isSelected
                                                 ? "bg-[#E50914]/20 text-[#E50914] border border-[#E50914]/30"
@@ -347,28 +382,32 @@ export default function TaxonomyPage() {
                                         {archetype.name}
                                     </h3>
 
-                                    {/* Blueprint rules */}
+                                    {/* Blueprint rules — conditional based on archetype type */}
                                     <div className="space-y-3">
-                                        {BLUEPRINT_FIELDS.map(({ key, label, Icon }) => (
-                                            <div key={key} className="flex items-start gap-3">
-                                                <Icon
-                                                    size={13}
-                                                    className={`mt-0.5 shrink-0 ${
-                                                        isSelected ? "text-[#E50914]/60" : "text-white/20"
-                                                    }`}
-                                                />
-                                                <div>
-                                                    <span className="text-[8px] font-mono text-white/20 uppercase tracking-[2px] block mb-0.5">
-                                                        {label}
-                                                    </span>
-                                                    <span className={`text-[11px] leading-relaxed ${
-                                                        isSelected ? "text-white/70" : "text-white/40"
-                                                    }`}>
-                                                        {archetype.blueprint[key]}
-                                                    </span>
+                                        {fields.map(({ key, label, Icon }) => {
+                                            const value = archetype.blueprint[key];
+                                            if (!value) return null;
+                                            return (
+                                                <div key={key} className="flex items-start gap-3">
+                                                    <Icon
+                                                        size={13}
+                                                        className={`mt-0.5 shrink-0 ${
+                                                            isSelected ? "text-[#E50914]/60" : "text-white/20"
+                                                        }`}
+                                                    />
+                                                    <div>
+                                                        <span className="text-[8px] font-mono text-white/20 uppercase tracking-[2px] block mb-0.5">
+                                                            {label}
+                                                        </span>
+                                                        <span className={`text-[11px] leading-relaxed ${
+                                                            isSelected ? "text-white/70" : "text-white/40"
+                                                        }`}>
+                                                            {value}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
 
                                     {/* Selection indicator */}
@@ -381,6 +420,19 @@ export default function TaxonomyPage() {
                             );
                         })}
                     </div>
+
+                    {/* ── LOAD MORE ── */}
+                    {hasMore && (
+                        <div className="flex justify-center mb-10">
+                            <MotionButton
+                                variant="outline"
+                                onClick={() => setVisibleCount((prev) => Math.min(prev + 3, topMatches.length))}
+                            >
+                                <ChevronDown size={14} />
+                                Load More Archetypes ({topMatches.length - visibleCount} remaining)
+                            </MotionButton>
+                        </div>
+                    )}
 
                     {/* ── LOCK IN CTA ── */}
                     <div className="flex flex-col items-center gap-4">
