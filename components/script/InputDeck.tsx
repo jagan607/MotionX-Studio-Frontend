@@ -17,7 +17,7 @@ import { ContextReference } from "@/app/components/script/ContextSelectorModal";
 interface InputDeckProps {
     projectId: string;
     projectTitle: string;
-    projectType: "movie" | "micro_drama" | "ad" | "ugc";
+    projectType: "movie" | "micro_drama" | "ad";
     episodeId?: string | null;
 
     initialTitle?: string;
@@ -467,7 +467,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 { label: "2m", val: 120 },
                                 { label: "5m", val: 300 },
                                 { label: "10m", val: 600 },
-                            ].filter(p => projectType === 'ugc' ? p.val <= 50 : true).map(p => (
+                            ].map(p => (
                                 <button
                                     key={p.val}
                                     type="button"
@@ -479,9 +479,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 </button>
                             ))}
                         </div>
-                        {projectType === 'ugc' && (
-                            <p className="text-[9px] text-neutral-500 mb-1">Max 50 seconds for UGC reels</p>
-                        )}
                         <div className="relative">
                             <input
                                 type="number"
@@ -499,8 +496,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     if (isNaN(val) || val < 0) return;
                                     // Convert to seconds internally
                                     let secs = runtimeUnit === 'min' ? Math.round(val * 60) : val;
-                                    // Cap at 50s for UGC projects
-                                    if (projectType === 'ugc' && secs > 50) secs = 50;
                                     setRuntime(secs);
                                     setRuntimeError(false);
                                 }}

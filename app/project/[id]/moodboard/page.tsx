@@ -8,8 +8,7 @@ import { api } from "@/lib/api";
 import {
     Loader2, Check, Palette, Sun, Layers, CloudFog,
     ChevronRight, ChevronLeft, RefreshCw, AlertCircle,
-    ArrowLeft, SkipForward,
-    Mic, User, Camera, BookOpen, Backpack
+    ArrowLeft, SkipForward
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -70,18 +69,8 @@ export default function MoodboardPage() {
     const [firestoreLoaded, setFirestoreLoaded] = useState(false);
     const [projectTitle, setProjectTitle] = useState("");
     const [appliedMoodId, setAppliedMoodId] = useState<string | null>(null);
-    const [projectType, setProjectType] = useState<string>("");
-    const [ugcSetup, setUgcSetup] = useState<string>("");
     // Track which moodboard card IDs have already been toasted for failure
     const failedToastedIds = React.useRef<Set<string>>(new Set());
-
-    const UGC_LABELS: Record<string, { label: string; Icon: React.ComponentType<any> }> = {
-        podcast: { label: "Podcast", Icon: Mic },
-        talking_head: { label: "Talking Head", Icon: User },
-        voiceover_broll: { label: "Faceless", Icon: Camera },
-        tutorial: { label: "Tutorial", Icon: BookOpen },
-        vlog: { label: "Vlog", Icon: Backpack },
-    };
 
     const readyCount = moods.filter(m => m.status === "ready").length;
     const totalCount = moods.length;
@@ -96,8 +85,6 @@ export default function MoodboardPage() {
             if (data) {
                 setProjectTitle(data.title || "");
                 setAppliedMoodId(data.selected_mood_id || null);
-                setProjectType(data.type || "");
-                setUgcSetup(data.ugc_setup || "");
             }
         });
         return () => unsub();
@@ -248,18 +235,7 @@ export default function MoodboardPage() {
                             <span className="text-[10px] text-white/25 font-mono uppercase tracking-wider truncate max-w-[200px]">{projectTitle}</span>
                         </>
                     )}
-                    {projectType === 'ugc' && ugcSetup && UGC_LABELS[ugcSetup] && (() => {
-                        const { label, Icon } = UGC_LABELS[ugcSetup];
-                        return (
-                            <>
-                                <div className="w-px h-4 bg-white/10" />
-                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#E50914]/10 border border-[#E50914]/30 rounded-full">
-                                    <Icon size={10} className="text-[#E50914]" />
-                                    <span className="text-[8px] font-bold text-[#E50914] uppercase tracking-widest">{label}</span>
-                                </div>
-                            </>
-                        );
-                    })()}
+
                 </div>
 
                 {/* Right: status + actions */}

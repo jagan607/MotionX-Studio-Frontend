@@ -223,9 +223,9 @@ export default function Dashboard() {
         };
     }, []);
 
-    // Navigate to a project's studio page
+    // Navigate to a project's Hub page
     const navigateToProject = useCallback((project: DashboardProject, type?: string) => {
-        const url = type === 'adaptation' ? `/project/${project.id}/adaptation` : `/project/${project.id}/studio`;
+        const url = type === 'adaptation' ? `/project/${project.id}/adaptation` : `/project/${project.id}`;
         router.push(url);
     }, [router]);
 
@@ -355,9 +355,9 @@ export default function Dashboard() {
                                             </div>
 
                                             {activeProject ? (
-                                                <Link href={projectType === 'adaptation' ? `/project/${activeProject.id}/adaptation` : `/project/${activeProject.id}/studio`}>
+                                                <Link href={projectType === 'adaptation' ? `/project/${activeProject.id}/adaptation` : `/project/${activeProject.id}`}>
                                                     <button className="bg-white text-black px-4 sm:px-8 py-2 sm:py-3 font-bold text-[10px] sm:text-xs uppercase tracking-[2px] hover:bg-[#E50914] hover:text-white transition-colors duration-300 flex items-center gap-2 sm:gap-3 cursor-pointer rounded-md">
-                                                        ENTER PRODUCTION <Maximize size={14} />
+                                                        OPEN WORKSPACE <Maximize size={14} />
                                                     </button>
                                                 </Link>
                                             ) : (

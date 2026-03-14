@@ -107,14 +107,20 @@ export const triggerAssetGeneration = async (
     aspect_ratio?: string,
     useRef?: boolean
 ) => {
-    const res = await api.post(`/api/v1/assets/${projectId}/generate`, {
+    const body: Record<string, any> = {
         asset_id: assetId,
         type,
         prompt,
-        style,
         aspect_ratio,
-        use_ref: useRef
-    });
+    };
+    // Only include style if it has actual content
+    if (style && Object.keys(style).length > 0) {
+        body.style = style;
+    }
+    if (useRef !== undefined) {
+        body.use_ref = useRef;
+    }
+    const res = await api.post(`/api/v1/assets/${projectId}/generate`, body);
     return res.data;
 };
 
@@ -395,21 +401,7 @@ export const upscaleShot = async (
     return res.data;
 };
 
-// --- 11. UGC PIPELINE ---
-
-export const generateUGC = async (params: {
-    project_id: string;
-    episode_id: string;
-    video_provider?: string;
-    video_duration?: string;
-    video_mode?: string;
-    aspect_ratio?: string;
-    image_provider?: string;
-    style?: string;
-}) => {
-    const res = await api.post("/api/v1/ugc/generate", params);
-    return res.data;
-};
+// --- 11. ANIMATION ---
 
 export const animateShot = async (params: {
     project_id: string;
@@ -424,29 +416,6 @@ export const animateShot = async (params: {
     aspect_ratio?: string;
 }) => {
     const res = await api.post("/api/v1/shot/animate_shot", params);
-    return res.data;
-};
-
-export const fetchMusicLibrary = async () => {
-    const res = await api.get("/api/v1/ugc/music-library");
-    return res.data.tracks as {
-        id: string;
-        name: string;
-        description: string;
-        bpm: number;
-        mood: string;
-    }[];
-};
-
-export const exportUGC = async (params: {
-    project_id: string;
-    episode_id: string;
-    music_track: string;
-    music_volume: number;
-    transition_duration: number;
-    transition_type: "crossfade" | "fade_black" | "cut";
-}) => {
-    const res = await api.post("/api/v1/ugc/export", params);
     return res.data;
 };
 
