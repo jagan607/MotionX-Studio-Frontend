@@ -63,6 +63,11 @@ export function ScriptSection({ project, scenes, activeEpisodeId, onUpdateProjec
                     from { opacity: 0; transform: translateY(10px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
+                @keyframes shimmer {
+                    0% { opacity: 0.3; }
+                    50% { opacity: 1; }
+                    100% { opacity: 0.3; }
+                }
             `}</style>
 
             <div className="flex items-center justify-between">
@@ -158,8 +163,48 @@ export function ScriptSection({ project, scenes, activeEpisodeId, onUpdateProjec
                     ))}
 
                     {scenes.length === 0 && (
-                        <div className="w-full py-20 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-2xl">
-                            <span className="text-white/20 text-xs font-mono uppercase tracking-widest">No scenes found. Refreshing...</span>
+                        <div className="w-full py-12 flex flex-col items-center gap-8">
+                            {/* Skeleton scene cards */}
+                            <div className="flex flex-wrap gap-6 w-full justify-center">
+                                {[...Array(4)].map((_, i) => (
+                                    <div key={i} className="w-[240px] rounded-xl border border-white/[0.06] bg-[#0a0a0a] overflow-hidden"
+                                        style={{ animation: `fadeUp 0.5s ease ${i * 0.1}s both` }}>
+                                        {/* Shimmer header bar */}
+                                        <div className="h-8 bg-gradient-to-r from-white/[0.02] via-white/[0.06] via-white/[0.02] to-white/[0.02] bg-[length:200%_100%]"
+                                            style={{ animation: 'shimmer 1.8s ease-in-out infinite' }} />
+                                        <div className="p-4 space-y-3">
+                                            {/* Title placeholder */}
+                                            <div className="h-3 w-[60%] rounded bg-white/[0.04]"
+                                                style={{ animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: `${i * 0.15}s` }} />
+                                            {/* Body lines */}
+                                            <div className="space-y-2">
+                                                <div className="h-2 w-full rounded bg-white/[0.03]"
+                                                    style={{ animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: `${i * 0.15 + 0.1}s` }} />
+                                                <div className="h-2 w-[85%] rounded bg-white/[0.03]"
+                                                    style={{ animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: `${i * 0.15 + 0.2}s` }} />
+                                                <div className="h-2 w-[45%] rounded bg-white/[0.03]"
+                                                    style={{ animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: `${i * 0.15 + 0.3}s` }} />
+                                            </div>
+                                            {/* Meta tags placeholder */}
+                                            <div className="flex gap-2 pt-2 border-t border-white/[0.04]">
+                                                <div className="h-2 w-12 rounded bg-[#D4A843]/10" />
+                                                <div className="h-2 w-10 rounded bg-[#4A90E2]/10" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Status indicator */}
+                            <div className="flex items-center gap-3">
+                                <div className="relative w-4 h-4">
+                                    <div className="absolute inset-0 rounded-full border border-white/[0.08]" />
+                                    <div className="absolute inset-0 rounded-full border border-transparent border-t-[#E50914]/50 animate-spin" />
+                                </div>
+                                <span className="text-[9px] font-mono text-white/20 uppercase tracking-[3px]">
+                                    Loading scenes
+                                </span>
+                            </div>
                         </div>
                     )}
                 </div>
