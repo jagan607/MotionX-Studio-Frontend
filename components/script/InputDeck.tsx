@@ -9,7 +9,7 @@ import {
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess, toastInfo } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiErrors";
-import { api, checkJobStatus } from "@/lib/api";
+import { api, checkJobStatus, uploadScriptToStorage } from "@/lib/api";
 import { MotionButton } from "@/components/ui/MotionButton";
 import ScriptProcessingLoader from "@/components/script/ScriptProcessingLoader";
 import { ContextReference } from "@/app/components/script/ContextSelectorModal";
@@ -17,7 +17,7 @@ import { ContextReference } from "@/app/components/script/ContextSelectorModal";
 interface InputDeckProps {
     projectId: string;
     projectTitle: string;
-    projectType: "movie" | "micro_drama" | "ad" | "ugc";
+    projectType: "movie" | "micro_drama" | "ad";
     episodeId?: string | null;
 
     initialTitle?: string;
@@ -199,46 +199,17 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             return;
         }
 
-        const formData = new FormData();
-        formData.append("project_id", projectId);
-        formData.append("script_title", title || projectTitle);
+        // 2. DETERMINE THE FILE TO UPLOAD
+        let fileToUpload: File | null = null;
 
-        if (runtime) {
-            formData.append("runtime_seconds", String(runtime));
-        }
-
-        if (episodeId && episodeId !== "new_placeholder") {
-            formData.append("episode_id", episodeId);
-        }
-
-        // --- HANDLE CONTINUITY MODE ---
         if (mode === 'continuity' && previousEpisode) {
-            addLog("INITIALIZING CONTINUITY PROTOCOL...");
-            formData.append("source_type", "continuation");
-            formData.append("previous_episode_id", previousEpisode.id);
-
-            if (continuityInstruction.trim()) {
-                const instructionBlob = new Blob([continuityInstruction], { type: "text/plain" });
-                formData.append("file", new File([instructionBlob], "instruction.txt"));
-            } else {
-                const defaultBlob = new Blob(["Continue the story naturally from the previous scene."], { type: "text/plain" });
-                formData.append("file", new File([defaultBlob], "instruction.txt"));
-            }
-        }
-        // --- HANDLE STANDARD MODE ---
-        else {
-            if (contextReferences && contextReferences.length > 0) {
-                const contextPayload = {
-                    references: contextReferences.map(ref => ({
-                        source: ref.sourceLabel || "Context Ref",
-                        header: ref.header || "Unknown Scene",
-                        content: ref.summary || ""
-                    }))
-                };
-                formData.append("smart_context", JSON.stringify(contextPayload));
-            }
-
-            // Only send data from the active tab
+            // Continuity mode — create instruction file
+            const instructionText = continuityInstruction.trim()
+                || "Continue the story naturally from the previous scene.";
+            const blob = new Blob([instructionText], { type: "text/plain" });
+            fileToUpload = new File([blob], "continuity_instruction.txt");
+        } else {
+            // Standard mode — resolve from active tab
             if (activeTab === 'ai') {
                 if (!synopsisText.trim()) {
                     toastError("Please enter a synopsis or story description");
@@ -246,68 +217,62 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 }
                 const content = `[TYPE: SYNOPSIS/TREATMENT]\n\n${synopsisText}`;
                 const blob = new Blob([content], { type: "text/plain" });
-                formData.append("file", new File([blob], "synopsis.txt"));
-            }
-            else if (activeTab === 'paste') {
+                fileToUpload = new File([blob], "synopsis.txt");
+            } else if (activeTab === 'paste') {
                 if (!pastedScript.trim()) {
                     toastError("Please paste your script text");
                     return;
                 }
                 const blob = new Blob([pastedScript], { type: "text/plain" });
-                formData.append("file", new File([blob], "terminal_paste.txt"));
-            }
-            else if (activeTab === 'upload') {
+                fileToUpload = new File([blob], "terminal_paste.txt");
+            } else if (activeTab === 'upload') {
                 if (!selectedFile) {
                     toastError("Please select a file to upload");
                     return;
                 }
-                formData.append("file", selectedFile);
+                fileToUpload = selectedFile;
             }
         }
 
+        if (!fileToUpload) {
+            toastError("No script content to upload");
+            return;
+        }
+
+        // 3. UPLOAD TO FIREBASE STORAGE (new flow — no heavy parsing yet)
         setIsUploading(true);
         setLogs([]);
-        if (mode === 'standard') addLog("INITIALIZING UPLINK...");
+        addLog(mode === 'continuity' ? "INITIALIZING CONTINUITY PROTOCOL..." : "INITIALIZING UPLINK...");
 
         try {
-            const res = await api.post("/api/v1/script/upload-script", formData, {
-                headers: { "Content-Type": "multipart/form-data" }
+            addLog("Uploading script to secure storage...");
+            const downloadURL = await uploadScriptToStorage(projectId, fileToUpload);
+            addLog("Script uploaded. Storage URL secured.");
+
+            // Save script metadata to project doc for the taxonomy/parsing step
+            const { doc: firestoreDoc, updateDoc: firestoreUpdate } = await import("firebase/firestore");
+            const { db: fireDb } = await import("@/lib/firebase");
+            const projectRef = firestoreDoc(fireDb, "projects", projectId);
+            await firestoreUpdate(projectRef, {
+                script_title: title || projectTitle,
+                runtime_seconds: Number(runtime),
+                ...(episodeId && episodeId !== "new_placeholder" && { target_episode_id: episodeId }),
+                ...(mode === 'continuity' && previousEpisode && {
+                    continuity_source_episode_id: previousEpisode.id,
+                }),
             });
 
-            const jobId = res.data.job_id;
-            addLog("Payload received. Job ID: " + jobId.substring(0, 8));
-            addLog("Waiting for worker node...");
+            addLog("Metadata saved. Redirecting to Taxonomy...");
 
-            const pollInterval = setInterval(async () => {
-                const job = await checkJobStatus(jobId);
-
-                if (job.progress) {
-                    addLog(job.progress); // Removed .toUpperCase() for friendlier logs
-                }
-
-                if (job.status === "completed") {
-                    clearInterval(pollInterval);
-                    addLog("Sequence complete. Redirecting...");
-                    if (job.redirect_url) {
-                        // Redirect to moodboard selection instead of assets
-                        const moodboardUrl = job.redirect_url.replace('/assets', '/moodboard');
-                        setTimeout(() => onSuccess(moodboardUrl), 800);
-                    } else {
-                        toastError("Redirect coordinates missing.");
-                        setIsUploading(false);
-                    }
-                } else if (job.status === "failed") {
-                    clearInterval(pollInterval);
-                    setIsUploading(false);
-                    addLog("Error: " + (job.error || "Unknown Failure"));
-                    toastError(job.error || "Ingestion Failed");
-                }
-            }, 1000);
+            // 4. REDIRECT TO TAXONOMY (the "Mother Step")
+            setTimeout(() => {
+                onSuccess(`/project/${projectId}/taxonomy`);
+            }, 800);
 
         } catch (e: any) {
             console.error(e);
             setIsUploading(false);
-            const errorMsg = e.response?.data?.detail || e.message;
+            const errorMsg = e.message || "Upload failed";
             addLog("Fatal Error: " + errorMsg);
             toastError(getApiErrorMessage(e, "Protocol Failed"));
         }
@@ -502,7 +467,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 { label: "2m", val: 120 },
                                 { label: "5m", val: 300 },
                                 { label: "10m", val: 600 },
-                            ].filter(p => projectType === 'ugc' ? p.val <= 50 : true).map(p => (
+                            ].map(p => (
                                 <button
                                     key={p.val}
                                     type="button"
@@ -514,9 +479,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 </button>
                             ))}
                         </div>
-                        {projectType === 'ugc' && (
-                            <p className="text-[9px] text-neutral-500 mb-1">Max 50 seconds for UGC reels</p>
-                        )}
                         <div className="relative">
                             <input
                                 type="number"
@@ -534,8 +496,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     if (isNaN(val) || val < 0) return;
                                     // Convert to seconds internally
                                     let secs = runtimeUnit === 'min' ? Math.round(val * 60) : val;
-                                    // Cap at 50s for UGC projects
-                                    if (projectType === 'ugc' && secs > 50) secs = 50;
                                     setRuntime(secs);
                                     setRuntimeError(false);
                                 }}

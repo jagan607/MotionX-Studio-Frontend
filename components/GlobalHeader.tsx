@@ -25,17 +25,21 @@ export default function GlobalHeader() {
     }, [searchParams, pathname, router]);
 
     // Hide Header on "App Mode" Pages
-    const isEditorPage = pathname.includes('/project/') && (
+    const isOnNewProject = pathname === '/project/new';
+    const isEditorPage = pathname.includes('/project/') && !isOnNewProject && (
         pathname.includes('/script') ||
         pathname.includes('/studio') ||
+        pathname.includes('/preproduction') ||
+        pathname.includes('/storyboard') ||
         pathname.includes('/draft') ||
         pathname.includes('/assets') ||
-        pathname.includes('/new') ||
         pathname.includes('/editor') ||
         pathname.includes('/moodboard') ||
         pathname.includes('/treatment') ||
-        pathname.includes('/ugc')
+        // Check if it's strictly /project/[id]
+        pathname.match(/^\/project\/[a-zA-Z0-9_-]+$/) !== null
     );
+
 
     if (pathname === "/login" || pathname === "/" || pathname === "/pricing" || isEditorPage) {
         return null;
@@ -82,9 +86,13 @@ export default function GlobalHeader() {
                         </button>
                     </div>
 
-                    {/* New Project — hidden on small mobile */}
-                    <Link href="/project/new" className="hidden md:block">
-                        <button className="flex items-center gap-2 bg-[#1A1A1A] border border-[#222] text-[10px] sm:text-xs font-bold tracking-[2px] text-white px-3 sm:px-5 lg:px-6 py-2 sm:py-2.5 uppercase hover:bg-[#222] transition-colors rounded-md cursor-pointer">
+                    {/* New Project — hidden on small mobile, disabled when on /project/new */}
+                    <Link href="/project/new" className={`hidden md:block ${isOnNewProject ? 'pointer-events-none' : ''}`}>
+                        <button
+                            disabled={isOnNewProject}
+                            className={`flex items-center gap-2 bg-[#1A1A1A] border border-[#222] text-[10px] sm:text-xs font-bold tracking-[2px] text-white px-3 sm:px-5 lg:px-6 py-2 sm:py-2.5 uppercase transition-colors rounded-md
+                                ${isOnNewProject ? 'opacity-30 cursor-not-allowed' : 'hover:bg-[#222] cursor-pointer'}`}
+                        >
                             <Plus className="w-3 h-3" strokeWidth={3} /> New Project
                         </button>
                     </Link>

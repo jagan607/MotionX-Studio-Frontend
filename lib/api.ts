@@ -1,8 +1,9 @@
 import axios from "axios";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, storage } from "@/lib/firebase";
 import { API_BASE_URL } from "./config";
-import { Project } from "./types";
-import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
+import { Project, TaxonomyResponse } from "./types";
+import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 // 1. Create the Axios Instance
 export const api = axios.create({
@@ -106,14 +107,20 @@ export const triggerAssetGeneration = async (
     aspect_ratio?: string,
     useRef?: boolean
 ) => {
-    const res = await api.post(`/api/v1/assets/${projectId}/generate`, {
+    const body: Record<string, any> = {
         asset_id: assetId,
         type,
         prompt,
-        style,
         aspect_ratio,
-        use_ref: useRef
-    });
+    };
+    // Only include style if it has actual content
+    if (style && Object.keys(style).length > 0) {
+        body.style = style;
+    }
+    if (useRef !== undefined) {
+        body.use_ref = useRef;
+    }
+    const res = await api.post(`/api/v1/assets/${projectId}/generate`, body);
     return res.data;
 };
 
@@ -394,21 +401,7 @@ export const upscaleShot = async (
     return res.data;
 };
 
-// --- 11. UGC PIPELINE ---
-
-export const generateUGC = async (params: {
-    project_id: string;
-    episode_id: string;
-    video_provider?: string;
-    video_duration?: string;
-    video_mode?: string;
-    aspect_ratio?: string;
-    image_provider?: string;
-    style?: string;
-}) => {
-    const res = await api.post("/api/v1/ugc/generate", params);
-    return res.data;
-};
+// --- 11. ANIMATION ---
 
 export const animateShot = async (params: {
     project_id: string;
@@ -423,29 +416,6 @@ export const animateShot = async (params: {
     aspect_ratio?: string;
 }) => {
     const res = await api.post("/api/v1/shot/animate_shot", params);
-    return res.data;
-};
-
-export const fetchMusicLibrary = async () => {
-    const res = await api.get("/api/v1/ugc/music-library");
-    return res.data.tracks as {
-        id: string;
-        name: string;
-        description: string;
-        bpm: number;
-        mood: string;
-    }[];
-};
-
-export const exportUGC = async (params: {
-    project_id: string;
-    episode_id: string;
-    music_track: string;
-    music_volume: number;
-    transition_duration: number;
-    transition_type: "crossfade" | "fade_black" | "cut";
-}) => {
-    const res = await api.post("/api/v1/ugc/export", params);
     return res.data;
 };
 
@@ -472,5 +442,77 @@ export const updateSceneMood = async (
     mood: { color_palette?: string; lighting?: string; texture?: string; atmosphere?: string }
 ) => {
     const res = await api.put(`/api/v1/shot/project/${projectId}/episode/${episodeId}/scene/${sceneId}/mood`, mood);
+    return res.data;
+};
+
+// --- 13. TAXONOMY / CINEMATIC ARCHETYPE ---
+
+
+
+/**
+ * Upload script file to Firebase Storage and save the URL to the project doc.
+ * This is the NEW flow — raw file goes to storage first, parsing happens later.
+ */
+export const uploadScriptToStorage = async (
+    projectId: string,
+    file: File
+): Promise<string> => {
+    const storageRef = ref(storage, `projects/${projectId}/scripts/${Date.now()}_${file.name}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+
+    // Persist the URL to the project document
+    const projectRef = doc(db, "projects", projectId);
+    await updateDoc(projectRef, {
+        script_file_url: downloadURL,
+        script_status: "uploaded",
+    });
+
+    return downloadURL;
+};
+
+/**
+ * Generate taxonomy analysis from the uploaded script.
+ * Backend reads script_file_url + project metadata to compute metrics.
+ */
+export const generateTaxonomy = async (
+    projectId: string
+): Promise<TaxonomyResponse> => {
+    const res = await api.post("/api/v1/taxonomy/generate-taxonomy", {
+        project_id: projectId,
+    });
+    return res.data;
+};
+
+/**
+ * Lock in the selected cinematic archetype for the project.
+ */
+export const selectTaxonomy = async (
+    projectId: string,
+    archetypeId: string
+) => {
+    const res = await api.post("/api/v1/taxonomy/select-taxonomy", {
+        project_id: projectId,
+        archetype_id: archetypeId,
+    });
+    return res.data;
+};
+
+/**
+ * Trigger the deferred script parsing/ingestion worker.
+ * Called AFTER taxonomy is locked in.
+ */
+export const processScript = async (
+    projectId: string,
+    scriptTitle: string,
+    runtimeSeconds: number,
+    episodeId?: string
+) => {
+    const res = await api.post("/api/v1/script/process-script", {
+        project_id: projectId,
+        script_title: scriptTitle,
+        runtime_seconds: runtimeSeconds,
+        ...(episodeId && { episode_id: episodeId }),
+    });
     return res.data;
 };

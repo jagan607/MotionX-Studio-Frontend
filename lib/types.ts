@@ -132,13 +132,13 @@ export type Asset = CharacterProfile | LocationProfile | ProductProfile;
 export interface Project {
     id: string;
     title: string;
-    type: 'movie' | 'micro_drama' | 'ad' | 'ugc';
+    type: 'movie' | 'micro_drama' | 'ad';
 
     default_episode_id?: string;
     aspect_ratio?: string;
     genre?: string;
-    ugc_setup?: 'podcast' | 'talking_head' | 'voiceover_broll' | 'tutorial' | 'vlog';
     moodboard?: Moodboard;
+    style_ref_url?: string;
     created_at?: any;
     updated_at?: any;
     user_id?: string;
@@ -253,4 +253,49 @@ export interface Shot {
     };
 
     created_at?: string;
+}
+
+// --- 7. TAXONOMY / CINEMATIC ARCHETYPE SYSTEM ---
+
+export interface TaxonomyMetrics {
+    dialogue_action_ratio: number;
+    fragmentation_whitespace: number;
+    character_interiority: number;
+    thematic_subtext: number;
+    scene_duration_pacing: number;
+}
+
+export interface ArchetypeBlueprint {
+    // Live-Action Keys
+    emotional_philosophy?: string;
+    camera_movement?: string;
+    lens_rules?: string;
+    lighting_color?: string;
+
+    // Animation Keys
+    dimensionality?: string;
+    physics_logic?: string;
+    rendering_style?: string;
+    frame_rate?: string;
+}
+
+export interface ArchetypeMatch {
+    id: string;
+    name: string;
+    match_percentage: number;
+    ideal_metrics: TaxonomyMetrics;
+    blueprint: ArchetypeBlueprint;
+}
+
+export interface TaxonomyResponse {
+    status?: string;
+    // Backend returns metrics at top level
+    dialogue_action_ratio?: number;
+    fragmentation_whitespace?: number;
+    character_interiority?: number;
+    thematic_subtext?: number;
+    scene_duration_pacing?: number;
+    // Also support nested form for forward-compat
+    script_metrics?: TaxonomyMetrics;
+    top_matches: ArchetypeMatch[];
 }

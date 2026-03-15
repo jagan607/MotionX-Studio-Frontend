@@ -8,8 +8,7 @@ import { api } from "@/lib/api";
 import {
     Loader2, Check, Palette, Sun, Layers, CloudFog,
     ChevronRight, ChevronLeft, RefreshCw, AlertCircle,
-    ArrowLeft, SkipForward,
-    Mic, User, Camera, BookOpen, Backpack
+    ArrowLeft, SkipForward, Sparkles, Undo2
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -28,6 +27,8 @@ interface MoodOption {
     texture: string;
     atmosphere: string;
     status: "generating" | "ready" | "failed";
+    is_variation?: boolean;
+    variation_source?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,7 +55,9 @@ export default function MoodboardPage() {
     const searchParams = useSearchParams();
 
     const projectId = params.id as string;
-    const episodeId = searchParams.get("episode_id") || "main";
+    const paramEpisodeId = searchParams.get("episode_id");
+    const [resolvedEpisodeId, setResolvedEpisodeId] = useState<string>(paramEpisodeId || "main");
+    const episodeId = resolvedEpisodeId;
 
     const assetsQuery = searchParams.toString();
     const assetsUrl = `/project/${projectId}/assets${assetsQuery ? `?${assetsQuery}` : ''}`;
@@ -66,22 +69,13 @@ export default function MoodboardPage() {
     const [moods, setMoods] = useState<MoodOption[]>([]);
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
     const [isRegenerating, setIsRegenerating] = useState(false);
+    const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [firestoreLoaded, setFirestoreLoaded] = useState(false);
     const [projectTitle, setProjectTitle] = useState("");
     const [appliedMoodId, setAppliedMoodId] = useState<string | null>(null);
-    const [projectType, setProjectType] = useState<string>("");
-    const [ugcSetup, setUgcSetup] = useState<string>("");
     // Track which moodboard card IDs have already been toasted for failure
     const failedToastedIds = React.useRef<Set<string>>(new Set());
-
-    const UGC_LABELS: Record<string, { label: string; Icon: React.ComponentType<any> }> = {
-        podcast: { label: "Podcast", Icon: Mic },
-        talking_head: { label: "Talking Head", Icon: User },
-        voiceover_broll: { label: "Faceless", Icon: Camera },
-        tutorial: { label: "Tutorial", Icon: BookOpen },
-        vlog: { label: "Vlog", Icon: Backpack },
-    };
 
     const readyCount = moods.filter(m => m.status === "ready").length;
     const totalCount = moods.length;
@@ -96,8 +90,10 @@ export default function MoodboardPage() {
             if (data) {
                 setProjectTitle(data.title || "");
                 setAppliedMoodId(data.selected_mood_id || null);
-                setProjectType(data.type || "");
-                setUgcSetup(data.ugc_setup || "");
+                // Resolve episode ID from project doc if available
+                if (data.default_episode_id) {
+                    setResolvedEpisodeId(data.default_episode_id);
+                }
             }
         });
         return () => unsub();
@@ -119,6 +115,8 @@ export default function MoodboardPage() {
                     texture: data.texture || "",
                     atmosphere: data.atmosphere || "",
                     status: data.status || "generating",
+                    is_variation: data.is_variation || false,
+                    variation_source: data.variation_source || undefined,
                 };
             });
 
@@ -166,6 +164,31 @@ export default function MoodboardPage() {
         }
     }, [projectId, episodeId]);
 
+    // --- Generate variations ("More Like This") ---
+    const isViewingVariations = moods.length > 0 && moods.some(m => m.is_variation);
+
+    const generateVariations = useCallback(async (moodOptionId: string) => {
+        setIsGeneratingVariations(true);
+        try {
+            const res = await api.post("/api/v1/shot/generate_moodboard_variations", {
+                project_id: projectId,
+                episode_id: episodeId,
+                mood_option_id: moodOptionId,
+            });
+            if (res.data.status === "success") {
+                toastSuccess(`Generating variations of "${res.data.archetype || selectedMood?.name}"...`);
+                setSelectedIdx(0);
+            } else {
+                toastError("Couldn't generate variations. Please try again.");
+            }
+        } catch (e: any) {
+            console.error("[Moodboard] Variation error:", e);
+            toastError(e.response?.data?.detail || "Variation generation failed.");
+        } finally {
+            setIsGeneratingVariations(false);
+        }
+    }, [projectId, episodeId, selectedMood]);
+
     // --- Navigation ---
     const navigate = (dir: 1 | -1) => {
         setSelectedIdx(prev => (prev + dir + moods.length) % moods.length);
@@ -186,7 +209,7 @@ export default function MoodboardPage() {
             if (res.data.status === "success") {
                 setAppliedMoodId(selectedMood.id);
                 toastSuccess(`Mood "${res.data.selected_mood?.name || "selected"}" applied`);
-                router.push(assetsUrl);
+                router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
             } else { toastError("Failed to apply mood"); setPhase("select"); }
         } catch (e: any) {
             toastError(e.response?.data?.detail || "Selection failed");
@@ -248,18 +271,7 @@ export default function MoodboardPage() {
                             <span className="text-[10px] text-white/25 font-mono uppercase tracking-wider truncate max-w-[200px]">{projectTitle}</span>
                         </>
                     )}
-                    {projectType === 'ugc' && ugcSetup && UGC_LABELS[ugcSetup] && (() => {
-                        const { label, Icon } = UGC_LABELS[ugcSetup];
-                        return (
-                            <>
-                                <div className="w-px h-4 bg-white/10" />
-                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#E50914]/10 border border-[#E50914]/30 rounded-full">
-                                    <Icon size={10} className="text-[#E50914]" />
-                                    <span className="text-[8px] font-bold text-[#E50914] uppercase tracking-widest">{label}</span>
-                                </div>
-                            </>
-                        );
-                    })()}
+
                 </div>
 
                 {/* Right: status + actions */}
@@ -271,6 +283,14 @@ export default function MoodboardPage() {
                                 Rendering {readyCount}/{totalCount}
                             </span>
                         </div>
+                    )}
+
+                    {isViewingVariations && (
+                        <button onClick={generateMoods} disabled={isRegenerating}
+                            className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30">
+                            <Undo2 size={12} />
+                            Back to Originals
+                        </button>
                     )}
 
                     {selectedMood && (
@@ -398,8 +418,13 @@ export default function MoodboardPage() {
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="h-[1px] w-10 bg-[#E50914]/40" />
                                 <span className="text-[9px] font-mono text-[#E50914]/60 uppercase tracking-[4px]">
-                                    Mood {selectedIdx + 1} of {totalCount}
+                                    {isViewingVariations ? "Variation" : "Mood"} {selectedIdx + 1} of {totalCount}
                                 </span>
+                                {isViewingVariations && (
+                                    <span className="flex items-center gap-1 text-[8px] font-bold text-purple-400/80 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                                        <Sparkles size={9} /> Variation
+                                    </span>
+                                )}
                                 {isApplied && (
                                     <span className="flex items-center gap-1 text-[8px] font-bold text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
                                         <Check size={9} /> Applied
@@ -426,6 +451,21 @@ export default function MoodboardPage() {
                                     <Loader2 size={12} className="animate-spin text-[#E50914]/40" />
                                     <span className="text-[9px] text-white/20 uppercase tracking-[3px] font-mono">Rendering preview...</span>
                                 </div>
+                            )}
+
+                            {/* Generate More Like This CTA */}
+                            {selectedMood.status === "ready" && (
+                                <button
+                                    onClick={() => generateVariations(selectedMood.id)}
+                                    disabled={isGeneratingVariations}
+                                    className="pointer-events-auto flex items-center gap-2 mt-6 px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-[1.5px] border border-white/[0.1] bg-white/[0.04] backdrop-blur-sm text-white/50 hover:text-white hover:border-white/25 hover:bg-white/[0.08] transition-all cursor-pointer disabled:opacity-30 group"
+                                >
+                                    {isGeneratingVariations ? (
+                                        <><Loader2 size={13} className="animate-spin" /> Generating...</>
+                                    ) : (
+                                        <><Sparkles size={13} className="text-[#E50914]/60 group-hover:text-[#E50914] transition-colors" /> Generate More Like This</>
+                                    )}
+                                </button>
                             )}
                         </div>
                     </div>
