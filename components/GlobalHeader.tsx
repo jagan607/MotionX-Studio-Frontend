@@ -29,6 +29,7 @@ export default function GlobalHeader() {
     const isEditorPage = pathname.includes('/project/') && !isOnNewProject && (
         pathname.includes('/script') ||
         pathname.includes('/studio') ||
+        pathname.includes('/preproduction') ||
         pathname.includes('/storyboard') ||
         pathname.includes('/draft') ||
         pathname.includes('/assets') ||

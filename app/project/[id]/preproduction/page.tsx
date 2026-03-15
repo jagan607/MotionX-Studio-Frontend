@@ -10,6 +10,9 @@ import {
 } from "@/lib/api";
 import { Project, Scene, CharacterProfile, LocationProfile, ProductProfile } from "@/lib/types";
 import { ArrowLeft, Loader2, Play, Upload, Palette, Sparkles, ImageIcon, X, ChevronLeft, ChevronRight, Sun, Layers, CloudFog, RefreshCw } from "lucide-react";
+import { PreProductionHeader } from "./components/PreProductionHeader";
+import { AssetManagerModal } from "@/app/components/studio/AssetManagerModal";
+import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionModal";
 import { toast } from "react-hot-toast";
 import { AssetModal } from "@/components/AssetModal";
 
@@ -262,6 +265,10 @@ export default function PreProductionCanvas() {
     const containerRef = useRef<HTMLDivElement>(null);
     const moodAutoOpened = useRef(false);
 
+    // Header Modal State
+    const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+    const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
+
     // Onboarding Moodboard State
     const [showOnboardingMood, setShowOnboardingMood] = useState(false);
     const [styleRefFile, setStyleRefFile] = useState<File | null>(null);
@@ -273,14 +280,8 @@ export default function PreProductionCanvas() {
     const styleInputRef = useRef<HTMLInputElement>(null);
     const [selectedMoodIdx, setSelectedMoodIdx] = useState(0);
 
-    // ─── LOCK BODY SCROLL & MEASURE HEADER ───
-    const [headerHeight, setHeaderHeight] = useState(0);
+    // ─── LOCK BODY SCROLL ───
     useEffect(() => {
-        // Measure the GlobalHeader's actual height
-        const header = document.querySelector('header.sticky');
-        if (header) {
-            setHeaderHeight(header.getBoundingClientRect().height);
-        }
         document.documentElement.style.overflow = 'hidden';
         document.body.style.overflow = 'hidden';
         return () => {
@@ -601,29 +602,18 @@ export default function PreProductionCanvas() {
 
     // ─── RENDER ───
     return (
-        <div ref={containerRef} className="fixed left-0 right-0 bottom-0 bg-[#060606] text-white overflow-hidden flex flex-col"
-            style={{ top: `${headerHeight}px` }}>
+        <div ref={containerRef} className="fixed inset-0 bg-[#060606] text-white overflow-hidden flex flex-col">
 
-            {/* ── Top Bar (minimal) ── */}
-            <header className="relative z-[30] h-10 border-b border-white/[0.04] bg-[#050505]/70 backdrop-blur-xl flex items-center justify-between px-5 shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
-                    <h1 className="text-xs font-bold tracking-wider uppercase text-white/80 truncate max-w-[200px]">
-                        {project.title}
-                    </h1>
-                    <span className="text-[8px] text-white/20 font-mono tracking-[3px] uppercase">Pre-Production</span>
-                </div>
-
-                {hasScript && (
-                    <button
-                        onClick={() => router.push(project.type === 'micro_drama' ? `/project/${projectId}/studio` : `/project/${projectId}/storyboard`)}
-                        className="h-7 px-4 bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.1] text-white text-[9px] font-bold uppercase tracking-[2px] rounded-full flex items-center gap-2 transition-all hover:-translate-y-0.5"
-                    >
-                        Production
-                        <Play size={8} className="fill-current" />
-                    </button>
-                )}
-            </header>
+            {/* ── Pre-Production Header ── */}
+            <PreProductionHeader
+                projectTitle={project.title}
+                projectId={projectId}
+                project={project}
+                activeEpisodeId={activeEpisodeId || undefined}
+                hasScript={hasScript}
+                onOpenAssets={() => setIsAssetModalOpen(true)}
+                onEditScript={() => setIsScriptModalOpen(true)}
+            />
 
             {/* ── MAIN CANVAS ── */}
             <div className="relative flex-1 overflow-hidden" style={{ maxHeight: '100%' }}>
@@ -1144,6 +1134,33 @@ export default function PreProductionCanvas() {
                     </div>
                 </div>
             )}
+
+            {/* ── HEADER MODALS ── */}
+            <AssetManagerModal
+                isOpen={isAssetModalOpen}
+                onClose={() => setIsAssetModalOpen(false)}
+                projectId={projectId}
+                project={project}
+                onAssetsUpdated={() => fetchAssets()}
+            />
+
+            <ScriptIngestionModal
+                isOpen={isScriptModalOpen}
+                onClose={() => setIsScriptModalOpen(false)}
+                projectId={projectId}
+                projectTitle={project.title}
+                projectType={project.type as 'movie' | 'micro_drama' | 'ad'}
+                mode="edit"
+                episodeId={activeEpisodeId || undefined}
+                episodes={episodes}
+                initialTitle={episodes.find((e: any) => e.id === activeEpisodeId)?.title}
+                initialScript={episodes.find((e: any) => e.id === activeEpisodeId)?.script_preview}
+                initialRuntime={episodes.find((e: any) => e.id === activeEpisodeId)?.runtime}
+                onSuccess={() => {
+                    setIsScriptModalOpen(false);
+                    fetchAssets();
+                }}
+            />
         </div>
     );
 }
