@@ -510,7 +510,7 @@ export default function PreProductionCanvas() {
         }
     };
 
-    const hasScript = (project ? (project.script_status !== "empty" && project.script_status !== "pending") : false) || scenes.length > 0;
+    const hasScript = (project ? (project.script_status !== "empty" && project.script_status !== "pending" && project.script_status !== undefined) : false) || scenes.length > 0;
     const isCommercial = project?.type === "ad";
 
     // Auto-show onboarding moodboard on first visit if no moodboard selected
@@ -551,7 +551,7 @@ export default function PreProductionCanvas() {
         try {
             const payload: any = {
                 project_id: projectId,
-                episode_id: activeEpisodeId || "main",
+                episode_id: activeEpisodeId || "main",  // activeEpisodeId is resolved from Firestore, 'main' is last-resort fallback
             };
             if (referenceMood) {
                 payload.reference_mood = {
@@ -648,7 +648,7 @@ export default function PreProductionCanvas() {
                             episodes={episodes}
                         />
                     </div>
-                ) : project?.script_status !== "ready" ? (
+                ) : (project?.script_status === "extracting" || project?.script_status !== "ready") ? (
                     <Phase3Skeleton project={project} />
                 ) : showOnboardingMood ? (
                     /* ═══════════════════════════════════════════════════════

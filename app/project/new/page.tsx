@@ -275,6 +275,7 @@ export default function NewProjectPage() {
     // Refs for listener cleanup
     const unsubJobRef = useRef<(() => void) | null>(null);
     const unsubProjectRef = useRef<(() => void) | null>(null);
+    const projectDataRef = useRef<any>(null);
 
     // ══════ AUTH ══════
     useEffect(() => {
@@ -365,7 +366,8 @@ export default function NewProjectPage() {
                 setTimeout(() => {
                     unsubProjectRef.current?.();
                     unsubProjectRef.current = null;
-                    router.push(`/project/${projectId}/moodboard?episode_id=main`);
+                    const epId = projectDataRef.current?.default_episode_id || 'main';
+                    router.push(`/project/${projectId}/moodboard?episode_id=${epId}`);
                 }, 1500);
             }
 
@@ -389,6 +391,9 @@ export default function NewProjectPage() {
         unsubProjectRef.current = onSnapshot(projectRef, (snapshot) => {
             if (!snapshot.exists()) return;
             const data = snapshot.data();
+
+            // Track project data for dynamic episode routing
+            projectDataRef.current = data;
 
             // Check for taxonomy_profile appearing
             if (data.taxonomy_profile?.name && !detectedArchetype) {

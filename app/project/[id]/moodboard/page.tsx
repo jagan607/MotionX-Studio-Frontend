@@ -55,7 +55,9 @@ export default function MoodboardPage() {
     const searchParams = useSearchParams();
 
     const projectId = params.id as string;
-    const episodeId = searchParams.get("episode_id") || "main";
+    const paramEpisodeId = searchParams.get("episode_id");
+    const [resolvedEpisodeId, setResolvedEpisodeId] = useState<string>(paramEpisodeId || "main");
+    const episodeId = resolvedEpisodeId;
 
     const assetsQuery = searchParams.toString();
     const assetsUrl = `/project/${projectId}/assets${assetsQuery ? `?${assetsQuery}` : ''}`;
@@ -88,6 +90,10 @@ export default function MoodboardPage() {
             if (data) {
                 setProjectTitle(data.title || "");
                 setAppliedMoodId(data.selected_mood_id || null);
+                // Resolve episode ID from project doc if available
+                if (data.default_episode_id) {
+                    setResolvedEpisodeId(data.default_episode_id);
+                }
             }
         });
         return () => unsub();
