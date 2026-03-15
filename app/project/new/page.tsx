@@ -29,6 +29,7 @@ const ASPECT_OPTIONS = [
     { id: "21:9" as const, label: "21:9", desc: "Wide" },
     { id: "9:16" as const, label: "9:16", desc: "Vertical" },
     { id: "4:5" as const, label: "4:5", desc: "Portrait" },
+    { id: "1:1" as const, label: "1:1", desc: "Square" },
 ];
 
 export default function NewProjectPage() {
@@ -39,7 +40,7 @@ export default function NewProjectPage() {
         title: "",
         genre: "",
         type: "movie" as ProjectType,
-        aspect_ratio: "16:9" as "16:9" | "21:9" | "9:16" | "4:5",
+        aspect_ratio: "16:9" as "16:9" | "21:9" | "9:16" | "4:5" | "1:1",
         style: "realistic" as "realistic" | "anime",
         ugc_setup: "talking_head" as UGCSetup,
     });
@@ -176,12 +177,12 @@ export default function NewProjectPage() {
                             <div className="grid grid-cols-2 gap-4 fade-up-2">
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-semibold tracking-[3px] uppercase text-neutral-500">Aspect Ratio</label>
-                                    <div className="grid grid-cols-2 gap-1.5">
+                                    <div className="flex flex-wrap gap-1.5">
                                         {ASPECT_OPTIONS.map(opt => {
                                             const active = formData.aspect_ratio === opt.id;
                                             return (
                                                 <button key={opt.id} onClick={() => setFormData({ ...formData, aspect_ratio: opt.id })}
-                                                    className={`py-2 rounded-lg border transition-all duration-200 cursor-pointer text-center
+                                                    className={`py-2 px-3 min-w-[calc(50%-3px)] flex-1 rounded-lg border transition-all duration-200 cursor-pointer text-center
                                                         ${active
                                                             ? 'border-[#E50914]/50 bg-[#E50914]/[0.08]'
                                                             : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]'}`}

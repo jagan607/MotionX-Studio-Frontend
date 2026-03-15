@@ -87,7 +87,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     // --- Pricing ---
     const { getVideoCost, getLipSyncCost } = usePricing();
     const [quality, setQuality] = useState<'fast' | 'pro'>(initialSettings?.quality || 'fast');
-    const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '4:3' | '3:4'>(initialSettings?.aspect_ratio || '16:9');
+    const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '4:3' | '3:4' | '1:1'>(initialSettings?.aspect_ratio || '16:9');
     const [refImages, setRefImages] = useState<string[]>(initialSettings?.reference_image_urls || []);
     const [isUploadingRef, setIsUploadingRef] = useState(false);
     const refInputRef = useRef<HTMLInputElement>(null);
@@ -489,6 +489,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         {[
                             { value: '16:9' as const, icon: <RectangleHorizontal size={14} />, label: 'Wide' },
                             { value: '9:16' as const, icon: <RectangleVertical size={14} />, label: 'Social' },
+                            { value: '1:1' as const, icon: <Square size={12} />, label: 'Square' },
                             { value: '4:3' as const, icon: <RectangleHorizontal size={12} />, label: '4:3' },
                             { value: '3:4' as const, icon: <RectangleVertical size={12} />, label: '3:4' },
                         ].map(ar => (

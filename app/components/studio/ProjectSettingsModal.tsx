@@ -157,6 +157,7 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
                                     <option value="16:9">16:9 (Cinematic)</option>
                                     <option value="9:16">9:16 (Mobile)</option>
                                     <option value="4:3">4:3 (Classic)</option>
+                                    <option value="1:1">1:1 (Square)</option>
                                     <option value="2.35:1">2.35:1 (Anamorphic)</option>
                                 </select>
                             </div>
