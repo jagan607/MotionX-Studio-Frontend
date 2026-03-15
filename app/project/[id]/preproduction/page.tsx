@@ -22,6 +22,7 @@ import { SceneNavigator } from "./components/SceneNavigator";
 import { Lightbox } from "./components/Lightbox";
 import { ScriptSection } from "./components/ScriptSection";
 import { MoodSection } from "./components/MoodSection";
+import { Phase3Skeleton } from "./components/Phase3Skeleton";
 
 // ─── TYPES ───────────────────────────────────────────────────
 
@@ -320,7 +321,10 @@ export default function PreProductionCanvas() {
                     setActiveEpisodeId(targetEpId);
                 }
 
-                if (targetEpId) await fetchAssets(targetEpId);
+                // Only fetch assets if script processing is already complete
+                if (targetEpId && pDocData?.script_status === "ready") {
+                    await fetchAssets(targetEpId);
+                }
             } catch (e) {
                 console.error("Canvas Load Error", e);
             } finally {
@@ -330,6 +334,16 @@ export default function PreProductionCanvas() {
         load();
         return () => unsubs.forEach(u => u());
     }, [projectId]);
+
+    // ─── RE-FETCH WHEN SCRIPT_STATUS TRANSITIONS TO "ready" ───
+    const prevScriptStatus = useRef<string | undefined>(undefined);
+    useEffect(() => {
+        const currentStatus = project?.script_status;
+        if (prevScriptStatus.current !== "ready" && currentStatus === "ready" && activeEpisodeId) {
+            fetchAssets(activeEpisodeId);
+        }
+        prevScriptStatus.current = currentStatus;
+    }, [project?.script_status, activeEpisodeId]);
 
     const fetchAssets = async (epId?: string | null) => {
         const targetEpId = epId || activeEpisodeId;
@@ -634,6 +648,8 @@ export default function PreProductionCanvas() {
                             episodes={episodes}
                         />
                     </div>
+                ) : project?.script_status !== "ready" ? (
+                    <Phase3Skeleton project={project} />
                 ) : showOnboardingMood ? (
                     /* ═══════════════════════════════════════════════════════
                        IMMERSIVE MOODBOARD — Full Cinema Experience

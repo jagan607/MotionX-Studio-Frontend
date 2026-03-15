@@ -6,18 +6,19 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 import { onAuthStateChanged, User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { api, invalidateDashboardCache, checkJobStatus } from "@/lib/api";
+import { auth, db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { api, invalidateDashboardCache } from "@/lib/api";
 import {
     Film, Tv, Loader2,
     Megaphone, BrainCircuit, Send,
     Upload, FileText, X,
-    ChevronRight
+    ChevronRight, Check, Sparkles
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 type ProjectType = "movie" | "micro_drama" | "adaptation" | "ad";
-type Phase = "prompt" | "processing";
+type Phase = "prompt" | "processing" | "complete";
 
 const FORMAT_BG: Record<string, string> = {
     film: "/img/formats/film.png",
@@ -34,6 +35,212 @@ const PLACEHOLDERS = [
     "A horror short — an AI home assistant starts making decisions its owners never asked for...",
 ];
 
+/* ═══════════════════════════════════════════════════════════
+   SCANNER STEP DEFINITIONS
+   ═══════════════════════════════════════════════════════════ */
+const SCANNER_STEPS = [
+    { key: "loading",    label: "Loading Script",               patterns: ["loading", "uploading", "creating project", "downloading"] },
+    { key: "cinematic",  label: "Analyzing Cinematic DNA",      patterns: ["cinematic dna", "analyzing"] },
+    { key: "scenes",     label: "Extracting Structural Scenes", patterns: ["structural scene", "extracting"] },
+    { key: "workspace",  label: "Creating Workspace",           patterns: ["workspace", "draft", "blueprint"] },
+    { key: "moodboards", label: "Generating Visual Moodboards", patterns: ["moodboard", "visual moodboards", "generating visual"] },
+];
+
+function matchStep(status: string): number {
+    if (!status) return 0;
+    const lower = status.toLowerCase();
+    for (let i = SCANNER_STEPS.length - 1; i >= 0; i--) {
+        if (SCANNER_STEPS[i].patterns.some(p => lower.includes(p.toLowerCase()))) return i;
+    }
+    return 0;
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   CINEMATIC SCANNER COMPONENT
+   ═══════════════════════════════════════════════════════════ */
+interface CinematicScannerProps {
+    processingStatus: string;
+    detectedArchetype: string;
+    phase: Phase;
+    isTransitioning: boolean;
+}
+
+function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransitioning }: CinematicScannerProps) {
+    const activeStep = matchStep(processingStatus);
+    const [archetypeVisible, setArchetypeVisible] = useState(false);
+
+    // Animate archetype reveal
+    useEffect(() => {
+        if (detectedArchetype) {
+            const t = setTimeout(() => setArchetypeVisible(true), 300);
+            return () => clearTimeout(t);
+        }
+    }, [detectedArchetype]);
+
+    if (phase === "prompt") return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-700"
+            style={{ background: isTransitioning
+                ? "radial-gradient(ellipse at center, rgba(16,185,129,0.08) 0%, rgba(8,8,8,0.95) 60%)"
+                : "radial-gradient(ellipse at center, rgba(229,9,20,0.04) 0%, rgba(8,8,8,0.95) 60%)"
+            }}>
+
+            {/* Backdrop blur layer */}
+            <div className="absolute inset-0 backdrop-blur-xl" />
+
+            {/* Film grain overlay */}
+            <div className="absolute inset-0 opacity-[0.025] pointer-events-none"
+                style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
+                    backgroundSize: "200px 200px", animation: "grain 0.5s steps(5) infinite",
+                }}
+            />
+
+            {/* Central content */}
+            <div className="relative z-10 flex flex-col items-center w-full max-w-lg px-8">
+
+                {/* ── Ambient glow ── */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full blur-[100px] transition-all duration-1000 pointer-events-none"
+                    style={{ background: isTransitioning
+                        ? "radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)"
+                        : "radial-gradient(circle, rgba(229,9,20,0.1) 0%, transparent 70%)",
+                        animation: "breathe 6s ease-in-out infinite"
+                    }} />
+
+                {/* ── Central icon ── */}
+                <div className="relative w-20 h-20 mb-10 flex items-center justify-center">
+                    {/* Outer ring */}
+                    <div className={`absolute inset-0 rounded-full border transition-all duration-700 ${
+                        isTransitioning ? "border-emerald-500/40" : "border-white/[0.05]"
+                    }`} />
+                    {/* Spinning ring */}
+                    <div className={`absolute inset-0 rounded-full border border-t-transparent transition-all duration-700 ${
+                        isTransitioning ? "border-emerald-400/50" : "border-[#E50914]/40"
+                    }`}
+                        style={{ animation: isTransitioning ? "none" : "spin 1.5s linear infinite" }} />
+                    {/* Inner ring */}
+                    <div className={`absolute inset-2 rounded-full border border-b-transparent transition-all duration-700 ${
+                        isTransitioning ? "border-emerald-400/30" : "border-[#E50914]/20"
+                    }`}
+                        style={{ animation: isTransitioning ? "none" : "spin 2s linear infinite reverse" }} />
+
+                    {/* Icon swap */}
+                    {isTransitioning ? (
+                        <div className="animate-[scaleIn_0.4s_ease_both]">
+                            <Check size={24} className="text-emerald-400" strokeWidth={3} />
+                        </div>
+                    ) : (
+                        <BrainCircuit size={22} className="text-[#E50914] animate-pulse" />
+                    )}
+                </div>
+
+                {/* ── Status heading ── */}
+                <h3 className={`font-anton uppercase tracking-[3px] text-xl mb-2 text-center transition-colors duration-700 ${
+                    isTransitioning ? "text-emerald-300" : "text-white"
+                }`}>
+                    {isTransitioning
+                        ? "Scan Complete"
+                        : (processingStatus.includes('...') ? processingStatus.replace('...', '') : processingStatus || "Initializing")
+                    }
+                </h3>
+
+                <p className="text-[10px] text-neutral-600 tracking-[1.5px] uppercase font-mono text-center mb-10">
+                    {isTransitioning ? "Entering moodboard" : "Do not close this window"}
+                </p>
+
+                {/* ── Step tracker ── */}
+                <div className="w-full space-y-0 mb-8">
+                    {SCANNER_STEPS.map((step, i) => {
+                        const isActive  = i === activeStep && !isTransitioning;
+                        const isDone    = i < activeStep || isTransitioning;
+
+                        return (
+                            <div key={step.key}
+                                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-500 ${
+                                    isActive ? "bg-white/[0.04]" : ""
+                                }`}>
+                                {/* Step indicator */}
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border transition-all duration-500 ${
+                                    isDone
+                                        ? "border-emerald-500/50 bg-emerald-500/10"
+                                        : isActive
+                                            ? "border-[#E50914]/50 bg-[#E50914]/10"
+                                            : "border-white/[0.06] bg-transparent"
+                                }`}>
+                                    {isDone ? (
+                                        <Check size={10} className="text-emerald-400" strokeWidth={3} />
+                                    ) : isActive ? (
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
+                                    ) : (
+                                        <div className="w-1 h-1 rounded-full bg-white/10" />
+                                    )}
+                                </div>
+
+                                {/* Step label */}
+                                <span className={`text-[10px] tracking-[1.5px] uppercase font-mono transition-all duration-500 ${
+                                    isDone
+                                        ? "text-emerald-400/60"
+                                        : isActive
+                                            ? "text-white"
+                                            : "text-neutral-700"
+                                }`}>
+                                    {step.label}
+                                </span>
+
+                                {/* Scanning indicator for active step */}
+                                {isActive && (
+                                    <div className="ml-auto w-16 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
+                                        <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent animate-[scan_1.5s_ease-in-out_infinite]" />
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* ── Archetype glimpse ── */}
+                {detectedArchetype && (
+                    <div className={`w-full transition-all duration-700 ${
+                        archetypeVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+                    }`}>
+                        <div className="relative rounded-xl border border-[#E50914]/20 bg-[#E50914]/[0.04] backdrop-blur-sm px-5 py-4 overflow-hidden"
+                             style={{ animation: "pulseGlow 4s ease-in-out infinite" }}>
+                            {/* Inner scan line */}
+                            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                                <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#E50914]/10 to-transparent animate-[scan_3s_ease-in-out_infinite]" />
+                            </div>
+
+                            <div className="relative flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center shrink-0">
+                                    <Sparkles size={14} className="text-[#E50914]" />
+                                </div>
+                                <div>
+                                    <p className="text-[8px] text-[#E50914]/60 tracking-[2px] uppercase font-mono mb-0.5">
+                                        Archetype Locked
+                                    </p>
+                                    <p className="text-[14px] text-white font-medium tracking-wide">
+                                        {detectedArchetype}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Bottom progress bar ── */}
+                <div className="w-full mt-8 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
+                    {isTransitioning ? (
+                        <div className="h-full w-full bg-gradient-to-r from-emerald-500/60 to-emerald-400/40 transition-all duration-700" />
+                    ) : (
+                        <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent animate-[scan_2s_ease-in-out_infinite]" />
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 
 /* ═══════════════════════════════════════════════════════════
@@ -58,13 +265,29 @@ export default function NewProjectPage() {
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [runtime, setRuntime] = useState<number>(30);
+
+    // ══════ PROCESSING / SCANNER STATE ══════
     const [processingStatus, setProcessingStatus] = useState("");
     const [createdProjectId, setCreatedProjectId] = useState("");
+    const [detectedArchetype, setDetectedArchetype] = useState("");
+    const [isTransitioning, setIsTransitioning] = useState(false);
+
+    // Refs for listener cleanup
+    const unsubJobRef = useRef<(() => void) | null>(null);
+    const unsubProjectRef = useRef<(() => void) | null>(null);
 
     // ══════ AUTH ══════
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (u) => setCurrentUser(u));
         return () => unsub();
+    }, []);
+
+    // ══════ CLEANUP LISTENERS ON UNMOUNT ══════
+    useEffect(() => {
+        return () => {
+            unsubJobRef.current?.();
+            unsubProjectRef.current?.();
+        };
     }, []);
 
     // ══════ TYPEWRITER ══════
@@ -115,10 +338,75 @@ export default function NewProjectPage() {
         setScriptFile(f);
     };
 
+    // ══════ SETUP REAL-TIME LISTENERS ══════
+    const setupListeners = (jobId: string, projectId: string) => {
+        // Clean up any existing listeners
+        unsubJobRef.current?.();
+        unsubProjectRef.current?.();
+
+        // ── Listener 1: Job progress (jobs/{jobId}) ──
+        const jobRef = doc(db, "jobs", jobId);
+        unsubJobRef.current = onSnapshot(jobRef, (snapshot) => {
+            if (!snapshot.exists()) return;
+            const data = snapshot.data();
+
+            // Update progress text
+            if (data.progress) {
+                setProcessingStatus(data.progress);
+            }
+
+            // Handle completion
+            if (data.status === "completed") {
+                unsubJobRef.current?.();
+                unsubJobRef.current = null;
+
+                // Graceful handoff — show success state, then route
+                setIsTransitioning(true);
+                setTimeout(() => {
+                    unsubProjectRef.current?.();
+                    unsubProjectRef.current = null;
+                    router.push(`/project/${projectId}/moodboard?episode_id=main`);
+                }, 1500);
+            }
+
+            // Handle failure
+            if (data.status === "failed") {
+                unsubJobRef.current?.();
+                unsubJobRef.current = null;
+                unsubProjectRef.current?.();
+                unsubProjectRef.current = null;
+                setPhase("prompt");
+                setProcessingStatus("");
+                toast.error(data.error || "Script processing failed");
+            }
+        }, (error) => {
+            console.error("Job listener error:", error);
+            toast.error("Lost connection to processing status");
+        });
+
+        // ── Listener 2: Project taxonomy (projects/{projectId}) ──
+        const projectRef = doc(db, "projects", projectId);
+        unsubProjectRef.current = onSnapshot(projectRef, (snapshot) => {
+            if (!snapshot.exists()) return;
+            const data = snapshot.data();
+
+            // Check for taxonomy_profile appearing
+            if (data.taxonomy_profile?.name && !detectedArchetype) {
+                setDetectedArchetype(data.taxonomy_profile.name);
+            }
+        }, (error) => {
+            console.error("Project listener error:", error);
+            // Non-critical — archetype glimpse is optional, don't toast
+        });
+    };
+
     // ══════ CREATE PROJECT ══════
     const handleCreate = async () => {
         if (!vision.trim() && !scriptFile) return toast.error("Describe your vision or upload a script");
         setPhase("processing");
+        setDetectedArchetype("");
+        setIsTransitioning(false);
+
         try {
             const FORMAT_MAP: Record<string, ProjectType> = { film: "movie", series: "micro_drama", ad: "ad" };
             const type = FORMAT_MAP[selectedFormat] || "movie";
@@ -153,20 +441,11 @@ export default function NewProjectPage() {
                 headers: { "Content-Type": "multipart/form-data" }
             });
             const jobId = uploadRes.data.job_id;
-            setProcessingStatus("Processing script...");
+            setProcessingStatus("Loading script into AI memory...");
 
-            const pollInterval = setInterval(async () => {
-                const job = await checkJobStatus(jobId);
-                if (job.progress) setProcessingStatus(job.progress);
-                if (job.status === "completed") {
-                    clearInterval(pollInterval);
-                    // Route directly to Moodboard — backend handles scenes silently
-                    router.push(`/project/${projectId}/moodboard?episode_id=main`);
-                } else if (job.status === "failed") {
-                    clearInterval(pollInterval); setPhase("prompt"); setProcessingStatus("");
-                    toast.error(job.error || "Script processing failed");
-                }
-            }, 1000);
+            // Set up real-time Firestore listeners instead of polling
+            setupListeners(jobId, projectId);
+
         } catch (e: any) {
             toast.error(e.response?.data?.detail || "Something went wrong.");
             setPhase("prompt"); setProcessingStatus("");
@@ -190,6 +469,7 @@ export default function NewProjectPage() {
                 @keyframes breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
                 @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 20px rgba(229,9,20,0.08); } 50% { box-shadow: 0 0 40px rgba(229,9,20,0.15); } }
                 @keyframes scan { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+                @keyframes scaleIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
                 .fade-in { animation: fadeIn 0.6s ease both; }
                 .fade-in-1 { animation: fadeIn 0.6s ease 0.1s both; }
                 .fade-in-2 { animation: fadeIn 0.6s ease 0.25s both; }
@@ -222,37 +502,13 @@ export default function NewProjectPage() {
             <div className="relative z-10 flex-1 flex flex-col items-center overflow-y-auto">
                 <div className="w-full max-w-xl px-6 flex-1 flex flex-col justify-center py-8">
 
-                    {/* Processing overlay */}
-                    {phase === "processing" && (
-                        <div className="fixed inset-0 z-50 bg-[#080808]/80 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500">
-                            <div className="relative flex flex-col items-center w-full max-w-md px-8">
-                                {/* Ambient Glow */}
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#E50914]/10 rounded-full blur-[60px] animate-pulse" />
-
-                                {/* Central Scanning Element */}
-                                <div className="relative w-16 h-16 mb-8 flex items-center justify-center">
-                                    <div className="absolute inset-0 border border-white/[0.05] rounded-full" />
-                                    <div className="absolute inset-0 border border-[#E50914]/40 rounded-full border-t-transparent animate-spin" style={{ animationDuration: '1.5s' }} />
-                                    <div className="absolute inset-2 border border-[#E50914]/20 rounded-full border-b-transparent animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }} />
-                                    <BrainCircuit size={20} className="text-[#E50914] animate-pulse" />
-                                </div>
-
-                                {/* Status Text */}
-                                <h3 className="text-white font-anton uppercase tracking-[3px] text-xl mb-3 text-center">
-                                    {processingStatus.includes('...') ? processingStatus.replace('...', '') : processingStatus}
-                                </h3>
-
-                                <p className="text-[11px] text-neutral-500 tracking-[1px] uppercase font-mono text-center mb-8">
-                                    Do not close this window
-                                </p>
-
-                                {/* Indeterminate Scanning Bar */}
-                                <div className="w-full h-[2px] bg-white/[0.05] rounded-full overflow-hidden relative">
-                                    <div className="absolute top-0 bottom-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent animate-[scan_2s_ease-in-out_infinite]" />
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {/* Cinematic Scanner overlay */}
+                    <CinematicScanner
+                        processingStatus={processingStatus}
+                        detectedArchetype={detectedArchetype}
+                        phase={phase}
+                        isTransitioning={isTransitioning}
+                    />
 
                     {/* ── Hero Text ── */}
                     <div className="text-center mb-6 fade-in">

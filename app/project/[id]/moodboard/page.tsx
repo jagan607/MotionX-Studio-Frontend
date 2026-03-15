@@ -173,7 +173,7 @@ export default function MoodboardPage() {
             if (res.data.status === "success") {
                 setAppliedMoodId(selectedMood.id);
                 toastSuccess(`Mood "${res.data.selected_mood?.name || "selected"}" applied`);
-                router.push(assetsUrl);
+                router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
             } else { toastError("Failed to apply mood"); setPhase("select"); }
         } catch (e: any) {
             toastError(e.response?.data?.detail || "Selection failed");

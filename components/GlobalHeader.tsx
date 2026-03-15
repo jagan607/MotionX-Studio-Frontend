@@ -25,7 +25,8 @@ export default function GlobalHeader() {
     }, [searchParams, pathname, router]);
 
     // Hide Header on "App Mode" Pages
-    const isEditorPage = pathname.includes('/project/') && (
+    const isOnNewProject = pathname === '/project/new';
+    const isEditorPage = pathname.includes('/project/') && !isOnNewProject && (
         pathname.includes('/script') ||
         pathname.includes('/studio') ||
         pathname.includes('/storyboard') ||
@@ -38,7 +39,6 @@ export default function GlobalHeader() {
         pathname.match(/^\/project\/[a-zA-Z0-9_-]+$/) !== null
     );
 
-    const isOnNewProject = pathname === '/project/new';
 
     if (pathname === "/login" || pathname === "/" || pathname === "/pricing" || isEditorPage) {
         return null;
