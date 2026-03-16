@@ -255,7 +255,7 @@ export default function NewProjectPage() {
     const [isTyping, setIsTyping] = useState(true);
     const [selectedFormat, setSelectedFormat] = useState<string>("film");
     const [selectedStyle, setSelectedStyle] = useState<"realistic" | "animation_2d" | "animation_3d">("realistic");
-    const [aspectRatio, setAspectRatio] = useState<"16:9" | "21:9" | "9:16" | "4:5">("16:9");
+    const [aspectRatio, setAspectRatio] = useState<"16:9" | "21:9" | "9:16" | "4:5" | "1:1">("16:9");
     const [scriptFile, setScriptFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -616,7 +616,7 @@ export default function NewProjectPage() {
                             ))}
                         </div>
                         <div className="mt-3 flex items-center justify-center gap-1.5 fade-in-3">
-                            {(['16:9', '9:16', '21:9', '4:5'] as const).map((r) => (
+                            {(['16:9', '9:16', '21:9', '4:5', '1:1'] as const).map((r) => (
                                 <button key={r} onClick={() => setAspectRatio(r)}
                                     className={`px-2.5 py-1 rounded-full text-[9px] font-mono tracking-wider transition-all cursor-pointer ${aspectRatio === r ? 'text-white bg-white/[0.08]' : 'text-neutral-600 hover:text-neutral-400'}`}>
                                     {r}
