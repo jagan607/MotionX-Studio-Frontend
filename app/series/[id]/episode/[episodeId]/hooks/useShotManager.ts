@@ -255,6 +255,10 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                         estimated_duration: shot.estimated_duration || 0,
                         location: shotLocation,
                         location_id: shotLocationId,
+                        // NEW — Camera / continuity metadata from AI
+                        location_angle: shot.location_angle || "",
+                        camera_direction: shot.camera_direction || "",
+                        continuity_note: shot.continuity_note || "",
                         status: "draft",
                         order: index
                     };
@@ -339,6 +343,11 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
         formData.append("aspect_ratio", aspectRatio);
         formData.append("image_provider", imageProvider); // <--- Pass Provider to Backend
+
+        // NEW — Camera / continuity metadata
+        formData.append("location_angle", shot.location_angle || "");
+        formData.append("camera_direction", shot.camera_direction || "");
+        formData.append("continuity_note", shot.continuity_note || "");
 
         // [NEW] Camera transform data
         if (cameraTransform) {

@@ -83,6 +83,11 @@ export const useShotImageGen = (
         formData.append("style", style);
         formData.append("genre", genre);
 
+        // NEW — Camera / continuity metadata
+        formData.append("location_angle", shot.location_angle || "");
+        formData.append("camera_direction", shot.camera_direction || "");
+        formData.append("continuity_note", shot.continuity_note || "");
+
         // [NEW] Camera transform data
         console.log("PAYLOAD DEBUG: cameraTransform", cameraTransform, "cameraShotType", cameraShotType);
         if (cameraTransform) {
