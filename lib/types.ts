@@ -73,7 +73,7 @@ export interface LocationProfile {
 
     image_url?: string;
     ref_image_url?: string;
-    /** @deprecated Legacy field — new locations generate only `image_url`. Retained for old Firestore docs. */
+    /** Per-angle rendered views of this location. */
     image_views?: {
         wide?: string;
         front?: string;

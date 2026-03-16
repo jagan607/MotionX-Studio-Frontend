@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
     Trash2, Loader2, Wand2, Play, Sparkles, Settings,
     Plus, Video, ShoppingBag
@@ -55,6 +55,20 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     // --- VARIANT: STANDARD ASSET CARD ---
     if (!asset) return null;
 
+    // --- LOCATION ANGLE STATE ---
+    const isLocation = asset.type === 'location';
+    const locViews = isLocation ? (asset as LocationProfile).image_views : undefined;
+    const hasMultipleViews = !!(locViews?.wide || locViews?.front);
+    const [locationAngle, setLocationAngle] = useState<'wide' | 'front'>('front');
+
+    // Resolve the displayed image: prefer the selected angle view, fallback to image_url
+    const displayImageUrl = (() => {
+        if (isLocation && hasMultipleViews && locViews) {
+            return locViews[locationAngle] || asset.image_url;
+        }
+        return asset.image_url;
+    })();
+
     // Status
     const isReady = !!asset.image_url;
     const statusBorder = isGenerating
@@ -84,9 +98,9 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                 )}
 
                 {/* IMAGE OR PLACEHOLDER */}
-                {asset.image_url ? (
+                {displayImageUrl ? (
                     <img
-                        src={asset.image_url}
+                        src={displayImageUrl}
                         alt={asset.name}
                         className="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.03]"
                     />
@@ -142,6 +156,21 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                 {asset.type === 'product' && (
                     <div className="absolute top-2 left-2 px-2 py-0.5 bg-amber-600/20 backdrop-blur-sm border border-amber-600/20 rounded text-[7px] font-bold text-amber-400 uppercase tracking-wider z-20">
                         {(asset as ProductProfile).category || 'product'}
+                    </div>
+                )}
+
+                {/* LOCATION ANGLE DROPDOWN */}
+                {isLocation && hasMultipleViews && (
+                    <div className="absolute top-2 right-2 z-20">
+                        <select
+                            value={locationAngle}
+                            onChange={(e) => { e.stopPropagation(); setLocationAngle(e.target.value as 'wide' | 'front'); }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-black/70 backdrop-blur-sm border border-white/20 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded cursor-pointer focus:outline-none hover:border-white/40 transition-colors"
+                        >
+                            <option value="front">Front</option>
+                            <option value="wide">Wide</option>
+                        </select>
                     </div>
                 )}
             </div>
