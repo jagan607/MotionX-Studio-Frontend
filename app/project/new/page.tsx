@@ -260,6 +260,7 @@ export default function NewProjectPage() {
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [runtime, setRuntime] = useState<number>(30);
+    const [runtimeUnit, setRuntimeUnit] = useState<'sec' | 'min'>('sec');
     const [validationErrors, setValidationErrors] = useState<{ title?: boolean; genre?: boolean }>({});
 
     // ══════ PROCESSING / SCANNER STATE ══════
@@ -615,28 +616,35 @@ export default function NewProjectPage() {
                                 </button>
                             ))}
                         </div>
-                        <div className="mt-3 flex items-center justify-center gap-1.5 fade-in-3">
+                        <div className="mt-3 flex items-center justify-center gap-2 fade-in-3">
                             {(['16:9', '9:16', '21:9', '4:5', '1:1'] as const).map((r) => (
                                 <button key={r} onClick={() => setAspectRatio(r)}
-                                    className={`px-2.5 py-1 rounded-full text-[9px] font-mono tracking-wider transition-all cursor-pointer ${aspectRatio === r ? 'text-white bg-white/[0.08]' : 'text-neutral-600 hover:text-neutral-400'}`}>
+                                    className={`px-3 py-1.5 rounded-full text-[11px] font-mono tracking-wider transition-all cursor-pointer ${aspectRatio === r ? 'text-white bg-white/[0.08]' : 'text-neutral-600 hover:text-neutral-400'}`}>
                                     {r}
                                 </button>
                             ))}
                         </div>
-                        <div className="mt-2 flex items-center justify-center gap-1.5 fade-in-3">
+                        <div className="mt-3 flex items-center justify-center gap-2 fade-in-3">
                             {[{ label: '15s', value: 15 }, { label: '30s', value: 30 }, { label: '60s', value: 60 }, { label: '2m', value: 120 }, { label: '5m', value: 300 }, { label: '10m', value: 600 }].map((r) => (
-                                <button key={r.value} onClick={() => setRuntime(r.value)}
-                                    className={`px-2.5 py-1 rounded-full text-[9px] font-mono tracking-wider transition-all cursor-pointer ${runtime === r.value ? 'text-white bg-white/[0.08]' : 'text-neutral-600 hover:text-neutral-400'}`}>
+                                <button key={r.value} onClick={() => { setRuntime(r.value); setRuntimeUnit('sec'); }}
+                                    className={`px-3 py-1.5 rounded-full text-[11px] font-mono tracking-wider transition-all cursor-pointer ${runtime === r.value ? 'text-white bg-white/[0.08]' : 'text-neutral-600 hover:text-neutral-400'}`}>
                                     {r.label}
                                 </button>
                             ))}
-                            <span className="text-neutral-700 text-[9px] mx-1">or</span>
-                            <div className="flex items-center gap-1">
-                                <input type="number" min={1} value={runtime || ''}
-                                    onChange={(e) => setRuntime(parseInt(e.target.value) || 0)}
+                            <span className="text-neutral-700 text-[11px] mx-1">or</span>
+                            <div className="flex items-center gap-1.5">
+                                <input type="number" min={1}
+                                    value={runtimeUnit === 'min' ? (runtime ? Math.round(runtime / 60 * 10) / 10 : '') : (runtime || '')}
+                                    onChange={(e) => {
+                                        const val = parseFloat(e.target.value) || 0;
+                                        setRuntime(runtimeUnit === 'min' ? Math.round(val * 60) : Math.round(val));
+                                    }}
                                     onBlur={() => { if (runtime < 1) setRuntime(30); }}
-                                    className="w-12 bg-white/[0.04] rounded px-1.5 py-1 text-[9px] font-mono text-white text-center focus:outline-none focus:bg-white/[0.08] border border-white/[0.06] caret-[#E50914]" />
-                                <span className="text-[9px] text-neutral-600 font-mono">sec</span>
+                                    className="w-14 bg-white/[0.04] rounded px-2 py-1.5 text-[11px] font-mono text-white text-center focus:outline-none focus:bg-white/[0.08] border border-white/[0.06] caret-[#E50914]" />
+                                <button onClick={() => setRuntimeUnit(u => u === 'sec' ? 'min' : 'sec')}
+                                    className="text-[11px] text-neutral-500 hover:text-white font-mono uppercase tracking-wider cursor-pointer transition-colors px-1.5 py-0.5 rounded hover:bg-white/[0.06]">
+                                    {runtimeUnit}
+                                </button>
                             </div>
                         </div>
                         {currentUser?.email?.endsWith('@motionx.in') && (
