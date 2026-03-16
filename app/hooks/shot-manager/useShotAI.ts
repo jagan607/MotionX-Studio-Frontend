@@ -89,6 +89,11 @@ export const useShotAI = (
                         location: shot.location || sceneLocationName,
                         location_id: shot.location ? shot.location.replace(/[\s.]+/g, '_').toUpperCase() : sceneLocationId,
 
+                        // NEW — Camera / continuity metadata from AI
+                        location_angle: shot.location_angle || "",
+                        camera_direction: shot.camera_direction || "",
+                        continuity_note: shot.continuity_note || "",
+
                         status: "draft",
                         order: index,
                         created_at: new Date().toISOString()

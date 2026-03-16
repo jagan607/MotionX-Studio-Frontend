@@ -48,6 +48,9 @@ interface Shot {
         fov: number;
     };
     camera_shot_type?: string;
+    location_angle?: string;
+    camera_direction?: string;
+    continuity_note?: string;
 }
 
 interface SortableShotCardProps {
@@ -424,6 +427,25 @@ export const SortableShotCard = ({
                         <option disabled value="">Select...</option>
                         <option value={shot.location}>{shot.location}</option>
                         {locations.filter(l => l.name !== shot.location).map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
+                    </select>
+                </div>
+            </div>
+
+            {/* ── Camera Angle ── */}
+            <div className="flex gap-2 mb-3">
+                <div className="flex-1">
+                    <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Camera Angle</label>
+                    <select
+                        disabled={isMorphedByPrev}
+                        value={shot.location_angle || "front"}
+                        onChange={(e) => onUpdateShot(shot.id, "location_angle", e.target.value)}
+                        className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <option value="wide_establishing">Wide (Establishing)</option>
+                        <option value="front">Front</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                        <option value="back">Back (Reverse)</option>
                     </select>
                 </div>
             </div>
