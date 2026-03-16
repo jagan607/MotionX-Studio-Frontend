@@ -57,6 +57,37 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         onUpdateShot(shot.id, 'video_settings', { ...currentSettings, element_list: list });
     }, [shot?.id, shot?.video_settings, onUpdateShot]);
 
+    // ── Local Prompt State (decoupled from Firestore to prevent cursor jumping) ──
+    const [localPrompt, setLocalPrompt] = useState('');
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Sync local prompt from Firestore ONLY when the shot changes (by ID)
+    useEffect(() => {
+        if (shot) {
+            setLocalPrompt(shot.video_prompt ?? shot.visual_action ?? '');
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [shot?.id]);
+
+    // Cleanup debounce timer on unmount
+    useEffect(() => {
+        return () => {
+            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+        };
+    }, []);
+
+    const handlePromptChange = useCallback((value: string) => {
+        setLocalPrompt(value);
+        userEditedRef.current = true;
+        setSuggestion(null);
+
+        // Debounce the Firestore write
+        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = setTimeout(() => {
+            if (shot) onUpdateShot(shot.id, 'video_prompt', value);
+        }, 500);
+    }, [shot?.id, onUpdateShot]);
+
     const [isEnhancing, setIsEnhancing] = useState(false);
     const {
         elements: allElements,
@@ -222,10 +253,12 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
             onUpdateShot(shot.id, 'video_settings', { ...currentSettings, element_list: newList });
         }
 
-        const currentPrompt = shot.video_prompt || shot.visual_action || "";
+        const currentPrompt = localPrompt || shot.visual_action || "";
         const injection = ` <<<${el.id}>>>`;
         if (!currentPrompt.includes(injection)) {
-            onUpdateShot(shot.id, 'video_prompt', currentPrompt + injection);
+            const updated = currentPrompt + injection;
+            setLocalPrompt(updated);
+            onUpdateShot(shot.id, 'video_prompt', updated);
         }
 
         setIsLibraryOpen(false);
@@ -304,6 +337,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                             scene_action: sceneContext?.scene_action || shot.visual_action || undefined,
                                         });
                                         if (res.data?.enhanced_prompt) {
+                                            setLocalPrompt(res.data.enhanced_prompt);
                                             onUpdateShot(shot.id, 'video_prompt', res.data.enhanced_prompt);
                                         }
                                     } catch (e: any) {
@@ -324,12 +358,8 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                         </div>
                         <div className="relative">
                             <textarea
-                                value={shot.video_prompt ?? shot.visual_action ?? ""}
-                                onChange={(e) => {
-                                    userEditedRef.current = true;
-                                    setSuggestion(null);
-                                    onUpdateShot(shot.id, 'video_prompt', e.target.value);
-                                }}
+                                value={localPrompt}
+                                onChange={(e) => handlePromptChange(e.target.value)}
                                 placeholder="Describe the shot..."
                                 className={`w-full h-32 bg-[#1a1a1a] border border-white/[0.1] rounded-lg px-3 py-3 text-xs text-white outline-none focus:border-white/[0.3] resize-none leading-relaxed transition-all
                                     ${isEnhancing ? 'animate-pulse opacity-60' : ''}`}
@@ -357,6 +387,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                         <button
                                             type="button"
                                             onClick={() => {
+                                                setLocalPrompt(suggestion);
                                                 onUpdateShot(shot.id, 'video_prompt', suggestion);
                                                 setSuggestion(null);
                                             }}
@@ -390,9 +421,11 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                         key={hint}
                                         type="button"
                                         onClick={() => {
-                                            const current = shot.video_prompt ?? shot.visual_action ?? '';
+                                            const current = localPrompt;
                                             if (!current.toLowerCase().includes(hint)) {
-                                                onUpdateShot(shot.id, 'video_prompt', current ? `${current}, ${hint}` : hint);
+                                                const updated = current ? `${current}, ${hint}` : hint;
+                                                setLocalPrompt(updated);
+                                                onUpdateShot(shot.id, 'video_prompt', updated);
                                             }
                                         }}
                                         className="px-1.5 py-0.5 bg-white/[0.03] border border-white/[0.06] rounded text-[8px] text-neutral-500 hover:text-amber-300 hover:border-amber-500/30 transition-colors"
