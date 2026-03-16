@@ -248,6 +248,7 @@ export default function NewProjectPage() {
     const [phase, setPhase] = useState<Phase>("prompt");
     const [vision, setVision] = useState("");
     const [title, setTitle] = useState("");
+    const [genre, setGenre] = useState("");
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [placeholderIdx, setPlaceholderIdx] = useState(0);
     const [displayedPlaceholder, setDisplayedPlaceholder] = useState("");
@@ -259,6 +260,7 @@ export default function NewProjectPage() {
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [runtime, setRuntime] = useState<number>(30);
+    const [validationErrors, setValidationErrors] = useState<{ title?: boolean; genre?: boolean }>({});
 
     // ══════ PROCESSING / SCANNER STATE ══════
     const [processingStatus, setProcessingStatus] = useState("");
@@ -401,6 +403,17 @@ export default function NewProjectPage() {
 
     // ══════ CREATE PROJECT ══════
     const handleCreate = async () => {
+        // Validate required fields
+        const errors: { title?: boolean; genre?: boolean } = {};
+        if (!title.trim()) errors.title = true;
+        if (!genre.trim()) errors.genre = true;
+        if (errors.title || errors.genre) {
+            setValidationErrors(errors);
+            const missing = [errors.title && 'Project Name', errors.genre && 'Genre'].filter(Boolean).join(' and ');
+            toast.error(`Please fill in ${missing}`);
+            setTimeout(() => setValidationErrors({}), 2000);
+            return;
+        }
         if (!vision.trim() && !scriptFile) return toast.error("Describe your vision or upload a script");
         setPhase("processing");
         setDetectedArchetype("");
@@ -414,7 +427,7 @@ export default function NewProjectPage() {
 
             setProcessingStatus("Creating project...");
             const res = await api.post("/api/v1/project/create", {
-                title: projectTitle, genre: vision || "Script uploaded",
+                title: projectTitle, genre: genre.trim() || "Drama",
                 type, aspect_ratio: aspectRatio, style: selectedStyle,
             });
             const projectId = res.data.id;
@@ -518,9 +531,16 @@ export default function NewProjectPage() {
 
                     {/* ── Title Input ── */}
                     <div className="mb-5">
-                        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-                            className="w-full bg-transparent text-[16px] text-white placeholder-neutral-600 focus:outline-none tracking-[1px] caret-[#E50914] border-b border-white/[0.06] pb-2 focus:border-white/[0.12] transition-colors"
-                            placeholder="Project Name" autoComplete="off" />
+                        <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); if (validationErrors.title) setValidationErrors(v => ({ ...v, title: false })); }}
+                            className={`w-full bg-transparent text-[16px] text-white placeholder-neutral-600 focus:outline-none tracking-[1px] caret-[#E50914] border-b pb-2 transition-all duration-300 ${validationErrors.title ? 'border-[#E50914]/60 placeholder-[#E50914]/40' : 'border-white/[0.06] focus:border-white/[0.12]'}`}
+                            placeholder="Project Name *" autoComplete="off" />
+                    </div>
+
+                    {/* ── Genre Input ── */}
+                    <div className="mb-5">
+                        <input type="text" value={genre} onChange={(e) => { setGenre(e.target.value); if (validationErrors.genre) setValidationErrors(v => ({ ...v, genre: false })); }}
+                            className={`w-full bg-transparent text-[16px] text-white placeholder-neutral-600 focus:outline-none tracking-[1px] caret-[#E50914] border-b pb-2 transition-all duration-300 ${validationErrors.genre ? 'border-[#E50914]/60 placeholder-[#E50914]/40' : 'border-white/[0.06] focus:border-white/[0.12]'}`}
+                            placeholder="Genre (e.g. Thriller, Comedy, Horror) *" autoComplete="off" />
                     </div>
 
                     {/* ── Prompt Box ── */}
@@ -556,9 +576,9 @@ export default function NewProjectPage() {
                                     <span className="text-[9px] text-neutral-800">⏎ to create</span>
                                 </div>
                                 <button onClick={handleCreate}
-                                    disabled={phase !== 'prompt' || (!vision.trim() && !scriptFile)}
+                                    disabled={phase !== 'prompt' || !title.trim() || !genre.trim() || (!vision.trim() && !scriptFile)}
                                     className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-semibold tracking-[1px] transition-all duration-300 cursor-pointer
-                                        ${phase !== 'prompt' || (!vision.trim() && !scriptFile) ? 'text-neutral-700 cursor-not-allowed' : 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25]'}`}>
+                                        ${phase !== 'prompt' || !title.trim() || !genre.trim() || (!vision.trim() && !scriptFile) ? 'text-neutral-700 cursor-not-allowed' : 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25]'}`}>
                                     <Send size={11} /> Create
                                 </button>
                             </div>
