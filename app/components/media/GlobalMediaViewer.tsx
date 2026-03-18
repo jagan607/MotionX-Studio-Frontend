@@ -11,6 +11,9 @@ export default function GlobalMediaViewer() {
     // UPDATED: Added 'sync' to the state type
     const [viewMode, setViewMode] = useState<"img" | "vid" | "sync">("img");
 
+    // Location angle mode
+    const [angleMode, setAngleMode] = useState<'front' | 'wide'>('front');
+
     // Get current item
     const currentItem = items[currentIndex];
 
@@ -19,6 +22,12 @@ export default function GlobalMediaViewer() {
     const hasVideo = Boolean(currentItem?.videoUrl);
     const hasImage = Boolean(currentItem?.imageUrl);
     const hasLipsync = Boolean(currentItem?.lipsyncUrl);
+    const hasAngleViews = Boolean(currentItem?.imageViews?.front || currentItem?.imageViews?.wide);
+
+    // Resolve the image URL based on angle mode
+    const resolvedImageUrl = hasAngleViews && currentItem?.imageViews
+        ? (currentItem.imageViews[angleMode] || currentItem.imageUrl)
+        : currentItem?.imageUrl;
 
     // UPDATED: Smart Mode Switching
     useEffect(() => {
@@ -42,6 +51,11 @@ export default function GlobalMediaViewer() {
         }
 
     }, [currentIndex, currentItem, viewMode, hasVideo, hasImage, hasLipsync]);
+
+    // Reset angle mode when navigating between items
+    useEffect(() => {
+        setAngleMode('front');
+    }, [currentIndex]);
 
     // Keyboard Navigation
     useEffect(() => {
@@ -117,6 +131,23 @@ export default function GlobalMediaViewer() {
                         >
                             <Mic2 size={12} /> SYNC
                         </button>
+
+                        {/* FRONT / WIDE ANGLE TOGGLE (Location assets) */}
+                        {hasAngleViews && (
+                            <>
+                                <div className="w-px h-5 bg-[#333]" />
+                                {(['front', 'wide'] as const).map(angle => (
+                                    <button
+                                        key={angle}
+                                        onClick={() => setAngleMode(angle)}
+                                        className={`flex items-center gap-1 px-4 py-1.5 rounded-full text-[10px] font-bold font-mono transition-all cursor-pointer
+                                            ${angleMode === angle ? 'bg-[#333] text-white' : 'text-gray-500 hover:text-white'}`}
+                                    >
+                                        {angle.toUpperCase()}
+                                    </button>
+                                ))}
+                            </>
+                        )}
                     </div>
 
                     {/* CLOSE BUTTON */}
@@ -150,9 +181,9 @@ export default function GlobalMediaViewer() {
                 {/* --- MEDIA CONTENT --- */}
                 <div className="relative w-full h-full p-12 flex items-center justify-center">
 
-                    {viewMode === "img" && currentItem.imageUrl ? (
+                    {viewMode === "img" && resolvedImageUrl ? (
                         <img
-                            src={currentItem.imageUrl}
+                            src={resolvedImageUrl}
                             alt="Full Screen"
                             className="max-w-full max-h-full object-contain shadow-2xl"
                         />

@@ -21,6 +21,11 @@ interface VisualsSectionProps {
     // Inpaint
     onInpaint?: () => void;
 
+    // Location angle views
+    imageViews?: { wide?: string; front?: string };
+    currentAngle?: 'front' | 'wide';
+    onAngleChange?: (angle: 'front' | 'wide') => void;
+
     // Optional fallback (unused now but kept for safety)
     onUpload?: (e: any) => void;
     onGenerate?: () => void; // Kept optional as we moved the trigger out
@@ -38,7 +43,10 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
     onToggleUseRef,
     isUploadingRef,
     isUploadingMain,
-    onInpaint
+    onInpaint,
+    imageViews,
+    currentAngle = 'front',
+    onAngleChange
 }) => {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, handler: (f: File) => void) => {
@@ -51,8 +59,28 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
         <div className="animate-in fade-in duration-500 delay-100">
             {/* HEADER: TITLE + ACTIONS */}
             <div className="flex justify-between items-center mb-3">
-                <div className="text-[11px] font-bold text-neutral-500 tracking-widest uppercase">
-                    Visual Representation
+                <div className="flex items-center gap-3">
+                    <div className="text-[11px] font-bold text-neutral-500 tracking-widest uppercase">
+                        Visual Representation
+                    </div>
+
+                    {/* FRONT / WIDE ANGLE TOGGLE (Location only) */}
+                    {imageViews && (imageViews.front || imageViews.wide) && onAngleChange && (
+                        <div className="flex bg-[#111] border border-neutral-700 rounded-full p-0.5 gap-0.5">
+                            {(['front', 'wide'] as const).map(angle => (
+                                <button
+                                    key={angle}
+                                    onClick={() => onAngleChange(angle)}
+                                    className={`px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase transition-all cursor-pointer
+                                        ${currentAngle === angle
+                                            ? 'bg-white/10 text-white border border-white/20'
+                                            : 'text-neutral-500 hover:text-white border border-transparent'}`}
+                                >
+                                    {angle}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 <div className="flex gap-2">
 

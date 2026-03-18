@@ -6,7 +6,7 @@ import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
 import { api, uploadAssetReference, uploadAssetMain } from '@/lib/api';
 import { constructLocationPrompt, constructCharacterPrompt, constructProductPrompt } from '@/lib/promptUtils';
 import { toast } from 'react-hot-toast';
-import { Asset } from '@/lib/types';
+import { Asset, LocationProfile } from '@/lib/types';
 import { InpaintEditor } from '@/app/components/storyboard/InpaintEditor';
 
 // --- SUB-COMPONENTS ---
@@ -63,9 +63,20 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [isUploadingMain, setIsUploadingMain] = useState(false);
     const isProcessing = parentIsProcessing || isGenerating;
 
+    // Location angle state
+    const [locationAngle, setLocationAngle] = useState<'front' | 'wide'>('front');
+    const isLocation = assetType === 'location';
+    const locViews = isLocation ? (currentData as LocationProfile).image_views : undefined;
+    const hasMultipleViews = !!(locViews?.wide || locViews?.front);
+
     // Visuals State
     const [refImage, setRefImage] = useState<string | null>(null);
-    const [localDisplayImage, setLocalDisplayImage] = useState<string | undefined>(currentData.image_url);
+    const [localDisplayImage, setLocalDisplayImage] = useState<string | undefined>(() => {
+        if (isLocation && hasMultipleViews && locViews) {
+            return locViews[locationAngle] || currentData.image_url;
+        }
+        return currentData.image_url;
+    });
     const [useRefForGen, setUseRefForGen] = useState(true);
 
     // Voice State
@@ -96,8 +107,12 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
     useEffect(() => {
-        setLocalDisplayImage(currentData.image_url);
-    }, [currentData.image_url]);
+        if (isLocation && hasMultipleViews && locViews) {
+            setLocalDisplayImage(locViews[locationAngle] || currentData.image_url);
+        } else {
+            setLocalDisplayImage(currentData.image_url);
+        }
+    }, [currentData.image_url, locationAngle]);
 
     useEffect(() => {
         if (isVoiceMode && allVoices.length === 0) loadVoices();
@@ -554,6 +569,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                 onToggleUseRef={() => setUseRefForGen(!useRefForGen)}
 
                                 onInpaint={localDisplayImage ? () => setInpaintData({ src: localDisplayImage }) : undefined}
+
+                                imageViews={hasMultipleViews ? locViews : undefined}
+                                currentAngle={locationAngle}
+                                onAngleChange={hasMultipleViews ? setLocationAngle : undefined}
                             />
 
                             {assetType === 'character' && (

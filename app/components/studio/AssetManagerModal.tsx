@@ -278,6 +278,9 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             imageUrl: a.image_url,
             title: a.name,
             description: a.prompt || (a as any).base_prompt,
+            ...(a.type === 'location' && (a as LocationProfile).image_views
+                ? { imageViews: (a as LocationProfile).image_views }
+                : {}),
         }));
         openViewer(mediaItems, index);
     };
