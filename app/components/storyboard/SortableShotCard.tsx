@@ -215,6 +215,16 @@ export const SortableShotCard = ({
     useEffect(() => { setLocalVisualAction(shot.visual_action || ""); }, [shot.visual_action]);
     useEffect(() => { setLocalVideoPrompt(shot.video_prompt || ""); }, [shot.video_prompt]);
 
+    // Shot Type combo-box state
+    const SHOT_TYPE_PRESETS = ['Wide Shot', 'Medium Shot', 'Close Up', 'Extreme Close Up', 'Medium Close Up', 'Over the Shoulder', 'POV', 'Dutch Angle', 'Aerial / Drone', 'Tracking Shot'];
+    const [localShotType, setLocalShotType] = useState(shot.shot_type || "");
+    const [isCustomShotType, setIsCustomShotType] = useState(() => !!shot.shot_type && !SHOT_TYPE_PRESETS.includes(shot.shot_type));
+    const customInputRef = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        setLocalShotType(shot.shot_type || "");
+        setIsCustomShotType(!!shot.shot_type && !SHOT_TYPE_PRESETS.includes(shot.shot_type));
+    }, [shot.shot_type]);
+
     // --- Drag Style ---
     const dragStyle = {
         transform: CSS.Transform.toString(transform),
@@ -394,19 +404,50 @@ export const SortableShotCard = ({
             <div className="flex gap-2 mb-3">
                 <div className="flex-1">
                     <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Shot Type</label>
-                    <select
-                        disabled={isMorphedByPrev}
-                        defaultValue={shot.shot_type || "Wide Shot"}
-                        onChange={(e) => onUpdateShot(shot.id, "shot_type", e.target.value)}
-                        className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        <option value="">{shot.shot_type}</option>
-                        <option value="Wide Shot">Wide Shot</option>
-                        <option value="Medium Shot">Medium Shot</option>
-                        <option value="Close Up">Close Up</option>
-                        <option value="Extreme Close Up">Extreme Close Up</option>
-                        <option value="Medium Close Up">Medium Close Up</option>
-                    </select>
+                    {isCustomShotType ? (
+                        <div className="flex gap-1">
+                            <input
+                                ref={customInputRef}
+                                autoFocus
+                                disabled={isMorphedByPrev}
+                                value={localShotType}
+                                onChange={(e) => setLocalShotType(e.target.value)}
+                                onBlur={() => { if (localShotType !== shot.shot_type) onUpdateShot(shot.id, "shot_type", localShotType); }}
+                                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                                placeholder="Type custom shot type..."
+                                className="flex-1 bg-white/[0.03] border border-[#E50914]/40 text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            />
+                            <button
+                                onClick={() => {
+                                    setIsCustomShotType(false);
+                                    setLocalShotType(shot.shot_type || "Wide Shot");
+                                    onUpdateShot(shot.id, "shot_type", shot.shot_type || "Wide Shot");
+                                }}
+                                className="px-1.5 bg-white/[0.03] border border-white/[0.08] rounded-lg text-neutral-500 hover:text-white hover:border-white/20 transition-colors cursor-pointer"
+                                title="Back to presets"
+                            >
+                                <XCircle size={12} />
+                            </button>
+                        </div>
+                    ) : (
+                        <select
+                            disabled={isMorphedByPrev}
+                            value={localShotType}
+                            onChange={(e) => {
+                                if (e.target.value === '__custom__') {
+                                    setIsCustomShotType(true);
+                                    setLocalShotType('');
+                                } else {
+                                    setLocalShotType(e.target.value);
+                                    onUpdateShot(shot.id, "shot_type", e.target.value);
+                                }
+                            }}
+                            className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            {SHOT_TYPE_PRESETS.map(st => <option key={st} value={st}>{st}</option>)}
+                            <option value="__custom__">✏️ Custom...</option>
+                        </select>
+                    )}
                 </div>
                 {shot.estimated_duration ? (
                     <div className="w-12 shrink-0">
@@ -424,9 +465,11 @@ export const SortableShotCard = ({
                         onChange={(e) => onUpdateShot(shot.id, "location", e.target.value)}
                         className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                        <option disabled value="">Select...</option>
-                        <option value={shot.location}>{shot.location}</option>
-                        {locations.filter(l => l.name !== shot.location).map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
+                        <option value="">NONE</option>
+                        {shot.location && !locations.find(l => l.name === shot.location) && (
+                            <option value={shot.location}>{shot.location}</option>
+                        )}
+                        {locations.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
                     </select>
                 </div>
             </div>
