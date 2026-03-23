@@ -164,6 +164,11 @@ export const ShotDivisionModal: React.FC<ShotDivisionModalProps> = ({
         formData.append('products', sceneProducts);
         formData.append('location', sceneLocation);
 
+        // Phase 5 — Cinematic State Vector
+        if (currentScene?.cinematic_state_vector) {
+            formData.append('cinematic_state_vector', JSON.stringify(currentScene.cinematic_state_vector));
+        }
+
         // File or text
         if (uploadedFile) {
             formData.append('document', uploadedFile);
@@ -225,6 +230,13 @@ export const ShotDivisionModal: React.FC<ShotDivisionModalProps> = ({
                         location_angle: shot.location_angle || "",
                         camera_direction: shot.camera_direction || "",
                         continuity_note: shot.continuity_note || "",
+
+                        // Phase 5 — Spatial Topology Engine
+                        _vector: shot._vector || "",
+                        _180_corrected: shot._180_corrected || false,
+                        _trajectory: shot._trajectory || "",
+                        _trajectory_entry: shot._trajectory_entry || "",
+
                         status: "draft",
                         order: index,
                         created_at: new Date().toISOString()

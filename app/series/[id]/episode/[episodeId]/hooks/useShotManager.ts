@@ -205,6 +205,11 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
         formData.append("scene_duration", String(currentScene.estimated_duration_seconds || 0));
 
+        // Phase 5 — Cinematic State Vector
+        if (currentScene.cinematic_state_vector) {
+            formData.append("cinematic_state_vector", JSON.stringify(currentScene.cinematic_state_vector));
+        }
+
         try {
             const res = await api.post("/api/v1/shot/suggest_shots", formData);
             const data = res.data;
@@ -253,6 +258,13 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                         location_angle: shot.location_angle || "",
                         camera_direction: shot.camera_direction || "",
                         continuity_note: shot.continuity_note || "",
+
+                        // Phase 5 — Spatial Topology Engine
+                        _vector: shot._vector || "",
+                        _180_corrected: shot._180_corrected || false,
+                        _trajectory: shot._trajectory || "",
+                        _trajectory_entry: shot._trajectory_entry || "",
+
                         status: "draft",
                         order: index
                     };

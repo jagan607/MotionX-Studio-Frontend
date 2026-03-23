@@ -42,7 +42,8 @@ export const useShotAI = (
             characters: sceneChars,
             location: sceneLocationName,
             products: sceneProductsString,
-            scene_duration: currentScene.estimated_duration_seconds || 0
+            scene_duration: currentScene.estimated_duration_seconds || 0,
+            cinematic_state_vector: currentScene.cinematic_state_vector || null
         };
 
         try {
@@ -93,6 +94,12 @@ export const useShotAI = (
                         location_angle: shot.location_angle || "",
                         camera_direction: shot.camera_direction || "",
                         continuity_note: shot.continuity_note || "",
+
+                        // Phase 5 — Spatial Topology Engine
+                        _vector: shot._vector || "",
+                        _180_corrected: shot._180_corrected || false,
+                        _trajectory: shot._trajectory || "",
+                        _trajectory_entry: shot._trajectory_entry || "",
 
                         status: "draft",
                         order: index,

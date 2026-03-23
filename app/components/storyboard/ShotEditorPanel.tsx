@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2, Check, Film, RefreshCw, Link2, Plus } from 'lucide-react';
+import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2, Check, Film, RefreshCw, Link2, Plus, AlertTriangle } from 'lucide-react';
 import { VideoHistoryStrip } from './VideoHistoryStrip';
 import { VideoSettingsPanel } from './VideoSettingsPanel';
 import { ElementLibraryModal } from './ElementLibraryModal';
@@ -74,6 +74,19 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shot?.id]);
 
+    // Phase 5 — Motion Continuity constraint parser
+    const MOTION_CONTINUITY_REGEX = /\[Motion Continuity:[^\]]*\]/g;
+
+    const extractMotionConstraint = (prompt: string): { editable: string; constraint: string | null } => {
+        const match = prompt.match(MOTION_CONTINUITY_REGEX);
+        if (!match) return { editable: prompt, constraint: null };
+        const constraint = match[match.length - 1];
+        const editable = prompt.replace(MOTION_CONTINUITY_REGEX, '').trimEnd();
+        return { editable, constraint };
+    };
+
+    const motionParsed = extractMotionConstraint(localPrompt);
+
     // Cleanup debounce timer on unmount
     useEffect(() => {
         return () => {
@@ -82,16 +95,20 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     }, []);
 
     const handlePromptChange = useCallback((value: string) => {
-        setLocalPrompt(value);
+        // Re-append the system constraint when saving to Firestore
+        const fullPrompt = motionParsed.constraint
+            ? `${value} ${motionParsed.constraint}`
+            : value;
+        setLocalPrompt(fullPrompt);
         userEditedRef.current = true;
         setSuggestion(null);
 
         // Debounce the Firestore write
         if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = setTimeout(() => {
-            if (shot) onUpdateShot(shot.id, 'video_prompt', value);
+            if (shot) onUpdateShot(shot.id, 'video_prompt', fullPrompt);
         }, 500);
-    }, [shot?.id, onUpdateShot]);
+    }, [shot?.id, onUpdateShot, motionParsed.constraint]);
 
     // ── @imageN Cursor-Position Tag Injection (Phase 2) ──
     const handleInsertPromptTag = useCallback((tag: string) => {
@@ -440,7 +457,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                 <div className="relative">
                                     <textarea
                                         ref={promptTextareaRef}
-                                        value={localPrompt}
+                                        value={motionParsed.editable}
                                         onChange={(e) => handlePromptChange(e.target.value)}
                                         placeholder="Describe the shot..."
                                         className={`w-full h-40 bg-[#0a0a0a] border border-white/[0.1] rounded-lg px-3 py-3 text-[13px] text-white outline-none focus:border-white/[0.3] resize-none leading-relaxed transition-all
@@ -457,6 +474,19 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Phase 5 — Motion Continuity System Constraint Banner */}
+                                {motionParsed.constraint && (
+                                    <div className="mt-1.5 flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-500/[0.07] border border-amber-500/25">
+                                        <AlertTriangle size={12} className="text-amber-400 shrink-0 mt-0.5" />
+                                        <div>
+                                            <span className="text-[9px] font-bold text-amber-400/80 uppercase tracking-wider block mb-0.5">System Constraint — Locked</span>
+                                            <span className="text-[11px] text-amber-300/90 leading-relaxed block">
+                                                {motionParsed.constraint.replace(/^\[/, '').replace(/\]$/, '')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Camera Direction Hints */}
                                 {(shot.video_settings?.provider === 'seedance-2' || shot.video_settings?.provider === 'seedance') && (

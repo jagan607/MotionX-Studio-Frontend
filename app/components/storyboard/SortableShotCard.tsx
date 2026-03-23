@@ -51,6 +51,10 @@ interface Shot {
     location_angle?: string;
     camera_direction?: string;
     continuity_note?: string;
+    _vector?: string;
+    _180_corrected?: boolean;
+    _trajectory?: string;
+    _trajectory_entry?: string;
 }
 
 interface SortableShotCardProps {
@@ -212,6 +216,19 @@ export const SortableShotCard = ({
     const [localVisualAction, setLocalVisualAction] = useState(shot.visual_action || "");
     const [localVideoPrompt, setLocalVideoPrompt] = useState(shot.video_prompt || "");
 
+    // Phase 5 — Motion Continuity constraint parser
+    const MOTION_CONTINUITY_REGEX = /\[Motion Continuity:[^\]]*\]/g;
+
+    const extractMotionConstraint = (prompt: string): { editable: string; constraint: string | null } => {
+        const match = prompt.match(MOTION_CONTINUITY_REGEX);
+        if (!match) return { editable: prompt, constraint: null };
+        const constraint = match[match.length - 1]; // take the last match
+        const editable = prompt.replace(MOTION_CONTINUITY_REGEX, '').trimEnd();
+        return { editable, constraint };
+    };
+
+    const motionParsed = extractMotionConstraint(localVideoPrompt);
+
     useEffect(() => { setLocalVisualAction(shot.visual_action || ""); }, [shot.visual_action]);
     useEffect(() => { setLocalVideoPrompt(shot.video_prompt || ""); }, [shot.video_prompt]);
 
@@ -301,6 +318,30 @@ export const SortableShotCard = ({
                         Shot {String(index + 1).padStart(2, '0')}
                         {isUpscaled && <span className="ml-1.5 text-[10px] font-bold text-cyan-400">4K</span>}
                     </span>
+
+                    {/* ── Phase 5: Spatial Vector Badge ── */}
+                    {shot._vector === 'alpha' && (
+                        <span className="ml-1 px-1.5 py-0.5 rounded-md text-[8px] font-bold tracking-wider bg-blue-500/15 text-blue-400 border border-blue-500/30" title="Alpha Vector — Primary establishing shot">
+                            α Alpha
+                        </span>
+                    )}
+                    {shot._vector === 'beta' && (
+                        <span className="ml-1 px-1.5 py-0.5 rounded-md text-[8px] font-bold tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" title="Beta Vector — Standard coverage shot">
+                            β Beta
+                        </span>
+                    )}
+                    {shot._vector === 'gamma' && (
+                        <span className="ml-1 px-1.5 py-0.5 rounded-md text-[8px] font-bold tracking-wider bg-purple-500/15 text-purple-400 border border-purple-500/30" title="Gamma Vector — Insert / cutaway shot">
+                            γ Gamma
+                        </span>
+                    )}
+
+                    {/* ── Phase 5: 180° Correction Badge ── */}
+                    {shot._180_corrected && (
+                        <span className="ml-1 px-1.5 py-0.5 rounded-md text-[8px] font-bold tracking-wider bg-orange-500/15 text-orange-400 border border-orange-500/30 flex items-center gap-1" title="AI Spatial Correction Applied — 180° rule enforced">
+                            <AlertTriangle size={8} /> 180°
+                        </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-1">
                     {/* Pin as continuity reference */}
@@ -590,12 +631,33 @@ export const SortableShotCard = ({
                 <label className="text-[9px] font-semibold text-neutral-500 mb-1.5 block">Video Prompt</label>
                 <textarea
                     disabled={isMorphedByPrev}
-                    value={isMorphedByPrev ? "Movement controlled by previous shot transition." : localVideoPrompt}
-                    onChange={(e) => { setLocalVideoPrompt(e.target.value); onUpdateShot(shot.id, "video_prompt", e.target.value); }}
+                    value={isMorphedByPrev ? "Movement controlled by previous shot transition." : motionParsed.editable}
+                    onChange={(e) => {
+                        const newEditable = e.target.value;
+                        // Re-append the system constraint when saving to Firestore
+                        const fullPrompt = motionParsed.constraint
+                            ? `${newEditable} ${motionParsed.constraint}`
+                            : newEditable;
+                        setLocalVideoPrompt(fullPrompt);
+                        onUpdateShot(shot.id, "video_prompt", fullPrompt);
+                    }}
                     placeholder="Motion description..."
                     className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 resize-none transition-colors placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
                     rows={2}
                 />
+
+                {/* Phase 5 — Motion Continuity System Constraint Banner */}
+                {motionParsed.constraint && !isMorphedByPrev && (
+                    <div className="mt-1.5 flex items-start gap-1.5 px-2.5 py-2 rounded-lg bg-amber-500/[0.07] border border-amber-500/25">
+                        <AlertTriangle size={10} className="text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                            <span className="text-[8px] font-bold text-amber-400/80 uppercase tracking-wider block mb-0.5">System Constraint</span>
+                            <span className="text-[10px] text-amber-300/90 leading-tight block">
+                                {motionParsed.constraint.replace(/^\[/, '').replace(/\]$/, '')}
+                            </span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* ── Action Footer ── */}
