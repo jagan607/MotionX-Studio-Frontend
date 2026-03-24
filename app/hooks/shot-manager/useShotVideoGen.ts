@@ -11,6 +11,7 @@ export interface PromptSegment {
 }
 
 export interface AnimateOptions {
+    prompt?: string;
     duration?: string;
     mode?: 'std' | 'pro';
     aspect_ratio?: '16:9' | '9:16' | '4:3' | '3:4' | '1:1';
@@ -38,6 +39,8 @@ export interface AnimateOptions {
     // Seedance 2.0 — Video Edit
     video_url?: string;                      // Source video for edit mode
     source_video_duration?: number;          // Duration in seconds of source video
+    trim_start?: number;                     // Trim start time (seconds)
+    trim_end?: number;                       // Trim end time (seconds)
 }
 
 export interface PreflightResult {
@@ -63,7 +66,10 @@ export const useShotVideoGen = (
         try {
             // Seedance 2.0 @tag prompt mutation when end frame is present
             const isSeedance = provider === 'seedance-2' || provider === 'seedance' || provider === 'seedance-1.5';
-            const originalPrompt = shot.video_prompt || "Cinematic motion";
+            const explicitOverride = options?.prompt;
+            const originalPrompt = (explicitOverride !== undefined && explicitOverride !== "")
+                ? explicitOverride
+                : (shot.video_prompt || "Cinematic motion");
             const finalPrompt = (isSeedance && endFrameUrl)
                 ? `@image1 as the first frame. ${originalPrompt}. smoothly transitioning to @image2 as the last frame.`
                 : originalPrompt;
@@ -99,6 +105,8 @@ export const useShotVideoGen = (
                 // Seedance 2.0 — Video Edit
                 if (options.video_url) payload.video_url = options.video_url;
                 if (options.source_video_duration) payload.source_video_duration = options.source_video_duration;
+                if (options.trim_start !== undefined) payload.trim_start = options.trim_start;
+                if (options.trim_end !== undefined) payload.trim_end = options.trim_end;
 
                 // Multi-shot
                 if (options.multi_shot) {

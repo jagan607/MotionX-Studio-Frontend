@@ -3,7 +3,7 @@ import {
     Film, RefreshCw, Link2, Mic2, Video, Pencil,
     ChevronDown, ChevronUp, Sliders, Plus, Trash2, AlertCircle, Loader2,
     RectangleHorizontal, RectangleVertical, Square, Volume2, FastForward,
-    ImagePlus, X, AlertTriangle
+    ImagePlus, X, AlertTriangle, Lock, Scissors
 } from 'lucide-react';
 import type { VideoProvider, AnimateOptions, PromptSegment } from '@/app/hooks/shot-manager/useShotVideoGen';
 import type { KlingElement } from '@/app/hooks/shot-manager/useElementLibrary';
@@ -113,6 +113,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const [isUploadingVideo, setIsUploadingVideo] = useState(false);
     const videoInputRef = useRef<HTMLInputElement>(null);
 
+    // Trim state (for Video Edit mode)
+    const [trimStart, setTrimStart] = useState<number>(0);
+    const [trimEnd, setTrimEnd] = useState<number>(0);
+    const trimmedDuration = Math.max(0, Math.round((trimEnd - trimStart) * 10) / 10);
+
     // Generation Mode: 'new' = standard I2V/T2V, 'edit' = video edit, 'extend' = continuation
     const [generationMode, setGenerationMode] = useState<'new' | 'edit' | 'extend'>('new');
     const shotHasVideo = !!shotData?.video_url;
@@ -128,6 +133,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             videoEl.crossOrigin = 'anonymous';
             videoEl.onloadedmetadata = () => {
                 setSourceVideoDuration(videoEl.duration);
+                setTrimStart(0);
+                setTrimEnd(videoEl.duration);
             };
             videoEl.onerror = () => {
                 console.warn('[VideoEdit] Failed to extract duration from shot video');
@@ -135,6 +142,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         } else if (generationMode === 'new') {
             setSourceVideoUrl(null);
             setSourceVideoDuration(null);
+            setTrimStart(0);
+            setTrimEnd(0);
         }
     }, [generationMode, shotData?.video_url]);
 
@@ -238,6 +247,20 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         }
     }, [isLinked, provider]);
 
+    // Auto-revert to 'new' mode when provider doesn't support video editing
+    React.useEffect(() => {
+        if (!isSeedance2 && generationMode === 'edit') {
+            setGenerationMode('new');
+        }
+    }, [isSeedance2, generationMode]);
+
+    // Clear stale end frame when entering edit mode
+    React.useEffect(() => {
+        if (generationMode === 'edit') {
+            setEndFrameUrl(null);
+        }
+    }, [generationMode]);
+
 
     // Derived state for controlled vs uncontrolled
     const elementList = propElementList || internalElementList;
@@ -283,13 +306,14 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         return segments.reduce((acc, seg) => acc + (parseFloat(seg.duration) || 0), 0);
     };
 
-    const isDurationValid = !multiShot || shotType === 'intelligence' || getTotalSegmentDuration() === parseFloat(duration);
+    const isDurationValid = !(isV3 && multiShot) || shotType === 'intelligence' || getTotalSegmentDuration() === parseFloat(duration);
 
-    // Video-edit cost override: use source video duration × per-second rate (credits, not dollars)
+    // Video-edit cost override: use trimmed duration × per-second rate (credits, not dollars)
     const VIDEO_EDIT_RATE_FAST = 0.6;   // credits/sec for Draft
     const VIDEO_EDIT_RATE_PRO = 1.0;    // credits/sec for Final
-    const videoEditCost = (generationMode === 'edit' && sourceVideoUrl && sourceVideoDuration)
-        ? Math.round(sourceVideoDuration * (quality === 'fast' ? VIDEO_EDIT_RATE_FAST : VIDEO_EDIT_RATE_PRO) * 10) / 10
+    const editDuration = (generationMode === 'edit' && trimmedDuration > 0) ? trimmedDuration : sourceVideoDuration;
+    const videoEditCost = (generationMode === 'edit' && sourceVideoUrl && editDuration)
+        ? Math.round(editDuration * (quality === 'fast' ? VIDEO_EDIT_RATE_FAST : VIDEO_EDIT_RATE_PRO) * 10) / 10
         : null;
     const displayCost = videoEditCost ?? videoCost;
 
@@ -303,6 +327,10 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             reference_image_urls: refImages.length > 0 ? refImages : undefined,
             ...(sourceVideoUrl ? { video_url: sourceVideoUrl } : {}),
             ...(sourceVideoDuration ? { source_video_duration: sourceVideoDuration } : {}),
+            ...(generationMode === 'edit' && sourceVideoUrl ? {
+                trim_start: trimStart,
+                trim_end: trimEnd,
+            } : {}),
         } : {}),
         ...(showSoundToggle ? { sound } : {}),
         // TODO: Uncomment when switching to official Kling API
@@ -345,7 +373,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         onAnimateInfoChange({
             handleAnimate,
             cost: displayCost,
-            disabled: !hasImage || isBusy || !isDurationValid,
+            disabled: (!hasImage && !hasVideo) || isBusy || !isDurationValid,
             label: isBusy
                 ? (hasVideo ? 'Animating...' : 'Generating...')
                 : isLinked
@@ -361,7 +389,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [provider, duration, mode, quality, aspectRatio, endFrameUrl, negativePrompt, cfgScale, sound,
         watermark, multiShot, shotType, segments, elementList, voiceList, refImages,
-        hasImage, hasVideo, isBusy, isLinked, isDurationValid, videoCost, generationMode, sourceVideoUrl, sourceVideoDuration]);
+        hasImage, hasVideo, isBusy, isLinked, isDurationValid, videoCost, displayCost,
+        generationMode, sourceVideoUrl, sourceVideoDuration, trimStart, trimEnd]);
 
     // --- Helpers ---
     const addSegment = () => {
@@ -447,7 +476,19 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                 <div className="flex gap-1.5 flex-wrap">
                     {/* Duration */}
                     <div className="flex gap-1 flex-1 min-w-[100px]">
-                        {isV3 ? (
+                        {generationMode === 'edit' ? (
+                            /* Locked duration pill — dynamically reflects trimmed length */
+                            <div
+                                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.08] opacity-60 cursor-not-allowed"
+                                title="Duration is locked to the length of your Source Video. Use the trimmer to adjust."
+                            >
+                                <Lock size={10} className="text-neutral-500" />
+                                <span className="text-[10px] font-semibold text-neutral-400">
+                                    {trimmedDuration > 0 ? `${trimmedDuration.toFixed(1)}s` : sourceVideoDuration ? `${sourceVideoDuration.toFixed(1)}s` : '—'}
+                                </span>
+                                <span className="text-[8px] text-neutral-600">locked</span>
+                            </div>
+                        ) : isV3 ? (
                             <div className="flex items-center gap-2 flex-1 px-2 py-1 bg-white/[0.03] border border-white/[0.08] rounded-md group hover:border-white/20 transition-colors">
                                 <span className="text-[10px] font-semibold text-neutral-400 group-hover:text-neutral-300 w-4">{duration}s</span>
                                 <input
@@ -577,6 +618,56 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         ))}
                     </div>
 
+                    {/* ── Generation Mode Toggle (3-Way: New / Edit / Extend) ── */}
+                    {shotHasVideo && (
+                        <div>
+                            <label className="text-[9px] font-semibold text-neutral-500 mb-1.5 block">Generation Mode</label>
+                            <div className="flex gap-1">
+                                <button type="button" onClick={() => setGenerationMode('new')}
+                                    className={`flex-1 px-1.5 py-2 rounded-md text-center transition-all cursor-pointer select-none border
+                                        ${generationMode === 'new'
+                                            ? 'bg-white/[0.06] text-white border-white/20'
+                                            : 'bg-white/[0.02] text-neutral-500 border-white/[0.06] hover:border-white/15'}`}
+                                >
+                                    <div className="flex items-center justify-center gap-1">
+                                        <Film size={9} />
+                                        <span className="text-[9px] font-bold">New</span>
+                                    </div>
+                                    <div className="text-[7px] mt-0.5 opacity-50">From image</div>
+                                </button>
+                                <button type="button"
+                                    disabled={!isSeedance2}
+                                    onClick={() => { if (isSeedance2) setGenerationMode('edit'); }}
+                                    title={!isSeedance2 ? 'Switch to Seedance 2.0 to unlock Video Editing.' : undefined}
+                                    className={`flex-1 px-1.5 py-2 rounded-md text-center transition-all select-none border
+                                        ${!isSeedance2
+                                            ? 'opacity-40 cursor-not-allowed bg-white/[0.02] text-neutral-600 border-white/[0.06]'
+                                            : generationMode === 'edit'
+                                                ? 'bg-purple-500/15 text-purple-300 border-purple-500/40 cursor-pointer'
+                                                : 'bg-white/[0.02] text-neutral-500 border-white/[0.06] hover:border-white/15 cursor-pointer'}`}
+                                >
+                                    <div className="flex items-center justify-center gap-1">
+                                        <Pencil size={9} />
+                                        <span className="text-[9px] font-bold">Edit</span>
+                                    </div>
+                                    <div className="text-[7px] mt-0.5 opacity-50">Modify video</div>
+                                </button>
+                                <button type="button" onClick={() => setGenerationMode('extend')}
+                                    className={`flex-1 px-1.5 py-2 rounded-md text-center transition-all cursor-pointer select-none border
+                                        ${generationMode === 'extend'
+                                            ? 'bg-amber-500/15 text-amber-300 border-amber-500/40'
+                                            : 'bg-white/[0.02] text-neutral-500 border-white/[0.06] hover:border-white/15'}`}
+                                >
+                                    <div className="flex items-center justify-center gap-1">
+                                        <Plus size={9} />
+                                        <span className="text-[9px] font-bold">Extend</span>
+                                    </div>
+                                    <div className="text-[7px] mt-0.5 opacity-50">Continue video</div>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Reference Images Strip */}
                     <div>
                         <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex items-center justify-between">
@@ -585,26 +676,27 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         </label>
                         <div className="flex gap-1.5 overflow-x-auto pb-1">
                             {refImages.map((url, i) => (
-                                <div key={i} className="relative w-10 h-10 rounded-md overflow-hidden border border-white/[0.1] flex-shrink-0 group">
+                                <div
+                                    key={i}
+                                    className={`relative w-10 h-10 rounded-md overflow-hidden border flex-shrink-0 group transition-all
+                                        ${onInsertPromptTag
+                                            ? 'cursor-pointer border-white/[0.1] hover:border-white/40 hover:ring-1 hover:ring-white/30 active:opacity-50'
+                                            : 'border-white/[0.1]'}`}
+                                    title={onInsertPromptTag ? `Click to insert @image${i + 1} into prompt` : undefined}
+                                    onClick={() => onInsertPromptTag?.(`@image${i + 1}`)}
+                                >
                                     <img src={url} alt="" className="w-full h-full object-cover" />
-                                    {/* @imageN tag badge (Phase 2) */}
-                                    {onInsertPromptTag && (
-                                        <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); onInsertPromptTag(`@image${i + 1}`); }}
-                                            className="absolute top-0 left-0 px-0.5 py-px bg-amber-500/90 text-[7px] font-bold text-black rounded-br-md
-                                                opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-amber-400 z-10"
-                                            title={`Insert @image${i + 1} into prompt`}
-                                        >
-                                            @img{i + 1}
-                                        </button>
-                                    )}
+                                    {/* @imageN label */}
+                                    <span className="absolute bottom-0 inset-x-0 bg-black/70 text-[7px] text-center text-neutral-300 font-mono py-px">
+                                        @img{i + 1}
+                                    </span>
+                                    {/* Delete button */}
                                     <button
                                         type="button"
-                                        onClick={() => setRefImages(refImages.filter((_, idx) => idx !== i))}
-                                        className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => { e.stopPropagation(); setRefImages(refImages.filter((_, idx) => idx !== i)); }}
+                                        className="absolute top-0 right-0 p-0.5 bg-black/70 rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                     >
-                                        <Trash2 size={10} className="text-red-400" />
+                                        <Trash2 size={8} className="text-red-400" />
                                     </button>
                                 </div>
                             ))}
@@ -650,8 +742,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         </div>
                     </div>
 
-                    {/* ── End Frame Upload Zone ── */}
-                    <div>
+                    {/* ── End Frame Upload Zone (hidden in Edit mode) ── */}
+                    {generationMode !== 'edit' && <div>
                         <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex items-center justify-between">
                             <span>
                                 End Frame
@@ -740,52 +832,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 </button>
                             </>
                         )}
-                    </div>
-
-                    {/* ── Generation Mode Toggle (3-Way: New / Edit / Extend) ── */}
-                    {shotHasVideo && (
-                        <div>
-                            <label className="text-[9px] font-semibold text-neutral-500 mb-1.5 block">Generation Mode</label>
-                            <div className="flex gap-1">
-                                <button type="button" onClick={() => setGenerationMode('new')}
-                                    className={`flex-1 px-1.5 py-2 rounded-md text-center transition-all cursor-pointer select-none border
-                                        ${generationMode === 'new'
-                                            ? 'bg-white/[0.06] text-white border-white/20'
-                                            : 'bg-white/[0.02] text-neutral-500 border-white/[0.06] hover:border-white/15'}`}
-                                >
-                                    <div className="flex items-center justify-center gap-1">
-                                        <Film size={9} />
-                                        <span className="text-[9px] font-bold">New</span>
-                                    </div>
-                                    <div className="text-[7px] mt-0.5 opacity-50">From image</div>
-                                </button>
-                                <button type="button" onClick={() => setGenerationMode('edit')}
-                                    className={`flex-1 px-1.5 py-2 rounded-md text-center transition-all cursor-pointer select-none border
-                                        ${generationMode === 'edit'
-                                            ? 'bg-purple-500/15 text-purple-300 border-purple-500/40'
-                                            : 'bg-white/[0.02] text-neutral-500 border-white/[0.06] hover:border-white/15'}`}
-                                >
-                                    <div className="flex items-center justify-center gap-1">
-                                        <Pencil size={9} />
-                                        <span className="text-[9px] font-bold">Edit</span>
-                                    </div>
-                                    <div className="text-[7px] mt-0.5 opacity-50">Modify video</div>
-                                </button>
-                                <button type="button" onClick={() => setGenerationMode('extend')}
-                                    className={`flex-1 px-1.5 py-2 rounded-md text-center transition-all cursor-pointer select-none border
-                                        ${generationMode === 'extend'
-                                            ? 'bg-amber-500/15 text-amber-300 border-amber-500/40'
-                                            : 'bg-white/[0.02] text-neutral-500 border-white/[0.06] hover:border-white/15'}`}
-                                >
-                                    <div className="flex items-center justify-center gap-1">
-                                        <Plus size={9} />
-                                        <span className="text-[9px] font-bold">Extend</span>
-                                    </div>
-                                    <div className="text-[7px] mt-0.5 opacity-50">Continue video</div>
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                    </div>}
 
                     {/* ── Source Video (Edit Mode) ── */}
                     {generationMode === 'edit' && (
@@ -882,6 +929,89 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <div className="px-3 py-2.5 rounded-lg border border-dashed border-neutral-700 text-center">
                                     <Loader2 size={14} className="text-purple-400 animate-spin mx-auto mb-1" />
                                     <span className="text-[9px] text-neutral-500">Loading shot video...</span>
+                                </div>
+                            )}
+
+                            {/* ── Source Video Trimmer ── */}
+                            {sourceVideoUrl && sourceVideoDuration && sourceVideoDuration > 0 && (
+                                <div className="mt-1.5 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[9px] font-semibold text-neutral-500 flex items-center gap-1">
+                                            <Scissors size={9} className="text-neutral-500" /> Trim
+                                        </span>
+                                        <span className="text-[9px] text-neutral-500 font-mono">
+                                            {trimmedDuration.toFixed(1)}s / {sourceVideoDuration.toFixed(1)}s
+                                        </span>
+                                    </div>
+
+                                    {/* Dual-range slider */}
+                                    <div className="relative h-6 flex items-center">
+                                        {/* Track background */}
+                                        <div className="absolute inset-x-0 h-1 bg-white/[0.06] rounded-full" />
+                                        {/* Selected range fill */}
+                                        <div
+                                            className="absolute h-1 bg-white/20 rounded-full"
+                                            style={{
+                                                left: `${(trimStart / sourceVideoDuration) * 100}%`,
+                                                width: `${((trimEnd - trimStart) / sourceVideoDuration) * 100}%`,
+                                            }}
+                                        />
+                                        {/* Start handle label */}
+                                        <span
+                                            className="absolute text-[8px] text-neutral-400 font-mono -top-0.5 -translate-x-1/2 pointer-events-none"
+                                            style={{ left: `${(trimStart / sourceVideoDuration) * 100}%` }}
+                                        >
+                                            {trimStart.toFixed(1)}s
+                                        </span>
+                                        {/* End handle label */}
+                                        <span
+                                            className="absolute text-[8px] text-neutral-400 font-mono -top-0.5 -translate-x-1/2 pointer-events-none"
+                                            style={{ left: `${(trimEnd / sourceVideoDuration) * 100}%` }}
+                                        >
+                                            {trimEnd.toFixed(1)}s
+                                        </span>
+                                        {/* Start range input */}
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={sourceVideoDuration}
+                                            step={0.1}
+                                            value={trimStart}
+                                            onChange={(e) => {
+                                                const v = Math.min(parseFloat(e.target.value), trimEnd - 0.1);
+                                                setTrimStart(Math.round(Math.max(0, v) * 10) / 10);
+                                            }}
+                                            className="absolute inset-x-0 w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-white/30 [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:transition-transform"
+                                            style={{ zIndex: trimStart > sourceVideoDuration * 0.9 ? 5 : 3 }}
+                                        />
+                                        {/* End range input */}
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={sourceVideoDuration}
+                                            step={0.1}
+                                            value={trimEnd}
+                                            onChange={(e) => {
+                                                const v = Math.max(parseFloat(e.target.value), trimStart + 0.1);
+                                                setTrimEnd(Math.round(Math.min(sourceVideoDuration, v) * 10) / 10);
+                                            }}
+                                            className="absolute inset-x-0 w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-white/30 [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:transition-transform"
+                                            style={{ zIndex: 4 }}
+                                        />
+                                    </div>
+
+                                    {/* Reset link */}
+                                    {(trimStart > 0 || trimEnd < sourceVideoDuration) && (
+                                        <div className="flex justify-end">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setTrimStart(0); setTrimEnd(sourceVideoDuration); }}
+                                                className="text-[8px] text-neutral-600 hover:text-neutral-400 transition-colors"
+                                            >
+                                                Reset to full length
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -1207,11 +1337,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                     <div className="flex gap-2">
                         <button
                             onClick={handleAnimate}
-                            disabled={!hasImage || isBusy}
+                            disabled={(!hasImage && !hasVideo) || isBusy}
                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[11px] font-bold transition-all
                                 ${isLinked
                                     ? 'bg-[#E50914] text-white border border-[#E50914] hover:bg-[#E50914]/90'
-                                    : hasImage
+                                    : (hasImage || hasVideo)
                                         ? 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
                                         : 'bg-white/[0.03] text-neutral-600 border border-white/[0.05] cursor-not-allowed'
                                 }

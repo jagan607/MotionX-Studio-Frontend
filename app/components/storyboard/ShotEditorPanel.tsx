@@ -272,8 +272,11 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         .filter((e): e is KlingElement => !!e);
 
     const handleAnimateWrapper = async (provider: VideoProvider, endFrameUrl?: string | null, options?: AnimateOptions) => {
+        // Inject the perfectly synced local text into the options
+        const mergedOptions = { ...options, prompt: localPrompt };
+
         // Await the result of the animation/preflight attempt
-        const result = await onAnimate(provider, endFrameUrl, options);
+        const result = await onAnimate(provider, endFrameUrl, mergedOptions);
 
         // If it was intercepted by preflight and returned warnings, halt!
         if (result?.preflight) {
@@ -333,9 +336,9 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                     {/* ── Header ── */}
                     <div className="h-12 px-5 border-b border-white/[0.08] flex items-center justify-between bg-[#141414] flex-shrink-0">
                         <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                            Shot Editor
+                            Shot Configuration
                             <span className="px-1.5 py-0.5 rounded bg-white/[0.08] text-[10px] text-neutral-500 font-mono">
-                                {shot.id.slice(0, 6)}
+                                {shot.id.slice(0, 8)}
                             </span>
                         </h2>
                         <button
@@ -513,7 +516,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
 
                             {/* Scrollable Settings Area */}
                             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                                {shot.image_url ? (
+                                {(shot.image_url || shot.video_url) ? (
                                     <VideoSettingsPanel
                                         hasImage={!!shot.image_url}
                                         hasVideo={!!shot.video_url}
@@ -553,7 +556,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                             </div>
 
                             {/* ── Sticky CTA Footer ── */}
-                            {shot.image_url && animateInfo && (
+                            {(shot.image_url || shot.video_url) && animateInfo && (
                                 <div className="px-4 py-3 border-t border-white/[0.08] bg-[#111] flex-shrink-0">
                                     <button
                                         onClick={animateInfo.handleAnimate}
