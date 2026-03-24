@@ -1,4 +1,4 @@
-import { api } from "@/lib/api";
+import { api, preflightSeedance2 } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 
@@ -34,6 +34,16 @@ export interface AnimateOptions {
     quality?: 'fast' | 'pro';                // Draft vs Final
     reference_image_urls?: string[];         // Multi-ref images
     parent_task_id?: string;                 // Video extension
+
+    // Seedance 2.0 — Video Edit
+    video_url?: string;                      // Source video for edit mode
+    source_video_duration?: number;          // Duration in seconds of source video
+}
+
+export interface PreflightResult {
+    preflight: true;
+    warnings: string[];
+    estimated_cost: number;
 }
 
 export const useShotVideoGen = (
@@ -47,8 +57,8 @@ export const useShotVideoGen = (
         provider: VideoProvider = 'seedance-2',
         endFrameUrl?: string | null,
         options?: AnimateOptions
-    ) => {
-        if (!shot.image_url) return toastError("No image to animate");
+    ): Promise<PreflightResult | void> => {
+        if (!shot.image_url) { toastError("No image to animate"); return; }
 
         try {
             // Seedance 2.0 @tag prompt mutation when end frame is present
@@ -86,6 +96,10 @@ export const useShotVideoGen = (
                 }
                 if (options.parent_task_id) payload.parent_task_id = options.parent_task_id;
 
+                // Seedance 2.0 — Video Edit
+                if (options.video_url) payload.video_url = options.video_url;
+                if (options.source_video_duration) payload.source_video_duration = options.source_video_duration;
+
                 // Multi-shot
                 if (options.multi_shot) {
                     payload.multi_shot = true;
@@ -100,6 +114,25 @@ export const useShotVideoGen = (
                     payload.element_list = options.element_list;
                 } else if (options.voice_list && options.voice_list.length > 0) {
                     payload.voice_list = options.voice_list;
+                }
+            }
+
+            // ── Preflight Interceptor (Seedance 2.0 only) ──
+            const isSeedanceProvider = provider === 'seedance-2' || provider === 'seedance';
+            if (isSeedanceProvider) {
+                try {
+                    const preflight = await preflightSeedance2(payload);
+                    if (preflight.warnings && preflight.warnings.length > 0) {
+                        return {
+                            preflight: true,
+                            warnings: preflight.warnings,
+                            estimated_cost: preflight.estimated_cost ?? 0,
+                        };
+                    }
+                    // If preflight passes with no warnings, update cost and proceed
+                } catch (e: any) {
+                    // If preflight fails, warn but allow fallthrough to animate
+                    console.warn('[Preflight] Failed, proceeding to animate:', e);
                 }
             }
 

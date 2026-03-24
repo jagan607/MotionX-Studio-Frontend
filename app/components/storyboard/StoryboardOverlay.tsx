@@ -1092,9 +1092,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     })()}
                     onClose={() => setEditingShotId(null)}
                     onUpdateShot={shotMgr.updateShot}
-                    onAnimate={(provider, endFrameUrl, options) => {
+                    onAnimate={async (provider, endFrameUrl, options) => {
                         const shot = shotMgr.shots.find((s: any) => s.id === editingShotId);
-                        if (shot) shotMgr.handleAnimateShot(shot, provider, endFrameUrl, options);
+                        if (shot) return shotMgr.handleAnimateShot(shot, provider, endFrameUrl, options);
                     }}
                     onLipSync={(shot) => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url || '', audioUrl: (shot as any).audio_url || undefined })}
                     onText2Video={(options) => {

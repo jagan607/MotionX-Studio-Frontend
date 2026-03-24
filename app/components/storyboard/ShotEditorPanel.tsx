@@ -6,7 +6,7 @@ import { VideoHistoryStrip } from './VideoHistoryStrip';
 import { VideoSettingsPanel } from './VideoSettingsPanel';
 import { ElementLibraryModal } from './ElementLibraryModal';
 import { KlingElement, useElementLibrary } from '@/app/hooks/shot-manager/useElementLibrary';
-import { AnimateOptions, VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
+import { AnimateOptions, VideoProvider, PreflightResult } from '@/app/hooks/shot-manager/useShotVideoGen';
 import { formatCredits } from '@/app/hooks/usePricing';
 import { api } from '@/lib/api';
 import Image from 'next/image';
@@ -20,7 +20,7 @@ interface ShotEditorPanelProps {
     nextShotImage?: string;
     onClose: () => void;
     onUpdateShot: (id: string, field: string, value: any) => void;
-    onAnimate: (provider: VideoProvider, endFrameUrl?: string | null, options?: AnimateOptions) => void;
+    onAnimate: (provider: VideoProvider, endFrameUrl?: string | null, options?: AnimateOptions) => Promise<PreflightResult | void>;
     onText2Video?: (options?: AnimateOptions) => void;
     onLipSync: (shot: Shot) => void;
     isGenerating?: boolean;
@@ -60,13 +60,17 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     // ── Local Prompt State (decoupled from Firestore to prevent cursor jumping) ──
     const [localPrompt, setLocalPrompt] = useState('');
     const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const promptTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // ── Preflight Warnings State (Phase 3) ──
+    const [preflightWarnings, setPreflightWarnings] = useState<string[]>([]);
 
     // Sync local prompt from Firestore ONLY when the shot changes (by ID)
     useEffect(() => {
         if (shot) {
             setLocalPrompt(shot.video_prompt ?? shot.visual_action ?? '');
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shot?.id]);
 
     // Cleanup debounce timer on unmount
@@ -87,6 +91,43 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
             if (shot) onUpdateShot(shot.id, 'video_prompt', value);
         }, 500);
     }, [shot?.id, onUpdateShot]);
+
+    // ── @imageN Cursor-Position Tag Injection (Phase 2) ──
+    const handleInsertPromptTag = useCallback((tag: string) => {
+        if (!shot) return;
+        const textarea = promptTextareaRef.current;
+        const current = localPrompt;
+
+        let newPrompt: string;
+        if (textarea) {
+            const start = textarea.selectionStart ?? current.length;
+            const end = textarea.selectionEnd ?? current.length;
+            // Splice the tag at cursor position
+            newPrompt = current.slice(0, start) + ` ${tag} ` + current.slice(end);
+        } else {
+            // Fallback: append
+            newPrompt = current ? `${current} ${tag}` : tag;
+        }
+
+        setLocalPrompt(newPrompt);
+        userEditedRef.current = true;
+        setSuggestion(null);
+
+        // Debounce Firestore write
+        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = setTimeout(() => {
+            onUpdateShot(shot.id, 'video_prompt', newPrompt);
+        }, 300);
+
+        // Restore focus and cursor position after tag insertion
+        if (textarea) {
+            const newCursorPos = (textarea.selectionStart ?? current.length) + tag.length + 2;
+            requestAnimationFrame(() => {
+                textarea.focus();
+                textarea.setSelectionRange(newCursorPos, newCursorPos);
+            });
+        }
+    }, [shot?.id, localPrompt, onUpdateShot]);
 
     const [isEnhancing, setIsEnhancing] = useState(false);
     const {
@@ -143,7 +184,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         if (shot) {
             setElementList(shot.video_settings?.element_list || []);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shot?.id, elementListKey]);
 
     // ── Background AI Suggestion Fetch ──
@@ -230,8 +271,17 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         .map(id => uniqueElementsMap.get(id))
         .filter((e): e is KlingElement => !!e);
 
-    const handleAnimateWrapper = (provider: VideoProvider, endFrameUrl?: string | null, options?: AnimateOptions) => {
-        onAnimate(provider, endFrameUrl, options);
+    const handleAnimateWrapper = async (provider: VideoProvider, endFrameUrl?: string | null, options?: AnimateOptions) => {
+        // Await the result of the animation/preflight attempt
+        const result = await onAnimate(provider, endFrameUrl, options);
+
+        // If it was intercepted by preflight and returned warnings, halt!
+        if (result?.preflight) {
+            setPreflightWarnings(result.warnings);
+            return; // DO NOT close the panel
+        }
+
+        // If successful or bypassed (no warnings), close the panel normally
         onClose();
     };
 
@@ -268,262 +318,275 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
 
     return (
         <>
+            {/* ── Backdrop ── */}
             <div
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[40]"
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200]"
                 onClick={onClose}
             />
 
-            <div className="fixed right-0 top-0 bottom-0 w-[450px] bg-[#141414] border-l border-white/[0.1] z-[50] shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
-                {/* Header */}
-                <div className="h-14 px-5 border-b border-white/[0.08] flex items-center justify-between bg-[#1a1a1a]">
-                    <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                        Shot Inspector
-                        <span className="px-1.5 py-0.5 rounded bg-white/[0.1] text-[10px] text-neutral-400 font-mono">
-                            {shot.id.slice(0, 4)}...
-                        </span>
-                    </h2>
-                    <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.1] transition-colors">
-                        <X size={16} className="text-neutral-400" />
-                    </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-5 space-y-6">
-                    {/* Preview Area */}
-                    <div className="aspect-video bg-black rounded-lg overflow-hidden border border-white/[0.1] relative group">
-                        {(previewVideoUrl || shot.video_url) ? (
-                            <video key={previewVideoUrl || shot.video_url} src={previewVideoUrl || shot.video_url} controls className="w-full h-full object-contain" />
-                        ) : shot.image_url ? (
-                            <Image src={shot.image_url} alt="Shot Preview" fill className="object-cover" />
-                        ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center text-neutral-600 bg-white/[0.02]">
-                                <ImageIcon size={32} className="mb-2 opacity-50" />
-                                <span className="text-xs">No image generated yet</span>
-                            </div>
-                        )}
+            {/* ── Centered Modal ── */}
+            <div className="fixed inset-0 z-[201] flex items-center justify-center pointer-events-none">
+                <div
+                    className="pointer-events-auto w-[95%] max-w-6xl h-[90vh] bg-[#111] rounded-2xl border border-white/[0.08] shadow-2xl flex flex-col overflow-hidden"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* ── Header ── */}
+                    <div className="h-12 px-5 border-b border-white/[0.08] flex items-center justify-between bg-[#141414] flex-shrink-0">
+                        <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                            Shot Editor
+                            <span className="px-1.5 py-0.5 rounded bg-white/[0.08] text-[10px] text-neutral-500 font-mono">
+                                {shot.id.slice(0, 6)}
+                            </span>
+                        </h2>
+                        <button
+                            onClick={onClose}
+                            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/[0.1] transition-colors"
+                        >
+                            <X size={16} className="text-neutral-400" />
+                        </button>
                     </div>
 
-                    {/* Video History Strip */}
-                    <VideoHistoryStrip
-                        history={shot.video_history || []}
-                        activeVideoUrl={shot.video_url}
-                        onPreview={(entry) => setPreviewVideoUrl(entry.url)}
-                        onRestore={(entry) => {
-                            onUpdateShot(shot.id, 'video_url', entry.url);
-                            setPreviewVideoUrl(null);
-                        }}
-                    />
+                    {/* ── Two-Column Body ── */}
+                    <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
 
-                    {/* Prompt Editor */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <label className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Prompt</label>
-                            <button
-                                type="button"
-                                disabled={isEnhancing || isFetchingSuggestion || !(shot.video_prompt || shot.visual_action)}
-                                onClick={async () => {
-                                    const prompt = shot.video_prompt || shot.visual_action || '';
-                                    if (!prompt.trim()) return;
-                                    setIsEnhancing(true);
-                                    try {
-                                        const res = await api.post('/api/v1/shot/enhance_prompt', {
-                                            prompt,
-                                            provider: shot.video_settings?.provider || 'seedance-2',
-                                            duration: shot.video_settings?.duration || '5',
-                                            aspect_ratio: shot.video_settings?.aspect_ratio || '16:9',
-                                            shot_type: shot.shot_type || shot.camera_shot_type,
-                                            characters: sceneCharacters.map(c => c.name).join(', ') || undefined,
-                                            location: sceneContext?.location || undefined,
-                                            genre: sceneContext?.genre || undefined,
-                                            scene_action: sceneContext?.scene_action || shot.visual_action || undefined,
-                                        });
-                                        if (res.data?.enhanced_prompt) {
-                                            setLocalPrompt(res.data.enhanced_prompt);
-                                            onUpdateShot(shot.id, 'video_prompt', res.data.enhanced_prompt);
-                                        }
-                                    } catch (e: any) {
-                                        console.error('[Enhance] Failed:', e);
-                                    } finally {
-                                        setIsEnhancing(false);
-                                    }
-                                }}
-                                className={`flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold transition-all
-                                    ${(isEnhancing || isFetchingSuggestion)
-                                        ? 'bg-white/[0.08] text-neutral-300 border border-white/[0.15] cursor-wait'
-                                        : 'bg-white/[0.05] text-neutral-400 border border-white/[0.1] hover:bg-white/[0.1] hover:border-white/[0.2] hover:text-white cursor-pointer'}
-                                    disabled:opacity-30 disabled:cursor-not-allowed`}
-                            >
-                                {(isEnhancing || isFetchingSuggestion) ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                                {isEnhancing ? 'Enhancing...' : isFetchingSuggestion ? 'Analyzing...' : 'Enhance'}
-                            </button>
-                        </div>
-                        <div className="relative">
-                            <textarea
-                                value={localPrompt}
-                                onChange={(e) => handlePromptChange(e.target.value)}
-                                placeholder="Describe the shot..."
-                                className={`w-full h-32 bg-[#1a1a1a] border border-white/[0.1] rounded-lg px-3 py-3 text-xs text-white outline-none focus:border-white/[0.3] resize-none leading-relaxed transition-all
-                                    ${isEnhancing ? 'animate-pulse opacity-60' : ''}`}
-                            />
-                            <div className="absolute bottom-2 right-2 flex gap-1">
-                                {(shot.video_settings?.provider === 'kling-v3') && (
-                                    <button
-                                        onClick={() => setIsLibraryOpen(true)}
-                                        className="px-2 py-1 bg-white/[0.05] hover:bg-white/[0.1] rounded text-[9px] text-neutral-400 hover:text-white transition-colors border border-white/[0.05]"
-                                    >
-                                        + Character
-                                    </button>
+                        {/* ═══════ LEFT COLUMN — Visuals & Intent (7 cols) ═══════ */}
+                        <div className="col-span-7 border-r border-white/[0.06] overflow-y-auto p-5 space-y-5">
+
+                            {/* Video Preview */}
+                            <div className="aspect-video bg-black rounded-xl overflow-hidden border border-white/[0.1] relative group">
+                                {(previewVideoUrl || shot.video_url) ? (
+                                    <video
+                                        key={previewVideoUrl || shot.video_url}
+                                        src={previewVideoUrl || shot.video_url}
+                                        controls
+                                        className="w-full h-full object-contain"
+                                    />
+                                ) : shot.image_url ? (
+                                    <Image src={shot.image_url} alt="Shot Preview" fill className="object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-neutral-600 bg-white/[0.02]">
+                                        <ImageIcon size={40} className="mb-3 opacity-40" />
+                                        <span className="text-xs text-neutral-500">No image generated yet</span>
+                                    </div>
                                 )}
                             </div>
-                        </div>
 
-                        {/* ── AI Suggestion Banner ── */}
-                        {suggestion && !isEnhancing && (
-                            <div className="mt-1.5 px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.1]">
-                                <div className="flex items-center justify-between mb-1.5">
-                                    <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
-                                        <Sparkles size={10} className="text-neutral-500" /> AI Suggestion
-                                    </span>
-                                    <div className="flex items-center gap-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setLocalPrompt(suggestion);
-                                                onUpdateShot(shot.id, 'video_prompt', suggestion);
-                                                setSuggestion(null);
-                                            }}
-                                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold bg-white/[0.06] text-neutral-300 border border-white/[0.1] hover:bg-white/[0.1] hover:border-white/[0.2] hover:text-white transition-all cursor-pointer"
-                                        >
-                                            <Check size={10} /> Apply
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                dismissedRef.current.add(shot.id);
-                                                setSuggestion(null);
-                                            }}
-                                            className="p-1 rounded-md text-neutral-600 hover:text-neutral-300 hover:bg-white/[0.05] transition-all cursor-pointer"
-                                        >
-                                            <X size={12} />
-                                        </button>
-                                    </div>
-                                </div>
-                                <p className="text-[11px] text-neutral-400 leading-relaxed">
-                                    {suggestion}
-                                </p>
-                            </div>
-                        )}
+                            {/* Shot History */}
+                            <VideoHistoryStrip
+                                history={shot.video_history || []}
+                                activeVideoUrl={shot.video_url}
+                                onPreview={(entry) => setPreviewVideoUrl(entry.url)}
+                                onRestore={(entry) => {
+                                    onUpdateShot(shot.id, 'video_url', entry.url);
+                                    setPreviewVideoUrl(null);
+                                }}
+                            />
 
-                        {/* Camera Direction Hints */}
-                        {(shot.video_settings?.provider === 'seedance-2' || shot.video_settings?.provider === 'seedance') && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                                {['slow dolly in', 'tracking shot', 'pan left', 'zoom out', 'static close-up', 'crane up'].map(hint => (
+                            {/* Prompt Editor */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Prompt</label>
                                     <button
-                                        key={hint}
                                         type="button"
-                                        onClick={() => {
-                                            const current = localPrompt;
-                                            if (!current.toLowerCase().includes(hint)) {
-                                                const updated = current ? `${current}, ${hint}` : hint;
-                                                setLocalPrompt(updated);
-                                                onUpdateShot(shot.id, 'video_prompt', updated);
+                                        disabled={isEnhancing || isFetchingSuggestion || !(shot.video_prompt || shot.visual_action)}
+                                        onClick={async () => {
+                                            const prompt = shot.video_prompt || shot.visual_action || '';
+                                            if (!prompt.trim()) return;
+                                            setIsEnhancing(true);
+                                            try {
+                                                const res = await api.post('/api/v1/shot/enhance_prompt', {
+                                                    prompt,
+                                                    provider: shot.video_settings?.provider || 'seedance-2',
+                                                    duration: shot.video_settings?.duration || '5',
+                                                    aspect_ratio: shot.video_settings?.aspect_ratio || '16:9',
+                                                    shot_type: shot.shot_type || shot.camera_shot_type,
+                                                    characters: sceneCharacters.map(c => c.name).join(', ') || undefined,
+                                                    location: sceneContext?.location || undefined,
+                                                    genre: sceneContext?.genre || undefined,
+                                                    scene_action: sceneContext?.scene_action || shot.visual_action || undefined,
+                                                });
+                                                if (res.data?.enhanced_prompt) {
+                                                    setLocalPrompt(res.data.enhanced_prompt);
+                                                    onUpdateShot(shot.id, 'video_prompt', res.data.enhanced_prompt);
+                                                }
+                                            } catch (e: any) {
+                                                console.error('[Enhance] Failed:', e);
+                                            } finally {
+                                                setIsEnhancing(false);
                                             }
                                         }}
-                                        className="px-1.5 py-0.5 bg-white/[0.03] border border-white/[0.06] rounded text-[8px] text-neutral-500 hover:text-amber-300 hover:border-amber-500/30 transition-colors"
+                                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-bold transition-all
+                                            ${(isEnhancing || isFetchingSuggestion)
+                                                ? 'bg-white/[0.08] text-neutral-300 border border-white/[0.15] cursor-wait'
+                                                : 'bg-white/[0.05] text-neutral-400 border border-white/[0.1] hover:bg-white/[0.1] hover:border-white/[0.2] hover:text-white cursor-pointer'}
+                                            disabled:opacity-30 disabled:cursor-not-allowed`}
                                     >
-                                        {hint}
+                                        {(isEnhancing || isFetchingSuggestion) ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                                        {isEnhancing ? 'Enhancing...' : isFetchingSuggestion ? 'Analyzing...' : 'Enhance'}
                                     </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                                </div>
+                                <div className="relative">
+                                    <textarea
+                                        ref={promptTextareaRef}
+                                        value={localPrompt}
+                                        onChange={(e) => handlePromptChange(e.target.value)}
+                                        placeholder="Describe the shot..."
+                                        className={`w-full h-40 bg-[#0a0a0a] border border-white/[0.1] rounded-lg px-3 py-3 text-[13px] text-white outline-none focus:border-white/[0.3] resize-none leading-relaxed transition-all
+                                            ${isEnhancing ? 'animate-pulse opacity-60' : ''}`}
+                                    />
+                                    <div className="absolute bottom-2 right-2 flex gap-1">
+                                        {(shot.video_settings?.provider === 'kling-v3') && (
+                                            <button
+                                                onClick={() => setIsLibraryOpen(true)}
+                                                className="px-2 py-1 bg-white/[0.05] hover:bg-white/[0.1] rounded text-[9px] text-neutral-400 hover:text-white transition-colors border border-white/[0.05]"
+                                            >
+                                                + Character
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
 
-                    {/* Settings */}
-                    {shot.image_url ? (
-                        <div className="space-y-2">
-                            <label className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Generation Settings</label>
-                            <div className="bg-[#1a1a1a] rounded-xl p-1 border border-white/[0.05]">
-                                <VideoSettingsPanel
-                                    hasImage={!!shot.image_url}
-                                    hasVideo={!!shot.video_url}
-                                    isBusy={isGenerating}
-                                    isLinked={isLinked}
-                                    nextShotImage={nextShotImage}
-                                    onAnimate={handleAnimateWrapper}
-                                    onLipSync={() => onLipSync(shot)}
-                                    selectedElements={selectedElements}
-                                    elementList={elementList}
-                                    onElementListChange={handleElementListChangeForSettings}
-                                    onOpenElementLibrary={() => setIsLibraryOpen(true)}
-                                    initialSettings={shot.video_settings}
-                                    onSettingsChange={handleSettingsChange}
-                                    shot={{
-                                        seedance_task_id: (shot as any).seedance_task_id,
-                                        video_url: shot.video_url,
-                                        video_provider: shot.video_settings?.provider,
-                                    }}
-                                    sceneCharacters={sceneCharacters}
-                                    locationImage={locationImage}
-                                    onExtend={handleExtend}
-                                    hideActions
-                                    onAnimateInfoChange={handleAnimateInfoChange}
-                                />
+                                {/* Camera Direction Hints */}
+                                {(shot.video_settings?.provider === 'seedance-2' || shot.video_settings?.provider === 'seedance') && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {['slow dolly in', 'tracking shot', 'pan left', 'zoom out', 'static close-up', 'crane up'].map(hint => (
+                                            <button
+                                                key={hint}
+                                                type="button"
+                                                onClick={() => {
+                                                    const current = localPrompt;
+                                                    if (!current.toLowerCase().includes(hint)) {
+                                                        const updated = current ? `${current}, ${hint}` : hint;
+                                                        setLocalPrompt(updated);
+                                                        onUpdateShot(shot.id, 'video_prompt', updated);
+                                                    }
+                                                }}
+                                                className="px-2 py-0.5 bg-white/[0.03] border border-white/[0.06] rounded text-[9px] text-neutral-500 hover:text-amber-300 hover:border-amber-500/30 transition-colors"
+                                            >
+                                                {hint}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ) : (
-                        <div className="p-4 rounded-xl border border-dashed border-white/[0.1] bg-white/[0.02] text-center">
-                            <p className="text-[10px] text-neutral-500">
-                                Generate or upload an image above to enable video settings.
-                            </p>
-                        </div>
-                    )}
-                </div>
 
-                {/* ── Sticky Bottom Footer ── */}
-                {shot.image_url && animateInfo && (
-                    <div className="px-5 py-3 border-t border-white/[0.08] bg-[#141414] space-y-2 flex-shrink-0">
-                        <button
-                            onClick={animateInfo.handleAnimate}
-                            disabled={animateInfo.disabled}
-                            className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg text-[12px] font-bold transition-all
-                                ${animateInfo.icon === 'morph'
-                                    ? 'bg-[#E50914] text-white border border-[#E50914] hover:bg-[#E50914]/90'
-                                    : animateInfo.disabled
-                                        ? 'bg-white/[0.03] text-neutral-600 border border-white/[0.05] cursor-not-allowed'
-                                        : 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
-                                }
-                                ${animateInfo.icon === 'busy' ? '!cursor-not-allowed opacity-50' : ''}
-                            `}
-                        >
-                            {animateInfo.icon === 'busy' ? (
-                                <><Loader2 size={14} className="animate-spin" /> {animateInfo.label}</>
-                            ) : animateInfo.icon === 'morph' ? (
-                                <><Link2 size={14} /> {animateInfo.label} {animateInfo.cost > 0 && <span className="opacity-60 text-[10px] font-normal">· {formatCredits(animateInfo.cost)} cr</span>}</>
-                            ) : (
-                                <>
-                                    {animateInfo.icon === 're-animate' ? <RefreshCw size={14} /> : <Film size={14} />}
-                                    {animateInfo.label}
-                                    {animateInfo.cost > 0 && (
-                                        <span className="opacity-60 text-[10px] font-normal">· {formatCredits(animateInfo.cost)} cr</span>
-                                    )}
-                                </>
+                            {/* AI Suggestion Banner */}
+                            {suggestion && !isEnhancing && (
+                                <div className="px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.1]">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
+                                            <Sparkles size={10} className="text-neutral-500" /> AI Suggestion
+                                        </span>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setLocalPrompt(suggestion);
+                                                    onUpdateShot(shot.id, 'video_prompt', suggestion);
+                                                    setSuggestion(null);
+                                                }}
+                                                className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold bg-white/[0.06] text-neutral-300 border border-white/[0.1] hover:bg-white/[0.1] hover:border-white/[0.2] hover:text-white transition-all cursor-pointer"
+                                            >
+                                                <Check size={10} /> Apply
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    dismissedRef.current.add(shot.id);
+                                                    setSuggestion(null);
+                                                }}
+                                                className="p-1 rounded-md text-neutral-600 hover:text-neutral-300 hover:bg-white/[0.05] transition-all cursor-pointer"
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p className="text-[11px] text-neutral-400 leading-relaxed">
+                                        {suggestion}
+                                    </p>
+                                </div>
                             )}
-                        </button>
+                        </div>
 
-                        {animateInfo.extendAction && (
-                            <button
-                                type="button"
-                                onClick={animateInfo.extendAction.handleExtend}
-                                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold transition-all cursor-pointer
-                                    bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30
-                                    text-amber-300 hover:border-amber-500/60 hover:from-amber-500/15 hover:to-orange-500/15
-                                    shadow-[0_0_12px_rgba(245,158,11,0.08)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
-                            >
-                                <Plus size={12} /> Extend Video
-                                {animateInfo.extendAction.cost > 0 && <span className="opacity-60 text-[9px] font-normal">· {formatCredits(animateInfo.extendAction.cost)} cr</span>}
-                            </button>
-                        )}
+                        {/* ═══════ RIGHT COLUMN — Settings & Execution (5 cols) ═══════ */}
+                        <div className="col-span-5 flex flex-col overflow-hidden bg-[#0d0d0d]">
+
+                            {/* Scrollable Settings Area */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                                {shot.image_url ? (
+                                    <VideoSettingsPanel
+                                        hasImage={!!shot.image_url}
+                                        hasVideo={!!shot.video_url}
+                                        isBusy={isGenerating}
+                                        isLinked={isLinked}
+                                        nextShotImage={nextShotImage}
+                                        onAnimate={handleAnimateWrapper}
+                                        onLipSync={() => onLipSync(shot)}
+                                        selectedElements={selectedElements}
+                                        elementList={elementList}
+                                        onElementListChange={handleElementListChangeForSettings}
+                                        onOpenElementLibrary={() => setIsLibraryOpen(true)}
+                                        initialSettings={shot.video_settings}
+                                        onSettingsChange={handleSettingsChange}
+                                        shot={{
+                                            seedance_task_id: (shot as any).seedance_task_id,
+                                            video_url: shot.video_url,
+                                            video_provider: shot.video_settings?.provider,
+                                        }}
+                                        sceneCharacters={sceneCharacters}
+                                        locationImage={locationImage}
+                                        onExtend={handleExtend}
+                                        hideActions
+                                        onAnimateInfoChange={handleAnimateInfoChange}
+                                        onInsertPromptTag={handleInsertPromptTag}
+                                        preflightWarnings={preflightWarnings}
+                                        onClearPreflightWarnings={() => setPreflightWarnings([])}
+                                    />
+                                ) : (
+                                    <div className="p-6 rounded-xl border border-dashed border-white/[0.1] bg-white/[0.02] text-center mt-4">
+                                        <ImageIcon size={28} className="mx-auto mb-2 text-neutral-600 opacity-50" />
+                                        <p className="text-[11px] text-neutral-500">
+                                            Generate or upload an image to enable video settings.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ── Sticky CTA Footer ── */}
+                            {shot.image_url && animateInfo && (
+                                <div className="px-4 py-3 border-t border-white/[0.08] bg-[#111] flex-shrink-0">
+                                    <button
+                                        onClick={animateInfo.handleAnimate}
+                                        disabled={animateInfo.disabled}
+                                        className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg text-[12px] font-bold transition-all
+                                            ${animateInfo.icon === 'morph'
+                                                ? 'bg-[#E50914] text-white border border-[#E50914] hover:bg-[#E50914]/90'
+                                                : animateInfo.disabled
+                                                    ? 'bg-white/[0.03] text-neutral-600 border border-white/[0.05] cursor-not-allowed'
+                                                    : 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
+                                            }
+                                            ${animateInfo.icon === 'busy' ? '!cursor-not-allowed opacity-50' : ''}
+                                        `}
+                                    >
+                                        {animateInfo.icon === 'busy' ? (
+                                            <><Loader2 size={14} className="animate-spin" /> {animateInfo.label}</>
+                                        ) : animateInfo.icon === 'morph' ? (
+                                            <><Link2 size={14} /> {animateInfo.label} {animateInfo.cost > 0 && <span className="opacity-60 text-[10px] font-normal">· {formatCredits(animateInfo.cost)} cr</span>}</>
+                                        ) : (
+                                            <>
+                                                {animateInfo.icon === 're-animate' ? <RefreshCw size={14} /> : <Film size={14} />}
+                                                {animateInfo.label}
+                                                {animateInfo.cost > 0 && (
+                                                    <span className="opacity-60 text-[10px] font-normal">· {formatCredits(animateInfo.cost)} cr</span>
+                                                )}
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                )}
+                </div>
             </div>
 
             <ElementLibraryModal

@@ -419,6 +419,14 @@ export const animateShot = async (params: {
     return res.data;
 };
 
+export const preflightSeedance2 = async (params: Record<string, any>): Promise<{
+    estimated_cost: number;
+    warnings: string[];
+}> => {
+    const res = await api.post("/api/v1/shot/preflight_seedance2", params);
+    return res.data;
+};
+
 export const uploadStyleRef = async (projectId: string, file: File) => {
     const fd = new FormData();
     fd.append("file", file);

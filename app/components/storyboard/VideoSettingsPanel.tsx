@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    Film, RefreshCw, Link2, Mic2,
+    Film, RefreshCw, Link2, Mic2, Video, Pencil,
     ChevronDown, ChevronUp, Sliders, Plus, Trash2, AlertCircle, Loader2,
     RectangleHorizontal, RectangleVertical, Square, Volume2, FastForward,
-    ImagePlus, X
+    ImagePlus, X, AlertTriangle
 } from 'lucide-react';
 import type { VideoProvider, AnimateOptions, PromptSegment } from '@/app/hooks/shot-manager/useShotVideoGen';
 import type { KlingElement } from '@/app/hooks/shot-manager/useElementLibrary';
@@ -19,7 +19,7 @@ interface VideoSettingsPanelProps {
     isBusy: boolean;
     isLinked: boolean;
     nextShotImage?: string;
-    onAnimate: (provider: VideoProvider, endFrameUrl?: string | null, options?: AnimateOptions) => void;
+    onAnimate: (provider: VideoProvider, endFrameUrl?: string | null, options?: AnimateOptions) => Promise<any> | void;
     onText2Video?: (options?: AnimateOptions) => void;
     onLipSync: () => void;
 
@@ -38,6 +38,13 @@ interface VideoSettingsPanelProps {
     // Persistence
     initialSettings?: any;
     onSettingsChange?: (settings: any) => void;
+
+    // Prompt tagging (Phase 2)
+    onInsertPromptTag?: (tag: string) => void;
+
+    // Preflight warnings (Phase 3)
+    preflightWarnings?: string[];
+    onClearPreflightWarnings?: () => void;
 
     // External action button
     hideActions?: boolean;
@@ -71,6 +78,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     locationImage,
     onExtend,
     hideActions = false,
+    onInsertPromptTag,
+    preflightWarnings = [],
+    onClearPreflightWarnings,
     onAnimateInfoChange
 }) => {
     // --- State ---
@@ -96,6 +106,37 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const [endFrameUrl, setEndFrameUrl] = useState<string | null>(initialSettings?.end_frame_url || null);
     const [isUploadingEndFrame, setIsUploadingEndFrame] = useState(false);
     const endFrameInputRef = useRef<HTMLInputElement>(null);
+
+    // Source Video (Seedance 2.0 Video Edit)
+    const [sourceVideoUrl, setSourceVideoUrl] = useState<string | null>(initialSettings?.source_video_url || null);
+    const [sourceVideoDuration, setSourceVideoDuration] = useState<number | null>(initialSettings?.source_video_duration || null);
+    const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+    const videoInputRef = useRef<HTMLInputElement>(null);
+
+    // Generation Mode: 'new' = standard I2V/T2V, 'edit' = video edit, 'extend' = continuation
+    const [generationMode, setGenerationMode] = useState<'new' | 'edit' | 'extend'>('new');
+    const shotHasVideo = !!shotData?.video_url;
+
+    // Auto-populate source video when switching to edit mode
+    React.useEffect(() => {
+        if (generationMode === 'edit' && shotData?.video_url) {
+            setSourceVideoUrl(shotData.video_url);
+            // Extract duration from the existing video
+            const videoEl = document.createElement('video');
+            videoEl.preload = 'metadata';
+            videoEl.src = shotData.video_url;
+            videoEl.crossOrigin = 'anonymous';
+            videoEl.onloadedmetadata = () => {
+                setSourceVideoDuration(videoEl.duration);
+            };
+            videoEl.onerror = () => {
+                console.warn('[VideoEdit] Failed to extract duration from shot video');
+            };
+        } else if (generationMode === 'new') {
+            setSourceVideoUrl(null);
+            setSourceVideoDuration(null);
+        }
+    }, [generationMode, shotData?.video_url]);
 
 
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -215,6 +256,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             provider, duration, mode, quality, aspect_ratio: aspectRatio,
             reference_image_urls: refImages,
             end_frame_url: endFrameUrl,
+            source_video_url: sourceVideoUrl,
+            source_video_duration: sourceVideoDuration,
             negative_prompt: negativePrompt,
             cfg_scale: cfgScale, sound, watermark, multi_shot: multiShot,
             shot_type: shotType, multi_prompt: segments,
@@ -225,7 +268,15 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             onSettingsChange(currentSettings);
         }, 500);
         return () => clearTimeout(timer);
-    }, [provider, duration, mode, quality, aspectRatio, refImages, endFrameUrl, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, onSettingsChange]);
+    }, [provider, duration, mode, quality, aspectRatio, refImages, endFrameUrl, sourceVideoUrl, sourceVideoDuration, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, onSettingsChange]);
+
+    // Clear preflight warnings when settings change
+    React.useEffect(() => {
+        if (onClearPreflightWarnings && preflightWarnings.length > 0) {
+            onClearPreflightWarnings();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [provider, duration, mode, quality, aspectRatio, refImages, endFrameUrl, sourceVideoUrl, sourceVideoDuration]);
 
     // --- Validation & Options Building ---
     const getTotalSegmentDuration = () => {
@@ -233,6 +284,14 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     };
 
     const isDurationValid = !multiShot || shotType === 'intelligence' || getTotalSegmentDuration() === parseFloat(duration);
+
+    // Video-edit cost override: use source video duration × per-second rate (credits, not dollars)
+    const VIDEO_EDIT_RATE_FAST = 0.6;   // credits/sec for Draft
+    const VIDEO_EDIT_RATE_PRO = 1.0;    // credits/sec for Final
+    const videoEditCost = (generationMode === 'edit' && sourceVideoUrl && sourceVideoDuration)
+        ? Math.round(sourceVideoDuration * (quality === 'fast' ? VIDEO_EDIT_RATE_FAST : VIDEO_EDIT_RATE_PRO) * 10) / 10
+        : null;
+    const displayCost = videoEditCost ?? videoCost;
 
     const buildOptions = (): AnimateOptions => ({
         duration,
@@ -242,6 +301,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             sound: 'on',
             quality,
             reference_image_urls: refImages.length > 0 ? refImages : undefined,
+            ...(sourceVideoUrl ? { video_url: sourceVideoUrl } : {}),
+            ...(sourceVideoDuration ? { source_video_duration: sourceVideoDuration } : {}),
         } : {}),
         ...(showSoundToggle ? { sound } : {}),
         // TODO: Uncomment when switching to official Kling API
@@ -261,7 +322,14 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const handleAnimate = () => {
         if (!isDurationValid) return;
         const options = buildOptions();
-        // Linked morph-to-next takes priority; otherwise use manual end frame
+
+        // Extend mode: fire onExtend instead
+        if (generationMode === 'extend' && shotData?.seedance_task_id && onExtend) {
+            onExtend(shotData.seedance_task_id, options);
+            return;
+        }
+
+        // New / Edit mode: standard animate flow
         const endFrame = isLinked ? nextShotImage : (endFrameUrl || null);
         onAnimate(provider, endFrame, options);
     };
@@ -276,20 +344,24 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             } : undefined;
         onAnimateInfoChange({
             handleAnimate,
-            cost: videoCost,
+            cost: displayCost,
             disabled: !hasImage || isBusy || !isDurationValid,
             label: isBusy
                 ? (hasVideo ? 'Animating...' : 'Generating...')
                 : isLinked
                     ? 'Morph to Next'
-                    : (hasVideo ? 'Re-Animate' : 'Animate'),
+                    : generationMode === 'edit'
+                        ? 'Apply Video Edit'
+                        : generationMode === 'extend'
+                            ? 'Extend Video'
+                            : (hasVideo ? 'Re-Animate' : 'Animate'),
             icon: isBusy ? 'busy' : isLinked ? 'morph' : (hasVideo ? 're-animate' : 'animate'),
             extendAction,
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [provider, duration, mode, quality, aspectRatio, endFrameUrl, negativePrompt, cfgScale, sound,
         watermark, multiShot, shotType, segments, elementList, voiceList, refImages,
-        hasImage, hasVideo, isBusy, isLinked, isDurationValid, videoCost]);
+        hasImage, hasVideo, isBusy, isLinked, isDurationValid, videoCost, generationMode, sourceVideoUrl, sourceVideoDuration]);
 
     // --- Helpers ---
     const addSegment = () => {
@@ -515,6 +587,18 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             {refImages.map((url, i) => (
                                 <div key={i} className="relative w-10 h-10 rounded-md overflow-hidden border border-white/[0.1] flex-shrink-0 group">
                                     <img src={url} alt="" className="w-full h-full object-cover" />
+                                    {/* @imageN tag badge (Phase 2) */}
+                                    {onInsertPromptTag && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); onInsertPromptTag(`@image${i + 1}`); }}
+                                            className="absolute top-0 left-0 px-0.5 py-px bg-amber-500/90 text-[7px] font-bold text-black rounded-br-md
+                                                opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-amber-400 z-10"
+                                            title={`Insert @image${i + 1} into prompt`}
+                                        >
+                                            @img{i + 1}
+                                        </button>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={() => setRefImages(refImages.filter((_, idx) => idx !== i))}
@@ -657,6 +741,166 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             </>
                         )}
                     </div>
+
+                    {/* ── Generation Mode Toggle (3-Way: New / Edit / Extend) ── */}
+                    {shotHasVideo && (
+                        <div>
+                            <label className="text-[9px] font-semibold text-neutral-500 mb-1.5 block">Generation Mode</label>
+                            <div className="flex gap-1">
+                                <button type="button" onClick={() => setGenerationMode('new')}
+                                    className={`flex-1 px-1.5 py-2 rounded-md text-center transition-all cursor-pointer select-none border
+                                        ${generationMode === 'new'
+                                            ? 'bg-white/[0.06] text-white border-white/20'
+                                            : 'bg-white/[0.02] text-neutral-500 border-white/[0.06] hover:border-white/15'}`}
+                                >
+                                    <div className="flex items-center justify-center gap-1">
+                                        <Film size={9} />
+                                        <span className="text-[9px] font-bold">New</span>
+                                    </div>
+                                    <div className="text-[7px] mt-0.5 opacity-50">From image</div>
+                                </button>
+                                <button type="button" onClick={() => setGenerationMode('edit')}
+                                    className={`flex-1 px-1.5 py-2 rounded-md text-center transition-all cursor-pointer select-none border
+                                        ${generationMode === 'edit'
+                                            ? 'bg-purple-500/15 text-purple-300 border-purple-500/40'
+                                            : 'bg-white/[0.02] text-neutral-500 border-white/[0.06] hover:border-white/15'}`}
+                                >
+                                    <div className="flex items-center justify-center gap-1">
+                                        <Pencil size={9} />
+                                        <span className="text-[9px] font-bold">Edit</span>
+                                    </div>
+                                    <div className="text-[7px] mt-0.5 opacity-50">Modify video</div>
+                                </button>
+                                <button type="button" onClick={() => setGenerationMode('extend')}
+                                    className={`flex-1 px-1.5 py-2 rounded-md text-center transition-all cursor-pointer select-none border
+                                        ${generationMode === 'extend'
+                                            ? 'bg-amber-500/15 text-amber-300 border-amber-500/40'
+                                            : 'bg-white/[0.02] text-neutral-500 border-white/[0.06] hover:border-white/15'}`}
+                                >
+                                    <div className="flex items-center justify-center gap-1">
+                                        <Plus size={9} />
+                                        <span className="text-[9px] font-bold">Extend</span>
+                                    </div>
+                                    <div className="text-[7px] mt-0.5 opacity-50">Continue video</div>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Source Video (Edit Mode) ── */}
+                    {generationMode === 'edit' && (
+                        <div>
+                            <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex items-center justify-between">
+                                <span>Source Video</span>
+                                {sourceVideoUrl && sourceVideoUrl !== shotData?.video_url && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            // Reset back to shot's video
+                                            if (shotData?.video_url) {
+                                                setSourceVideoUrl(shotData.video_url);
+                                                // Re-extract duration
+                                                const videoEl = document.createElement('video');
+                                                videoEl.preload = 'metadata';
+                                                videoEl.src = shotData.video_url;
+                                                videoEl.crossOrigin = 'anonymous';
+                                                videoEl.onloadedmetadata = () => setSourceVideoDuration(videoEl.duration);
+                                            }
+                                        }}
+                                        className="text-[8px] text-purple-400/70 hover:text-purple-400 transition-colors"
+                                    >
+                                        Reset to Shot
+                                    </button>
+                                )}
+                            </label>
+
+                            {sourceVideoUrl ? (
+                                <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-purple-500/30 bg-black group">
+                                    <video src={sourceVideoUrl} className="w-full h-full object-contain" muted />
+                                    {/* Duration badge */}
+                                    {sourceVideoDuration && (
+                                        <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-black/70 backdrop-blur-sm rounded text-[9px] font-mono text-purple-300 border border-purple-500/30">
+                                            {sourceVideoDuration.toFixed(1)}s
+                                        </div>
+                                    )}
+                                    {/* "Editing Current Shot" or "Custom Upload" badge */}
+                                    <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-purple-500/80 backdrop-blur-sm rounded text-[8px] font-bold text-white">
+                                        {sourceVideoUrl === shotData?.video_url ? '✎ Editing Current Shot' : '⬆ Custom Upload'}
+                                    </div>
+                                    {/* Bottom info bar */}
+                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2.5 py-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[8px] text-neutral-300">Prompt describes desired edits to this video</span>
+                                            {/* Replace button */}
+                                            <div className="flex gap-1">
+                                                <input
+                                                    type="file"
+                                                    accept="video/*"
+                                                    className="hidden"
+                                                    ref={videoInputRef}
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+                                                        try {
+                                                            setIsUploadingVideo(true);
+                                                            const objectUrl = URL.createObjectURL(file);
+                                                            const videoEl = document.createElement('video');
+                                                            videoEl.preload = 'metadata';
+                                                            videoEl.src = objectUrl;
+                                                            videoEl.onloadedmetadata = () => {
+                                                                setSourceVideoDuration(videoEl.duration);
+                                                                URL.revokeObjectURL(objectUrl);
+                                                            };
+                                                            videoEl.onerror = () => URL.revokeObjectURL(objectUrl);
+                                                            const path = `source_videos/${Date.now()}_${file.name}`;
+                                                            const storageRef = ref(storage, path);
+                                                            await uploadBytes(storageRef, file);
+                                                            const url = await getDownloadURL(storageRef);
+                                                            setSourceVideoUrl(url);
+                                                        } catch (err) {
+                                                            console.error('[SourceVideoUpload] Failed:', err);
+                                                        } finally {
+                                                            setIsUploadingVideo(false);
+                                                            if (videoInputRef.current) videoInputRef.current.value = '';
+                                                        }
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    disabled={isUploadingVideo}
+                                                    onClick={() => videoInputRef.current?.click()}
+                                                    className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[8px] text-neutral-300 transition-all
+                                                        disabled:opacity-40 disabled:cursor-wait"
+                                                >
+                                                    {isUploadingVideo ? <Loader2 size={8} className="animate-spin" /> : 'Replace'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="px-3 py-2.5 rounded-lg border border-dashed border-neutral-700 text-center">
+                                    <Loader2 size={14} className="text-purple-400 animate-spin mx-auto mb-1" />
+                                    <span className="text-[9px] text-neutral-500">Loading shot video...</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── Preflight Warnings Banner (Phase 3) ── */}
+                    {preflightWarnings.length > 0 && (
+                        <div className="space-y-1 px-2.5 py-2 rounded-md bg-amber-500/10 border border-amber-500/25">
+                            <div className="flex items-center gap-1.5">
+                                <AlertTriangle size={11} className="text-amber-400" />
+                                <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">Pre-flight Warnings</span>
+                            </div>
+                            {preflightWarnings.map((w, i) => (
+                                <div key={i} className="text-[10px] text-amber-300/90 leading-relaxed pl-4">
+                                    • {w}
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Native Audio Badge */}
                     <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">
@@ -980,13 +1224,27 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     {hasVideo ? 'Animating...' : 'Generating...'}
                                 </>
                             ) : isLinked ? (
-                                <><Link2 size={13} /> Morph to Next {videoCost > 0 && <span className="opacity-60 text-[9px] font-normal">· {formatCredits(videoCost)} cr</span>}</>
+                                <><Link2 size={13} /> Morph to Next {displayCost > 0 && <span className="opacity-60 text-[9px] font-normal">· {formatCredits(displayCost)} cr</span>}</>
+                            ) : generationMode === 'edit' ? (
+                                <>
+                                    <Pencil size={13} /> Apply Video Edit
+                                    {displayCost > 0 && (
+                                        <span className="opacity-60 text-[9px] font-normal">· {formatCredits(displayCost)} cr</span>
+                                    )}
+                                </>
+                            ) : generationMode === 'extend' ? (
+                                <>
+                                    <Plus size={13} /> Extend Video
+                                    {displayCost > 0 && (
+                                        <span className="opacity-60 text-[9px] font-normal">· {formatCredits(displayCost)} cr</span>
+                                    )}
+                                </>
                             ) : (
                                 <>
                                     {hasVideo ? <RefreshCw size={13} /> : <Film size={13} />}
                                     {hasVideo ? 'Re-Animate' : 'Animate'}
-                                    {videoCost > 0 && (
-                                        <span className="opacity-60 text-[9px] font-normal">· {formatCredits(videoCost)} cr</span>
+                                    {displayCost > 0 && (
+                                        <span className="opacity-60 text-[9px] font-normal">· {formatCredits(displayCost)} cr</span>
                                     )}
                                 </>
                             )}
@@ -999,27 +1257,6 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             <div className="text-[9px] text-center min-h-[14px]">
                                 <span className="text-red-400/80">Image required to animate.</span>
                             </div>
-                        )
-                    }
-
-                    {/* ── Extend + (Seedance 2.0 video continuation) ── */}
-                    {
-                        !isBusy && shotData?.seedance_task_id && shotData?.video_url && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (onExtend && shotData.seedance_task_id) {
-                                        onExtend(shotData.seedance_task_id, buildOptions());
-                                    }
-                                }}
-                                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-bold transition-all cursor-pointer
-                                bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30
-                                text-amber-300 hover:border-amber-500/60 hover:from-amber-500/15 hover:to-orange-500/15
-                                shadow-[0_0_12px_rgba(245,158,11,0.08)] hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
-                            >
-                                <Plus size={12} /> Extend Video
-                                {videoCost > 0 && <span className="opacity-60 text-[9px] font-normal">· {formatCredits(videoCost)} cr</span>}
-                            </button>
                         )
                     }
                 </>
