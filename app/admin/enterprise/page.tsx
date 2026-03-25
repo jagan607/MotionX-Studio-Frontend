@@ -10,7 +10,6 @@ import { API_BASE_URL } from "@/lib/config";
 interface EnterpriseOnboardResponse {
     organization_name: string;
     organization_id: string;
-    tenant_id: string;
     slug: string;
     allowed_domains: string[];
 }
@@ -99,7 +98,7 @@ export default function EnterprisePage() {
         try {
             const BACKEND_URL = API_BASE_URL;
             const token = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${BACKEND_URL}/api/admin/onboard-enterprise`, {
+            const res = await fetch(`${BACKEND_URL}/api/admin/seed-enterprise`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -175,7 +174,7 @@ export default function EnterprisePage() {
                         Enterprise<br />Workspaces
                     </h1>
                 </div>
-                <span className="text-[10px] font-mono text-[#444]">GCIP TENANT PROVISIONING</span>
+                <span className="text-[10px] font-mono text-[#444]">MANUAL WORKSPACE PROVISIONING</span>
             </div>
 
             {provisionedData ? (
@@ -198,10 +197,6 @@ export default function EnterprisePage() {
                             <div className="bg-[#0A0A0A] border border-[#1A1A1A] p-4">
                                 <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Workspace Slug</span>
                                 <span className="text-sm font-mono text-white">{provisionedData.slug}</span>
-                            </div>
-                            <div className="bg-[#0A0A0A] border border-[#1A1A1A] p-4">
-                                <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Tenant ID</span>
-                                <span className="text-xs font-mono text-[#AAA] break-all">{provisionedData.tenant_id}</span>
                             </div>
                             <div className="bg-[#0A0A0A] border border-[#1A1A1A] p-4">
                                 <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Organization ID</span>

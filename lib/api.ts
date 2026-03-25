@@ -4,6 +4,7 @@ import { API_BASE_URL } from "./config";
 import { Project, TaxonomyResponse } from "./types";
 import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getActiveWorkspaceSlug } from "@/app/context/WorkspaceContext";
 
 // 1. Create the Axios Instance
 export const api = axios.create({
@@ -20,6 +21,11 @@ api.interceptors.request.use(
         if (user) {
             const token = await user.getIdToken();
             config.headers.Authorization = `Bearer ${token}`;
+        }
+        // Inject workspace org header if active
+        const orgSlug = getActiveWorkspaceSlug();
+        if (orgSlug) {
+            config.headers['X-Org-Id'] = orgSlug;
         }
         // Let the browser set Content-Type + boundary for FormData
         if (config.data instanceof FormData) {
@@ -237,11 +243,8 @@ export const fetchUserProjectsBasic = async (uid: string): Promise<DashboardProj
             return dateB - dateA;
         });
 
-        // B2C filter: if the current user has no tenantId, exclude enterprise projects
-        const isB2C = !auth.currentUser?.tenantId;
-        if (isB2C) {
-            projects = projects.filter(p => !p.tenant_id);
-        }
+        // Note: project scoping (B2C vs enterprise) is now handled by the backend
+        // via the X-Org-Id header injected by the Axios interceptor.
 
         // Update Cache
         projectCache[uid] = { data: projects, timestamp: Date.now() };

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { doc, collection, query, where, limit, onSnapshot, type Unsubscribe } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { getActiveWorkspaceSlug } from "@/app/context/WorkspaceContext";
 
 export function useCredits() {
     const [credits, setCredits] = useState<number | null>(null);
@@ -21,11 +22,13 @@ export function useCredits() {
             }
 
             if (user) {
-                if (user.tenantId) {
-                    // Enterprise Wallet — listen to the org document matching this tenant
+                const activeSlug = getActiveWorkspaceSlug();
+
+                if (activeSlug) {
+                    // Enterprise Wallet — listen to the org document matching this workspace slug
                     const orgQuery = query(
                         collection(db, "organizations"),
-                        where("tenant_id", "==", user.tenantId),
+                        where("slug", "==", activeSlug),
                         limit(1)
                     );
                     unsubscribeSnapshot = onSnapshot(orgQuery, (snapshot) => {
