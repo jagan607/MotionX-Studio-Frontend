@@ -27,9 +27,27 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MotionX Studio | Direct AI Cinema",
-  description: "The first AI-native operating system for filmmakers.",
+  title: "MotionX Studio | AI Video Production Software for Teams & Agencies",
+  description: "AI video production software for global teams, agencies, and studios. Produce cinematic videos 10x faster at 90% lower cost. No cameras, no crews, no delays.",
   metadataBase: new URL('https://studio.motionx.in'),
+  keywords: ["AI video production", "AI filmmaking", "video production software", "AI video generator", "content production platform", "AI ad video generator", "video production for agencies"],
+  openGraph: {
+    title: "MotionX Studio | AI Video Production Software",
+    description: "Produce cinematic videos 10x faster at 90% lower cost. Built for global teams, agencies, and studios.",
+    url: "https://studio.motionx.in",
+    siteName: "MotionX Studio",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MotionX Studio | AI Video Production Software",
+    description: "Produce cinematic videos 10x faster at 90% lower cost. Built for global teams, agencies, and studios.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
@@ -45,12 +63,13 @@ export default function RootLayout({
     "url": "https://studio.motionx.in",
     "applicationCategory": "MultimediaApplication",
     "operatingSystem": "Web",
-    "description": "The first AI-native operating system for filmmakers.",
+    "description": "AI video production software for global teams, agencies, and studios. Produce cinematic videos 10x faster at 90% lower cost.",
     "offers": {
-      "@type": "Offer",
-      "price": "0",
+      "@type": "AggregateOffer",
+      "lowPrice": "0",
+      "highPrice": "3000",
       "priceCurrency": "USD",
-      "description": "10 Free Credits on Signup"
+      "description": "Free trial available. Enterprise plans starting at $3,000/month."
     },
     "author": {
       "@type": "Organization",

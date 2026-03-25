@@ -335,22 +335,11 @@ export const fetchUserCredits = async (userId: string): Promise<number> => {
 
 export const fetchGlobalFeed = async () => {
     try {
-        const q = query(
-            collectionGroup(db, 'shots'),
-            where("status", "==", "rendered"),
-            orderBy("created_at", "desc"),
-            limit(200)
-        );
-
-        const snap = await getDocs(q);
-
-        let valid = snap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .filter((s: any) => s.image_url || s.video_url);
-
-        return valid.sort(() => 0.5 - Math.random());
+        const res = await fetch('/api/v1/feed/global');
+        if (!res.ok) throw new Error(`Feed API returned ${res.status}`);
+        return await res.json();
     } catch (e) {
-        console.error("Feed Load Error", e);
+        console.error("Feed Load Error:", e);
         return [];
     }
 };
