@@ -64,6 +64,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
 
     // ── Preflight Warnings State (Phase 3) ──
     const [preflightWarnings, setPreflightWarnings] = useState<string[]>([]);
+    const preflightSeenRef = useRef(false);
 
     // Sync local prompt from Firestore ONLY when the shot changes (by ID)
     useEffect(() => {
@@ -272,8 +273,13 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         .filter((e): e is KlingElement => !!e);
 
     const handleAnimateWrapper = async (provider: VideoProvider, endFrameUrl?: string | null, options?: AnimateOptions) => {
-        // Inject the perfectly synced local text into the options
-        const mergedOptions = { ...options, prompt: localPrompt };
+        // Inject the perfectly synced local text into the options.
+        // If preflight warnings were already shown, the user is acknowledging them by clicking again.
+        const mergedOptions = {
+            ...options,
+            prompt: localPrompt,
+            skipPreflight: preflightSeenRef.current,
+        };
 
         // Await the result of the animation/preflight attempt
         const result = await onAnimate(provider, endFrameUrl, mergedOptions);
@@ -281,10 +287,13 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         // If it was intercepted by preflight and returned warnings, halt!
         if (result?.preflight) {
             setPreflightWarnings(result.warnings);
+            preflightSeenRef.current = true;
             return; // DO NOT close the panel
         }
 
-        // If successful or bypassed (no warnings), close the panel normally
+        // If successful or bypassed (no warnings), clear warnings and close
+        setPreflightWarnings([]);
+        preflightSeenRef.current = false;
         onClose();
     };
 
@@ -543,7 +552,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                         onAnimateInfoChange={handleAnimateInfoChange}
                                         onInsertPromptTag={handleInsertPromptTag}
                                         preflightWarnings={preflightWarnings}
-                                        onClearPreflightWarnings={() => setPreflightWarnings([])}
+                                        onClearPreflightWarnings={() => { setPreflightWarnings([]); preflightSeenRef.current = false; }}
                                     />
                                 ) : (
                                     <div className="p-6 rounded-xl border border-dashed border-white/[0.1] bg-white/[0.02] text-center mt-4">

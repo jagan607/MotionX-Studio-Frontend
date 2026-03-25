@@ -41,6 +41,9 @@ export interface AnimateOptions {
     source_video_duration?: number;          // Duration in seconds of source video
     trim_start?: number;                     // Trim start time (seconds)
     trim_end?: number;                       // Trim end time (seconds)
+
+    // Preflight bypass
+    skipPreflight?: boolean;                 // Skip preflight warnings check
 }
 
 export interface PreflightResult {
@@ -127,7 +130,7 @@ export const useShotVideoGen = (
 
             // ── Preflight Interceptor (Seedance 2.0 only) ──
             const isSeedanceProvider = provider === 'seedance-2' || provider === 'seedance';
-            if (isSeedanceProvider) {
+            if (isSeedanceProvider && !options?.skipPreflight) {
                 try {
                     const preflight = await preflightSeedance2(payload);
                     if (preflight.warnings && preflight.warnings.length > 0) {

@@ -358,8 +358,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         }
 
         // New / Edit mode: standard animate flow
+        // If preflight warnings are currently visible, skip the preflight on this click
         const endFrame = isLinked ? nextShotImage : (endFrameUrl || null);
-        onAnimate(provider, endFrame, options);
+        onAnimate(provider, endFrame, { ...options, skipPreflight: preflightWarnings.length > 0 });
     };
 
     // Report animate info to parent when hideActions is on
@@ -390,7 +391,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     }, [provider, duration, mode, quality, aspectRatio, endFrameUrl, negativePrompt, cfgScale, sound,
         watermark, multiShot, shotType, segments, elementList, voiceList, refImages,
         hasImage, hasVideo, isBusy, isLinked, isDurationValid, videoCost, displayCost,
-        generationMode, sourceVideoUrl, sourceVideoDuration, trimStart, trimEnd]);
+        generationMode, sourceVideoUrl, sourceVideoDuration, trimStart, trimEnd, preflightWarnings]);
 
     // --- Helpers ---
     const addSegment = () => {
