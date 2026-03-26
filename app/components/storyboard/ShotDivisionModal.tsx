@@ -225,6 +225,7 @@ export const ShotDivisionModal: React.FC<ShotDivisionModalProps> = ({
                         location_angle: shot.location_angle || "",
                         camera_direction: shot.camera_direction || "",
                         continuity_note: shot.continuity_note || "",
+                        ambient_scene: shot.ambient_scene || "",
                         status: "draft",
                         order: index,
                         created_at: new Date().toISOString()

@@ -51,6 +51,7 @@ interface Shot {
     location_angle?: string;
     camera_direction?: string;
     continuity_note?: string;
+    ambient_scene?: string;
 }
 
 interface SortableShotCardProps {

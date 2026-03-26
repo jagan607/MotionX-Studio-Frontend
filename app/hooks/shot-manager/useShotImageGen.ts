@@ -84,10 +84,11 @@ export const useShotImageGen = (
         formData.append("genre", genre);
 
         // NEW — Camera / continuity metadata
-        console.log("PAYLOAD DEBUG: location_angle=", shot.location_angle, "camera_direction=", shot.camera_direction, "continuity_note=", shot.continuity_note);
+        console.log("PAYLOAD DEBUG: location_angle=", shot.location_angle, "camera_direction=", shot.camera_direction, "continuity_note=", shot.continuity_note, "ambient_scene=", shot.ambient_scene);
         formData.append("location_angle", shot.location_angle || "");
         formData.append("camera_direction", shot.camera_direction || "");
         formData.append("continuity_note", shot.continuity_note || "");
+        formData.append("ambient_scene", shot.ambient_scene || "");
 
         // [NEW] Camera transform data
         console.log("PAYLOAD DEBUG: cameraTransform", cameraTransform, "cameraShotType", cameraShotType);
