@@ -415,7 +415,73 @@ export const uploadStyleRef = async (projectId: string, file: File) => {
     return res.data;
 };
 
-// --- 12. SCENE MOOD ---
+// --- 12. SET DESIGN & WARDROBE ---
+
+export const generateSetDesign = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    sceneAction?: string,
+    location?: string
+) => {
+    const res = await api.post("/api/v1/shot/generate_set_design", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        scene_action: sceneAction || "",
+        location: location || "",
+    });
+    return res.data;
+};
+
+export const updateSetDesign = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    setDesign: Record<string, any>
+) => {
+    const res = await api.put("/api/v1/shot/update_set_design", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        set_design: setDesign,
+    });
+    return res.data;
+};
+
+export const generateWardrobe = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    sceneAction?: string,
+    characters?: string[]
+) => {
+    const res = await api.post("/api/v1/shot/generate_wardrobe", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        scene_action: sceneAction || "",
+        characters: characters || [],
+    });
+    return res.data;
+};
+
+export const updateWardrobe = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    wardrobe: Record<string, any>
+) => {
+    const res = await api.put("/api/v1/shot/update_wardrobe", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        wardrobe,
+    });
+    return res.data;
+};
+
+// --- 13. SCENE MOOD ---
 
 export const getSceneMood = async (projectId: string, episodeId: string, sceneId: string) => {
     const res = await api.get(`/api/v1/shot/project/${projectId}/episode/${episodeId}/scene/${sceneId}/mood`);

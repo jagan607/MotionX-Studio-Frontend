@@ -269,6 +269,9 @@ export default function PreProductionCanvas() {
     const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
     const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
 
+    // Scene Draft State
+    const [isDraftApproved, setIsDraftApproved] = useState(false);
+
     // Onboarding Moodboard State
     const [showOnboardingMood, setShowOnboardingMood] = useState(false);
     const [styleRefFile, setStyleRefFile] = useState<File | null>(null);
@@ -514,15 +517,24 @@ export default function PreProductionCanvas() {
     const hasScript = (project ? (project.script_status !== "empty" && project.script_status !== "pending" && project.script_status !== undefined) : false) || scenes.length > 0;
     const isCommercial = project?.type === "ad";
 
+    // Auto-approve if returning and we see assets exist
+    useEffect(() => {
+        if (!project) return;
+        const hasMood = (project as any).moodboard_image_url || (project as any).style_ref_url;
+        if (hasMood || characters.length > 0 || (isCommercial && products.length > 0)) {
+            setIsDraftApproved(true);
+        }
+    }, [project, characters.length, products.length, isCommercial]);
+
     // Auto-show onboarding moodboard on first visit if no moodboard selected
     useEffect(() => {
         if (!project || moodAutoOpened.current) return;
         const hasMood = (project as any).moodboard_image_url || (project as any).style_ref_url;
-        if (!hasMood && hasScript) {
+        if (!hasMood && hasScript && isDraftApproved) {
             setShowOnboardingMood(true);
             moodAutoOpened.current = true;
         }
-    }, [project, hasScript]);
+    }, [project, hasScript, isDraftApproved]);
 
     // Listen to moodboard options for onboarding
     useEffect(() => {
@@ -627,7 +639,7 @@ export default function PreProductionCanvas() {
                     @keyframes mbPulseText { 0%,100% { opacity: 0.5; } 50% { opacity: 0.25; } }
                 `}</style>
 
-                {!hasScript ? (
+                {(!hasScript || (project?.script_status === "ready" && !isDraftApproved)) ? (
                     <div className="absolute inset-0 flex items-center justify-center">
                         <ScriptSection
                             project={project}
@@ -636,6 +648,7 @@ export default function PreProductionCanvas() {
                             onUpdateProject={setProject}
                             onScenesUpdated={fetchAssets}
                             episodes={episodes}
+                            onApproveDraft={() => setIsDraftApproved(true)}
                         />
                     </div>
                 ) : (project?.script_status === "extracting" || project?.script_status !== "ready") ? (

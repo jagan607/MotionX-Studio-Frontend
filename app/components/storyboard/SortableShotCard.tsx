@@ -489,7 +489,7 @@ export const SortableShotCard = ({
                         <option value="front">Front</option>
                         <option value="left">Left</option>
                         <option value="right">Right</option>
-                        <option value="back">Back (Reverse)</option>
+                        <option value="back">Back</option>
                     </select>
                 </div>
             </div>

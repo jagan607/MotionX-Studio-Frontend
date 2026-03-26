@@ -22,6 +22,8 @@ import { LipSyncModal } from "./LipSyncModal";
 import { DownloadModal } from "./DownloadModal";
 import { ShotEditorPanel } from "./ShotEditorPanel";
 import { ShotDivisionModal } from "./ShotDivisionModal";
+import { SetDesignPanel } from "./SetDesignPanel";
+import { WardrobePanel } from "./WardrobePanel";
 import dynamic from 'next/dynamic';
 const ParticleField = dynamic(() => import('./ParticleField'), { ssr: false });
 import { styles } from "./BoardStyles";
@@ -180,6 +182,10 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [showAssets, setShowAssets] = useState(false);
     const [showScript, setShowScript] = useState(false);
     const [showShotDivision, setShowShotDivision] = useState(false);
+    const [showSetDesign, setShowSetDesign] = useState(false);
+    const [showWardrobe, setShowWardrobe] = useState(false);
+    const [sceneSetDesign, setSceneSetDesign] = useState<any>(null);
+    const [sceneWardrobe, setSceneWardrobe] = useState<any>(null);
     const [showExportDropdown, setShowExportDropdown] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const exportDropdownRef = useRef<HTMLDivElement>(null);
@@ -256,6 +262,20 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         };
         fetchProjectSettings();
     }, [seriesId]);
+
+    // --- 3b. REAL-TIME SCENE DATA (set_design, wardrobe) ---
+    useEffect(() => {
+        if (!seriesId || !episodeId || !activeSceneId) return;
+        const sceneRef = doc(db, "projects", seriesId, "episodes", episodeId, "scenes", activeSceneId);
+        const unsub = onSnapshot(sceneRef, (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                setSceneSetDesign(data?.set_design || null);
+                setSceneWardrobe(data?.wardrobe || null);
+            }
+        });
+        return () => unsub();
+    }, [seriesId, episodeId, activeSceneId]);
 
     // --- 4. REAL-TIME TERMINAL LOG LISTENER ---
     useEffect(() => {
@@ -528,6 +548,35 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     />
                 )}
 
+                {activeSceneId && (
+                    <SetDesignPanel
+                        isOpen={showSetDesign}
+                        onClose={() => setShowSetDesign(false)}
+                        projectId={seriesId}
+                        episodeId={episodeId}
+                        sceneId={activeSceneId}
+                        existingData={sceneSetDesign}
+                        onUpdate={(data) => setSceneSetDesign(data)}
+                        locationName={sceneLoc}
+                        locations={locations}
+                        sceneAction={currentScene?.visual_action || currentScene?.summary}
+                    />
+                )}
+
+                {activeSceneId && (
+                    <WardrobePanel
+                        isOpen={showWardrobe}
+                        onClose={() => setShowWardrobe(false)}
+                        projectId={seriesId}
+                        episodeId={episodeId}
+                        sceneId={activeSceneId}
+                        existingData={sceneWardrobe}
+                        castMembers={castMembers}
+                        onUpdate={(data) => setSceneWardrobe(data)}
+                        sceneAction={currentScene?.visual_action || currentScene?.summary}
+                    />
+                )}
+
                 {/* --- HEADER --- */}
                 <div style={styles.sbHeader}>
                     {/* LEFT */}
@@ -719,6 +768,22 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
                                     >
                                         <FileText size={13} className="text-[#666]" /> Treatment
+                                    </button>
+
+                                    {/* SET DESIGN */}
+                                    <button
+                                        onClick={() => { setShowMoreMenu(false); setShowSetDesign(true); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                                    >
+                                        <span className="text-[#666]">🎨</span> Set Design {sceneSetDesign ? <span className="ml-auto text-[8px] text-emerald-500/70 font-bold">●</span> : null}
+                                    </button>
+
+                                    {/* WARDROBE */}
+                                    <button
+                                        onClick={() => { setShowMoreMenu(false); setShowWardrobe(true); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                                    >
+                                        <span className="text-[#666]">👔</span> Wardrobe {sceneWardrobe ? <span className="ml-auto text-[8px] text-violet-500/70 font-bold">●</span> : null}
                                     </button>
 
                                     {/* UPLOAD SHOTS */}
