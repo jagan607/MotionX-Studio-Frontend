@@ -6,7 +6,7 @@ import {
     Trash2, ZoomIn, ZoomOut, Volume2, GripVertical, Settings2
 } from "lucide-react";
 import { toastError, toastSuccess } from "@/lib/toast";
-import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 import { auth } from "@/lib/firebase";
 
 // --- TYPES ---
@@ -200,11 +200,8 @@ export const TimelineEditor = ({ shots, onClose }: TimelineEditorProps) => {
             const formData = new FormData();
             formData.append("prompt", sfxPrompt);
 
-            const res = await fetch(`${API_BASE_URL}/api/v1/shot/generate_sfx`, {
-                method: "POST", headers: { "Authorization": `Bearer ${token}` }, body: formData
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail);
+            const res = await api.post("/api/v1/shot/generate_sfx", formData);
+            const data = res.data;
 
             // 1. ADD TO MEDIA POOL (Library)
             const newAsset: MediaAsset = {

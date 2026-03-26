@@ -1,9 +1,8 @@
 // hooks/useCredits.ts
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { doc, collection, query, where, limit, onSnapshot, type Unsubscribe } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import { getActiveWorkspaceSlug } from "@/app/context/WorkspaceContext";
+import { useWorkspace } from "@/app/context/WorkspaceContext";
 
 export function useCredits() {
     const [credits, setCredits] = useState<number | null>(null);
@@ -11,72 +10,69 @@ export function useCredits() {
     const [loading, setLoading] = useState(true);
     const [isEnterprise, setIsEnterprise] = useState(false);
 
+    const { activeWorkspaceSlug } = useWorkspace();
+    const unsubRef = useRef<Unsubscribe | null>(null);
+
     useEffect(() => {
-        let unsubscribeSnapshot: Unsubscribe | null = null;
+        // Tear down previous listener
+        unsubRef.current?.();
+        unsubRef.current = null;
 
-        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-            // Clean up any previous snapshot listener when auth state changes
-            if (unsubscribeSnapshot) {
-                unsubscribeSnapshot();
-                unsubscribeSnapshot = null;
-            }
+        const user = auth.currentUser;
+        if (!user) {
+            setCredits(null);
+            setPlan("free");
+            setIsEnterprise(false);
+            setLoading(false);
+            return;
+        }
 
-            if (user) {
-                const activeSlug = getActiveWorkspaceSlug();
+        // Reset to loading state while the new listener fires
+        setLoading(true);
 
-                if (activeSlug) {
-                    // Enterprise Wallet — listen to the org document matching this workspace slug
-                    const orgQuery = query(
-                        collection(db, "organizations"),
-                        where("slug", "==", activeSlug),
-                        limit(1)
-                    );
-                    unsubscribeSnapshot = onSnapshot(orgQuery, (snapshot) => {
-                        if (!snapshot.empty) {
-                            setCredits(snapshot.docs[0].data().credits_balance ?? 0);
-                            setIsEnterprise(true);
-                        } else {
-                            setCredits(0);
-                            setIsEnterprise(true);
-                        }
-                        setLoading(false);
-                    }, (error) => {
-                        console.error("[useCredits] Org Firestore listener error:", error);
-                        setLoading(false);
-                    });
+        if (activeWorkspaceSlug) {
+            // Enterprise Wallet — listen to the org document matching this workspace slug
+            setIsEnterprise(true);
+            const orgQuery = query(
+                collection(db, "organizations"),
+                where("slug", "==", activeWorkspaceSlug),
+                limit(1)
+            );
+            unsubRef.current = onSnapshot(orgQuery, (snapshot) => {
+                if (!snapshot.empty) {
+                    setCredits(snapshot.docs[0].data().credits_balance ?? 0);
                 } else {
-                    // Personal Wallet — listen to the user document
-                    setIsEnterprise(false);
-                    const userRef = doc(db, "users", user.uid);
-                    unsubscribeSnapshot = onSnapshot(userRef, (snap) => {
-                        if (snap.exists()) {
-                            setCredits(snap.data().credits ?? 0);
-                            setPlan(snap.data().plan ?? "free");
-                        } else {
-                            setCredits(0);
-                            setPlan("free");
-                        }
-                        setLoading(false);
-                    }, (error) => {
-                        console.error("[useCredits] Firestore listener error:", error);
-                        setLoading(false);
-                    });
+                    setCredits(0);
                 }
-            } else {
-                setCredits(null);
-                setPlan("free");
-                setIsEnterprise(false);
                 setLoading(false);
-            }
-        });
+            }, (error) => {
+                console.error("[useCredits] Org Firestore listener error:", error);
+                setLoading(false);
+            });
+        } else {
+            // Personal Wallet — listen to the user document
+            setIsEnterprise(false);
+            const userRef = doc(db, "users", user.uid);
+            unsubRef.current = onSnapshot(userRef, (snap) => {
+                if (snap.exists()) {
+                    setCredits(snap.data().credits ?? 0);
+                    setPlan(snap.data().plan ?? "free");
+                } else {
+                    setCredits(0);
+                    setPlan("free");
+                }
+                setLoading(false);
+            }, (error) => {
+                console.error("[useCredits] Firestore listener error:", error);
+                setLoading(false);
+            });
+        }
 
         return () => {
-            unsubscribeAuth();
-            if (unsubscribeSnapshot) {
-                unsubscribeSnapshot();
-            }
+            unsubRef.current?.();
+            unsubRef.current = null;
         };
-    }, []);
+    }, [activeWorkspaceSlug]);
 
     return { credits, plan, loading, isEnterprise };
 }

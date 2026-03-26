@@ -10,6 +10,7 @@ import { toastSuccess, toastError } from "@/lib/toast";
 import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 
 // --- CONFIG ---
 const MIN_ZOOM = 10;
@@ -343,12 +344,10 @@ export const TimelineBoard = ({ seriesId, episodeId, sceneId, shots }: any) => {
         if (!sfxPrompt) return;
         setIsGeneratingSfx(true);
         try {
-            const token = await auth.currentUser?.getIdToken();
             const formData = new FormData();
             formData.append("prompt", sfxPrompt);
-            const res = await fetch(`${API_BASE_URL}/api/v1/generate_sfx`, { method: "POST", headers: { "Authorization": `Bearer ${token}` }, body: formData });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail);
+            const res = await api.post("/api/v1/generate_sfx", formData);
+            const data = res.data;
 
             await addDoc(collection(db, "series", seriesId, "episodes", episodeId, "scenes", sceneId, "sfx"), {
                 url: data.audio_url,

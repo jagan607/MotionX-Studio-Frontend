@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { doc, getDoc, collection, getDocs, deleteDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
+import { api } from "@/lib/api";
 import { API_BASE_URL } from "@/lib/config";
 import { checkJobStatus } from "@/lib/api";
 import { toastError } from "@/lib/toast";
@@ -117,17 +118,8 @@ export default function SeriesDetail() {
     const timeoutId = setTimeout(() => controller.abort(), 90000);
 
     try {
-      const idToken = await auth.currentUser?.getIdToken();
-      const res = await fetch(`${API_BASE_URL}/api/v1/script/upload-episode`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${idToken}` },
-        body: formData,
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Ingest failed");
+      const res = await api.post("/api/v1/script/upload-episode", formData);
+      const data = res.data;
 
       const jobId = data.job_id;
       setUploadStatus(inputMethod === 'synopsis' ? "AI GENERATING SCRIPT..." : "PARSING DATA STREAM...");
@@ -173,10 +165,7 @@ export default function SeriesDetail() {
         toastError("DRAFT TERMINATED");
       } else {
         const idToken = await auth.currentUser?.getIdToken();
-        await fetch(`${API_BASE_URL}/api/v1/script/episode/${seriesId}/${deleteId}`, {
-          method: "DELETE",
-          headers: { "Authorization": `Bearer ${idToken}` }
-        });
+        await api.delete(`/api/v1/script/episode/${seriesId}/${deleteId}`);
         setEpisodes(prev => prev.filter(ep => ep.id !== deleteId));
       }
       setDeleteId(null);

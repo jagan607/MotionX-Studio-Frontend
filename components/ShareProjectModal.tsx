@@ -1,6 +1,6 @@
 "use client";
 
-import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { Globe, Users, Loader2, X, Check, ToggleLeft, ToggleRight } from "lucide-react";
@@ -40,14 +40,8 @@ export default function ShareProjectModal({
     useEffect(() => {
         (async () => {
             try {
-                const token = await auth.currentUser?.getIdToken();
-                const res = await fetch(`${API_BASE_URL}/api/organization/teams`, {
-                    headers: { "Authorization": `Bearer ${token}` },
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    setTeams(data.teams || []);
-                }
+                const res = await api.get("/api/organization/teams");
+                setTeams(res.data.teams || []);
             } catch {
                 toastError("Failed to load teams");
             } finally {
@@ -68,27 +62,14 @@ export default function ShareProjectModal({
     const handleSubmit = async () => {
         setSubmitting(true);
         try {
-            const token = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${API_BASE_URL}/api/v1/project/${projectId}/share`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    team_ids: Array.from(selectedTeamIds),
-                    is_global: isGlobal,
-                }),
+            const res = await api.patch(`/api/v1/project/${projectId}/share`, {
+                team_ids: Array.from(selectedTeamIds),
+                is_global: isGlobal,
             });
 
-            if (res.ok) {
-                toastSuccess(isGlobal ? "Project is now visible to entire organization" : "Project sharing updated");
-                onSuccess();
-                onClose();
-            } else {
-                const errData = await res.json().catch(() => null);
-                toastError(errData?.detail || "Failed to update sharing");
-            }
+            toastSuccess(isGlobal ? "Project is now visible to entire organization" : "Project sharing updated");
+            onSuccess();
+            onClose();
         } catch {
             toastError("Network error");
         } finally {

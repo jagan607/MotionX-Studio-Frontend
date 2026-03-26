@@ -65,7 +65,7 @@ export default function GlobalHeader() {
 
     // Get display name for the active workspace
     const activeWorkspace = availableWorkspaces.find(w => w.slug === activeWorkspaceSlug);
-    const workspaceDisplayName = activeWorkspace?.name || "Personal Workspace";
+    const workspaceDisplayName = activeWorkspace?.name || auth.currentUser?.displayName || "Personal Workspace";
 
     const handleWorkspaceSwitch = (slug: string | null) => {
         setActiveWorkspace(slug);
@@ -93,7 +93,8 @@ export default function GlobalHeader() {
                         <p className="text-[8px] sm:text-[9px] text-[#999] tracking-[3px] font-bold mt-1 uppercase">Creative Studio</p>
                     </Link>
 
-                    {/* ── WORKSPACE SWITCHER ── */}
+                    {/* ── WORKSPACE SWITCHER (only shown when user has orgs) ── */}
+                    {availableWorkspaces.length > 0 && (
                     <div className="relative" ref={switcherRef}>
                         <button
                             onClick={() => setShowSwitcher(!showSwitcher)}
@@ -134,8 +135,7 @@ export default function GlobalHeader() {
                                         <User size={13} className="text-white/70" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-[12px] font-semibold text-white/90 truncate">Personal Workspace</p>
-                                        <p className="text-[9px] text-[#555] font-mono uppercase">{auth.currentUser?.email || 'Personal'}</p>
+                                        <p className="text-[12px] font-semibold text-white/90 truncate">{auth.currentUser?.displayName || 'Personal Workspace'}</p>
                                     </div>
                                     {!activeWorkspaceSlug && (
                                         <Check size={14} className="text-[#00FF41] shrink-0" />
@@ -143,43 +143,40 @@ export default function GlobalHeader() {
                                 </button>
 
                                 {/* Divider + Org Workspaces */}
-                                {availableWorkspaces.length > 0 && (
-                                    <>
-                                        <div className="mx-4 border-t border-white/[0.06]" />
-                                        {availableWorkspaces.map((ws) => (
-                                            <button
-                                                key={ws.slug}
-                                                onClick={() => handleWorkspaceSwitch(ws.slug)}
-                                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.05] transition-colors cursor-pointer border-none bg-transparent text-left"
-                                            >
-                                                <div className="w-7 h-7 rounded-lg bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center shrink-0 overflow-hidden">
-                                                    {ws.logo_url ? (
-                                                        <img src={ws.logo_url} alt="" className="w-full h-full object-cover rounded-lg" />
-                                                    ) : (
-                                                        <Building size={13} className="text-[#E50914]" />
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-[12px] font-semibold text-white/90 truncate">{ws.name}</p>
-                                                    <p className="text-[9px] text-[#555] font-mono uppercase">{ws.slug}</p>
-                                                </div>
-                                                {activeWorkspaceSlug === ws.slug && (
-                                                    <Check size={14} className="text-[#00FF41] shrink-0" />
-                                                )}
-                                            </button>
-                                        ))}
-                                    </>
-                                )}
+                                <div className="mx-4 border-t border-white/[0.06]" />
+                                {availableWorkspaces.map((ws) => (
+                                    <button
+                                        key={ws.slug}
+                                        onClick={() => handleWorkspaceSwitch(ws.slug)}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.05] transition-colors cursor-pointer border-none bg-transparent text-left"
+                                    >
+                                        <div className="w-7 h-7 rounded-lg bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center shrink-0 overflow-hidden">
+                                            {ws.logo_url ? (
+                                                <img src={ws.logo_url} alt="" className="w-full h-full object-cover rounded-lg" />
+                                            ) : (
+                                                <Building size={13} className="text-[#E50914]" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[12px] font-semibold text-white/90 truncate">{ws.name}</p>
+                                            <p className="text-[9px] text-[#555] font-mono uppercase">{ws.slug}</p>
+                                        </div>
+                                        {activeWorkspaceSlug === ws.slug && (
+                                            <Check size={14} className="text-[#00FF41] shrink-0" />
+                                        )}
+                                    </button>
+                                ))}
 
                                 {/* Footer hint */}
                                 <div className="px-4 py-2.5 border-t border-white/[0.06]">
                                     <p className="text-[8px] text-[#444] font-mono uppercase tracking-[1px] text-center">
-                                        {availableWorkspaces.length === 0 ? 'No organizations found' : `${availableWorkspaces.length} org${availableWorkspaces.length > 1 ? 's' : ''} available`}
+                                        {`${availableWorkspaces.length} org${availableWorkspaces.length > 1 ? 's' : ''} available`}
                                     </p>
                                 </div>
                             </div>
                         )}
                     </div>
+                    )}
                 </div>
 
                 {/* ── RIGHT CONTROLS ── */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 
 import { useState, useEffect, useMemo } from "react";
 import { Loader2, Plus, Pencil, Trash2, X, Users, FolderKanban, Check, ChevronDown, ChevronRight, Globe, Film } from "lucide-react";
@@ -76,18 +76,10 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
     const fetchTeams = async () => {
         setTeamsLoading(true);
         try {
-            const token = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${API_BASE_URL}/api/organization/teams`, {
-                headers: { "Authorization": `Bearer ${token}` },
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setTeams(data.teams || []);
-            } else {
-                toastError("Failed to load teams");
-            }
+            const res = await api.get("/api/organization/teams");
+            setTeams(res.data.teams || []);
         } catch {
-            toastError("Network error loading teams");
+            toastError("Failed to load teams");
         } finally {
             setTeamsLoading(false);
         }
@@ -136,33 +128,21 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
 
         setSubmitting(true);
         try {
-            const token = await auth.currentUser?.getIdToken();
             const payload = { name, members: Array.from(selectedMembers) };
 
             const isEdit = !!editingTeam;
-            const url = isEdit
-                ? `${API_BASE_URL}/api/organization/teams/${editingTeam!.id}`
-                : `${API_BASE_URL}/api/organization/teams`;
-
-            const res = await fetch(url, {
-                method: isEdit ? "PATCH" : "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (res.ok) {
-                toastSuccess(isEdit ? `"${name}" updated` : `"${name}" created`);
-                closeModal();
-                fetchTeams();
+            if (isEdit) {
+                await api.patch(`/api/organization/teams/${editingTeam!.id}`, payload);
             } else {
-                const errData = await res.json().catch(() => null);
-                toastError(errData?.detail || (isEdit ? "Update failed" : "Create failed"));
+                await api.post("/api/organization/teams", payload);
             }
-        } catch {
-            toastError("Network error");
+
+            toastSuccess(isEdit ? `"${name}" updated` : `"${name}" created`);
+            closeModal();
+            fetchTeams();
+        } catch (err: any) {
+            const isEdit = !!editingTeam;
+            toastError(err?.response?.data?.detail || (isEdit ? "Update failed" : "Create failed"));
         } finally {
             setSubmitting(false);
         }
@@ -174,20 +154,11 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
 
         setDeletingTeamId(team.id);
         try {
-            const token = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${API_BASE_URL}/api/organization/teams/${team.id}`, {
-                method: "DELETE",
-                headers: { "Authorization": `Bearer ${token}` },
-            });
-            if (res.ok) {
-                toastSuccess(`"${team.name}" deleted`);
-                fetchTeams();
-            } else {
-                const errData = await res.json().catch(() => null);
-                toastError(errData?.detail || "Delete failed");
-            }
-        } catch {
-            toastError("Network error");
+            await api.delete(`/api/organization/teams/${team.id}`);
+            toastSuccess(`"${team.name}" deleted`);
+            fetchTeams();
+        } catch (err: any) {
+            toastError(err?.response?.data?.detail || "Delete failed");
         } finally {
             setDeletingTeamId(null);
         }
@@ -197,37 +168,24 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
     const handleUpdateProjectTeams = async (project: OrgProject, teamId: string, action: "add" | "remove") => {
         setUpdatingProjectId(project.id);
         try {
-            const token = await auth.currentUser?.getIdToken();
             const currentTeams = project.team_ids || [];
             const newTeams = action === "add"
                 ? [...currentTeams, teamId]
                 : currentTeams.filter(id => id !== teamId);
 
-            const res = await fetch(`${API_BASE_URL}/api/v1/project/${project.id}/share`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    team_ids: newTeams,
-                    is_global: project.is_global || false,
-                }),
+            await api.patch(`/api/v1/project/${project.id}/share`, {
+                team_ids: newTeams,
+                is_global: project.is_global || false,
             });
 
-            if (res.ok) {
-                toastSuccess(action === "add"
-                    ? `"${project.title}" added to team`
-                    : `"${project.title}" removed from team`
-                );
-                refreshProjects();
-                if (action === "add") setAddDropdownTeamId(null);
-            } else {
-                const errData = await res.json().catch(() => null);
-                toastError(errData?.detail || "Failed to update project");
-            }
-        } catch {
-            toastError("Network error");
+            toastSuccess(action === "add"
+                ? `"${project.title}" added to team`
+                : `"${project.title}" removed from team`
+            );
+            refreshProjects();
+            if (action === "add") setAddDropdownTeamId(null);
+        } catch (err: any) {
+            toastError(err?.response?.data?.detail || "Failed to update project");
         } finally {
             setUpdatingProjectId(null);
         }

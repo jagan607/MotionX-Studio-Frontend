@@ -7,7 +7,7 @@ import { CheckCircle2, Zap, AlertTriangle, LayoutGrid, HardDrive, Users, Trendin
 import { usePayment } from "@/lib/payment";
 import toast from "react-hot-toast";
 import { auth } from "@/lib/firebase";
-import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 import CancelConfirmModal from "@/app/components/modals/CancelConfirmModal";
 import CreditModal from "@/app/components/modals/CreditModal";
 
@@ -98,16 +98,8 @@ export default function SubscriptionTab({ credits: realtimeCredits }: Subscripti
         const fetchStatus = async () => {
             if (!auth.currentUser) return;
             try {
-                const token = await auth.currentUser.getIdToken();
-                const res = await fetch(`${API_BASE_URL}/api/v1/payment/subscription-status`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    setSubData(data);
-                } else {
-                    setSubData(FREE_DEFAULTS);
-                }
+                const res = await api.get("/api/v1/payment/subscription-status");
+                setSubData(res.data);
             } catch (e) {
                 console.error("Failed to fetch subscription status", e);
                 setSubData(FREE_DEFAULTS);
@@ -125,10 +117,8 @@ export default function SubscriptionTab({ credits: realtimeCredits }: Subscripti
                 const user = auth.currentUser;
                 if (!user) return;
                 const idToken = await user.getIdToken();
-                const res = await fetch(`${API_BASE_URL}/api/v1/payment/transaction-history`, {
-                    headers: { Authorization: `Bearer ${idToken}` },
-                });
-                const data = await res.json();
+                const res = await api.get("/api/v1/payment/transaction-history");
+                const data = res.data;
                 if (data.status === 'success') {
                     setTransactions(data.transactions);
                 }

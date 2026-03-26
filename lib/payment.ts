@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { auth } from "@/lib/firebase";
-import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 
 // Ensure Razorpay type exists on window
 declare global {
@@ -45,14 +45,8 @@ export const usePayment = () => {
             formData.append("plan_type", planType);
             formData.append("currency", activeCurrency);
 
-            const res = await fetch(`${API_BASE_URL}/api/v1/payment/create-subscription`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}` },
-                body: formData,
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || "Subscription Init Failed");
+            const res = await api.post("/api/v1/payment/create-subscription", formData);
+            const data = res.data;
 
             const options = {
                 key: data.key_id,
@@ -60,21 +54,14 @@ export const usePayment = () => {
                 name: "Motion X Studio",
                 description: `${planType.toUpperCase()} Subscription`,
                 handler: async (response: any) => {
-                    const verifyRes = await fetch(`${API_BASE_URL}/api/v1/payment/verify-subscription`, {
-                        method: "POST",
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_subscription_id: response.razorpay_subscription_id,
-                            razorpay_signature: response.razorpay_signature,
-                            plan_type: planType
-                        }),
+                    const verifyRes = await api.post("/api/v1/payment/verify-subscription", {
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_subscription_id: response.razorpay_subscription_id,
+                        razorpay_signature: response.razorpay_signature,
+                        plan_type: planType
                     });
 
-                    if (verifyRes.ok) {
+                    if (verifyRes.status === 200) {
                         if (onSuccess) onSuccess();
                     } else {
                         if (onError) onError("Verification Failed");
@@ -122,14 +109,8 @@ export const usePayment = () => {
             formData.append("package_id", packageId);
             formData.append("currency", activeCurrency);
 
-            const res = await fetch(`${API_BASE_URL}/api/v1/payment/buy-credits`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}` },
-                body: formData,
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || "Order Creation Failed");
+            const res = await api.post("/api/v1/payment/buy-credits", formData);
+            const data = res.data;
 
             const options = {
                 key: data.key_id,
@@ -139,23 +120,15 @@ export const usePayment = () => {
                 description: data.description,
                 order_id: data.order_id,
                 handler: async (response: any) => {
-                    const verifyRes = await fetch(`${API_BASE_URL}/api/v1/payment/verify-payment`, {
-                        method: "POST",
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
+                    try {
+                        await api.post("/api/v1/payment/verify-payment", {
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_signature: response.razorpay_signature
-                        }),
-                    });
-
-                    if (verifyRes.ok) {
+                        });
                         setLoading(false);
                         if (onSuccess) onSuccess();
-                    } else {
+                    } catch {
                         setLoading(false);
                         if (onError) onError("Verification Failed");
                     }
@@ -187,13 +160,8 @@ export const usePayment = () => {
         setLoading(true);
         try {
             const token = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${API_BASE_URL}/api/v1/payment/cancel-subscription`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || "Cancellation Failed");
+            const res = await api.post("/api/v1/payment/cancel-subscription");
+            const data = res.data;
 
             if (onSuccess) onSuccess();
 

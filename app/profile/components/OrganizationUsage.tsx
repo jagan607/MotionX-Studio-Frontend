@@ -1,6 +1,6 @@
 "use client";
 
-import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { Loader2, TrendingUp, BarChart3, Zap, Clock, User, Cpu } from "lucide-react";
@@ -35,14 +35,8 @@ export default function OrganizationUsage() {
             try {
                 const token = await auth.currentUser?.getIdToken();
                 if (!token) return;
-                const res = await fetch(`${API_BASE_URL}/api/organization/usage`, {
-                    headers: { "Authorization": `Bearer ${token}` },
-                });
-                if (res.ok) {
-                    setData(await res.json());
-                } else {
-                    setError(true);
-                }
+                const res = await api.get("/api/organization/usage");
+                setData(res.data);
             } catch {
                 setError(true);
             } finally {

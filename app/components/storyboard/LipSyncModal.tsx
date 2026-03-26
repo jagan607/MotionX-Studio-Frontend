@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { X, Loader2, Mic, Upload, Volume2, Wand2, Play, Pause, Search, ChevronDown, Scissors, RotateCcw } from "lucide-react";
 import { toastError } from "@/lib/toast";
-import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 import { auth } from "@/lib/firebase";
 import { usePricing } from "@/app/hooks/usePricing";
 
@@ -120,40 +120,35 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
             params.append("page", page.toString());
             if (cursorToUse) params.append("cursor", cursorToUse);
 
-            const url = `${API_BASE_URL}/api/v1/shot/get_voice_library?${params.toString()}`;
+            const url = `/api/v1/shot/get_voice_library?${params.toString()}`;
             console.log("Fetching Voices URL:", url);
 
-            const res = await fetch(url, { headers: { "Authorization": `Bearer ${idToken}` } });
+            const res = await api.get(url);
+            const data = res.data;
+            const newVoices: Voice[] = data.voices || [];
 
-            if (res.ok) {
-                const data = await res.json();
-                const newVoices: Voice[] = data.voices || [];
+            console.log(`Received ${newVoices.length} voices.`);
 
-                console.log(`Received ${newVoices.length} voices.`);
+            setAllVoices(prev => {
+                const combined = cursorToUse ? [...prev, ...newVoices] : newVoices;
+                const unique = new Map<string, Voice>();
+                combined.forEach(v => unique.set(v.voice_id, v));
+                return Array.from(unique.values());
+            });
 
-                setAllVoices(prev => {
-                    const combined = cursorToUse ? [...prev, ...newVoices] : newVoices;
-                    const unique = new Map<string, Voice>();
-                    combined.forEach(v => unique.set(v.voice_id, v));
-                    return Array.from(unique.values());
-                });
+            // --- CURSOR FALLBACK LOGIC ---
+            const explicitCursor = data.last_sort_id;
+            const fallbackCursor = newVoices.length > 0 ? newVoices[newVoices.length - 1].voice_id : null;
+            const resolvedCursor = explicitCursor || fallbackCursor;
 
-                // --- CURSOR FALLBACK LOGIC ---
-                const explicitCursor = data.last_sort_id;
-                const fallbackCursor = newVoices.length > 0 ? newVoices[newVoices.length - 1].voice_id : null;
-                const resolvedCursor = explicitCursor || fallbackCursor;
+            console.log(`Setting Next Cursor: ${resolvedCursor}`);
+            setNextCursor(resolvedCursor);
 
-                console.log(`Setting Next Cursor: ${resolvedCursor}`);
-                setNextCursor(resolvedCursor);
+            const likelyHasMore = newVoices.length >= 30;
+            setHasMoreVoices(!!data.has_more && likelyHasMore);
 
-                const likelyHasMore = newVoices.length >= 30;
-                setHasMoreVoices(!!data.has_more && likelyHasMore);
-
-                if (!cursorToUse && newVoices.length > 0 && !selectedVoice) {
-                    setSelectedVoice(newVoices[0].voice_id);
-                }
-            } else {
-                console.error("Voice Fetch Failed", await res.text());
+            if (!cursorToUse && newVoices.length > 0 && !selectedVoice) {
+                setSelectedVoice(newVoices[0].voice_id);
             }
         } catch (e) {
             console.error(e);

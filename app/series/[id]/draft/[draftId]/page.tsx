@@ -16,7 +16,7 @@ import {
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toastError, toastSuccess } from "@/lib/toast";
-import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 
 // --- TYPES ---
 interface DraftScene {
@@ -103,17 +103,13 @@ export default function ScriptLab() {
         const targetScene = scenes[sceneIndex];
 
         try {
-            const res = await fetch(`${API_BASE_URL}/api/v1/script/rewrite-scene`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    original_text: targetScene.summary,
-                    instruction: aiInstruction,
-                    context: `Scene Heading: ${targetScene.header}`
-                })
+            const res = await api.post("/api/v1/script/rewrite-scene", {
+                original_text: targetScene.summary,
+                instruction: aiInstruction,
+                context: `Scene Heading: ${targetScene.header}`
             });
 
-            const data = await res.json();
+            const data = res.data;
             if (data.status !== 'success') throw new Error(data.detail || "Rewrite failed");
 
             // Update Local State Optimistically
@@ -142,13 +138,11 @@ export default function ScriptLab() {
     const handleCommit = async () => {
         setIsProcessing(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/api/v1/script/commit-draft`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ series_id: seriesId, draft_id: draftId })
+            const res = await api.post("/api/v1/script/commit-draft", {
+                series_id: seriesId, draft_id: draftId
             });
 
-            const data = await res.json();
+            const data = res.data;
 
             if (data.status === 'success') {
                 toastSuccess("Sequence Approved & Created");

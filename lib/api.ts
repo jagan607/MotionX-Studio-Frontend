@@ -214,22 +214,9 @@ export const fetchUserProjectsBasic = async (uid: string): Promise<DashboardProj
     }
 
     try {
-        const token = await auth.currentUser?.getIdToken();
-        if (!token) return [];
+        const res = await api.get("/api/v1/project/list");
 
-        const res = await fetch(`${API_BASE_URL}/api/v1/project/list`, {
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json",
-            },
-        });
-
-        if (!res.ok) {
-            console.error("[fetchUserProjectsBasic] Backend returned", res.status);
-            return [];
-        }
-
-        const data = await res.json();
+        const data = res.data;
         // Backend returns { projects: [...] } or a flat array — handle both
         let projects: DashboardProject[] = (data.projects || data || []).map((p: any) => ({
             ...p,

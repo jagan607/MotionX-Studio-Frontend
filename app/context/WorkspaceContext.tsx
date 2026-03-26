@@ -10,6 +10,7 @@ export interface Workspace {
     slug: string;
     name: string;
     logo_url?: string;
+    role?: string;  // e.g. 'admin', 'editor', 'viewer'
 }
 
 interface WorkspaceContextType {
@@ -76,6 +77,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
                 slug: o.slug,
                 name: o.name || o.slug,
                 logo_url: o.logo_url,
+                role: o.role,
             }));
             setAvailableWorkspaces(orgs);
 

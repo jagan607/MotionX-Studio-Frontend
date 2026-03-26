@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { ArrowLeft, Film, Zap } from "lucide-react";
 import Link from "next/link";
-import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 import { toastError } from "@/lib/toast";
 import { Toaster } from "react-hot-toast";
 
@@ -37,17 +37,10 @@ export default function CreateSeries() {
       formData.append("genre", genre);
       formData.append("style", style);
 
-      const res = await fetch(`${API_BASE_URL}/api/v1/create-series`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${idToken}`,
-        },
-        body: formData,
-      });
+      const res = await api.post("/api/v1/create-series", formData);
+      const data = res.data;
 
-      const data = await res.json();
-
-      if (res.ok && data.series_id) {
+      if (data.series_id) {
         router.push(`/series/${data.series_id}`);
       } else {
         toastError("CREATION FAILED: " + (data.detail || JSON.stringify(data)));

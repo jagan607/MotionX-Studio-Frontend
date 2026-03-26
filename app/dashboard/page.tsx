@@ -15,11 +15,11 @@ import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { TourOverlay } from "@/components/tour/TourOverlay";
 import { useTour } from "@/hooks/useTour";
 import { DASHBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
+import { useWorkspace } from "@/app/context/WorkspaceContext";
 
 const DEFAULT_SHOWREEL = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
 
 export default function Dashboard() {
-    const [userCredits, setUserCredits] = useState<number | null>(null);
     const [myProjects, setMyProjects] = useState<DashboardProject[]>([]);
     const [globalShots, setGlobalShots] = useState<any[]>([]);
     const [activeProjectIndex, setActiveProjectIndex] = useState(0);
@@ -29,8 +29,12 @@ export default function Dashboard() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [showAllProjects, setShowAllProjects] = useState(false);
     const [shareProject, setShareProject] = useState<DashboardProject | null>(null);
-    const [isOrgAdmin, setIsOrgAdmin] = useState(false);
-    const [isOrgAccount, setIsOrgAccount] = useState(false);
+
+    // Workspace context for org-aware reactivity
+    const { activeWorkspaceSlug, availableWorkspaces } = useWorkspace();
+    const activeWs = availableWorkspaces.find(w => w.slug === activeWorkspaceSlug);
+    const isOrgAccount = !!activeWorkspaceSlug;
+    const isOrgAdmin = activeWs?.role === "admin";
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [dismissedIds, setDismissedIds] = useState<string[]>([]);
     const [activeAnnouncementIdx, setActiveAnnouncementIdx] = useState(0);
@@ -47,30 +51,9 @@ export default function Dashboard() {
     const filmStripRef = useRef<HTMLDivElement>(null);
 
     // FIX #3: Store unsubscribe functions for proper cleanup
-    const creditsUnsubRef = useRef<(() => void) | null>(null);
     const projectTypeUnsubRef = useRef<(() => void) | null>(null);
     const orgUnsubRef = useRef<(() => void) | null>(null);
     const BACKEND_URL = API_BASE_URL;
-
-    // Derive isOrgAdmin and isOrgAccount from Firestore org data
-    useEffect(() => {
-        const user = auth.currentUser;
-        if (!user?.tenantId || !user?.email) {
-            setIsOrgAccount(false);
-            setIsOrgAdmin(false);
-            return;
-        }
-        setIsOrgAccount(true);
-        const orgQ = fsQuery(fsCollection(db, "organizations"), fsWhere("tenant_id", "==", user.tenantId), fsLimit(1));
-        orgUnsubRef.current = fsOnSnapshot(orgQ, (snap) => {
-            if (!snap.empty) {
-                const orgData = snap.docs[0].data();
-                const role = orgData?.role_bindings?.[user.email!] || (orgData?.admins?.includes(user.email!) ? "admin" : "member");
-                setIsOrgAdmin(role === "admin");
-            }
-        });
-        return () => orgUnsubRef.current?.();
-    }, []);
 
     // Load dismissed announcement IDs from localStorage
     useEffect(() => {
@@ -187,12 +170,13 @@ export default function Dashboard() {
         const user = auth.currentUser;
         if (!user) return; // AuthProvider handles redirect for unauthenticated users
 
-        // FIX #3: Clean up previous credits listener before creating new one
-        creditsUnsubRef.current?.();
-        creditsUnsubRef.current = onSnapshot(
-            doc(db, "users", user.uid),
-            (d) => setUserCredits(d.data()?.credits || 0)
-        );
+        // Clear stale projects immediately so the user sees a loading state
+        setMyProjects([]);
+        setActiveProjectIndex(0);
+        setBootState('booting');
+
+        // Invalidate cache so the fresh workspace-scoped list is fetched
+        invalidateDashboardCache(user.uid);
 
         // 1. FAST LOAD: Metadata
         const loadData = async () => {
@@ -217,11 +201,9 @@ export default function Dashboard() {
         loadData();
 
         return () => {
-            // FIX #3: Cleanup listeners on unmount
-            creditsUnsubRef.current?.();
             projectTypeUnsubRef.current?.();
         };
-    }, []);
+    }, [activeWorkspaceSlug]);
 
     // Navigate to a project's Hub page
     const navigateToProject = useCallback((project: DashboardProject, type?: string) => {

@@ -6,7 +6,7 @@ import { doc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 
 // --- CUSTOM IMPORTS ---
-import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 import { useCredits } from "@/hooks/useCredits";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { Toaster } from "react-hot-toast";
@@ -205,7 +205,6 @@ export default function EpisodeBoard() {
     const handleInpaintSave = async (prompt: string, maskBase64: string) => {
         if (!inpaintData) return null;
         try {
-            const idToken = await auth.currentUser?.getIdToken();
             const formData = new FormData();
             formData.append("series_id", seriesId);
             formData.append("shot_id", inpaintData.shotId);
@@ -213,13 +212,8 @@ export default function EpisodeBoard() {
             formData.append("original_image_url", inpaintData.src);
             formData.append("mask_image_base64", maskBase64);
 
-            const res = await fetch(`${API_BASE_URL}/api/v1/shot/inpaint_shot`, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${idToken}` },
-                body: formData
-            });
-            const data = await res.json();
-            return data.status === "success" ? data.image_url : null;
+            const res = await api.post("/api/v1/shot/inpaint_shot", formData);
+            return res.data.status === "success" ? res.data.image_url : null;
         } catch (e) {
             toastError("Inpaint failed");
             return null;

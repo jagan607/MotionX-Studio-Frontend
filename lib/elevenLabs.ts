@@ -1,6 +1,6 @@
 // lib/elevenLabs.ts
 
-import { API_BASE_URL } from "@/lib/config"; // Ensure this points to your Python backend (e.g., http://localhost:8000)
+import { api } from "@/lib/api";
 
 export interface Voice {
     voice_id: string;
@@ -18,19 +18,8 @@ export interface Voice {
 
 export const fetchElevenLabsVoices = async (): Promise<Voice[]> => {
     try {
-        // CALL YOUR PYTHON BACKEND
-        const response = await fetch(`${API_BASE_URL}/api/v1/voice/list`, {
-            method: 'GET',
-            headers: {
-                // If your backend requires auth tokens, add them here:
-                // 'Authorization': `Bearer ${token}` 
-            }
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch voices from backend');
-
-        const voices = await response.json();
-        return voices;
+        const res = await api.get("/api/v1/voice/list");
+        return res.data;
     } catch (error) {
         console.error("Voice Fetch Error:", error);
         return [];

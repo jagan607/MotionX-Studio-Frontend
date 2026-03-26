@@ -5,6 +5,7 @@ import { auth, db } from "@/lib/firebase";
 import { updateProfile, signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useCredits } from "@/hooks/useCredits";
+import { useWorkspace } from "@/app/context/WorkspaceContext";
 import { Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -17,12 +18,17 @@ import OrganizationTab from "./components/OrganizationTab";
 export default function ProfilePage() {
     const router = useRouter();
     const { credits } = useCredits();
+    const { activeWorkspaceSlug, availableWorkspaces } = useWorkspace();
+
+    // Derive enterprise state from workspace context
+    const activeWorkspace = availableWorkspaces.find(w => w.slug === activeWorkspaceSlug);
+    const isEnterprise = !!activeWorkspaceSlug;
+    const isOrgAdmin = activeWorkspace?.role === "admin";
 
     // --- STATE ---
     const [user, setUser] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<"subscription" | "settings" | "organization">("subscription");
     const [loading, setLoading] = useState(true);
-    const [isEnterprise, setIsEnterprise] = useState(false);
 
     // Form State
     const [displayName, setDisplayName] = useState("");
@@ -34,7 +40,6 @@ export default function ProfilePage() {
             if (u) {
                 setUser(u);
                 setDisplayName(u.displayName || "");
-                setIsEnterprise(!!u.tenantId);
                 setLoading(false);
             } else {
                 router.push("/login");
@@ -92,8 +97,8 @@ export default function ProfilePage() {
                 {/* CONTENT AREA */}
                 {activeTab === "subscription" ? (
                     <SubscriptionTab credits={credits} />
-                ) : activeTab === "organization" ? (
-                    <OrganizationTab />
+                ) : activeTab === "organization" && isEnterprise ? (
+                    <OrganizationTab activeSlug={activeWorkspaceSlug!} userRole={activeWorkspace?.role} />
                 ) : (
                     <SettingsTab
                         user={user}

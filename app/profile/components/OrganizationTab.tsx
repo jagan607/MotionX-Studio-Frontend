@@ -5,14 +5,13 @@ import { Building, Users, Copy, Shield, RefreshCw, Loader2, UserPlus, X, Info, T
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, limit, onSnapshot } from "firebase/firestore";
 import { toastSuccess, toastError } from "@/lib/toast";
-import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 import WorkspaceTeams from "./WorkspaceTeams";
 import OrganizationUsage from "./OrganizationUsage";
 
 interface OrgData {
     organization_name: string;
     slug: string;
-    tenant_id: string;
     credits_balance: number;
     admins: string[];
     allowed_domains: string[];
@@ -30,7 +29,12 @@ interface Member {
 const ROLES = ["admin", "editor", "viewer"] as const;
 type Role = typeof ROLES[number];
 
-export default function OrganizationTab() {
+interface OrganizationTabProps {
+    activeSlug: string;
+    userRole?: string;
+}
+
+export default function OrganizationTab({ activeSlug, userRole: propRole }: OrganizationTabProps) {
     const [orgData, setOrgData] = useState<OrgData | null>(null);
     const [members, setMembers] = useState<Member[]>([]);
     const [membersLoading, setMembersLoading] = useState(false);
@@ -51,19 +55,18 @@ export default function OrganizationTab() {
     const [activeSubTab, setActiveSubTab] = useState<"team" | "analytics">("team");
 
     const user = auth.currentUser;
-    const tenantId = user?.tenantId;
-    const userRole = orgData?.role_bindings?.[user?.email || ""]
+    const userRole = propRole
+        || orgData?.role_bindings?.[user?.email || ""]
         || (orgData?.admins?.includes(user?.email || "") ? "admin" : "member");
     const isOrgAdmin = userRole === "admin";
-    const BACKEND_URL = API_BASE_URL;
 
-    // Listen to org document
+    // Listen to org document by slug
     useEffect(() => {
-        if (!tenantId) { setLoading(false); return; }
+        if (!activeSlug) { setLoading(false); return; }
 
         const orgQuery = query(
             collection(db, "organizations"),
-            where("tenant_id", "==", tenantId),
+            where("slug", "==", activeSlug),
             limit(1)
         );
 
@@ -78,25 +81,25 @@ export default function OrganizationTab() {
         });
 
         return () => unsubscribe();
-    }, [tenantId]);
+    }, [activeSlug]);
 
     // Fetch members
     const fetchMembers = async () => {
         if (!isOrgAdmin) return;
         setMembersLoading(true);
         try {
-            const token = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${BACKEND_URL}/api/organization/members`, {
-                headers: { "Authorization": `Bearer ${token}` },
+            const res = await api.get("/api/organization/members");
+            const raw: Member[] = res.data.members || [];
+            // Deduplicate by email — backend may return the same user from both admins[] and role_bindings
+            const seen = new Set<string>();
+            const unique = raw.filter(m => {
+                if (seen.has(m.email)) return false;
+                seen.add(m.email);
+                return true;
             });
-            if (res.ok) {
-                const data = await res.json();
-                setMembers(data.members || []);
-            } else {
-                toastError("Failed to load team roster");
-            }
-        } catch {
-            toastError("Network error loading members");
+            setMembers(unique);
+        } catch (err: any) {
+            toastError(err?.response?.data?.detail || "Failed to load team roster");
         } finally {
             setMembersLoading(false);
         }
@@ -109,19 +112,11 @@ export default function OrganizationTab() {
     // Fetch org projects
     const fetchOrgProjects = async () => {
         try {
-            const token = await auth.currentUser?.getIdToken();
-            if (!token) return;
-            const res = await fetch(`${BACKEND_URL}/api/v1/project/list`, {
-                headers: { "Authorization": `Bearer ${token}` },
-            });
-            if (res.ok) {
-                const data = await res.json();
-                const list = Array.isArray(data) ? data : (data.projects || data.items || []);
-                console.log("[OrganizationTab] Org projects fetched:", list.length, list);
-                setOrgProjects(list);
-            } else {
-                console.error("[OrganizationTab] Projects fetch failed:", res.status);
-            }
+            const res = await api.get("/api/v1/project/list");
+            const data = res.data;
+            const list = Array.isArray(data) ? data : (data.projects || data.items || []);
+            console.log("[OrganizationTab] Org projects fetched:", list.length, list);
+            setOrgProjects(list);
         } catch (e) {
             console.error("[OrganizationTab] Failed to fetch org projects:", e);
         }
@@ -146,28 +141,17 @@ export default function OrganizationTab() {
 
         setInviting(true);
         try {
-            const token = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${BACKEND_URL}/api/organization/members/invite`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                },
-                body: JSON.stringify({ email, role: inviteRole }),
+            const res = await api.post("/api/organization/members/invite", {
+                email,
+                role: inviteRole,
             });
-
-            if (res.ok) {
-                toastSuccess(`Invited ${email} as ${inviteRole}`);
-                setShowInviteModal(false);
-                setInviteEmail("");
-                setInviteRole("editor");
-                fetchMembers();
-            } else {
-                const errData = await res.json().catch(() => null);
-                toastError(errData?.detail || "Invite failed");
-            }
-        } catch {
-            toastError("Network error");
+            toastSuccess(`Invited ${email} as ${inviteRole}`);
+            setShowInviteModal(false);
+            setInviteEmail("");
+            setInviteRole("editor");
+            fetchMembers();
+        } catch (err: any) {
+            toastError(err?.response?.data?.detail || "Invite failed");
         } finally {
             setInviting(false);
         }
@@ -177,25 +161,14 @@ export default function OrganizationTab() {
     const handleRoleChange = async (memberUid: string, memberEmail: string, newRole: string) => {
         setChangingRoleUid(memberUid);
         try {
-            const token = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${BACKEND_URL}/api/organization/members/role`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                },
-                body: JSON.stringify({ email: memberEmail, new_role: newRole }),
+            await api.patch("/api/organization/members/role", {
+                email: memberEmail,
+                new_role: newRole,
             });
-
-            if (res.ok) {
-                toastSuccess(`${memberEmail} updated to ${newRole}`);
-                fetchMembers();
-            } else {
-                const errData = await res.json().catch(() => null);
-                toastError(errData?.detail || "Role update failed");
-            }
-        } catch {
-            toastError("Network error");
+            toastSuccess(`${memberEmail} updated to ${newRole}`);
+            fetchMembers();
+        } catch (err: any) {
+            toastError(err?.response?.data?.detail || "Role update failed");
         } finally {
             setChangingRoleUid(null);
         }
@@ -212,24 +185,13 @@ export default function OrganizationTab() {
         if (!confirm(`Are you sure you want to remove ${memberEmail} from the organization?`)) return;
         setRemovingUid(memberUid);
         try {
-            const token = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${BACKEND_URL}/api/organization/members/remove`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                },
-                body: JSON.stringify({ email: memberEmail }),
+            await api.post("/api/organization/members/remove", {
+                email: memberEmail,
             });
-            if (res.ok) {
-                toastSuccess(`${memberEmail} removed from organization`);
-                fetchMembers();
-            } else {
-                const errData = await res.json().catch(() => null);
-                toastError(errData?.detail || "Remove failed");
-            }
-        } catch {
-            toastError("Network error");
+            toastSuccess(`${memberEmail} removed from organization`);
+            fetchMembers();
+        } catch (err: any) {
+            toastError(err?.response?.data?.detail || "Remove failed");
         } finally {
             setRemovingUid(null);
         }

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { collection, onSnapshot, doc, setDoc, writeBatch, deleteDoc, getDoc } from "firebase/firestore";
 import { ref, deleteObject, getStorage } from "firebase/storage";
 import { db, auth, storage } from "@/lib/firebase";
-import { API_BASE_URL } from "@/lib/config";
+import { api } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { arrayMove } from "@dnd-kit/sortable";
 
@@ -206,15 +206,9 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         formData.append("scene_duration", String(currentScene.estimated_duration_seconds || 0));
 
         try {
-            const idToken = await auth.currentUser?.getIdToken();
-            const res = await fetch(`${API_BASE_URL}/api/v1/shot/suggest_shots`, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${idToken}` },
-                body: formData
-            });
-
-            const data = await res.json();
-            if (res.ok && data.shots) {
+            const res = await api.post("/api/v1/shot/suggest_shots", formData);
+            const data = res.data;
+            if (data.shots) {
                 setTerminalLog(prev => [...prev, "> GENERATING SHOT LIST..."]);
                 const batch = writeBatch(db);
 
@@ -370,27 +364,16 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
 
         try {
-            const idToken = await auth.currentUser?.getIdToken();
             const endpoint = cameraTransform ? "/api/v1/shot/reimagine_shot" : "/api/v1/shot/generate_shot";
-
-            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${idToken}` },
-                body: formData
-            });
-
-            if (!response.ok) {
-                if (response.status === 402) {
-                    if (onLowCredits) onLowCredits();
-                    return;
-                }
-                const errorData = await response.json();
-                throw new Error(errorData.detail || "Failed to render shot");
-            }
+            await api.post(endpoint, formData);
 
         } catch (e: any) {
+            if (e.response?.status === 402) {
+                if (onLowCredits) onLowCredits();
+                return;
+            }
             console.error("Render error:", e);
-            toastError(e.message);
+            toastError(e.response?.data?.detail || e.message || "Failed to render shot");
         } finally {
             removeLoadingShot(shot.id);
         }
@@ -402,7 +385,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         addLoadingShot(shot.id);
 
         try {
-            const idToken = await auth.currentUser?.getIdToken();
             const formData = new FormData();
 
             formData.append("series_id", seriesId);
@@ -411,18 +393,12 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             formData.append("shot_id", shot.id);
             formData.append("image_url", shot.image_url);
 
-            const res = await fetch(`${API_BASE_URL}/api/v1/shot/finalize_shot`, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${idToken}` },
-                body: formData
-            });
+            const res = await api.post("/api/v1/shot/finalize_shot", formData);
 
-            const data = await res.json();
-
-            if (data.status === "success") {
+            if (res.data.status === "success") {
                 toastSuccess("Shot Finalized & Polished");
             } else {
-                throw new Error(data.detail || "Finalization failed");
+                throw new Error(res.data.detail || "Finalization failed");
             }
 
         } catch (e: any) {
@@ -438,7 +414,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         if (!shot.image_url) return toastError("Generate image first");
 
         try {
-            const idToken = await auth.currentUser?.getIdToken();
             const formData = new FormData();
             formData.append("series_id", seriesId);
             formData.append("episode_id", episodeId);
@@ -452,11 +427,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
                 formData.append("end_frame_url", endFrameUrl);
             }
 
-            await fetch(`${API_BASE_URL}/api/v1/shot/animate_shot`, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${idToken}` },
-                body: formData
-            });
+            await api.post("/api/v1/shot/animate_shot", formData);
 
         } catch (e) {
             console.error(e);
@@ -468,21 +439,13 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
     // Added emotion parameter to match frontend update
     const handleGenerateVoiceover = async (text: string, voiceId: string, emotion: string): Promise<string | null> => {
         try {
-            const idToken = await auth.currentUser?.getIdToken();
             const formData = new FormData();
             formData.append("text", text);
             formData.append("voice_id", voiceId);
             formData.append("emotion", emotion); // <--- Pass emotion
 
-            const res = await fetch(`${API_BASE_URL}/api/v1/shot/generate_voiceover`, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${idToken}` },
-                body: formData
-            });
-
-            if (!res.ok) throw new Error("Voice generation failed");
-            const data = await res.json();
-            return data.audio_url;
+            const res = await api.post("/api/v1/shot/generate_voiceover", formData);
+            return res.data.audio_url;
         } catch (e) {
             console.error(e);
             toastError("Failed to generate voice");
@@ -500,7 +463,6 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         await setDoc(shotRef, { video_status: "processing" }, { merge: true });
 
         try {
-            const idToken = await auth.currentUser?.getIdToken();
             const formData = new FormData();
             formData.append("series_id", seriesId);
             formData.append("episode_id", episodeId);
@@ -511,16 +473,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             if (audioUrl) formData.append("audio_url", audioUrl);
             if (audioFile) formData.append("audio_file", audioFile);
 
-            const res = await fetch(`${API_BASE_URL}/api/v1/shot/lipsync_shot`, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${idToken}` },
-                body: formData
-            });
-
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || "Lip Sync failed");
-            }
+            await api.post("/api/v1/shot/lipsync_shot", formData);
 
             toastSuccess("Lip Sync Queued (Approx 2-5 mins)");
 
