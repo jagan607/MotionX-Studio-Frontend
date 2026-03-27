@@ -422,7 +422,8 @@ export const generateSetDesign = async (
     episodeId: string,
     sceneId: string,
     sceneAction?: string,
-    location?: string
+    location?: string,
+    overrideLock?: boolean
 ) => {
     const res = await api.post("/api/v1/shot/generate_set_design", {
         project_id: projectId,
@@ -430,6 +431,7 @@ export const generateSetDesign = async (
         scene_id: sceneId,
         scene_action: sceneAction || "",
         location: location || "",
+        override_lock: overrideLock || false,
     });
     return res.data;
 };

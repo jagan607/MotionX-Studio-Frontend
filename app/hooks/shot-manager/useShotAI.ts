@@ -41,8 +41,10 @@ export const useShotAI = (
             scene_action: sceneAction,
             characters: sceneChars,
             location: sceneLocationName,
+            location_id: sceneLocationId,
             products: sceneProductsString,
-            scene_duration: currentScene.estimated_duration_seconds || 0
+            scene_duration: currentScene.estimated_duration_seconds || 0,
+            regenerate_set: false
         };
 
         try {

@@ -82,6 +82,7 @@ export const useShotImageGen = (
         formData.append("image_provider", provider);
         formData.append("style", style);
         formData.append("genre", genre);
+        formData.append("regenerate_set", "false");
 
         // NEW — Camera / continuity metadata
         console.log("PAYLOAD DEBUG: location_angle=", shot.location_angle, "camera_direction=", shot.camera_direction, "continuity_note=", shot.continuity_note, "ambient_scene=", shot.ambient_scene);

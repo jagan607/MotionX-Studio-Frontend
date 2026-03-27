@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
     Sparkles, X, Loader2, Save, Users, Package, CloudFog, Building2,
-    ChevronRight, Eye
+    ChevronRight, Eye, ImagePlus
 } from "lucide-react";
 import { generateSetDesign, updateSetDesign } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -21,6 +21,7 @@ interface SetDesignData {
     image_url?: string | null;
     image_urls?: { front?: string; back?: string; left?: string; right?: string; };
     image_status?: string;
+    is_locked?: boolean;
 }
 
 interface LocationAsset {
@@ -41,6 +42,7 @@ interface SetDesignPanelProps {
     locationName?: string;
     locations?: LocationAsset[];
     sceneAction?: string;
+    onOpenAssets?: () => void;
 }
 
 const ANGLE_LABELS: Record<string, string> = { wide: "ESTABLISHING", front: "FRONT", left: "LEFT", right: "RIGHT", back: "BACK" };
@@ -67,7 +69,7 @@ const textToDressing = (text: string): SetDressingItem[] =>
 
 export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     isOpen, onClose, projectId, episodeId, sceneId,
-    existingData, onUpdate, locationName, locations = [], sceneAction,
+    existingData, onUpdate, locationName, locations = [], sceneAction, onOpenAssets,
 }) => {
     const [extrasText, setExtrasText] = useState("");
     const [dressingText, setDressingText] = useState("");
@@ -125,8 +127,15 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
         if (isGeneratingRef.current) return;
         isGeneratingRef.current = true;
         setIsGenerating(true);
+
+        // Immediately flip the local UI state if it's an overhaul
+        if (hasData && onUpdate && existingData?.is_locked) {
+            onUpdate({ ...existingData, is_locked: false });
+        }
+
         try {
-            const res = await generateSetDesign(projectId, episodeId, sceneId, sceneAction, locationName);
+            const overrideLock = true;
+            const res = await generateSetDesign(projectId, episodeId, sceneId, sceneAction, locationName, overrideLock);
             const data = res.set_design || res;
             setExtrasText(extrasToText(data.extras));
             setDressingText(dressingToText(data.set_dressing));
@@ -151,6 +160,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                 set_dressing: textToDressing(dressingText),
                 atmosphere,
                 architecture_notes: archNotes,
+                is_locked: true,
             };
             await updateSetDesign(projectId, episodeId, sceneId, payload);
             if (onUpdate) onUpdate(payload);
@@ -230,22 +240,29 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                     </div>
 
                     <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
-                        {/* Generate */}
+                        {/* Generate CTA */}
                         <button onClick={handleGenerate} disabled={isGenerating}
-                            className="w-full flex items-center justify-between px-6 py-4 rounded-xl transition-all cursor-pointer disabled:cursor-not-allowed group border border-white/[0.05] hover:border-red-500/40 relative overflow-hidden"
-                            style={{ background: isGenerating ? "rgba(220, 38, 38, 0.05)" : "rgba(255, 255, 255, 0.02)" }}>
-                            <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/5 to-red-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                            className="w-full flex items-center justify-between px-6 py-5 rounded-2xl transition-all cursor-pointer disabled:cursor-not-allowed group relative overflow-hidden"
+                            style={{ background: isGenerating ? "rgba(220, 38, 38, 0.1)" : "rgba(220, 38, 38, 0.06)", border: isGenerating ? "1px solid rgba(220, 38, 38, 0.3)" : "1px solid rgba(220, 38, 38, 0.2)" }}>
+                            <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/10 to-red-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                             <div className="flex items-center gap-4 relative z-10">
                                 {isGenerating ? (
-                                    <Loader2 size={16} className="animate-spin text-red-400" />
+                                    <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
+                                        <Loader2 size={16} className="animate-spin text-red-400" />
+                                    </div>
                                 ) : (
-                                    <Sparkles size={16} className="text-red-400 group-hover:scale-110 transition-transform" />
+                                    <div className="w-8 h-8 rounded-lg bg-red-500/20 group-hover:bg-red-500/30 flex items-center justify-center transition-colors">
+                                        <Sparkles size={16} className="text-red-400" />
+                                    </div>
                                 )}
-                                <span className={`text-[12px] font-bold uppercase tracking-[2px] transition-colors ${isGenerating ? "text-red-400" : "text-white/80 group-hover:text-white"}`}>
-                                    {isGenerating ? "Processing Vision..." : (isGeneratingImage ? "Force Retry Design" : (hasData ? "Overhaul Design" : "Auto-Generate Set"))}
-                                </span>
+                                <div>
+                                    <span className={`text-[12px] font-bold uppercase tracking-[2px] block transition-colors ${isGenerating ? "text-red-400" : "text-white/90 group-hover:text-white"}`}>
+                                        {isGenerating ? "Processing Vision..." : (isGeneratingImage ? "Force Retry Design" : (hasData ? "Overhaul Design" : "Auto-Generate Set"))}
+                                    </span>
+                                    <span className="text-[9px] text-white/30 font-mono tracking-wider">AI-powered set composition</span>
+                                </div>
                             </div>
-                            <span className="text-[10px] font-mono text-white/20 group-hover:text-red-400/50 relative z-10">CMD+G</span>
+                            <span className="text-[10px] font-mono text-white/20 group-hover:text-red-400/50 relative z-10">⌘G</span>
                         </button>
 
                         {/* Fields */}
@@ -262,19 +279,6 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                 </div>
                             ))}
                         </div>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="px-8 py-4 shrink-0 flex items-center justify-between border-t border-white/[0.03] bg-black/20">
-                        <button onClick={handleSave} disabled={isSaving}
-                            className={`flex items-center gap-3 px-8 py-3 bg-red-600 hover:bg-red-500 text-white transition-all cursor-pointer rounded-xl ${isDirty ? "" : "opacity-90"}`}
-                            style={{ boxShadow: isDirty ? "0 0 30px rgba(220, 38, 38, 0.4)" : "0 0 15px rgba(220, 38, 38, 0.15)" }}>
-                            {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-                            <span className="text-[11px] font-bold uppercase tracking-[2px]">{isSaving ? "Saving..." : "Lock Design"}</span>
-                        </button>
-                        <button onClick={handleClose} className="text-[11px] font-mono text-white/40 uppercase hover:text-white transition-colors cursor-pointer tracking-widest px-4 py-2">
-                            Close
-                        </button>
                     </div>
                 </div>
 
@@ -299,7 +303,10 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                     )}
 
                     {heroImage ? (
-                        <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+                        <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-r-3xl">
+                            {/* Viewport Image */}
+                            <img src={heroImage} alt="Angle Preview" className="absolute inset-0 w-full h-full object-cover opacity-100" />
+                            
                             {/* Cinematic HUD Overlay */}
                             <div className="absolute inset-4 border border-white/10 z-20 pointer-events-none">
                                 {/* Corners */}
@@ -354,13 +361,22 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                             )}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center gap-6 text-center px-10">
+                        <div className="flex flex-col items-center gap-6 text-center px-10 pointer-events-auto">
                             <div className="w-24 h-24 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-center">
                                 <Building2 size={32} className="text-white/10" />
                             </div>
                             <div>
                                 <div className="text-[10px] font-bold text-white/30 uppercase tracking-[3px] mb-2">No Location Preview</div>
-                                <div className="text-[11px] text-white/15 max-w-[240px] leading-relaxed">Generate a location image in Assets to see a visual preview of your set here.</div>
+                                <div className="text-[11px] text-white/15 max-w-[240px] leading-relaxed mb-5">Generate a location image in Assets to see a visual preview of your set here.</div>
+                                {onOpenAssets && (
+                                    <button
+                                        onClick={() => { onOpenAssets(); handleClose(); }}
+                                        className="inline-flex items-center gap-2.5 px-5 py-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] hover:border-white/[0.2] rounded-xl text-[11px] font-bold text-white/70 hover:text-white uppercase tracking-widest transition-all cursor-pointer"
+                                    >
+                                        <ImagePlus size={14} />
+                                        Open in Assets
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )}
