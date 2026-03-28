@@ -67,6 +67,34 @@ const textToDressing = (text: string): SetDressingItem[] =>
         return { item: item.trim(), ...(placement && { placement: placement.trim() }) };
     });
 
+/* ── Angle-based filtering ───────────────────────────────────── */
+const ANGLE_KEYWORDS: Record<string, RegExp> = {
+    front: /\b(front|far\s*end|entrance|doorway)\b/i,
+    back:  /\b(back|rear|near\s*end|behind)\b/i,
+    left:  /\b(left)\b/i,
+    right: /\b(right)\b/i,
+};
+
+/** Returns true if the line's placement matches the given angle, or has no directional keyword (neutral). */
+const lineMatchesAngle = (line: string, angle: string): boolean => {
+    // Extract placement after the dash
+    const dashMatch = line.match(/\s*[—–-]\s*(.+)$/);
+    const placement = dashMatch ? dashMatch[1] : "";
+    if (!placement) return true; // No placement → show everywhere
+
+    const angleRegex = ANGLE_KEYWORDS[angle];
+    if (!angleRegex) return true; // Unknown angle (wide/establishing) → show all
+
+    // Check if placement has ANY directional keyword
+    const hasAnyDirection = Object.values(ANGLE_KEYWORDS).some(rx => rx.test(placement));
+    if (!hasAnyDirection) return true; // Neutral placement ("center of room") → show everywhere
+
+    return angleRegex.test(placement);
+};
+
+const filterTextByAngle = (text: string, angle: string): string =>
+    text.split("\n").filter(line => !line.trim() || lineMatchesAngle(line, angle)).join("\n");
+
 export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     isOpen, onClose, projectId, episodeId, sceneId,
     existingData, onUpdate, locationName, locations = [], sceneAction, onOpenAssets,
@@ -176,11 +204,17 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
 
     if (!isOpen) return null;
 
+    // Compute angle-filtered display values (only when multi-angle views exist)
+    const isMultiAngle = availableViews.length > 1;
+    const displayExtras = isMultiAngle ? filterTextByAngle(extrasText, activeView) : extrasText;
+    const displayDressing = isMultiAngle ? filterTextByAngle(dressingText, activeView) : dressingText;
+    const angleLabel = isMultiAngle ? (ANGLE_LABELS[activeView] || activeView).toUpperCase() : null;
+
     const sections = [
-        { key: "extras", label: "Scene Extras", sublabel: "Background characters that populate this world", icon: Users, value: extrasText, setter: setExtrasText, placeholder: "2x Juror — seated in jury box\n1x Bailiff — standing by door\n1x Court reporter — at desk\n5x Spectator — filling gallery rows" },
-        { key: "dressing", label: "Set Dressing & Props", sublabel: "Physical objects that define the space", icon: Package, value: dressingText, setter: setDressingText, placeholder: "Mahogany judge's bench — center, elevated\nAmerican flag — floor stand, stage right\nWitness stand microphone — small flex mic\nEvidence table — labeled manila folders, water pitcher" },
-        { key: "atmosphere", label: "Atmosphere & Lighting", sublabel: "The invisible character of the space", icon: CloudFog, value: atmosphere, setter: setAtmosphere, placeholder: "Warm afternoon light slanting through tall arched windows casting long shadows across the hardwood floor, dust motes suspended in golden beams, a sense of weight and consequence in the air..." },
-        { key: "notes", label: "Architecture Notes", sublabel: "Structural and spatial context", icon: Building2, value: archNotes, setter: setArchNotes, placeholder: "Classic American federal courthouse — wood paneling, high ceilings, symmetrical layout. The bench is elevated 3 feet above the floor. Gallery seating for ~40 people." },
+        { key: "extras", label: "Scene Extras", sublabel: "Background characters that populate this world", icon: Users, value: extrasText, displayValue: displayExtras, setter: setExtrasText, placeholder: "2x Juror — seated in jury box\n1x Bailiff — standing by door\n1x Court reporter — at desk\n5x Spectator — filling gallery rows", filterable: true },
+        { key: "dressing", label: "Set Dressing & Props", sublabel: "Physical objects that define the space", icon: Package, value: dressingText, displayValue: displayDressing, setter: setDressingText, placeholder: "Mahogany judge's bench — center, elevated\nAmerican flag — floor stand, stage right\nWitness stand microphone — small flex mic\nEvidence table — labeled manila folders, water pitcher", filterable: true },
+        { key: "atmosphere", label: "Atmosphere & Lighting", sublabel: "The invisible character of the space", icon: CloudFog, value: atmosphere, displayValue: atmosphere, setter: setAtmosphere, placeholder: "Warm afternoon light slanting through tall arched windows casting long shadows across the hardwood floor, dust motes suspended in golden beams, a sense of weight and consequence in the air...", filterable: false },
+        { key: "notes", label: "Architecture Notes", sublabel: "Structural and spatial context", icon: Building2, value: archNotes, displayValue: archNotes, setter: setArchNotes, placeholder: "Classic American federal courthouse — wood paneling, high ceilings, symmetrical layout. The bench is elevated 3 feet above the floor. Gallery seating for ~40 people.", filterable: false },
     ];
 
     return (
@@ -267,15 +301,22 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
 
                         {/* Fields */}
                         <div className="space-y-4">
-                            {sections.map(({ key, label, sublabel, icon: Icon, value, setter, placeholder }) => (
+                            {sections.map(({ key, label, sublabel, icon: Icon, value, displayValue, setter, placeholder, filterable }) => (
                                 <div key={key} className="relative group bg-white/[0.01] rounded-2xl p-4 border border-white/[0.03] hover:border-white/[0.08] transition-colors">
                                     <div className="flex items-baseline gap-3 mb-2">
                                         <span className="text-[11px] font-bold text-red-300 uppercase tracking-widest">{label}</span>
-                                        <span className="text-[10px] font-mono text-white/25 uppercase">{sublabel}</span>
+                                        {filterable && angleLabel && displayValue !== value ? (
+                                            <span className="text-[8px] font-mono text-red-400/60 bg-red-500/10 px-2 py-0.5 rounded uppercase tracking-widest border border-red-500/10">
+                                                {angleLabel} VIEW
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] font-mono text-white/25 uppercase">{sublabel}</span>
+                                        )}
                                     </div>
-                                    <textarea value={value} onChange={(e) => setter(e.target.value)} placeholder={placeholder}
+                                    <textarea value={displayValue} onChange={(e) => setter(e.target.value)} placeholder={placeholder}
+                                        readOnly={filterable && isMultiAngle && displayValue !== value}
                                         rows={key === "extras" || key === "dressing" ? 3 : 2}
-                                        className="w-full bg-transparent text-[13px] text-white/80 focus:outline-none resize-none placeholder:text-white/10 leading-relaxed font-sans" />
+                                        className={`w-full bg-transparent text-[13px] text-white/80 focus:outline-none resize-none placeholder:text-white/10 leading-relaxed font-sans ${filterable && isMultiAngle && displayValue !== value ? "cursor-default" : ""}`} />
                                 </div>
                             ))}
                         </div>
