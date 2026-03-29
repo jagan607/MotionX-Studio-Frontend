@@ -13,7 +13,7 @@ import {
     Film, Tv,
     Megaphone, BrainCircuit, Send,
     Upload, FileText, X,
-    Check, Sparkles
+    Check, Sparkles, Loader2, AlertTriangle
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -64,11 +64,13 @@ interface CinematicScannerProps {
     detectedArchetype: string;
     phase: Phase;
     isTransitioning: boolean;
+    error?: string | null;
 }
 
-function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransitioning }: CinematicScannerProps) {
+function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransitioning, error }: CinematicScannerProps) {
     const activeStep = matchStep(processingStatus);
     const [archetypeVisible, setArchetypeVisible] = useState(false);
+    const [fadeOut, setFadeOut] = useState(false);
 
     // Animate archetype reveal
     useEffect(() => {
@@ -78,14 +80,29 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
         }
     }, [detectedArchetype]);
 
-    if (phase === "prompt") return null;
+    // Graceful fade-out on error
+    useEffect(() => {
+        if (error) {
+            // Show error state for 2.5s, then fade out
+            const t = setTimeout(() => setFadeOut(true), 2500);
+            return () => clearTimeout(t);
+        } else {
+            setFadeOut(false);
+        }
+    }, [error]);
+
+    if (phase === "prompt" && !error) return null;
+    if (fadeOut) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-700"
             style={{
-                background: isTransitioning
-                    ? "radial-gradient(ellipse at center, rgba(16,185,129,0.08) 0%, rgba(8,8,8,0.95) 60%)"
-                    : "radial-gradient(ellipse at center, rgba(229,9,20,0.04) 0%, rgba(8,8,8,0.95) 60%)"
+                opacity: fadeOut ? 0 : 1,
+                background: error
+                    ? "radial-gradient(ellipse at center, rgba(239,68,68,0.08) 0%, rgba(8,8,8,0.95) 60%)"
+                    : isTransitioning
+                        ? "radial-gradient(ellipse at center, rgba(16,185,129,0.08) 0%, rgba(8,8,8,0.95) 60%)"
+                        : "radial-gradient(ellipse at center, rgba(229,9,20,0.04) 0%, rgba(8,8,8,0.95) 60%)"
             }}>
 
             {/* Backdrop blur layer */}
@@ -105,28 +122,34 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                 {/* ── Ambient glow ── */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full blur-[100px] transition-all duration-1000 pointer-events-none"
                     style={{
-                        background: isTransitioning
-                            ? "radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)"
-                            : "radial-gradient(circle, rgba(229,9,20,0.1) 0%, transparent 70%)",
+                        background: error
+                            ? "radial-gradient(circle, rgba(239,68,68,0.15) 0%, transparent 70%)"
+                            : isTransitioning
+                                ? "radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)"
+                                : "radial-gradient(circle, rgba(229,9,20,0.1) 0%, transparent 70%)",
                         animation: "breathe 6s ease-in-out infinite"
                     }} />
 
                 {/* ── Central icon ── */}
                 <div className="relative w-20 h-20 mb-10 flex items-center justify-center">
                     {/* Outer ring */}
-                    <div className={`absolute inset-0 rounded-full border transition-all duration-700 ${isTransitioning ? "border-emerald-500/40" : "border-white/[0.05]"
+                    <div className={`absolute inset-0 rounded-full border transition-all duration-700 ${error ? "border-red-500/40" : isTransitioning ? "border-emerald-500/40" : "border-white/[0.05]"
                         }`} />
                     {/* Spinning ring */}
-                    <div className={`absolute inset-0 rounded-full border border-t-transparent transition-all duration-700 ${isTransitioning ? "border-emerald-400/50" : "border-[#E50914]/40"
+                    <div className={`absolute inset-0 rounded-full border border-t-transparent transition-all duration-700 ${error ? "border-red-400/50" : isTransitioning ? "border-emerald-400/50" : "border-[#E50914]/40"
                         }`}
-                        style={{ animation: isTransitioning ? "none" : "spin 1.5s linear infinite" }} />
+                        style={{ animation: (isTransitioning || error) ? "none" : "spin 1.5s linear infinite" }} />
                     {/* Inner ring */}
-                    <div className={`absolute inset-2 rounded-full border border-b-transparent transition-all duration-700 ${isTransitioning ? "border-emerald-400/30" : "border-[#E50914]/20"
+                    <div className={`absolute inset-2 rounded-full border border-b-transparent transition-all duration-700 ${error ? "border-red-400/30" : isTransitioning ? "border-emerald-400/30" : "border-[#E50914]/20"
                         }`}
-                        style={{ animation: isTransitioning ? "none" : "spin 2s linear infinite reverse" }} />
+                        style={{ animation: (isTransitioning || error) ? "none" : "spin 2s linear infinite reverse" }} />
 
                     {/* Icon swap */}
-                    {isTransitioning ? (
+                    {error ? (
+                        <div className="animate-[scaleIn_0.4s_ease_both]">
+                            <AlertTriangle size={22} className="text-red-400" />
+                        </div>
+                    ) : isTransitioning ? (
                         <div className="animate-[scaleIn_0.4s_ease_both]">
                             <Check size={24} className="text-emerald-400" strokeWidth={3} />
                         </div>
@@ -136,16 +159,18 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                 </div>
 
                 {/* ── Status heading ── */}
-                <h3 className={`font-anton uppercase tracking-[3px] text-xl mb-2 text-center transition-colors duration-700 ${isTransitioning ? "text-emerald-300" : "text-white"
+                <h3 className={`font-anton uppercase tracking-[3px] text-xl mb-2 text-center transition-colors duration-700 ${error ? "text-red-400" : isTransitioning ? "text-emerald-300" : "text-white"
                     }`}>
-                    {isTransitioning
-                        ? "Scan Complete"
-                        : (processingStatus.includes('...') ? processingStatus.replace('...', '') : processingStatus || "Initializing")
+                    {error
+                        ? "Process Failed"
+                        : isTransitioning
+                            ? "Scan Complete"
+                            : (processingStatus.includes('...') ? processingStatus.replace('...', '') : processingStatus || "Initializing")
                     }
                 </h3>
 
-                <p className="text-[10px] text-neutral-600 tracking-[1.5px] uppercase font-mono text-center mb-10">
-                    {isTransitioning ? "Entering moodboard" : "Do not close this window"}
+                <p className={`text-[10px] tracking-[1.5px] uppercase font-mono text-center mb-10 ${error ? "text-red-400/60" : "text-neutral-600"}`}>
+                    {error ? error : isTransitioning ? "Entering moodboard" : "Do not close this window"}
                 </p>
 
                 {/* ── Step tracker ── */}
@@ -261,7 +286,9 @@ export default function NewProjectPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [runtime, setRuntime] = useState<number>(30);
     const [runtimeUnit, setRuntimeUnit] = useState<'sec' | 'min'>('sec');
-    const [validationErrors, setValidationErrors] = useState<{ title?: boolean; genre?: boolean }>({});
+    const [validationErrors, setValidationErrors] = useState<{ title?: boolean; genre?: boolean; vision?: boolean }>({});
+    const [scannerError, setScannerError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // ══════ PROCESSING / SCANNER STATE ══════
     const [processingStatus, setProcessingStatus] = useState("");
@@ -327,12 +354,14 @@ export default function NewProjectPage() {
         const f = e.dataTransfer.files?.[0];
         if (!f) return;
         if (!f.name.endsWith(".pdf") && !f.type.includes("pdf")) return toast.error("Please upload a PDF script");
+        if (f.size > 50 * 1024 * 1024) return toast.error("Script file too large (max 50MB)");
         setScriptFile(f);
     };
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
         if (!f) return;
         if (!f.name.endsWith(".pdf") && !f.type.includes("pdf")) return toast.error("Please upload a PDF script");
+        if (f.size > 50 * 1024 * 1024) return toast.error("Script file too large (max 50MB)");
         setScriptFile(f);
     };
 
@@ -393,8 +422,8 @@ export default function NewProjectPage() {
             projectDataRef.current = data;
 
             // Check for taxonomy_profile appearing
-            if (data.taxonomy_profile?.name && !detectedArchetype) {
-                setDetectedArchetype(data.taxonomy_profile.name);
+            if (data.taxonomy_profile?.name) {
+                setDetectedArchetype(prev => prev || data.taxonomy_profile.name);
             }
         }, (error) => {
             console.error("Project listener error:", error);
@@ -405,17 +434,19 @@ export default function NewProjectPage() {
     // ══════ CREATE PROJECT ══════
     const handleCreate = async () => {
         // Validate required fields
-        const errors: { title?: boolean; genre?: boolean } = {};
+        const errors: { title?: boolean; genre?: boolean; vision?: boolean } = {};
         if (!title.trim()) errors.title = true;
         if (!genre.trim()) errors.genre = true;
-        if (errors.title || errors.genre) {
+        if (!vision.trim() && !scriptFile) errors.vision = true;
+        if (errors.title || errors.genre || errors.vision) {
             setValidationErrors(errors);
-            const missing = [errors.title && 'Project Name', errors.genre && 'Genre'].filter(Boolean).join(' and ');
+            const missing = [errors.title && 'Project Name', errors.genre && 'Genre', errors.vision && 'Synopsis or Script'].filter(Boolean).join(', ');
             toast.error(`Please fill in ${missing}`);
             setTimeout(() => setValidationErrors({}), 2000);
             return;
         }
-        if (!vision.trim() && !scriptFile) return toast.error("Describe your vision or upload a script");
+        setIsSubmitting(true);
+        setScannerError(null);
         setPhase("processing");
         setDetectedArchetype("");
         setIsTransitioning(false);
@@ -460,8 +491,17 @@ export default function NewProjectPage() {
             setupListeners(jobId, projectId);
 
         } catch (e: any) {
-            toast.error(e.response?.data?.detail || "Something went wrong.");
-            setPhase("prompt"); setProcessingStatus("");
+            const errorMsg = e.response?.data?.detail || "Something went wrong.";
+            toast.error(errorMsg);
+            setScannerError(errorMsg);
+            // Let the Scanner show the error state before reverting
+            setTimeout(() => {
+                setPhase("prompt");
+                setProcessingStatus("");
+                setScannerError(null);
+            }, 3000);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -521,6 +561,7 @@ export default function NewProjectPage() {
                         detectedArchetype={detectedArchetype}
                         phase={phase}
                         isTransitioning={isTransitioning}
+                        error={scannerError}
                     />
 
                     {/* ── Hero Text ── */}
@@ -546,11 +587,11 @@ export default function NewProjectPage() {
 
                     {/* ── Prompt Box ── */}
                     <div className="relative fade-in-1">
-                        <div className="rounded-2xl border border-white/[0.06] bg-black/40 backdrop-blur-sm p-5 focus-within:border-[#E50914]/20 focus-within:bg-black/50 focus-within:shadow-[0_0_60px_rgba(229,9,20,0.04)]">
+                        <div className={`rounded-2xl border bg-black/40 backdrop-blur-sm p-5 transition-all duration-300 ${validationErrors.vision ? 'border-[#E50914]/60 shadow-[0_0_30px_rgba(229,9,20,0.08)]' : 'border-white/[0.06] focus-within:border-[#E50914]/20 focus-within:bg-black/50 focus-within:shadow-[0_0_60px_rgba(229,9,20,0.04)]'}`}>
 
                             {/* Editable textarea */}
                             <textarea ref={textareaRef} autoFocus value={vision}
-                                onChange={(e) => setVision(e.target.value)} onKeyDown={handleKeyDown}
+                                onChange={(e) => { setVision(e.target.value); if (validationErrors.vision) setValidationErrors(v => ({ ...v, vision: false })); }} onKeyDown={handleKeyDown}
                                 className="w-full bg-transparent text-[15px] text-white focus:outline-none resize-none leading-[1.7] caret-[#E50914] min-h-[80px]"
                                 placeholder={displayedPlaceholder || " "} rows={3} />
 
@@ -577,10 +618,10 @@ export default function NewProjectPage() {
                                     <span className="text-[9px] text-neutral-800">⏎ to create</span>
                                 </div>
                                 <button onClick={handleCreate}
-                                    disabled={phase !== 'prompt' || !title.trim() || !genre.trim() || (!vision.trim() && !scriptFile)}
+                                    disabled={isSubmitting || phase !== 'prompt' || !title.trim() || !genre.trim() || (!vision.trim() && !scriptFile)}
                                     className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-semibold tracking-[1px] transition-all duration-300 cursor-pointer
-                                        ${phase !== 'prompt' || !title.trim() || !genre.trim() || (!vision.trim() && !scriptFile) ? 'text-neutral-700 cursor-not-allowed' : 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25]'}`}>
-                                    <Send size={11} /> Create
+                                        ${isSubmitting || phase !== 'prompt' || !title.trim() || !genre.trim() || (!vision.trim() && !scriptFile) ? 'text-neutral-700 cursor-not-allowed' : 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25]'}`}>
+                                    {isSubmitting ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} {isSubmitting ? 'Creating...' : 'Create'}
                                 </button>
                             </div>
                         </div>
