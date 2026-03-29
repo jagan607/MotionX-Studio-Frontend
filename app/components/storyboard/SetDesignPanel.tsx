@@ -235,7 +235,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
 
         // 2. Persist to backend explicitly
         try {
-            await updateSetDesign(projectId, episodeId, sceneId, updatedData);
+            await updateSetDesign(projectId, episodeId, sceneId, updatedData, true);
             toastSuccess(`${ANGLE_LABELS[activeView] || activeView} frame updated`);
         } catch (e) {
             toastError("Failed to save inpainted frame to database");

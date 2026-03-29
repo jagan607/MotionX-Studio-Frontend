@@ -440,9 +440,13 @@ export const updateSetDesign = async (
     projectId: string,
     episodeId: string,
     sceneId: string,
-    setDesign: Record<string, any>
+    setDesign: Record<string, any>,
+    overrideLock: boolean = false
 ) => {
-    const res = await api.put("/api/v1/shot/update_set_design", {
+    const url = overrideLock
+        ? "/api/v1/shot/update_set_design?override_lock=true"
+        : "/api/v1/shot/update_set_design";
+    const res = await api.put(url, {
         project_id: projectId,
         episode_id: episodeId,
         scene_id: sceneId,
