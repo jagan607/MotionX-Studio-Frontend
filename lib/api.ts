@@ -415,7 +415,104 @@ export const uploadStyleRef = async (projectId: string, file: File) => {
     return res.data;
 };
 
-// --- 12. SCENE MOOD ---
+// --- 12. SET DESIGN & WARDROBE ---
+
+export const generateSetDesign = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    sceneAction?: string,
+    location?: string,
+    overrideLock?: boolean
+) => {
+    const res = await api.post("/api/v1/shot/generate_set_design", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        scene_action: sceneAction || "",
+        location: location || "",
+        override_lock: overrideLock || false,
+    });
+    return res.data;
+};
+
+export const updateSetDesign = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    setDesign: Record<string, any>,
+    overrideLock: boolean = false
+) => {
+    const url = overrideLock
+        ? "/api/v1/shot/update_set_design?override_lock=true"
+        : "/api/v1/shot/update_set_design";
+    const res = await api.put(url, {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        set_design: setDesign,
+    });
+    return res.data;
+};
+
+export const inpaintSetDesign = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    angle: string,
+    prompt: string,
+    originalImageUrl: string,
+    maskBase64: string,
+    refImages: File[] = []
+): Promise<{ status: string; image_url: string; angle: string }> => {
+    const formData = new FormData();
+    formData.append("project_id", projectId);
+    formData.append("episode_id", episodeId);
+    formData.append("scene_id", sceneId);
+    formData.append("angle", angle);
+    formData.append("prompt", prompt);
+    formData.append("original_image_url", originalImageUrl);
+    formData.append("mask_image_base64", maskBase64);
+    refImages.forEach((file) => {
+        formData.append("reference_images", file);
+    });
+    const res = await api.post("/api/v1/shot/inpaint_set_design", formData);
+    return res.data;
+};
+
+export const generateWardrobe = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    sceneAction?: string,
+    characters?: string[]
+) => {
+    const res = await api.post("/api/v1/shot/generate_wardrobe", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        scene_action: sceneAction || "",
+        characters: characters || [],
+    });
+    return res.data;
+};
+
+export const updateWardrobe = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    wardrobe: Record<string, any>
+) => {
+    const res = await api.put("/api/v1/shot/update_wardrobe", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        wardrobe,
+    });
+    return res.data;
+};
+
+// --- 13. SCENE MOOD ---
 
 export const getSceneMood = async (projectId: string, episodeId: string, sceneId: string) => {
     const res = await api.get(`/api/v1/shot/project/${projectId}/episode/${episodeId}/scene/${sceneId}/mood`);

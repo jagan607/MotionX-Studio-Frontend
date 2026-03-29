@@ -41,8 +41,10 @@ export const useShotAI = (
             scene_action: sceneAction,
             characters: sceneChars,
             location: sceneLocationName,
+            location_id: sceneLocationId,
             products: sceneProductsString,
-            scene_duration: currentScene.estimated_duration_seconds || 0
+            scene_duration: currentScene.estimated_duration_seconds || 0,
+            regenerate_set: false
         };
 
         try {
@@ -93,6 +95,7 @@ export const useShotAI = (
                         location_angle: shot.location_angle || "",
                         camera_direction: shot.camera_direction || "",
                         continuity_note: shot.continuity_note || "",
+                        ambient_scene: shot.ambient_scene || "",
 
                         status: "draft",
                         order: index,

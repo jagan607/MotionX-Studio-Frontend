@@ -51,6 +51,7 @@ interface Shot {
     location_angle?: string;
     camera_direction?: string;
     continuity_note?: string;
+    ambient_scene?: string;
 }
 
 interface SortableShotCardProps {
@@ -488,7 +489,7 @@ export const SortableShotCard = ({
                         <option value="front">Front</option>
                         <option value="left">Left</option>
                         <option value="right">Right</option>
-                        <option value="back">Back (Reverse)</option>
+                        <option value="back">Back</option>
                     </select>
                 </div>
             </div>

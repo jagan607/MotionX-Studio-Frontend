@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download, MoreVertical, Upload } from 'lucide-react';
+import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download, MoreVertical, Upload, Palette } from 'lucide-react';
 import JSZip from 'jszip';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
@@ -22,6 +22,8 @@ import { LipSyncModal } from "./LipSyncModal";
 import { DownloadModal } from "./DownloadModal";
 import { ShotEditorPanel } from "./ShotEditorPanel";
 import { ShotDivisionModal } from "./ShotDivisionModal";
+import { SetDesignPanel } from "./SetDesignPanel";
+import { WardrobePanel } from "./WardrobePanel";
 import dynamic from 'next/dynamic';
 const ParticleField = dynamic(() => import('./ParticleField'), { ssr: false });
 import { styles } from "./BoardStyles";
@@ -180,6 +182,10 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [showAssets, setShowAssets] = useState(false);
     const [showScript, setShowScript] = useState(false);
     const [showShotDivision, setShowShotDivision] = useState(false);
+    const [showSetDesign, setShowSetDesign] = useState(false);
+    const [showWardrobe, setShowWardrobe] = useState(false);
+    const [sceneSetDesign, setSceneSetDesign] = useState<any>(null);
+    const [sceneWardrobe, setSceneWardrobe] = useState<any>(null);
     const [showExportDropdown, setShowExportDropdown] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const exportDropdownRef = useRef<HTMLDivElement>(null);
@@ -256,6 +262,20 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         };
         fetchProjectSettings();
     }, [seriesId]);
+
+    // --- 3b. REAL-TIME SCENE DATA (set_design, wardrobe) ---
+    useEffect(() => {
+        if (!seriesId || !episodeId || !activeSceneId) return;
+        const sceneRef = doc(db, "projects", seriesId, "episodes", episodeId, "scenes", activeSceneId);
+        const unsub = onSnapshot(sceneRef, (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                setSceneSetDesign(data?.set_design || null);
+                setSceneWardrobe(data?.wardrobe || null);
+            }
+        });
+        return () => unsub();
+    }, [seriesId, episodeId, activeSceneId]);
 
     // --- 4. REAL-TIME TERMINAL LOG LISTENER ---
     useEffect(() => {
@@ -528,6 +548,36 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     />
                 )}
 
+                {activeSceneId && (
+                    <SetDesignPanel
+                        isOpen={showSetDesign}
+                        onClose={() => setShowSetDesign(false)}
+                        projectId={seriesId}
+                        episodeId={episodeId}
+                        sceneId={activeSceneId}
+                        existingData={sceneSetDesign}
+                        onUpdate={(data) => setSceneSetDesign(data)}
+                        locationName={sceneLoc}
+                        locations={locations}
+                        sceneAction={currentScene?.visual_action || currentScene?.summary}
+                        onOpenAssets={() => setShowAssets(true)}
+                    />
+                )}
+
+                {activeSceneId && (
+                    <WardrobePanel
+                        isOpen={showWardrobe}
+                        onClose={() => setShowWardrobe(false)}
+                        projectId={seriesId}
+                        episodeId={episodeId}
+                        sceneId={activeSceneId}
+                        existingData={sceneWardrobe}
+                        castMembers={castMembers}
+                        onUpdate={(data) => setSceneWardrobe(data)}
+                        sceneAction={currentScene?.visual_action || currentScene?.summary}
+                    />
+                )}
+
                 {/* --- HEADER --- */}
                 <div style={styles.sbHeader}>
                     {/* LEFT */}
@@ -607,7 +657,22 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             )}
                         </div>
 
-                        {/* GENERATE ALL */}
+                        {/* BUILD SET */}
+                        <button
+                            onClick={() => setShowSetDesign(true)}
+                            style={{
+                                height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
+                                border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                                transition: 'border-color 0.2s'
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
+                        >
+                            <Palette size={14} /> {sceneSetDesign ? 'EDIT SET' : 'BUILD SET'}
+                        </button>
+
+                        {/* GENERATE ALL — hidden for now
                         {shotMgr.shots.length > 0 && (
                             <button
                                 id="tour-sb-generate-all"
@@ -628,6 +693,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 {shotMgr.isStopping ? 'STOPPING...' : shotMgr.isGeneratingAll ? 'STOP' : 'GENERATE SCENE'}
                             </button>
                         )}
+                        */}
 
                         {/* AUTO DIRECT */}
                         <button
@@ -719,6 +785,16 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
                                     >
                                         <FileText size={13} className="text-[#666]" /> Treatment
+                                    </button>
+
+
+
+                                    {/* WARDROBE */}
+                                    <button
+                                        onClick={() => { setShowMoreMenu(false); setShowWardrobe(true); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                                    >
+                                        <span className="text-[#666]">👔</span> Wardrobe {sceneWardrobe ? <span className="ml-auto text-[8px] text-violet-500/70 font-bold">●</span> : null}
                                     </button>
 
                                     {/* UPLOAD SHOTS */}
@@ -825,6 +901,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 <Film size={48} style={{ opacity: 0.2, color: '#FFF', marginBottom: '20px' }} />
                                 <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '24px', color: '#333' }}>EMPTY SEQUENCE</h3>
                                 <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
+                                    <button onClick={() => setShowSetDesign(true)} style={{ padding: '12px 24px', backgroundColor: '#111', color: 'white', border: '1px solid #333', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <Palette size={16} /> {sceneSetDesign ? 'EDIT SET' : 'BUILD SET'}
+                                    </button>
                                     <button onClick={() => handleSafeAutoDirect()} disabled={shotMgr.isAutoDirecting} style={{ padding: '12px 24px', backgroundColor: '#111', color: 'white', border: '1px solid #333', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <Wand2 size={16} /> AUTO-DIRECT SCENE
                                     </button>

@@ -61,19 +61,21 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isUploadingRef, setIsUploadingRef] = useState(false);
     const [isUploadingMain, setIsUploadingMain] = useState(false);
-    const isProcessing = parentIsProcessing || isGenerating;
+    const [hasReceivedFreshImage, setHasReceivedFreshImage] = useState(false);
+    
+    // Explicitly decouple the UI loader from prolonged background extraction/polling
+    // As soon as the local generation is complete (hasReceivedFreshImage), dismiss the loader immediately.
+    const isProcessing = isGenerating || (parentIsProcessing && !hasReceivedFreshImage);
 
-    // Location angle state
-    const [locationAngle, setLocationAngle] = useState<'front' | 'wide'>('front');
+    // Location state
     const isLocation = assetType === 'location';
     const locViews = isLocation ? (currentData as LocationProfile).image_views : undefined;
-    const hasMultipleViews = !!(locViews?.wide || locViews?.front);
 
     // Visuals State
     const [refImage, setRefImage] = useState<string | null>(null);
     const [localDisplayImage, setLocalDisplayImage] = useState<string | undefined>(() => {
-        if (isLocation && hasMultipleViews && locViews) {
-            return locViews[locationAngle] || currentData.image_url;
+        if (isLocation && locViews?.wide) {
+            return locViews.wide;
         }
         return currentData.image_url;
     });
@@ -107,12 +109,12 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
     useEffect(() => {
-        if (isLocation && hasMultipleViews && locViews) {
-            setLocalDisplayImage(locViews[locationAngle] || currentData.image_url);
+        if (isLocation && locViews?.wide) {
+            setLocalDisplayImage(locViews.wide);
         } else {
             setLocalDisplayImage(currentData.image_url);
         }
-    }, [currentData.image_url, locationAngle]);
+    }, [currentData.image_url, locViews?.wide, isLocation]);
 
     useEffect(() => {
         if (isVoiceMode && allVoices.length === 0) loadVoices();
@@ -434,6 +436,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             return;
         }
 
+        setHasReceivedFreshImage(false);
         setIsGenerating(true);
         try {
             if (isCreationMode && props.onCreateAndGenerate) {
@@ -447,6 +450,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
                 if (resultUrl && typeof resultUrl === 'string') {
                     setLocalDisplayImage(resultUrl);
+                    setHasReceivedFreshImage(true);
                     toast.success("Visual Generated");
                 }
             }
@@ -569,10 +573,6 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                 onToggleUseRef={() => setUseRefForGen(!useRefForGen)}
 
                                 onInpaint={localDisplayImage ? () => setInpaintData({ src: localDisplayImage }) : undefined}
-
-                                imageViews={hasMultipleViews ? locViews : undefined}
-                                currentAngle={locationAngle}
-                                onAngleChange={hasMultipleViews ? setLocationAngle : undefined}
                             />
 
                             {assetType === 'character' && (

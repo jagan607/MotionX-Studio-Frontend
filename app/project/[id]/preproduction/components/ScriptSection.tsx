@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Scene, Project } from "@/lib/types";
 import { InputDeck } from "@/components/script/InputDeck";
 import { CreativeBlock } from "./CreativeBlock";
-import { GripVertical, Save, X } from "lucide-react";
+import { GripVertical, Save, X, Check } from "lucide-react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
@@ -16,9 +16,10 @@ interface ScriptSectionProps {
     onUpdateProject: (p: Project) => void;
     onScenesUpdated: () => void;
     episodes?: any[];
+    onApproveDraft?: () => void;
 }
 
-export function ScriptSection({ project, scenes, activeEpisodeId, onUpdateProject, onScenesUpdated, episodes = [] }: ScriptSectionProps) {
+export function ScriptSection({ project, scenes, activeEpisodeId, onUpdateProject, onScenesUpdated, episodes = [], onApproveDraft }: ScriptSectionProps) {
     const hasScript = (project.script_status !== "empty" && project.script_status !== "pending") || scenes.length > 0 || episodes.some((ep: any) => ep.status === "draft_ready" || ep.status === "ready");
 
     const [editingSceneId, setEditingSceneId] = useState<string | null>(null);
@@ -161,6 +162,22 @@ export function ScriptSection({ project, scenes, activeEpisodeId, onUpdateProjec
                             </div>
                         </CreativeBlock>
                     ))}
+
+                    {scenes.length > 0 && onApproveDraft && (
+                        <div className="w-full mt-12 flex flex-col items-center justify-center border-t border-white/[0.05] pt-12 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500 fill-mode-both">
+                            <h3 className="text-xl font-['Anton'] uppercase tracking-wide text-white mb-3">Review Complete?</h3>
+                            <p className="text-[11px] text-white/40 uppercase tracking-[2px] font-mono mb-8 text-center max-w-lg leading-relaxed">
+                                Once you approve the scene division, we will lock the breakdown and proceed to generating visual continuity models and moodboards.
+                            </p>
+                            <button
+                                onClick={onApproveDraft}
+                                className="px-8 py-4 bg-motion-red text-white text-[12px] font-bold uppercase tracking-[2px] rounded-lg hover:bg-red-700 transition-all shadow-[0_0_20px_rgba(229,9,20,0.3)] hover:shadow-[0_0_40px_rgba(229,9,20,0.5)] flex items-center gap-3 cursor-pointer group"
+                            >
+                                <Check size={16} className="text-white group-hover:scale-110 transition-transform" /> 
+                                Approve & Continue
+                            </button>
+                        </div>
+                    )}
 
                     {scenes.length === 0 && (
                         <div className="w-full py-12 flex flex-col items-center gap-8">
