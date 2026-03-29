@@ -95,14 +95,18 @@ export default function ProjectHub() {
         {
             id: "postproduction",
             title: "Post-Production",
-            subtitle: "Coming Soon",
+            subtitle: "Edit & Export",
             description: "Timeline • Sound • Export",
             icon: Scissors,
-            href: "#",
-            accent: "#555",
-            accentGlow: "rgba(85, 85, 85, 0.1)",
-            available: false,
-            stats: [],
+            href: `/project/${projectId}/postprod`,
+            accent: "#A855F7",
+            accentGlow: "rgba(168, 85, 247, 0.15)",
+            available: true,
+            stats: [
+                { icon: Film, label: "Timeline" },
+                { icon: Sparkles, label: "AI Edit" },
+                { icon: Play, label: "Export" },
+            ],
         },
     ];
 
