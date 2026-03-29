@@ -451,6 +451,31 @@ export const updateSetDesign = async (
     return res.data;
 };
 
+export const inpaintSetDesign = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    angle: string,
+    prompt: string,
+    originalImageUrl: string,
+    maskBase64: string,
+    refImages: File[] = []
+): Promise<{ status: string; image_url: string; angle: string }> => {
+    const formData = new FormData();
+    formData.append("project_id", projectId);
+    formData.append("episode_id", episodeId);
+    formData.append("scene_id", sceneId);
+    formData.append("angle", angle);
+    formData.append("prompt", prompt);
+    formData.append("original_image_url", originalImageUrl);
+    formData.append("mask_image_base64", maskBase64);
+    refImages.forEach((file) => {
+        formData.append("reference_images", file);
+    });
+    const res = await api.post("/api/v1/shot/inpaint_set_design", formData);
+    return res.data;
+};
+
 export const generateWardrobe = async (
     projectId: string,
     episodeId: string,

@@ -669,7 +669,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
                             onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
                         >
-                            <Palette size={14} /> BUILD SET
+                            <Palette size={14} /> {sceneSetDesign ? 'EDIT SET' : 'BUILD SET'}
                         </button>
 
                         {/* GENERATE ALL — hidden for now
@@ -902,7 +902,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '24px', color: '#333' }}>EMPTY SEQUENCE</h3>
                                 <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
                                     <button onClick={() => setShowSetDesign(true)} style={{ padding: '12px 24px', backgroundColor: '#111', color: 'white', border: '1px solid #333', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <Palette size={16} /> BUILD SET
+                                        <Palette size={16} /> {sceneSetDesign ? 'EDIT SET' : 'BUILD SET'}
                                     </button>
                                     <button onClick={() => handleSafeAutoDirect()} disabled={shotMgr.isAutoDirecting} style={{ padding: '12px 24px', backgroundColor: '#111', color: 'white', border: '1px solid #333', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <Wand2 size={16} /> AUTO-DIRECT SCENE

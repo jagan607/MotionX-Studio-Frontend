@@ -3,10 +3,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
     Sparkles, X, Loader2, Save, Users, Package, CloudFog, Building2,
-    ChevronRight, Eye, ImagePlus
+    ChevronRight, Eye, ImagePlus, Paintbrush
 } from "lucide-react";
-import { generateSetDesign, updateSetDesign } from "@/lib/api";
+import { generateSetDesign, updateSetDesign, inpaintSetDesign } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { InpaintEditor } from "./InpaintEditor";
 
 /* ── Backend schema ─────────────────────────────────────────────── */
 interface ExtraItem { role: string; count?: number; placement?: string; }
@@ -107,6 +108,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const [isSaving, setIsSaving] = useState(false);
     const [activeView, setActiveView] = useState<string>("front");
     const [isVisible, setIsVisible] = useState(false);
+    const [showInpaint, setShowInpaint] = useState(false);
 
     const location = locations.find(
         l => l.name === locationName || l.id === locationName?.replace(/[\s.]+/g, '_').toUpperCase()
@@ -201,6 +203,47 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     };
 
     const handleClose = () => { setIsVisible(false); setTimeout(onClose, 300); };
+
+    // --- INPAINT HANDLERS ---
+    const handleInpaintSave = async (prompt: string, maskBase64: string, refImages: File[]): Promise<string | null> => {
+        if (!heroImage) return null;
+        try {
+            const res = await inpaintSetDesign(
+                projectId, episodeId, sceneId,
+                activeView, prompt, heroImage, maskBase64, refImages
+            );
+            if (res.image_url) return res.image_url;
+            return null;
+        } catch (e: any) {
+            toastError(e?.response?.data?.detail || "Inpaint failed");
+            return null;
+        }
+    };
+
+    const handleInpaintApply = async (newUrl: string) => {
+        // 1. Update local state immediately for snappy UI
+        const updatedUrls = { ...existingData?.image_urls, [activeView]: newUrl };
+        
+        // If we are editing the 'front' view, we should also update the master thumbnail
+        const updatedData: SetDesignData = { 
+            ...existingData, 
+            image_urls: updatedUrls,
+            ...(activeView === "front" ? { image_url: newUrl } : {})
+        };
+        
+        if (onUpdate) onUpdate(updatedData);
+
+        // 2. Persist to backend explicitly
+        try {
+            await updateSetDesign(projectId, episodeId, sceneId, updatedData);
+            toastSuccess(`${ANGLE_LABELS[activeView] || activeView} frame updated`);
+        } catch (e) {
+            toastError("Failed to save inpainted frame to database");
+        }
+
+        // 3. Close the terminal
+        setShowInpaint(false);
+    };
 
     if (!isOpen) return null;
 
@@ -393,11 +436,18 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                             )}
 
                             {generatedImage && !isGeneratingImage && (
-                                <div className="absolute bottom-12 left-12 z-30 pointer-events-none">
+                                <div className="absolute bottom-12 left-12 z-30 flex items-center gap-3 pointer-events-auto">
                                      <div className="inline-flex items-center gap-3 bg-black/70 border border-red-500/40 text-red-400 px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[3px]">
                                         <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
                                         CONCEPT FRAME
                                     </div>
+                                    <button
+                                        onClick={() => setShowInpaint(true)}
+                                        className="inline-flex items-center gap-2 bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer"
+                                    >
+                                        <Paintbrush size={12} />
+                                        Edit Frame
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -423,6 +473,17 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                     )}
                 </div>
             </div>
+
+            {/* INPAINT EDITOR OVERLAY */}
+            {showInpaint && heroImage && (
+                <InpaintEditor
+                    src={heroImage}
+                    styles={{}}
+                    onClose={() => setShowInpaint(false)}
+                    onSave={handleInpaintSave}
+                    onApply={handleInpaintApply}
+                />
+            )}
         </div>
     );
 };
