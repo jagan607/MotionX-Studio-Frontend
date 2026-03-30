@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     Sparkles, X, Loader2, Save, Users, Package, CloudFog, Building2,
-    ChevronRight, Eye, ImagePlus, Paintbrush, Download
+    ChevronRight, Eye, ImagePlus, Paintbrush, Download, AlertTriangle
 } from "lucide-react";
 import { generateSetDesign, updateSetDesign, inpaintSetDesign, cloneSetDesign } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -124,6 +124,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const [showInpaint, setShowInpaint] = useState(false);
     const [isCloning, setIsCloning] = useState(false);
     const [showImportMenu, setShowImportMenu] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
     const location = locations.find(
         l => l.name === locationName || l.id === locationName?.replace(/[\s.]+/g, '_').toUpperCase()
@@ -332,11 +333,14 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-[1px] bg-red-500" />
-                                <span className="text-[10px] font-mono text-red-400 uppercase tracking-[4px]">Production Slate</span>
+                                <span className="text-[10px] font-mono text-red-400 uppercase tracking-[4px]">Set Blueprint</span>
                             </div>
                         </div>
-                        <h1 className="text-white leading-none uppercase pr-4 truncate mb-2"
+                        <h1 className="text-white leading-none uppercase pr-4 truncate mb-2 flex items-center gap-3"
                             style={{ fontFamily: "Anton, sans-serif", fontSize: "clamp(24px, 3vw, 40px)", letterSpacing: "1px" }}>
+                            <span className="text-white/50 text-2xl tracking-[2px] font-mono mr-3">
+                                SCN {currentSceneNumber || "X"}
+                            </span>
                             {locationName || "THE SET"}
                         </h1>
                         <div className="flex items-center gap-3 text-[9px] font-mono text-white/30 uppercase tracking-widest">
@@ -345,12 +349,6 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                             <span>PRJ {projectId?.slice(0, 6) || "XXX"}</span>
                         </div>
                         
-                        {hasData && !isGeneratingImage && (
-                            <div className="mt-4 inline-flex items-center gap-2 text-[10px] font-mono text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded uppercase tracking-widest">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                                Design Active
-                            </div>
-                        )}
                         {isGeneratingImage && (
                             <div className="mt-4 inline-flex items-center gap-2 text-[10px] font-mono text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-3 py-1.5 rounded uppercase tracking-widest">
                                 <Loader2 size={12} className="animate-spin" />
@@ -360,30 +358,6 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                     </div>
 
                     <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.1) transparent" }}>
-                        {/* Generate CTA */}
-                        <button onClick={handleGenerate} disabled={isGenerating}
-                            className="w-full flex items-center justify-between px-6 py-5 rounded-2xl transition-all cursor-pointer disabled:cursor-not-allowed group relative overflow-hidden"
-                            style={{ background: isGenerating ? "rgba(220, 38, 38, 0.1)" : "rgba(220, 38, 38, 0.06)", border: isGenerating ? "1px solid rgba(220, 38, 38, 0.3)" : "1px solid rgba(220, 38, 38, 0.2)" }}>
-                            <div className="absolute inset-0 bg-gradient-to-r from-red-500/0 via-red-500/10 to-red-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                            <div className="flex items-center gap-4 relative z-10">
-                                {isGenerating ? (
-                                    <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
-                                        <Loader2 size={16} className="animate-spin text-red-400" />
-                                    </div>
-                                ) : (
-                                    <div className="w-8 h-8 rounded-lg bg-red-500/20 group-hover:bg-red-500/30 flex items-center justify-center transition-colors">
-                                        <Sparkles size={16} className="text-red-400" />
-                                    </div>
-                                )}
-                                <div>
-                                    <span className={`text-[12px] font-bold uppercase tracking-[2px] block transition-colors ${isGenerating ? "text-red-400" : "text-white/90 group-hover:text-white"}`}>
-                                        {isGenerating ? "Processing Vision..." : (isGeneratingImage ? "Force Retry Design" : (hasData ? "Overhaul Design" : "Auto-Generate Set"))}
-                                    </span>
-                                    <span className="text-[9px] text-white/30 font-mono tracking-wider">AI-powered set composition</span>
-                                </div>
-                            </div>
-                            <span className="text-[10px] font-mono text-white/20 group-hover:text-red-400/50 relative z-10">⌘G</span>
-                        </button>
 
                         {/* Fields */}
                         <div className="space-y-4">
@@ -430,9 +404,9 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                     )}
 
                     {heroImage ? (
-                        <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-r-3xl">
+                        <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-r-3xl bg-black">
                             {/* Viewport Image */}
-                            <img src={heroImage} alt="Angle Preview" className="absolute inset-0 w-full h-full object-cover opacity-100" />
+                            <img src={heroImage} alt="Angle Preview" className="absolute inset-0 w-full h-full object-contain opacity-100" />
                             
                             {/* Cinematic HUD Overlay */}
                             <div className="absolute inset-4 border border-white/10 z-20 pointer-events-none">
@@ -491,7 +465,18 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                                 {availableSiblingSets.map(sib => (
                                                     <button
                                                         key={sib.id}
-                                                        onClick={() => { handleCloneFromSibling(sib.id); setShowImportMenu(false); }}
+                                                        onClick={() => {
+                                                            setShowImportMenu(false);
+                                                            if (hasData) {
+                                                                setConfirmAction({
+                                                                    title: "Import Set Design?",
+                                                                    message: "This will overwrite your current set design with the design from the selected scene. This action cannot be undone.",
+                                                                    onConfirm: () => handleCloneFromSibling(sib.id),
+                                                                });
+                                                            } else {
+                                                                handleCloneFromSibling(sib.id);
+                                                            }
+                                                        }}
                                                         className="text-left px-3 py-2 text-[10px] font-mono text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-colors uppercase tracking-[1px] cursor-pointer"
                                                     >
                                                         SCN {sib.scene_number || '?'} SET
@@ -529,6 +514,25 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                         Edit Frame
                                     </button>
                                 )}
+
+                                {/* Generate / Overhaul button */}
+                                <button
+                                    onClick={() => {
+                                        if (hasData) {
+                                            setConfirmAction({
+                                                title: "Overhaul Set Design?",
+                                                message: "This will completely overwrite your current set dressing, props, and lighting for this scene. This action cannot be undone.",
+                                                onConfirm: () => handleGenerate(),
+                                            });
+                                        } else {
+                                            handleGenerate();
+                                        }
+                                    }}
+                                    disabled={isGenerating}
+                                    className="inline-flex items-center justify-center bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isGenerating ? "GENERATING..." : (isGeneratingImage ? "RETRY DESIGN" : (hasData ? "OVERHAUL DESIGN" : "GENERATE SET"))}
+                                </button>
                             </div>
                         </div>
                     ) : (
@@ -563,6 +567,44 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                     onSave={handleInpaintSave}
                     onApply={handleInpaintApply}
                 />
+            )}
+
+            {/* CONFIRMATION MODAL */}
+            {confirmAction && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setConfirmAction(null)} />
+                    <div className="relative w-full max-w-md mx-6 bg-[#0A0A0A] border border-white/[0.08] rounded-2xl shadow-[0_0_60px_rgba(0,0,0,0.9)] overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-start gap-4 p-6 border-b border-white/[0.04]">
+                            <div className="w-10 h-10 shrink-0 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                                <AlertTriangle size={18} className="text-red-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-white text-[14px] font-bold uppercase tracking-[1.5px]" style={{ fontFamily: "Anton, sans-serif" }}>
+                                    {confirmAction.title}
+                                </h3>
+                                <p className="text-[11px] text-white/40 mt-1.5 leading-relaxed">
+                                    {confirmAction.message}
+                                </p>
+                            </div>
+                        </div>
+                        {/* Actions */}
+                        <div className="flex gap-3 p-5">
+                            <button
+                                onClick={() => setConfirmAction(null)}
+                                className="flex-1 py-3 text-[10px] font-bold uppercase tracking-[2px] border border-white/10 text-white/60 hover:text-white hover:bg-white/[0.04] rounded-xl transition-all cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => { confirmAction.onConfirm(); setConfirmAction(null); }}
+                                className="flex-1 py-3 text-[10px] font-bold uppercase tracking-[2px] bg-red-600 hover:bg-red-500 text-white rounded-xl transition-all cursor-pointer"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
