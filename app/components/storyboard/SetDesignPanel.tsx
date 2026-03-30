@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     Sparkles, X, Loader2, Save, Users, Package, CloudFog, Building2,
-    ChevronRight, Eye, ImagePlus, Paintbrush, Download, AlertTriangle
+    ChevronLeft, ChevronRight, Eye, ImagePlus, Paintbrush, Download, AlertTriangle
 } from "lucide-react";
 import { generateSetDesign, updateSetDesign, inpaintSetDesign, cloneSetDesign } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -291,6 +291,19 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
 
     if (!isOpen) return null;
 
+    // View navigation for chevron carousel
+    const currentViewIndex = availableViews.findIndex(([angle]) => angle === activeView);
+    const handlePrevView = () => {
+        if (availableViews.length <= 1) return;
+        const prevIndex = (currentViewIndex - 1 + availableViews.length) % availableViews.length;
+        setActiveView(availableViews[prevIndex][0]);
+    };
+    const handleNextView = () => {
+        if (availableViews.length <= 1) return;
+        const nextIndex = (currentViewIndex + 1) % availableViews.length;
+        setActiveView(availableViews[nextIndex][0]);
+    };
+
     // Compute angle-filtered display values (only when multi-angle views exist)
     const isMultiAngle = availableViews.length > 1;
     const displayExtras = isMultiAngle ? filterTextByAngle(extrasText, activeView) : extrasText;
@@ -408,6 +421,24 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                             {/* Viewport Image */}
                             <img src={heroImage} alt="Angle Preview" className="absolute inset-0 w-full h-full object-contain opacity-100" />
                             
+                            {/* Chevron Navigation */}
+                            {availableViews.length > 1 && !isGeneratingImage && (
+                                <>
+                                    <button
+                                        onClick={handlePrevView}
+                                        className="absolute left-6 top-1/2 -translate-y-1/2 z-30 w-12 h-12 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/80 text-white/60 hover:text-white backdrop-blur-sm border border-white/0 hover:border-white/10 transition-all cursor-pointer pointer-events-auto"
+                                    >
+                                        <ChevronLeft size={24} />
+                                    </button>
+                                    <button
+                                        onClick={handleNextView}
+                                        className="absolute right-6 top-1/2 -translate-y-1/2 z-30 w-12 h-12 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/80 text-white/60 hover:text-white backdrop-blur-sm border border-white/0 hover:border-white/10 transition-all cursor-pointer pointer-events-auto"
+                                    >
+                                        <ChevronRight size={24} />
+                                    </button>
+                                </>
+                            )}
+
                             {/* Cinematic HUD Overlay */}
                             <div className="absolute inset-4 border border-white/10 z-20 pointer-events-none">
                                 {/* Corners */}
