@@ -560,7 +560,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                         }
                                     }}
                                     disabled={isGenerating}
-                                    className="inline-flex items-center justify-center bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex items-center gap-2 justify-center bg-red-600/80 hover:bg-red-600 border border-red-500/60 hover:border-red-400 text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(229,9,20,0.15)]"
                                 >
                                     {isGenerating ? "GENERATING..." : (isGeneratingImage ? "RETRY DESIGN" : (hasData ? "OVERHAUL DESIGN" : "GENERATE SET"))}
                                 </button>
