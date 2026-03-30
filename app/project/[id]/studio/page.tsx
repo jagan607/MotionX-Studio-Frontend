@@ -20,7 +20,7 @@ import { Project, Asset } from "@/lib/types";
 import { SceneData } from "@/components/studio/SceneCard";
 import {
     collection, query, orderBy, getDocs, writeBatch, doc,
-    setDoc, updateDoc, deleteDoc, serverTimestamp
+    setDoc, updateDoc, deleteDoc, serverTimestamp, onSnapshot
 } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 
@@ -187,6 +187,20 @@ export default function StudioPage() {
         if (!activeEpisodeId || activeEpisodeId === "empty") return;
         loadScenes(activeEpisodeId);
     }, [activeEpisodeId]);
+
+    // --- 1b. REAL-TIME LOCATIONS SYNC ---
+    useEffect(() => {
+        if (!projectId) return;
+        const locRef = collection(db, "projects", projectId, "locations");
+        const unsub = onSnapshot(locRef, (snapshot) => {
+            const updatedLocs = snapshot.docs.map(d => {
+                const data = d.data();
+                return { id: d.id, name: data.name || d.id, image_url: data.image_url, image_views: data.image_views, type: 'location' as const, ...data };
+            });
+            setAssets(prev => ({ ...prev, locations: updatedLocs as Asset[] }));
+        }, (err) => console.error("Locations listener error:", err));
+        return () => unsub();
+    }, [projectId]);
 
     const loadScenes = async (epId: string) => {
         try {

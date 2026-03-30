@@ -8,7 +8,7 @@ import { toast } from "react-hot-toast";
 import { fetchProject, fetchProjectAssets, fetchEpisodes, fetchUserCredits } from "@/lib/api";
 import { Project, Asset } from "@/lib/types";
 import { SceneData } from "@/components/studio/SceneCard";
-import { collection, query, orderBy, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, getDocs, onSnapshot } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { SceneStoryboardContainer } from "@/app/components/studio/SceneStoryboardContainer";
 
@@ -112,6 +112,20 @@ export default function StoryboardPage() {
         }
 
         init();
+    }, [projectId]);
+
+    // REAL-TIME LOCATIONS SYNC
+    useEffect(() => {
+        if (!projectId) return;
+        const locRef = collection(db, "projects", projectId, "locations");
+        const unsub = onSnapshot(locRef, (snapshot) => {
+            const updatedLocs = snapshot.docs.map(d => {
+                const data = d.data();
+                return { id: d.id, name: data.name || d.id, image_url: data.image_url, image_views: data.image_views, type: 'location' as const, ...data };
+            });
+            setProjectAssets(prev => ({ ...prev, locations: updatedLocs as Asset[] }));
+        }, (err) => console.error("Locations listener error:", err));
+        return () => unsub();
     }, [projectId]);
 
     if (loading || !project) {

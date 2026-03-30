@@ -72,7 +72,7 @@ export default function SceneManagerPage() {
         }
     }, [isLoading, scenes, activeSceneId, targetSceneId]);
 
-    // 1. FETCH CONTEXT (Project Info, Episodes, Characters, Locations)
+    // 1. FETCH CONTEXT (Project Info, Episodes, Characters)
     useEffect(() => {
         if (!projectId) return;
 
@@ -99,31 +99,7 @@ export default function SceneManagerPage() {
                     console.error("Failed to load characters", e);
                 }
 
-                // C. Load Locations (FIXED)
-                try {
-                    // Query the specific 'locations' subcollection
-                    // Note: We removed orderBy("name") to prevent Index errors until one is created
-                    const locRef = collection(db, "projects", projectId, "locations");
-                    const locSnapshot = await getDocs(locRef);
-
-                    const loadedLocs = locSnapshot.docs.map(doc => {
-                        const data = doc.data();
-                        return {
-                            id: doc.id,
-                            name: data.name || doc.id
-                        };
-                    });
-
-                    // Debug log to ensure data is flowing
-                    console.log("📍 Context Loaded Locations:", loadedLocs);
-                    setLocations(loadedLocs);
-
-                } catch (e) {
-                    console.error("Failed to load locations", e);
-                    // Non-blocking error, user can still edit
-                }
-
-                // D. Process Episodes
+                // C. Process Episodes
                 let eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
 
                 if (projData.type === 'movie') {
@@ -146,6 +122,30 @@ export default function SceneManagerPage() {
         };
 
         loadContext();
+    }, [projectId]);
+
+    // 1b. REAL-TIME LOCATIONS SYNC
+    useEffect(() => {
+        if (!projectId) return;
+
+        const locRef = collection(db, "projects", projectId, "locations");
+        const unsub = onSnapshot(locRef, (snapshot) => {
+            const updatedLocations = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    name: data.name || doc.id,
+                    image_url: data.image_url,
+                    image_views: data.image_views,
+                } as LocationAsset;
+            });
+            console.log("📍 Locations Updated (realtime):", updatedLocations.length);
+            setLocations(updatedLocations);
+        }, (error) => {
+            console.error("Error listening to locations:", error);
+        });
+
+        return () => unsub();
     }, [projectId]);
 
     // 2. REAL-TIME SCENES SYNC

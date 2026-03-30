@@ -26,6 +26,8 @@ export interface Character {
 export interface LocationAsset {
     id: string;
     name: string;
+    image_url?: string;
+    image_views?: { wide?: string; front?: string; left?: string; right?: string; back?: string; };
 }
 
 export interface EpisodeContext {
