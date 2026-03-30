@@ -561,6 +561,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         locations={locations}
                         sceneAction={currentScene?.visual_action || currentScene?.summary}
                         onOpenAssets={() => setShowAssets(true)}
+                        sceneList={sceneList}
+                        currentSceneNumber={currentScene?.scene_number}
                     />
                 )}
 

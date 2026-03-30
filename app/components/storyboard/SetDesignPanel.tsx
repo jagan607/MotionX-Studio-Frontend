@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     Sparkles, X, Loader2, Save, Users, Package, CloudFog, Building2,
-    ChevronRight, Eye, ImagePlus, Paintbrush
+    ChevronRight, Eye, ImagePlus, Paintbrush, Download
 } from "lucide-react";
-import { generateSetDesign, updateSetDesign, inpaintSetDesign } from "@/lib/api";
+import { generateSetDesign, updateSetDesign, inpaintSetDesign, cloneSetDesign } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { InpaintEditor } from "./InpaintEditor";
 
@@ -32,6 +32,16 @@ interface LocationAsset {
     image_views?: { wide?: string; front?: string; left?: string; right?: string; back?: string; };
 }
 
+interface SiblingScene {
+    id: string;
+    scene_number?: number;
+    slugline?: string;
+    location?: string;
+    location_name?: string;
+    location_id?: string;
+    set_design?: SetDesignData;
+}
+
 interface SetDesignPanelProps {
     isOpen: boolean;
     onClose: () => void;
@@ -44,6 +54,8 @@ interface SetDesignPanelProps {
     locations?: LocationAsset[];
     sceneAction?: string;
     onOpenAssets?: () => void;
+    sceneList?: SiblingScene[];
+    currentSceneNumber?: number;
 }
 
 const ANGLE_LABELS: Record<string, string> = { wide: "ESTABLISHING", front: "FRONT", left: "LEFT", right: "RIGHT", back: "BACK" };
@@ -99,6 +111,7 @@ const filterTextByAngle = (text: string, angle: string): string =>
 export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     isOpen, onClose, projectId, episodeId, sceneId,
     existingData, onUpdate, locationName, locations = [], sceneAction, onOpenAssets,
+    sceneList = [], currentSceneNumber,
 }) => {
     const [extrasText, setExtrasText] = useState("");
     const [dressingText, setDressingText] = useState("");
@@ -109,6 +122,8 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const [activeView, setActiveView] = useState<string>("front");
     const [isVisible, setIsVisible] = useState(false);
     const [showInpaint, setShowInpaint] = useState(false);
+    const [isCloning, setIsCloning] = useState(false);
+    const [showImportMenu, setShowImportMenu] = useState(false);
 
     const location = locations.find(
         l => l.name === locationName || l.id === locationName?.replace(/[\s.]+/g, '_').toUpperCase()
@@ -127,6 +142,19 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
 
     const hasData = !!(existingData?.extras?.length || existingData?.set_dressing?.length || existingData?.atmosphere || existingData?.image_prompt);
     const isGeneratingImage = existingData?.image_status === "generating";
+
+    // --- SIBLING SET DETECTION ---
+    const availableSiblingSets = useMemo(() => {
+        if (!locationName || !sceneList.length) return [];
+
+        const normalizedLoc = locationName.toLowerCase().trim();
+        return sceneList.filter(s => {
+            if (s.id === sceneId) return false; // Skip self
+            const sLoc = (s.location || s.location_name || s.location_id || "").toLowerCase().trim();
+            return sLoc === normalizedLoc && s.set_design && (s.set_design.extras?.length || s.set_design.set_dressing?.length || s.set_design.atmosphere);
+        });
+    }, [locationName, sceneList, sceneId]);
+
 
     // Sync
     useEffect(() => {
@@ -243,6 +271,21 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
 
         // 3. Close the terminal
         setShowInpaint(false);
+    };
+
+    // --- CLONE HANDLER ---
+    const handleCloneFromSibling = async (sourceSceneId: string) => {
+        setIsCloning(true);
+        try {
+            const res = await cloneSetDesign(projectId, episodeId, sceneId, sourceSceneId);
+            const data = res.set_design || res;
+            if (onUpdate) onUpdate(data);
+            toastSuccess("Set design imported successfully");
+        } catch (e: any) {
+            toastError(e?.response?.data?.detail || "Failed to import set design");
+        } finally {
+            setIsCloning(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -435,12 +478,49 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                 </div>
                             )}
 
-                            {generatedImage && !isGeneratingImage && (
-                                <div className="absolute bottom-12 left-12 z-30 flex items-center gap-3 pointer-events-auto">
-                                     <div className="inline-flex items-center gap-3 bg-black/70 border border-red-500/40 text-red-400 px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[3px]">
-                                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                                        CONCEPT FRAME
+                            <div className="absolute bottom-12 left-12 z-30 flex items-center gap-3 pointer-events-auto">
+                                {/* Import dropdown OR concept frame pill */}
+                                {availableSiblingSets.length > 0 ? (
+                                    <div className="relative">
+                                        {/* Dropdown Menu */}
+                                        {showImportMenu && (
+                                            <div className="absolute bottom-full left-0 mb-2 w-max min-w-[180px] bg-black/90 border border-white/10 rounded-xl p-1.5 flex flex-col gap-1 backdrop-blur-xl shadow-2xl z-40">
+                                                <div className="px-2 py-1.5 text-[9px] font-mono text-white/40 uppercase tracking-widest border-b border-white/5 mb-1">
+                                                    Select Set to Import
+                                                </div>
+                                                {availableSiblingSets.map(sib => (
+                                                    <button
+                                                        key={sib.id}
+                                                        onClick={() => { handleCloneFromSibling(sib.id); setShowImportMenu(false); }}
+                                                        className="text-left px-3 py-2 text-[10px] font-mono text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-colors uppercase tracking-[1px] cursor-pointer"
+                                                    >
+                                                        SCN {sib.scene_number || '?'} SET
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Toggle Button */}
+                                        <button
+                                            onClick={() => setShowImportMenu(!showImportMenu)}
+                                            disabled={isCloning}
+                                            className="inline-flex items-center gap-2 bg-black/70 hover:bg-black/90 border border-red-500/40 hover:border-red-500/80 text-red-400 px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50"
+                                        >
+                                            {isCloning ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                                            {isCloning ? "IMPORTING..." : "IMPORT SET"}
+                                        </button>
                                     </div>
+                                ) : (
+                                    generatedImage && !isGeneratingImage && (
+                                        <div className="inline-flex items-center gap-3 bg-black/70 border border-red-500/40 text-red-400 px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[3px]">
+                                            <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                                            CONCEPT FRAME
+                                        </div>
+                                    )
+                                )}
+
+                                {/* Edit frame — only when generated image exists */}
+                                {generatedImage && !isGeneratingImage && (
                                     <button
                                         onClick={() => setShowInpaint(true)}
                                         className="inline-flex items-center gap-2 bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer"
@@ -448,8 +528,8 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                         <Paintbrush size={12} />
                                         Edit Frame
                                     </button>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center gap-6 text-center px-10 pointer-events-auto">

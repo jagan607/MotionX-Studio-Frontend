@@ -455,6 +455,21 @@ export const updateSetDesign = async (
     return res.data;
 };
 
+export const cloneSetDesign = async (
+    projectId: string,
+    episodeId: string,
+    targetSceneId: string,
+    sourceSceneId: string
+) => {
+    const res = await api.post("/api/v1/shot/clone_set_design", {
+        project_id: projectId,
+        episode_id: episodeId,
+        target_scene_id: targetSceneId,
+        source_scene_id: sourceSceneId,
+    });
+    return res.data;
+};
+
 export const inpaintSetDesign = async (
     projectId: string,
     episodeId: string,
