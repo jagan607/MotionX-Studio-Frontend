@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     Sparkles, X, Loader2, Save, Users, Package, CloudFog, Building2,
-    ChevronLeft, ChevronRight, Eye, ImagePlus, Paintbrush, Download, AlertTriangle
+    ChevronLeft, ChevronRight, Eye, ImagePlus, Paintbrush, Download, AlertTriangle, Coins
 } from "lucide-react";
 import { generateSetDesign, updateSetDesign, inpaintSetDesign, cloneSetDesign } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -203,7 +203,11 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
             if (onUpdate) onUpdate(data);
             toastSuccess("Set design generation queued");
         } catch (e: any) {
-            toastError(e?.response?.data?.detail || "Failed to generate set design");
+            if (e?.response?.status === 402) {
+                toastError("Insufficient credits. You need 2 credits to build a set.");
+            } else {
+                toastError(e?.response?.data?.detail || "Failed to generate set design");
+            }
         } finally {
             isGeneratingRef.current = false;
             setIsGenerating(false);
@@ -552,7 +556,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                         if (hasData) {
                                             setConfirmAction({
                                                 title: "Overhaul Set Design?",
-                                                message: "This will completely overwrite your current set dressing, props, and lighting for this scene. This action cannot be undone.",
+                                                message: "This will completely overwrite your current set dressing, props, and lighting for this scene and cost 2 credits. This action cannot be undone.",
                                                 onConfirm: () => handleGenerate(),
                                             });
                                         } else {
@@ -563,6 +567,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                     className="inline-flex items-center gap-2 justify-center bg-red-600/80 hover:bg-red-600 border border-red-500/60 hover:border-red-400 text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(229,9,20,0.15)]"
                                 >
                                     {isGenerating ? "GENERATING..." : (isGeneratingImage ? "RETRY DESIGN" : (hasData ? "OVERHAUL DESIGN" : "GENERATE SET"))}
+                                    {!isGenerating && <span className="inline-flex items-center gap-1 ml-1 text-white/50"><Coins size={10} />2</span>}
                                 </button>
                             </div>
                         </div>
