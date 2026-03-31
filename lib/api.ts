@@ -436,6 +436,21 @@ export const generateSetDesign = async (
     return res.data;
 };
 
+export const retrySetAngle = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    targetAngle: string
+) => {
+    const res = await api.post("/api/v1/shot/retry_set_angle", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        target_angle: targetAngle,
+    });
+    return res.data;
+};
+
 export const updateSetDesign = async (
     projectId: string,
     episodeId: string,

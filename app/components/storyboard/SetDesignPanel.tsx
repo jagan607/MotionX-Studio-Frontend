@@ -5,7 +5,7 @@ import {
     Sparkles, X, Loader2, Save, Users, Package, CloudFog, Building2,
     ChevronLeft, ChevronRight, Eye, ImagePlus, Paintbrush, Download, AlertTriangle, Coins
 } from "lucide-react";
-import { generateSetDesign, updateSetDesign, inpaintSetDesign, cloneSetDesign } from "@/lib/api";
+import { generateSetDesign, updateSetDesign, inpaintSetDesign, cloneSetDesign, retrySetAngle } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { InpaintEditor } from "./InpaintEditor";
 
@@ -125,6 +125,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const [isCloning, setIsCloning] = useState(false);
     const [showImportMenu, setShowImportMenu] = useState(false);
     const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+    const [isRetryingAngle, setIsRetryingAngle] = useState(false);
 
     const location = locations.find(
         l => l.name === locationName || l.id === locationName?.replace(/[\s.]+/g, '_').toUpperCase()
@@ -211,6 +212,25 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
         } finally {
             isGeneratingRef.current = false;
             setIsGenerating(false);
+        }
+    };
+
+    const handleRetryAngle = async () => {
+        if (isRetryingAngle) return;
+        setIsRetryingAngle(true);
+        try {
+            const res = await retrySetAngle(projectId, episodeId, sceneId, activeView);
+            const data = res.set_design || res;
+            if (onUpdate) onUpdate(data);
+            toastSuccess(`${(ANGLE_LABELS[activeView] || activeView).toUpperCase()} angle regeneration queued`);
+        } catch (e: any) {
+            if (e?.response?.status === 402) {
+                toastError("Insufficient credits. You need 0.5 credits to retry an angle.");
+            } else {
+                toastError(e?.response?.data?.detail || "Failed to retry angle");
+            }
+        } finally {
+            setIsRetryingAngle(false);
         }
     };
 
@@ -550,7 +570,20 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                     </button>
                                 )}
 
-                                {/* Generate / Overhaul button */}
+                                {/* Retry single angle — only when set data exists and multi-angle */}
+                                {hasData && !isGeneratingImage && (
+                                    <button
+                                        onClick={handleRetryAngle}
+                                        disabled={isRetryingAngle || isGenerating}
+                                        className="inline-flex items-center gap-2 bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isRetryingAngle ? <><Loader2 size={12} className="animate-spin" /> RETRYING...</> : <>RETRY {(ANGLE_LABELS[activeView] || activeView).toUpperCase()}</>}
+                                        {!isRetryingAngle && <span className="inline-flex items-center gap-1 ml-1 text-white/40"><Coins size={10} />0.5</span>}
+                                    </button>
+                                )}
+
+                                {/* Generate / Overhaul button — hidden during rendering */}
+                                {!isGeneratingImage && !isRetryingAngle && (
                                 <button
                                     onClick={() => {
                                         if (hasData) {
@@ -566,9 +599,10 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                     disabled={isGenerating}
                                     className="inline-flex items-center gap-2 justify-center bg-red-600/80 hover:bg-red-600 border border-red-500/60 hover:border-red-400 text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(229,9,20,0.15)]"
                                 >
-                                    {isGenerating ? "GENERATING..." : (isGeneratingImage ? "RETRY DESIGN" : (hasData ? "OVERHAUL DESIGN" : "GENERATE SET"))}
+                                    {isGenerating ? "GENERATING..." : (hasData ? "OVERHAUL DESIGN" : "GENERATE SET")}
                                     {!isGenerating && <span className="inline-flex items-center gap-1 ml-1 text-white/50"><Coins size={10} />2</span>}
                                 </button>
+                                )}
                             </div>
                         </div>
                     ) : (
