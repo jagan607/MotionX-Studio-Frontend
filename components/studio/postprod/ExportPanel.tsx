@@ -43,6 +43,7 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
         fps: 24,
     });
     const [exporting, setExporting] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [progress, setProgress] = useState(0);
     const [exportStatus, setExportStatus] = useState<string | null>(null);
     const [exportUrl, setExportUrl] = useState<string | null>(null);
@@ -89,11 +90,7 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
     }, [exporting, exportStatus, projectId, episodeId]);
 
     const handleExport = async () => {
-        setExporting(true);
-        setProgress(0);
-        setExportUrl(null);
-        setExportError(null);
-        setExportStatus("queued");
+        setSubmitting(true);
 
         try {
             const result = await exportTimelineAPI(projectId, episodeId, {
@@ -105,10 +102,19 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
                 fps: config.fps,
             });
 
-            toast.success(`Export queued: ${result.clips_count} clips`);
+            // API call succeeded — now switch to progress tracking
+            setSubmitting(false);
+            setExporting(true);
+            setProgress(0);
+            setExportUrl(null);
+            setExportError(null);
+            setExportStatus("queued");
+
+            toast.success(`Export queued: ${result.clips_count} video + ${result.audio_clips_count || 0} audio clips`);
         } catch (e: any) {
             console.error("Export failed:", e);
             toast.error(e?.response?.data?.detail || "Export failed");
+            setSubmitting(false);
             setExporting(false);
             setExportStatus(null);
         }
@@ -311,18 +317,27 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
                         </p>
                     </div>
                 ) : (
-                    /* ── IDLE: Export button ── */
+                    /* ── IDLE / SUBMITTING: Export button ── */
                     <button
                         onClick={handleExport}
-                        disabled={totalClips === 0}
+                        disabled={totalClips === 0 || submitting}
                         className={`w-full py-2.5 rounded text-white text-[10px] font-bold tracking-[3px] uppercase transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#E50914]/20 ${
-                            totalClips === 0
+                            totalClips === 0 || submitting
                                 ? 'bg-neutral-700 cursor-not-allowed opacity-50'
                                 : 'bg-[#E50914] hover:bg-[#ff1a25]'
                         }`}
                     >
-                        <Download size={12} />
-                        EXPORT FINAL CUT
+                        {submitting ? (
+                            <>
+                                <Loader2 size={12} className="animate-spin" />
+                                PREPARING EXPORT...
+                            </>
+                        ) : (
+                            <>
+                                <Download size={12} />
+                                EXPORT FINAL CUT
+                            </>
+                        )}
                     </button>
                 )}
             </div>

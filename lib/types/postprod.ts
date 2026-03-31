@@ -35,6 +35,20 @@ export interface TimelineClip {
     // V2V processing status
     videoStatus?: 'ready' | 'animating' | 'error';
     errorMessage?: string;
+
+    // Audio metadata (for SFX/BGM/voiceover clips)
+    audioType?: 'sfx' | 'bgm' | 'voiceover' | 'original';
+    audioPrompt?: string;
+
+    // Version history — each edit/relight/generation is a version
+    videoHistory?: {
+        url: string;
+        provider?: string;
+        mode?: string;
+        prompt?: string;
+        created_at?: string;
+        task_id?: string;
+    }[];
 }
 
 export type TrackType = 'video' | 'audio' | 'music' | 'sfx' | 'voiceover';

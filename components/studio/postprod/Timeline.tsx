@@ -3,7 +3,8 @@
 import React, { useRef, useCallback, useEffect, useState } from "react";
 import {
     Lock, Unlock, Volume2, VolumeX,
-    GripVertical, Plus, Scissors, Trash2, Copy, Gauge, Loader2
+    GripVertical, Plus, Scissors, Trash2, Copy, Gauge, Loader2,
+    Music, Waves, ChevronDown, X
 } from "lucide-react";
 import {
     pixelsToTime,
@@ -28,6 +29,7 @@ import {
     TimelineState,
     TimelineTrack,
     TimelineClip,
+    TrackType,
 } from "@/lib/types/postprod";
 
 // ═══════════════════════════════════════════════════════════
@@ -44,6 +46,7 @@ interface TimelineProps {
     onClipDelete: () => void;
     onClipDuplicate: () => void;
     onClipSpeed: (clipId: string, speed: number) => void;
+    onClipToggleMute: (clipId: string) => void;
     onSeek: (time: number) => void;
     selectedClipIds: string[];
     onTrackToggleMute: (trackId: string) => void;
@@ -56,6 +59,10 @@ interface TimelineProps {
     onSceneChange: (sceneId: string) => void;
     // Processing state
     processingClipIds: Set<string>;
+    // Audio track management
+    onAddTrack: (type: TrackType) => void;
+    onDeleteTrack: (trackId: string) => void;
+    onOpenAudioGen: (trackId: string, type: 'sfx' | 'bgm') => void;
 }
 
 // ─── GAP CONTEXT MENU ───
@@ -83,6 +90,7 @@ function ClipContextMenu({
     onDelete,
     onDuplicate,
     onSpeed,
+    onToggleMute,
     onClose,
 }: {
     menu: ContextMenuState;
@@ -92,6 +100,7 @@ function ClipContextMenu({
     onDelete: () => void;
     onDuplicate: () => void;
     onSpeed: (clipId: string, speed: number) => void;
+    onToggleMute: (clipId: string) => void;
     onClose: () => void;
 }) {
     const [showSpeedMenu, setShowSpeedMenu] = useState(false);
@@ -165,6 +174,15 @@ function ClipContextMenu({
                 )}
             </div>
 
+            <button
+                onClick={() => { onToggleMute(clip.id); onClose(); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] text-neutral-300 hover:bg-[#E50914]/20 hover:text-white transition-colors"
+            >
+                {clip.muted ? <Volume2 size={12} /> : <VolumeX size={12} />}
+                {clip.muted ? 'Unmute Clip Audio' : 'Mute Clip Audio'}
+                <span className="ml-auto text-[9px] text-neutral-600 font-mono">M</span>
+            </button>
+
             <div className="h-px bg-[#333] my-1 mx-2" />
 
             <button
@@ -216,6 +234,7 @@ function DraggableClip({
     onClipSelect,
     onTrimStart,
     onContextMenu,
+    onToggleMute,
 }: {
     clip: TimelineClip;
     trackHeight: number;
@@ -226,6 +245,7 @@ function DraggableClip({
     onClipSelect: (clip: TimelineClip | null, addToSelection?: boolean) => void;
     onTrimStart: (e: React.MouseEvent, clip: TimelineClip, edge: "left" | "right") => void;
     onContextMenu: (e: React.MouseEvent, clip: TimelineClip) => void;
+    onToggleMute: (clipId: string) => void;
 }) {
     // Bug 1 fix: separate IDs so dnd-kit doesn't confuse drag source with drop target
     const {
@@ -277,9 +297,9 @@ function DraggableClip({
                 onContextMenu(e, clip);
             }}
         >
-            {/* Bug 7 fix: full-height drag handle for easier discovery */}
+            {/* Drag handle — top strip only so mute button stays clickable */}
             <div
-                className="absolute inset-0 cursor-grab z-20"
+                className="absolute inset-x-0 top-0 h-[60%] cursor-grab z-10"
                 {...attributes}
                 {...listeners}
             >
@@ -288,18 +308,39 @@ function DraggableClip({
                 </div>
             </div>
 
-            {/* Thumbnail */}
-            {clip.thumbnailUrl && w > 50 && (
+            {/* Thumbnail (video clips only) */}
+            {clip.thumbnailUrl && w > 50 && !clip.audioType && (
                 <div className="absolute inset-0 opacity-30">
                     <img src={clip.thumbnailUrl} alt="" className="w-full h-full object-cover" draggable={false} />
+                </div>
+            )}
+
+            {/* Audio waveform visualization (for SFX/BGM clips) */}
+            {(clip.audioType || clip.audioUrl) && (
+                <div className="absolute inset-0 flex items-end px-0.5 gap-px opacity-40">
+                    {Array.from({ length: Math.max(4, Math.floor(w / 3)) }, (_, i) => {
+                        // Deterministic pseudo-random based on clip id + bar index
+                        const seed = (clip.id.charCodeAt(i % clip.id.length) * 31 + i * 17) % 100;
+                        return (
+                            <div
+                                key={i}
+                                className="flex-1 rounded-t-sm"
+                                style={{
+                                    height: `${20 + Math.sin(i * 0.7) * 30 + seed * 0.25}%`,
+                                    backgroundColor: clip.audioType === 'bgm' ? '#a855f7' : '#22d3ee',
+                                    minWidth: 1,
+                                }}
+                            />
+                        );
+                    })}
                 </div>
             )}
 
             {/* Hover brightness effect */}
             <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors pointer-events-none" />
 
-            {/* Awaiting video indicator — shows when clip has no video yet */}
-            {!clip.videoUrl && !isProcessing && (
+            {/* Awaiting video indicator — shows when clip has no video yet (skip for audio clips) */}
+            {!clip.videoUrl && !isProcessing && !clip.audioType && !clip.audioUrl && (
                 <div className="absolute inset-0 z-25 pointer-events-none overflow-hidden rounded-sm">
                     <div className="absolute inset-0 skeleton-shimmer" />
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -344,7 +385,10 @@ function DraggableClip({
             </div>
 
             {/* Label row */}
-            <div className="relative z-10 h-full flex items-center px-2 gap-1">
+            <div className="relative z-20 h-full flex items-center px-2 gap-1">
+                {/* Audio type icon */}
+                {clip.audioType === 'sfx' && <Waves size={9} className="text-cyan-400 shrink-0" />}
+                {clip.audioType === 'bgm' && <Music size={9} className="text-purple-400 shrink-0" />}
                 <span className="text-[8px] font-bold text-white/80 tracking-wider uppercase truncate flex-1">
                     {clip.label}
                 </span>
@@ -359,7 +403,26 @@ function DraggableClip({
                         {clip.duration.toFixed(1)}s
                     </span>
                 )}
+                {/* Per-clip mute button — always visible when muted, hover-only when unmuted */}
+                <button
+                    className={`shrink-0 p-0.5 rounded transition-opacity hover:bg-white/10 z-30 ${clip.muted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                    onClick={(e) => { e.stopPropagation(); onToggleMute(clip.id); }}
+                    title={clip.muted ? 'Unmute clip' : 'Mute clip'}
+                >
+                    {clip.muted ? (
+                        <VolumeX size={9} className="text-red-400" />
+                    ) : (
+                        <Volume2 size={9} className="text-white/40" />
+                    )}
+                </button>
             </div>
+
+            {/* Muted overlay */}
+            {clip.muted && (
+                <div className="absolute inset-0 bg-black/30 z-[5] pointer-events-none rounded-sm flex items-center justify-end pr-2">
+                    <VolumeX size={10} className="text-red-400/60" />
+                </div>
+            )}
 
             {/* Trim handles — B2 fix: disabled on locked clips */}
             {!clip.locked && (
@@ -425,6 +488,7 @@ export default function Timeline({
     onClipDelete,
     onClipDuplicate,
     onClipSpeed,
+    onClipToggleMute,
     onSeek,
     selectedClipIds,
     onTrackToggleMute,
@@ -435,8 +499,12 @@ export default function Timeline({
     activeSceneId,
     onSceneChange,
     processingClipIds,
+    onAddTrack,
+    onDeleteTrack,
+    onOpenAudioGen,
 }: TimelineProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const trackHeaderRef = useRef<HTMLDivElement>(null);
     const rulerRef = useRef<HTMLDivElement>(null);
     const [trimHandle, setTrimHandle] = useState<{
         clipId: string;
@@ -448,6 +516,7 @@ export default function Timeline({
     const [activeDragTrackHeight, setActiveDragTrackHeight] = useState(80);
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
     const [gapContextMenu, setGapContextMenu] = useState<GapContextMenuState | null>(null);
+    const [showAddTrackMenu, setShowAddTrackMenu] = useState(false);
 
     const { tracks, zoom, duration, playheadPosition } = state;
     const totalWidth = timeToPixels(duration + 10, zoom);
@@ -603,7 +672,13 @@ export default function Timeline({
         <div className="flex-1 flex flex-col overflow-hidden bg-[#0a0a0a] border-t border-[#1a1a1a]">
             <div className="flex flex-1 overflow-hidden">
                 {/* ═══ TRACK HEADERS ═══ */}
-                <div className="w-[180px] shrink-0 border-r border-[#1a1a1a] bg-[#080808] flex flex-col">
+                <div
+                    ref={trackHeaderRef}
+                    className="w-[180px] shrink-0 border-r border-[#1a1a1a] bg-[#080808] flex flex-col overflow-y-auto scrollbar-hide"
+                    onScroll={(e) => {
+                        if (scrollRef.current) scrollRef.current.scrollTop = e.currentTarget.scrollTop;
+                    }}
+                >
                     <div className="h-7 border-b border-[#1a1a1a] flex items-center px-3 justify-between">
                         <span className="text-[8px] text-neutral-600 tracking-[2px] font-mono uppercase">TRACKS</span>
                         {scenes.length > 1 && (
@@ -626,7 +701,9 @@ export default function Timeline({
                         )}
                     </div>
 
-                    {tracks.map((track) => (
+                    {tracks.map((track) => {
+                        const isAudioTrack = track.type === 'sfx' || track.type === 'music';
+                        return (
                         <div
                             key={track.id}
                             className="border-b border-[#141414] flex items-center px-2 gap-1.5 group"
@@ -636,6 +713,11 @@ export default function Timeline({
                                 className="w-1.5 h-1.5 rounded-full shrink-0"
                                 style={{ backgroundColor: track.color }}
                             />
+                            {isAudioTrack && (
+                                track.type === 'sfx'
+                                    ? <Waves size={10} className="text-cyan-400 shrink-0" />
+                                    : <Music size={10} className="text-purple-400 shrink-0" />
+                            )}
                             <span className="text-[9px] font-bold text-neutral-400 tracking-wider truncate flex-1 uppercase">
                                 {track.label}
                             </span>
@@ -662,22 +744,54 @@ export default function Timeline({
                                         <Unlock size={10} className="text-neutral-500" />
                                     )}
                                 </button>
+                                {isAudioTrack && (
+                                    <button
+                                        onClick={() => onDeleteTrack(track.id)}
+                                        className="p-0.5 rounded hover:bg-red-500/20 transition-colors"
+                                        title="Delete Track"
+                                    >
+                                        <X size={10} className="text-neutral-600 hover:text-red-400" />
+                                    </button>
+                                )}
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
 
-                    <div className="p-2">
-                        <button className="w-full flex items-center justify-center gap-1 py-1.5 rounded border border-dashed border-[#222] hover:border-[#444] text-[8px] text-neutral-600 tracking-[2px] transition-all">
-                            <Plus size={9} /> ADD TRACK
+                    <div className="p-2 relative">
+                        <button
+                            onClick={() => setShowAddTrackMenu(!showAddTrackMenu)}
+                            className="w-full flex items-center justify-center gap-1 py-1.5 rounded border border-dashed border-[#222] hover:border-[#444] text-[8px] text-neutral-600 hover:text-neutral-400 tracking-[2px] transition-all"
+                        >
+                            <Plus size={9} /> ADD TRACK <ChevronDown size={8} />
                         </button>
+                        {showAddTrackMenu && (
+                            <div className="absolute left-2 right-2 top-full mt-1 bg-[#181818] border border-[#333] rounded-lg shadow-2xl py-1 z-50">
+                                <button
+                                    onClick={() => { onAddTrack('sfx'); setShowAddTrackMenu(false); }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-[10px] text-neutral-300 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors"
+                                >
+                                    <Waves size={12} className="text-cyan-400" /> SFX Track
+                                </button>
+                                <button
+                                    onClick={() => { onAddTrack('music'); setShowAddTrackMenu(false); }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-[10px] text-neutral-300 hover:bg-purple-500/10 hover:text-purple-300 transition-colors"
+                                >
+                                    <Music size={12} className="text-purple-400" /> BGM Track
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* ═══ SCROLLABLE TRACKS ═══ */}
                 <div
                     ref={scrollRef}
-                className="flex-1 overflow-x-auto overflow-y-hidden relative"
+                className="flex-1 overflow-x-auto overflow-y-auto relative"
                     onClick={() => { onClipSelect(null); setContextMenu(null); setGapContextMenu(null); }}
+                    onScroll={(e) => {
+                        if (trackHeaderRef.current) trackHeaderRef.current.scrollTop = e.currentTarget.scrollTop;
+                    }}
                 >
                     {/* Ruler */}
                     <div
@@ -723,7 +837,51 @@ export default function Timeline({
                                             className="relative w-full h-full pt-1"
                                             onClick={(e) => e.stopPropagation()}
                                         >
-                                            {track.clips.length === 0 && (
+                                            {track.clips.length === 0 && (track.type === 'sfx' || track.type === 'music') && (
+                                                <div
+                                                    className="absolute inset-0 group/audiotrack cursor-pointer z-10 rounded-sm overflow-hidden"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onOpenAudioGen(track.id, track.type === 'sfx' ? 'sfx' : 'bgm');
+                                                    }}
+                                                >
+                                                    {/* Gradient background on hover */}
+                                                    <div
+                                                        className="absolute inset-0 opacity-0 group-hover/audiotrack:opacity-100 transition-opacity duration-300"
+                                                        style={{
+                                                            background: track.type === 'sfx'
+                                                                ? 'linear-gradient(90deg, rgba(34,211,238,0.08) 0%, rgba(34,211,238,0.03) 30%, transparent 60%)'
+                                                                : 'linear-gradient(90deg, rgba(168,85,247,0.08) 0%, rgba(168,85,247,0.03) 30%, transparent 60%)',
+                                                        }}
+                                                    />
+                                                    {/* Plus icon + label */}
+                                                    <div className="absolute inset-0 flex items-center justify-center gap-2">
+                                                        <div
+                                                            className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-dashed opacity-30 group-hover/audiotrack:opacity-100 transition-all duration-300 group-hover/audiotrack:scale-105"
+                                                            style={{
+                                                                borderColor: track.type === 'sfx' ? '#22d3ee40' : '#a855f740',
+                                                                backgroundColor: track.type === 'sfx' ? '#22d3ee08' : '#a855f708',
+                                                            }}
+                                                        >
+                                                            <Plus
+                                                                size={11}
+                                                                style={{ color: track.type === 'sfx' ? '#22d3ee' : '#a855f7' }}
+                                                            />
+                                                            <span
+                                                                className="text-[9px] font-bold tracking-[2px] uppercase"
+                                                                style={{ color: track.type === 'sfx' ? '#22d3ee' : '#a855f7' }}
+                                                            >
+                                                                {track.type === 'sfx' ? 'Generate SFX' : 'Generate BGM'}
+                                                            </span>
+                                                            {track.type === 'sfx'
+                                                                ? <Waves size={10} style={{ color: '#22d3ee' }} />
+                                                                : <Music size={10} style={{ color: '#a855f7' }} />
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {track.clips.length === 0 && track.type === 'video' && (
                                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                                     <span className="text-[8px] text-neutral-700 tracking-[2px] uppercase font-mono">
                                                         Drop clips here
@@ -774,51 +932,52 @@ export default function Timeline({
                                                     onClipSelect={onClipSelect}
                                                     onTrimStart={handleTrimStart}
                                                     onContextMenu={handleContextMenu}
+                                                    onToggleMute={onClipToggleMute}
                                                 />
                                             ))}
                                         </div>
+
+                                        {/* ═══ LOOP REGION OVERLAY — only on the track that contains the selected clip ═══ */}
+                                        {selectedClipIds.length === 1 && (() => {
+                                            const loopClip = track.clips.find(c => c.id === selectedClipIds[0]);
+                                            if (!loopClip) return null;
+                                            const loopLeft = timeToPixels(loopClip.startTime, zoom);
+                                            const loopWidth = timeToPixels(loopClip.duration, zoom);
+                                            return (
+                                                <>
+                                                    {/* Dim outside loop region */}
+                                                    <div
+                                                        className="absolute top-0 bottom-0 left-0 bg-black/30 z-20 pointer-events-none"
+                                                        style={{ width: loopLeft }}
+                                                    />
+                                                    <div
+                                                        className="absolute top-0 bottom-0 bg-black/30 z-20 pointer-events-none"
+                                                        style={{ left: loopLeft + loopWidth, right: 0 }}
+                                                    />
+                                                    {/* Loop region highlight */}
+                                                    <div
+                                                        className="absolute top-0 bottom-0 z-20 pointer-events-none"
+                                                        style={{ left: loopLeft, width: loopWidth }}
+                                                    >
+                                                        {/* Left bracket */}
+                                                        <div className="absolute left-0 top-0 bottom-0 w-px bg-[#E50914]/60" />
+                                                        <div className="absolute left-0 top-0 w-2 h-px bg-[#E50914]/60" />
+                                                        <div className="absolute left-0 bottom-0 w-2 h-px bg-[#E50914]/60" />
+                                                        {/* Right bracket */}
+                                                        <div className="absolute right-0 top-0 bottom-0 w-px bg-[#E50914]/60" />
+                                                        <div className="absolute right-0 top-0 w-2 h-px bg-[#E50914]/60" />
+                                                        <div className="absolute right-0 bottom-0 w-2 h-px bg-[#E50914]/60" />
+                                                        {/* Loop label */}
+                                                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[#E50914]/20 border border-[#E50914]/30 rounded px-1.5 py-0.5">
+                                                            <div className="w-1 h-1 rounded-full bg-[#E50914] animate-pulse" />
+                                                            <span className="text-[7px] font-mono text-[#E50914] tracking-wider uppercase">LOOP</span>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
                                 </div>
                             ))}
-
-                            {/* ═══ LOOP REGION OVERLAY ═══ */}
-                            {selectedClipIds.length === 1 && (() => {
-                                const loopClip = tracks.flatMap(t => t.clips).find(c => c.id === selectedClipIds[0]);
-                                if (!loopClip) return null;
-                                const loopLeft = timeToPixels(loopClip.startTime, zoom);
-                                const loopWidth = timeToPixels(loopClip.duration, zoom);
-                                return (
-                                    <>
-                                        {/* Dim outside loop region */}
-                                        <div
-                                            className="absolute top-0 bottom-0 left-0 bg-black/30 z-20 pointer-events-none"
-                                            style={{ width: loopLeft }}
-                                        />
-                                        <div
-                                            className="absolute top-0 bottom-0 bg-black/30 z-20 pointer-events-none"
-                                            style={{ left: loopLeft + loopWidth, right: 0 }}
-                                        />
-                                        {/* Loop region highlight */}
-                                        <div
-                                            className="absolute top-0 bottom-0 z-20 pointer-events-none"
-                                            style={{ left: loopLeft, width: loopWidth }}
-                                        >
-                                            {/* Left bracket */}
-                                            <div className="absolute left-0 top-0 bottom-0 w-px bg-[#E50914]/60" />
-                                            <div className="absolute left-0 top-0 w-2 h-px bg-[#E50914]/60" />
-                                            <div className="absolute left-0 bottom-0 w-2 h-px bg-[#E50914]/60" />
-                                            {/* Right bracket */}
-                                            <div className="absolute right-0 top-0 bottom-0 w-px bg-[#E50914]/60" />
-                                            <div className="absolute right-0 top-0 w-2 h-px bg-[#E50914]/60" />
-                                            <div className="absolute right-0 bottom-0 w-2 h-px bg-[#E50914]/60" />
-                                            {/* Loop label */}
-                                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[#E50914]/20 border border-[#E50914]/30 rounded px-1.5 py-0.5">
-                                                <div className="w-1 h-1 rounded-full bg-[#E50914] animate-pulse" />
-                                                <span className="text-[7px] font-mono text-[#E50914] tracking-wider uppercase">LOOP</span>
-                                            </div>
-                                        </div>
-                                    </>
-                                );
-                            })()}
 
                             {/* ═══ PLAYHEAD ═══ */}
                             <div
@@ -865,6 +1024,7 @@ export default function Timeline({
                     onDelete={onClipDelete}
                     onDuplicate={onClipDuplicate}
                     onSpeed={onClipSpeed}
+                    onToggleMute={onClipToggleMute}
                     onClose={() => setContextMenu(null)}
                 />
             )}

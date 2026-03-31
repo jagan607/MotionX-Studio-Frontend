@@ -5,6 +5,7 @@ import {
     Play, Pause, SkipBack, SkipForward,
     Scissors, ZoomIn, ZoomOut, Maximize2,
     Repeat, Magnet, Undo2, Redo2, Trash2, Copy,
+    PenTool,
 } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════
@@ -36,6 +37,9 @@ interface TransportControlsProps {
     formatTimecode: (secs: number) => string;
     loopingClipName?: string | null;  // non-null when a clip is selected and looping
     loopClipTime?: { elapsed: number; total: number } | null;
+    isEditMode?: boolean;
+    onToggleEditMode?: () => void;
+    hasVideo?: boolean;
 }
 
 function ToolBtn({
@@ -90,6 +94,9 @@ export default function TransportControls({
     formatTimecode,
     loopingClipName,
     loopClipTime,
+    isEditMode,
+    onToggleEditMode,
+    hasVideo,
 }: TransportControlsProps) {
     return (
         <div className="h-10 bg-[#080808] border-y border-[#1a1a1a] flex items-center justify-between px-3 shrink-0 gap-1">
@@ -146,6 +153,18 @@ export default function TransportControls({
                 </ToolBtn>
                 <ToolBtn onClick={onDuplicate} title="Duplicate (⌘D)" disabled={!hasSelection}>
                     <Copy size={13} />
+                </ToolBtn>
+
+                <div className="h-4 w-px bg-[#222] mx-1.5" />
+
+                {/* Generative Edit toggle */}
+                <ToolBtn
+                    onClick={onToggleEditMode || (() => {})}
+                    title={isEditMode ? "Exit Edit Mode (E)" : "Generative Edit (E) — pause video first"}
+                    disabled={!hasVideo}
+                    active={isEditMode}
+                >
+                    <PenTool size={13} />
                 </ToolBtn>
 
                 <div className="h-4 w-px bg-[#222] mx-1.5" />

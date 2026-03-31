@@ -1,18 +1,22 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-    X, Sun, Palette, Wand2, RotateCcw,
-    Move, Clapperboard, Loader2, Lightbulb, Camera, Upload, CheckCircle
+    X, Camera, Upload, Loader2, CheckCircle, Move,
+    Clapperboard, ImagePlus, Type, Sparkles, SlidersHorizontal,
+    ChevronDown, ChevronUp, Eye, Palette, History, RotateCcw
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { generateShotImage, motionTransfer, videoEdit, uploadMotionRefVideo } from "@/lib/api";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/lib/firebase";
+import { generateShotImage, motionTransfer, videoEdit, uploadMotionRefVideo, revertVideo } from "@/lib/api";
 import { TimelineClip } from "@/lib/types/postprod";
 
 // ═══════════════════════════════════════════════════════════
-//   SHOT INSPECTOR (v4)
-//   Dual Provider: Kling + Seedance for both features
+//   SHOT INSPECTOR — LOOK DEVELOPMENT (v5)
+//   Cinema-grade per-shot look dev panel
+//   Reference → Prompt → Quick Look → Intensity → Apply
 // ═══════════════════════════════════════════════════════════
 
 interface ShotInspectorProps {
@@ -23,47 +27,89 @@ interface ShotInspectorProps {
     onProcessingStart?: (clipId: string) => void;
 }
 
-const LIGHTING_PRESETS = [
-    { name: "Natural", key: "natural", image: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/assets%2Flighting_presets%2Fnatural.png?alt=media&token=d15d7b5f-1363-40a9-8aa1-f9dc1abb73c0" },
-    { name: "Golden Hour", key: "golden_hour", image: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/assets%2Flighting_presets%2Fgolden_hour.png?alt=media&token=dc1f0744-de7a-4bae-8eb6-1f6b67164d32" },
-    { name: "Blue Hour", key: "blue_hour", image: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/assets%2Flighting_presets%2Fblue_hour.png?alt=media&token=361cdabb-b3de-4514-9379-8c9684deb157" },
-    { name: "Neon", key: "neon", image: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/assets%2Flighting_presets%2Fneon.png?alt=media&token=5e2439cf-fc8a-4f57-8631-4e2ff048fa46" },
-    { name: "High Key", key: "high_key", image: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/assets%2Flighting_presets%2Fhigh_key.png?alt=media&token=d3cfb9d6-24cd-4e6c-968d-b76555954c24" },
-    { name: "Low Key", key: "low_key", image: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/assets%2Flighting_presets%2Flow_key.png?alt=media&token=307b3bf6-b660-4003-8087-d3ee13f11b2c" },
-    { name: "Silhouette", key: "silhouette", image: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/assets%2Flighting_presets%2Fsilhouette.png?alt=media&token=98eb9738-63fa-4a9d-b255-4562320df60a" },
-    { name: "Dramatic Side Light", key: "dramatic_side_light", image: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/assets%2Flighting_presets%2Fdramatic_side_light.png?alt=media&token=0268d5e5-656e-43c1-a76e-397e08a1a296" },
-    { name: "Studio", key: "studio", image: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/assets%2Flighting_presets%2Fstudio.png?alt=media&token=7254e397-42d2-40af-9789-62ab3d67d4d3" },
-    { name: "Candlelight", key: "candlelight", image: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/assets%2Flighting_presets%2Fcandlelight.png?alt=media&token=8ba40b07-ace2-4b34-8db2-0c5473404ec6" },
-];
-
-const MOODS = [
-    "Neutral", "Dramatic", "Romantic", "Tense",
-    "Mysterious", "Euphoric", "Melancholic",
-    "Action", "Serene", "Horror"
+// Quick looks — Seedance 2.0 V2V re-grading prompts
+// Each prompt is a natural-language lighting/grading instruction per the Seedance prompt guide:
+// Style = [Visual anchor] + [Lighting] + [Color treatment]
+const QUICK_LOOKS = [
+    { label: "Natural",       key: "natural",          prompt: "Re-grade this video with natural balanced daylight. Soft diffused sunlight from above, even exposure across highlights and shadows, true-to-life colors with neutral white balance at 5600K. Clean, ungraded look." },
+    { label: "Golden Hour",   key: "golden_hour",      prompt: "Re-grade this video with warm golden hour lighting. Strong warm backlight at 3200K casting long amber shadows, golden lens flares streaking across the frame, skin tones glow warmly, deep orange and yellow color grading." },
+    { label: "Blue Hour",     key: "blue_hour",        prompt: "Re-grade this video with cool blue twilight atmosphere. Desaturated palette with deep blue color cast at 7500K, muted tones, soft diffused ambient light from an overcast evening sky, shadows shift toward deep navy." },
+    { label: "Neon Noir",     key: "neon",             prompt: "Re-grade this video with neon-lit noir atmosphere. Saturated pools of pink, cyan, and purple neon light reflecting off wet surfaces, deep black shadows, high contrast, urban night mood with vivid color separation." },
+    { label: "High Key",      key: "high_key",         prompt: "Re-grade this video with high-key flat lighting. Bright, airy, and evenly lit from multiple soft sources, minimal shadow depth, slightly overexposed highlights, clean white tones with a fashion-editorial feel." },
+    { label: "Low Key",       key: "low_key",          prompt: "Re-grade this video with low-key chiaroscuro lighting. Single hard directional light source from one side, deep impenetrable shadows consuming most of the frame, extreme contrast ratio, film noir mood." },
+    { label: "Silhouette",    key: "silhouette",       prompt: "Re-grade this video with strong backlight creating full silhouette. Subject rendered as pure dark shape against a bright luminous background, rim light outlining edges, no fill light on the front, dramatic and graphic." },
+    { label: "Side Light",    key: "side_light",       prompt: "Re-grade this video with hard dramatic side lighting. A single strong light source at 90 degrees illuminates one half of the subject while the other half falls into deep shadow, Rembrandt lighting triangle visible on the cheek." },
+    { label: "Candlelight",   key: "candlelight",      prompt: "Re-grade this video with warm candlelight at 1800K. Deep amber and burnt orange tones, intimate flickering light with soft dancing shadows, heavy vignette, warm skin tones, darkness surrounding the subject." },
+    { label: "Overcast",      key: "overcast",         prompt: "Re-grade this video with soft overcast diffused lighting. No harsh shadows or directional light, muted desaturated colors, flat even illumination as through heavy clouds, contemplative and quiet mood." },
+    { label: "Teal & Orange", key: "teal_orange",      prompt: "Re-grade this video with teal and orange complementary color grading. Push shadows and midtones toward cool teal, warm the highlights and skin tones toward deep orange, high contrast blockbuster cinema look." },
+    { label: "Bleach Bypass", key: "bleach_bypass",     prompt: "Re-grade this video with bleach bypass processing. Heavily desaturated with metallic silver tones, high contrast with crushed blacks and blown highlights, gritty and unsettling texture, reminiscent of Saving Private Ryan." },
+    { label: "Day for Night", key: "day_for_night",     prompt: "Re-grade this video as day-for-night. Deep blue tint simulating moonlight, crushed black levels, desaturated colors, cool 8000K color temperature, artificial moonlit atmosphere with visible stars implied." },
+    { label: "Vintage Film",  key: "vintage_film",      prompt: "Re-grade this video with vintage 35mm film stock aesthetic. Subtle film grain texture, faded lifted black levels, warm color shift toward amber, gentle halation around highlights, slightly soft focus edges." },
+    { label: "Deakins",       key: "deakins",           prompt: "Re-grade this video in a Roger Deakins naturalistic cinematography style. Precisely motivated light sources that feel organic, controlled contrast with detail preserved in shadows, naturalistic color palette, every light source justified by the scene." },
+    { label: "Cyberpunk",     key: "cyberpunk",         prompt: "Re-grade this video with cyberpunk neon aesthetic. Vibrant magenta and cyan color palette, holographic reflections on surfaces, rain-soaked wet-look textures catching colored light, dark background with explosive neon accents." },
 ];
 
 type ProviderOption = "kling" | "seedance-2";
 
 export default function ShotInspector({ clip, projectId, episodeId, onClose, onProcessingStart }: ShotInspectorProps) {
-    const [lighting, setLighting] = useState(LIGHTING_PRESETS[0].name);
-    const [mood, setMood] = useState(MOODS[0]);
-    const [aiPrompt, setAiPrompt] = useState("");
+    // Look Development state
+    const [lookPrompt, setLookPrompt] = useState("");
+    const [selectedQuickLook, setSelectedQuickLook] = useState<string | null>(null);
+    const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+    const [referenceImageName, setReferenceImageName] = useState("");
+    const [isUploadingRef, setIsUploadingRef] = useState(false);
+    const [isDraggingRef, setIsDraggingRef] = useState(false);
+    const [intensity, setIntensity] = useState(80);
+    const refImageInputRef = useRef<HTMLInputElement>(null);
+
+    // Processing
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isReverting, setIsReverting] = useState(false);
     const [processingAction, setProcessingAction] = useState<string>("");
 
-    // Provider state (motion transfer only)
+    // Motion Transfer (advanced section)
+    const [showMotionSection, setShowMotionSection] = useState(false);
     const [motionProvider, setMotionProvider] = useState<ProviderOption>("kling");
-
-    // Motion Transfer state
     const [refVideoUrl, setRefVideoUrl] = useState("");
     const [refVideoName, setRefVideoName] = useState("");
-    const [isUploading, setIsUploading] = useState(false);
-    const [isDragging, setIsDragging] = useState(false);
+    const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+    const [isDraggingVideo, setIsDraggingVideo] = useState(false);
     const [motionDirection, setMotionDirection] = useState<"video" | "image">("video");
     const [klingVersion, setKlingVersion] = useState<"2.6" | "3.0">("2.6");
     const [motionPrompt, setMotionPrompt] = useState("");
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
 
+    // ── REFERENCE IMAGE UPLOAD ──
+    const handleRefImageUpload = async (file: File) => {
+        if (!file.type.startsWith("image/")) {
+            toast.error("Please select an image file");
+            return;
+        }
+        if (file.size > 20 * 1024 * 1024) {
+            toast.error("Image must be under 20MB");
+            return;
+        }
+        setIsUploadingRef(true);
+        setReferenceImageName(file.name);
+        try {
+            const storageRef = ref(
+                storage,
+                `projects/${projectId}/postprod/look_refs/${Date.now()}_${file.name}`
+            );
+            const snapshot = await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(snapshot.ref);
+            setReferenceImageUrl(url);
+            toast.success("Reference uploaded");
+        } catch (e) {
+            console.error("Upload failed:", e);
+            toast.error("Failed to upload reference");
+            setReferenceImageName("");
+        } finally {
+            setIsUploadingRef(false);
+        }
+    };
+
+    // ── MOTION REF VIDEO UPLOAD ──
     const handleRefVideoUpload = async (file: File) => {
         if (!file.type.startsWith("video/")) {
             toast.error("Please select a video file");
@@ -73,7 +119,7 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
             toast.error("Video must be under 100MB");
             return;
         }
-        setIsUploading(true);
+        setIsUploadingVideo(true);
         setRefVideoName(file.name);
         try {
             const url = await uploadMotionRefVideo(projectId, file);
@@ -84,32 +130,93 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
             toast.error("Failed to upload reference video");
             setRefVideoName("");
         } finally {
-            setIsUploading(false);
+            setIsUploadingVideo(false);
         }
     };
 
-    const handleRegenerate = async () => {
-        setIsProcessing(true);
-        setProcessingAction("regenerate");
-        try {
-            const parts = [
-                `Lighting: ${lighting}`,
-                `Mood: ${mood}`,
-            ];
-            if (aiPrompt.trim()) parts.push(aiPrompt.trim());
-            const fullPrompt = parts.join(". ") + ".";
+    // ── BUILD FINAL LOOK PROMPT ──
+    // Follows Seedance 2.0 prompting best practices:
+    // - Natural descriptive sentences (not keyword lists)
+    // - @imageN tags handled by backend worker (auto-injected if missing)
+    // - Intensity-aware language
+    const buildLookPrompt = (): string => {
+        const parts: string[] = [];
+        const hasRef = !!referenceImageUrl;
 
-            await generateShotImage(projectId, clip.shotId, fullPrompt, null, "gemini");
-            toast.success("Shot regenerated with new settings");
-        } catch (e) {
-            console.error("Regeneration failed:", e);
-            toast.error("Regeneration failed — check credits");
+        // Quick look base (if selected)
+        const quickLook = QUICK_LOOKS.find(q => q.key === selectedQuickLook);
+        if (quickLook) {
+            parts.push(quickLook.prompt);
+        }
+
+        // User's custom description (highest priority — overrides quick look details)
+        if (lookPrompt.trim()) {
+            parts.push(lookPrompt.trim());
+        }
+
+        // If user provided a reference but no text, send a minimal creative-intent prompt.
+        // The backend worker handles @image tagging and extraction details — no need to duplicate here.
+        if (parts.length === 0 && hasRef) {
+            parts.push("Match the look of the reference");
+        }
+
+        // If absolutely nothing is set (shouldn't happen — button is disabled)
+        if (parts.length === 0) {
+            parts.push("Enhance the cinematic quality of this video while preserving the original action and framing");
+        }
+
+        // Intensity modulation — described naturally
+        if (intensity < 30) {
+            parts.push("Apply the changes very subtly, keeping the video mostly in its original look");
+        } else if (intensity < 50) {
+            parts.push("Apply the changes with light touch, blending with the original look");
+        } else if (intensity > 90) {
+            parts.push("Apply the changes boldly and dramatically, fully committing to the new look");
+        }
+
+        return parts.join(". ") + ".";
+    };
+
+    // ── APPLY LOOK ──
+    const handleApplyLook = async () => {
+        if (!clip.videoUrl) {
+            toast.error("This clip has no video — generate one first");
+            return;
+        }
+
+        setIsProcessing(true);
+        setProcessingAction("look");
+        onProcessingStart?.(clip.id);
+        try {
+            const prompt = buildLookPrompt();
+            const refUrls = referenceImageUrl ? [referenceImageUrl] : [];
+
+            await videoEdit(
+                projectId,
+                episodeId,
+                clip.sceneId,
+                clip.shotId,
+                clip.videoUrl,
+                prompt,
+                "seedance-2",
+                undefined,
+                "5",
+                "16:9",
+                refUrls,
+                clip.trimIn || undefined,
+                clip.trimOut || undefined,
+            );
+            toast.success("Look applied — rendering via Seedance V2V");
+        } catch (e: any) {
+            console.error("Look application failed:", e);
+            toast.error(e?.response?.data?.detail || "Look application failed");
         } finally {
             setIsProcessing(false);
             setProcessingAction("");
         }
     };
 
+    // ── MOTION TRANSFER ──
     const handleMotionTransfer = async () => {
         if (!refVideoUrl) {
             toast.error("Upload a reference video first");
@@ -124,20 +231,10 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
         setProcessingAction("motion");
         onProcessingStart?.(clip.id);
         try {
-            // Send motion prompt only if user typed one; otherwise empty = PiAPI defaults
-            const prompt = motionPrompt.trim();
-
             await motionTransfer(
-                projectId,
-                episodeId,
-                clip.sceneId,
-                clip.shotId,
-                clip.thumbnailUrl,     // Character image (auto from shot)
-                refVideoUrl,           // Uploaded reference motion video
-                prompt,
-                motionProvider,
-                motionDirection,
-                klingVersion,
+                projectId, episodeId, clip.sceneId, clip.shotId,
+                clip.thumbnailUrl, refVideoUrl,
+                motionPrompt.trim(), motionProvider, motionDirection, klingVersion,
             );
             toast.success(`Motion transfer queued (${motionProvider === "kling" ? "Kling" : "Seedance 2.0"})`);
         } catch (e: any) {
@@ -149,36 +246,8 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
         }
     };
 
-    const handleRelighting = async () => {
-        if (!clip.videoUrl) {
-            toast.error("This clip has no video — generate one first");
-            return;
-        }
-
-        setIsProcessing(true);
-        setProcessingAction("relight");
-        onProcessingStart?.(clip.id);
-        try {
-            const relightPrompt = aiPrompt.trim()
-                || `Change lighting to ${lighting}. Mood: ${mood}. Maintain original motion and composition.`;
-
-            await videoEdit(
-                projectId,
-                episodeId,
-                clip.sceneId,
-                clip.shotId,
-                clip.videoUrl,
-                relightPrompt,
-            );
-            toast.success("Relighting queued (Seedance V2V)");
-        } catch (e: any) {
-            console.error("Relighting failed:", e);
-            toast.error(e?.response?.data?.detail || "Relighting failed");
-        } finally {
-            setIsProcessing(false);
-            setProcessingAction("");
-        }
-    };
+    // Whether user has set any look direction
+    const hasLookInput = !!lookPrompt.trim() || !!selectedQuickLook || !!referenceImageUrl;
 
     return (
         <motion.div
@@ -186,25 +255,35 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
             animate={{ width: "100%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="h-full border-l border-[#1a1a1a] bg-[#080808] flex flex-col overflow-hidden shrink-0"
+            className="h-full border-l border-[#1a1a1a] bg-[#060606] flex flex-col overflow-hidden shrink-0"
         >
-            {/* Header */}
-            <div className="px-4 py-3 border-b border-[#1a1a1a] flex items-center justify-between shrink-0">
+            {/* ═══ HEADER — Film strip accent ═══ */}
+            <div className="px-4 py-3 border-b border-[#1a1a1a] flex items-center justify-between shrink-0 relative overflow-hidden">
+                {/* Film sprocket holes */}
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#E50914]/30 to-transparent" />
                 <div className="flex items-center gap-2">
-                    <Clapperboard size={12} className="text-[#E50914]" />
-                    <span className="text-[10px] font-bold tracking-[2px] text-white uppercase">
-                        Shot Inspector
-                    </span>
+                    <div className="w-5 h-5 rounded bg-[#E50914]/10 flex items-center justify-center">
+                        <Eye size={10} className="text-[#E50914]" />
+                    </div>
+                    <div>
+                        <span className="text-[10px] font-bold tracking-[3px] text-white uppercase block leading-none">
+                            Look Dev
+                        </span>
+                        <span className="text-[6px] text-neutral-600 tracking-[2px] uppercase">
+                            Per-Shot Color & Light
+                        </span>
+                    </div>
                 </div>
                 <button onClick={onClose} className="p-1 rounded hover:bg-[#1a1a1a] text-neutral-500 transition-colors">
                     <X size={13} />
                 </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
-                {/* Thumbnail Preview */}
-                <div className="p-4 border-b border-[#141414]">
-                    <div className="aspect-video rounded overflow-hidden bg-[#111] border border-[#1a1a1a]">
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+
+                {/* ═══ SHOT PREVIEW ═══ */}
+                <div className="p-3 border-b border-[#111]">
+                    <div className="aspect-video rounded-md overflow-hidden bg-[#0a0a0a] border border-[#151515] relative group">
                         {clip.thumbnailUrl ? (
                             <img src={clip.thumbnailUrl} alt={clip.label} className="w-full h-full object-cover" />
                         ) : (
@@ -212,342 +291,572 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                                 <Camera size={24} />
                             </div>
                         )}
+                        {/* Film frame overlay */}
+                        <div className="absolute inset-0 pointer-events-none border border-white/[0.03] rounded-md" />
+                        {/* Status badge */}
+                        <div className="absolute bottom-1.5 right-1.5">
+                            {clip.videoStatus === "animating" ? (
+                                <span className="px-1.5 py-0.5 bg-amber-500/20 border border-amber-500/30 rounded text-[6px] text-amber-400 font-bold tracking-wider animate-pulse">
+                                    RENDERING
+                                </span>
+                            ) : clip.videoStatus === "error" ? (
+                                <span className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/30 rounded text-[6px] text-red-400 font-bold tracking-wider" title={clip.errorMessage}>
+                                    FAILED
+                                </span>
+                            ) : clip.videoUrl ? (
+                                <span className="px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-[6px] text-emerald-500 font-bold tracking-wider">
+                                    READY
+                                </span>
+                            ) : (
+                                <span className="px-1.5 py-0.5 bg-neutral-800/80 border border-neutral-700/30 rounded text-[6px] text-neutral-500 font-bold tracking-wider">
+                                    NO VIDEO
+                                </span>
+                            )}
+                        </div>
                     </div>
-                    <div className="mt-2 text-center">
-                        <span className="text-[9px] font-bold text-neutral-400 tracking-[2px] uppercase">
+                    <div className="mt-1.5 flex items-center justify-between">
+                        <span className="text-[8px] font-bold text-neutral-500 tracking-[2px] uppercase truncate">
                             {clip.label}
                         </span>
-                        <span className="text-[8px] text-neutral-600 block mt-0.5">
-                            {clip.duration.toFixed(1)}s · Shot {clip.shotId.slice(-6)}
+                        <span className="text-[7px] text-neutral-700 font-mono">
+                            {clip.duration.toFixed(1)}s
                         </span>
-                        {/* Video Status Indicator */}
-                        {clip.videoStatus === "animating" ? (
-                            <span className="text-[7px] text-amber-500 block mt-0.5 animate-pulse">
-                                ◉ Animating — video is being generated...
-                            </span>
-                        ) : clip.videoStatus === "error" ? (
-                            <span className="text-[7px] text-red-500 block mt-0.5" title={clip.errorMessage}>
-                                ✕ Failed — {clip.errorMessage?.slice(0, 40) || "generation error"}
-                            </span>
-                        ) : clip.videoUrl ? (
-                            <span className="text-[7px] text-emerald-600 block mt-0.5">● Video ready</span>
-                        ) : (
-                            <span className="text-[7px] text-neutral-600 block mt-0.5">○ No video yet</span>
+                    </div>
+
+                    {/* Error Banner — visible, not just a tooltip */}
+                    {clip.videoStatus === "error" && clip.errorMessage && (
+                        <div className="mt-2 px-2.5 py-2 bg-red-500/8 border border-red-500/20 rounded-md">
+                            <div className="flex items-start gap-1.5">
+                                <span className="text-red-400 text-[10px] mt-0.5">⚠</span>
+                                <div>
+                                    <p className="text-[8px] text-red-400 font-medium leading-relaxed">
+                                        {clip.errorMessage}
+                                    </p>
+                                    <p className="text-[6px] text-red-400/50 mt-0.5 tracking-wider">
+                                        Credits refunded · Try again with different settings
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* ═══ VERSION HISTORY ═══ */}
+                {clip.videoUrl && (() => {
+                    // Build unified version list — always include the current videoUrl
+                    const rawHistory = clip.videoHistory || [];
+                    const historyUrls = new Set(rawHistory.map(h => h.url));
+
+                    // If current videoUrl isn't in history (legacy clips), add it as "Current"
+                    const versions = historyUrls.has(clip.videoUrl)
+                        ? rawHistory
+                        : [{ url: clip.videoUrl, provider: undefined, mode: undefined, prompt: undefined, created_at: undefined, task_id: undefined }, ...rawHistory];
+
+                    return (
+                        <div className="px-4 py-3 border-b border-[#111]">
+                            <div className="flex items-center gap-1.5 mb-2">
+                                <History size={10} className="text-neutral-500" />
+                                <span className="text-[8px] font-bold text-neutral-400 tracking-[2px] uppercase">
+                                    Version History
+                                </span>
+                                <span className="text-[7px] text-neutral-600 ml-auto">
+                                    {versions.length} version{versions.length > 1 ? 's' : ''}
+                                </span>
+                            </div>
+
+                            <div className="space-y-1">
+                                {[...versions].reverse().map((version, idx) => {
+                                    const isActive = version.url === clip.videoUrl;
+                                    const isOriginal = idx === versions.length - 1;
+                                    const providerLabel = isOriginal
+                                        ? 'Original'
+                                        : version.provider === 'seedance-2' ? 'Seedance V2V'
+                                        : version.provider === 'kling' ? 'Kling'
+                                        : version.provider || 'Edit';
+                                    const displayLabel = versions.length === 1 ? 'Current Version' : providerLabel;
+                                    const timeStr = version.created_at
+                                        ? new Date(version.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                        : '';
+
+                                    return (
+                                        <button
+                                            key={version.task_id || version.url}
+                                            onClick={async () => {
+                                                if (isActive || isReverting) return;
+                                                setIsReverting(true);
+                                                try {
+                                                    await revertVideo(
+                                                        projectId,
+                                                        episodeId,
+                                                        clip.sceneId,
+                                                        clip.shotId,
+                                                        version.url,
+                                                    );
+                                                    toast.success(isOriginal ? 'Reverted to original' : `Switched to ${providerLabel} version`);
+                                                } catch (e: any) {
+                                                    toast.error(e?.response?.data?.detail || 'Revert failed');
+                                                } finally {
+                                                    setIsReverting(false);
+                                                }
+                                            }}
+                                            disabled={isActive || isReverting}
+                                            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md transition-all text-left ${
+                                                isActive
+                                                    ? 'bg-[#E50914]/10 border border-[#E50914]/30'
+                                                    : 'bg-[#0a0a0a] border border-[#151515] hover:border-neutral-600 cursor-pointer'
+                                            }`}
+                                        >
+                                            {/* Version indicator */}
+                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                                                isActive ? 'bg-[#E50914]/20' : 'bg-[#111]'
+                                            }`}>
+                                                {isActive ? (
+                                                    <CheckCircle size={10} className="text-[#E50914]" />
+                                                ) : isOriginal ? (
+                                                    <span className="text-[7px] text-neutral-600 font-bold">OG</span>
+                                                ) : (
+                                                    <RotateCcw size={8} className="text-neutral-600" />
+                                                )}
+                                            </div>
+
+                                            {/* Version info */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className={`text-[9px] font-bold truncate ${
+                                                        isActive ? 'text-[#E50914]' : 'text-neutral-400'
+                                                    }`}>
+                                                        {displayLabel}
+                                                    </span>
+                                                    {isActive && (
+                                                        <span className="text-[6px] text-[#E50914]/60 tracking-wider font-bold uppercase">Active</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    {timeStr && (
+                                                        <span className="text-[7px] text-neutral-600 font-mono">{timeStr}</span>
+                                                    )}
+                                                    {version.prompt && (
+                                                        <span className="text-[7px] text-neutral-700 truncate" title={version.prompt}>
+                                                            · {version.prompt.slice(0, 30)}{version.prompt.length > 30 ? '…' : ''}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })()}
+
+
+                {/* ═══ 1. REFERENCE IMAGE ═══ */}
+                <div className="px-4 py-3 border-b border-[#111]">
+                    <SectionHeader icon={<ImagePlus size={10} />} label="Reference" sublabel="Upload a still, frame, or painting as your target look" />
+
+                    <input
+                        ref={refImageInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleRefImageUpload(file);
+                            e.target.value = "";
+                        }}
+                    />
+
+                    {referenceImageUrl ? (
+                        <div className="relative group rounded-md overflow-hidden border border-[#1a1a1a]">
+                            <img src={referenceImageUrl} alt="Reference" className="w-full aspect-[2.35/1] object-cover" />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => refImageInputRef.current?.click()}
+                                    className="px-2 py-1 bg-white/10 border border-white/20 rounded text-[7px] text-white tracking-wider uppercase hover:bg-white/20 transition-all"
+                                >
+                                    Replace
+                                </button>
+                                <button
+                                    onClick={() => { setReferenceImageUrl(null); setReferenceImageName(""); }}
+                                    className="px-2 py-1 bg-red-500/20 border border-red-500/30 rounded text-[7px] text-red-400 tracking-wider uppercase hover:bg-red-500/30 transition-all"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent px-2 py-1">
+                                <span className="text-[6px] text-white/60 tracking-wider truncate block">
+                                    {referenceImageName || "Reference image"}
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => refImageInputRef.current?.click()}
+                            disabled={isUploadingRef}
+                            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingRef(true); }}
+                            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingRef(false); }}
+                            onDrop={(e) => {
+                                e.preventDefault(); e.stopPropagation(); setIsDraggingRef(false);
+                                const file = e.dataTransfer.files?.[0];
+                                if (file) handleRefImageUpload(file);
+                            }}
+                            className={`w-full rounded-md border border-dashed transition-all ${
+                                isDraggingRef
+                                    ? "border-[#E50914]/60 bg-[#E50914]/5"
+                                    : "border-[#222] hover:border-[#444] bg-[#0a0a0a]"
+                            }`}
+                        >
+                            <div className="py-4 flex flex-col items-center gap-1.5">
+                                {isUploadingRef ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin text-[#E50914]" />
+                                        <span className="text-[7px] text-neutral-400 tracking-wider">Uploading...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                                            isDraggingRef ? "bg-[#E50914]/10" : "bg-[#111]"
+                                        }`}>
+                                            <ImagePlus size={14} className={isDraggingRef ? "text-[#E50914]" : "text-neutral-600"} />
+                                        </div>
+                                        <span className={`text-[8px] font-medium tracking-wider ${
+                                            isDraggingRef ? "text-[#E50914]" : "text-neutral-500"
+                                        }`}>
+                                            {isDraggingRef ? "Drop reference here" : "Drop a reference frame"}
+                                        </span>
+                                        <span className="text-[6px] text-neutral-700 tracking-wider">
+                                            Film stills · Photos · Paintings · Any visual reference
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                        </button>
+                    )}
+                </div>
+
+
+                {/* ═══ 2. DESCRIBE THE LOOK ═══ */}
+                <div className="px-4 py-3 border-b border-[#111]">
+                    <SectionHeader icon={<Type size={10} />} label="Describe the Look" sublabel="Tell the colorist what you want" />
+
+                    <div className="relative">
+                        <textarea
+                            value={lookPrompt}
+                            onChange={(e) => { setLookPrompt(e.target.value); setSelectedQuickLook(null); }}
+                            placeholder={`"Pull shadows cooler, add warm rim light"\n"Match the interrogation scene from Se7en"\n"Desaturate everything except the red dress"`}
+                            className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-md px-3 py-2.5 text-[9px] text-white placeholder:text-neutral-700 resize-none focus:outline-none focus:border-[#E50914]/40 leading-relaxed transition-colors"
+                            rows={3}
+                        />
+                        {lookPrompt && (
+                            <button
+                                onClick={() => setLookPrompt("")}
+                                className="absolute top-2 right-2 p-0.5 rounded bg-[#1a1a1a] hover:bg-[#333] text-neutral-600 hover:text-white transition-all"
+                            >
+                                <X size={8} />
+                            </button>
                         )}
                     </div>
                 </div>
 
-                {/* Lighting */}
-                <Section title="Lighting" icon={<Sun size={10} />}>
-                    <div className="grid grid-cols-2 gap-1.5">
-                        {LIGHTING_PRESETS.map((preset) => (
+
+                {/* ═══ 3. QUICK LOOKS ═══ */}
+                <div className="px-4 py-3 border-b border-[#111]">
+                    <SectionHeader icon={<Palette size={10} />} label="Quick Looks" sublabel="Starting points — customize with your own prompt" />
+
+                    <div className="flex flex-wrap gap-1">
+                        {QUICK_LOOKS.map((look) => (
                             <button
-                                key={preset.key}
-                                onClick={() => setLighting(preset.name)}
-                                className={`relative rounded overflow-hidden transition-all ${
-                                    lighting === preset.name
-                                        ? "ring-2 ring-[#E50914] ring-offset-1 ring-offset-black"
-                                        : "ring-1 ring-[#1a1a1a] hover:ring-[#333]"
+                                key={look.key}
+                                onClick={() => {
+                                    if (selectedQuickLook === look.key) {
+                                        setSelectedQuickLook(null);
+                                    } else {
+                                        setSelectedQuickLook(look.key);
+                                        setLookPrompt("");
+                                    }
+                                }}
+                                className={`px-2 py-1 rounded-full text-[7px] font-medium tracking-wider transition-all whitespace-nowrap ${
+                                    selectedQuickLook === look.key
+                                        ? "bg-[#E50914]/15 text-[#E50914] border border-[#E50914]/40 shadow-[0_0_8px_rgba(229,9,20,0.15)]"
+                                        : "bg-[#0e0e0e] text-neutral-500 border border-[#1a1a1a] hover:border-[#333] hover:text-neutral-300"
                                 }`}
+                                title={look.prompt}
                             >
-                                <img
-                                    src={preset.image}
-                                    alt={preset.name}
-                                    className="w-full aspect-[16/10] object-cover"
-                                    loading="lazy"
-                                />
-                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 py-1">
-                                    <span className={`text-[7px] font-bold tracking-wider uppercase ${
-                                        lighting === preset.name ? "text-[#E50914]" : "text-white/80"
-                                    }`}>
-                                        {preset.name}
-                                    </span>
-                                </div>
+                                {look.label}
                             </button>
                         ))}
                     </div>
-                </Section>
 
-                {/* Mood */}
-                <Section title="Mood" icon={<Palette size={10} />}>
-                    <div className="grid grid-cols-2 gap-1">
-                        {MOODS.map((m) => (
-                            <button
-                                key={m}
-                                onClick={() => setMood(m)}
-                                className={`px-2 py-1.5 rounded text-[8px] tracking-wider transition-all ${
-                                    mood === m
-                                        ? "bg-[#E50914]/20 text-[#E50914] border border-[#E50914]/30"
-                                        : "bg-[#111] text-neutral-500 border border-[#1a1a1a] hover:border-[#333]"
-                                }`}
+                    {/* Show selected look description */}
+                    <AnimatePresence>
+                        {selectedQuickLook && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
                             >
-                                {m}
-                            </button>
-                        ))}
-                    </div>
-                </Section>
-
-                {/* AI Shot Prompt */}
-                <Section title="AI Shot Prompt" icon={<Wand2 size={10} />}>
-                    <textarea
-                        value={aiPrompt}
-                        onChange={(e) => setAiPrompt(e.target.value)}
-                        placeholder='e.g. "Make this darker and more dramatic"'
-                        className="w-full bg-[#111] border border-[#1a1a1a] rounded px-2.5 py-2 text-[9px] text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#E50914]/50"
-                        rows={2}
-                    />
-                </Section>
-
-                {/* ── RELIGHTING (Seedance V2V) ── */}
-                <Section title="Relight Video" icon={<Lightbulb size={10} />}>
-                    <p className="text-[8px] text-neutral-600 mb-2 leading-relaxed">
-                        Re-render this video with new lighting &amp; mood using Seedance V2V. Motion is preserved.
-                    </p>
-
-                    <button
-                        onClick={handleRelighting}
-                        disabled={isProcessing || !clip.videoUrl}
-                        className="w-full py-2 rounded bg-amber-600/20 border border-amber-500/30 text-[9px] text-amber-400 font-bold tracking-[2px] uppercase hover:bg-amber-600/30 disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-2"
-                    >
-                        {isProcessing && processingAction === "relight" ? (
-                            <Loader2 size={10} className="animate-spin" />
-                        ) : (
-                            <Lightbulb size={10} />
+                                <p className="mt-2 text-[7px] text-neutral-600 italic leading-relaxed bg-[#0a0a0a] rounded px-2.5 py-1.5 border border-[#111]">
+                                    {QUICK_LOOKS.find(q => q.key === selectedQuickLook)?.prompt}
+                                </p>
+                            </motion.div>
                         )}
-                        {clip.videoUrl ? "APPLY RELIGHTING" : "NO VIDEO YET"}
-                    </button>
-                </Section>
+                    </AnimatePresence>
+                </div>
 
-                {/* ── MOTION TRANSFER ── */}
-                <Section title="Motion Transfer" icon={<Move size={10} />}>
-                    <p className="text-[8px] text-neutral-600 mb-2 leading-relaxed">
-                        Upload a reference video to transfer its motion onto this shot&apos;s character.
-                    </p>
 
-                    {/* Character Image (auto) */}
-                    <div className="mb-2">
-                        <label className="text-[7px] text-neutral-500 tracking-[1px] uppercase block mb-1">
-                            Character Image (from shot)
-                        </label>
-                        <div className="flex items-center gap-2 bg-[#111] border border-[#1a1a1a] rounded px-2 py-1.5">
-                            {clip.thumbnailUrl ? (
-                                <>
-                                    <img src={clip.thumbnailUrl} alt="character" className="w-8 h-8 rounded object-cover" />
-                                    <span className="text-[7px] text-emerald-500 flex items-center gap-1">
-                                        <CheckCircle size={8} /> Auto-detected
-                                    </span>
-                                </>
-                            ) : (
-                                <span className="text-[7px] text-red-500">No image — generate shot first</span>
-                            )}
+                {/* ═══ 4. INTENSITY ═══ */}
+                <div className="px-4 py-3 border-b border-[#111]">
+                    <SectionHeader icon={<SlidersHorizontal size={10} />} label="Intensity" sublabel={`${intensity}% — How strongly to apply the look`} />
+
+                    <div className="flex items-center gap-3">
+                        <span className="text-[7px] text-neutral-700 font-mono w-6 text-right">SUB</span>
+                        <div className="flex-1 relative">
+                            <input
+                                type="range"
+                                min={10}
+                                max={100}
+                                value={intensity}
+                                onChange={(e) => setIntensity(Number(e.target.value))}
+                                className="w-full h-1 bg-[#1a1a1a] rounded-full appearance-none cursor-pointer
+                                    [&::-webkit-slider-thumb]:appearance-none
+                                    [&::-webkit-slider-thumb]:w-3
+                                    [&::-webkit-slider-thumb]:h-3
+                                    [&::-webkit-slider-thumb]:rounded-full
+                                    [&::-webkit-slider-thumb]:bg-[#E50914]
+                                    [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(229,9,20,0.4)]
+                                    [&::-webkit-slider-thumb]:cursor-pointer
+                                    [&::-webkit-slider-thumb]:transition-shadow
+                                    [&::-webkit-slider-thumb]:hover:shadow-[0_0_10px_rgba(229,9,20,0.6)]"
+                            />
+                            {/* Track fill */}
+                            <div
+                                className="absolute top-[calc(50%-2px)] left-0 h-1 bg-gradient-to-r from-[#E50914]/60 to-[#E50914] rounded-full pointer-events-none"
+                                style={{ width: `${((intensity - 10) / 90) * 100}%` }}
+                            />
                         </div>
+                        <span className="text-[7px] text-neutral-700 font-mono w-8">MAX</span>
                     </div>
+                </div>
 
-                    {/* Reference Video Upload */}
-                    <div className="mb-2">
-                        <label className="text-[7px] text-neutral-500 tracking-[1px] uppercase block mb-1">
-                            Reference Motion Video
-                        </label>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="video/*"
-                            className="hidden"
-                            onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleRefVideoUpload(file);
-                                e.target.value = "";
-                            }}
-                        />
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isUploading}
-                            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
-                            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
-                            onDrop={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setIsDragging(false);
-                                const file = e.dataTransfer.files?.[0];
-                                if (file) handleRefVideoUpload(file);
-                            }}
-                            className={`w-full bg-[#111] border border-dashed rounded px-2 py-3 text-center transition-all disabled:opacity-50 ${
-                                isDragging
-                                    ? "border-purple-500 bg-purple-500/10"
-                                    : "border-[#333] hover:border-purple-500/50"
-                            }`}
-                        >
-                            {isUploading ? (
-                                <div className="flex items-center justify-center gap-1.5">
-                                    <Loader2 size={10} className="animate-spin text-purple-400" />
-                                    <span className="text-[7px] text-purple-400 tracking-wider">Uploading...</span>
-                                </div>
-                            ) : refVideoUrl ? (
-                                <div className="flex items-center justify-center gap-1.5">
-                                    <CheckCircle size={10} className="text-emerald-500" />
-                                    <span className="text-[7px] text-emerald-500 truncate max-w-[180px]">
-                                        {refVideoName || "Video uploaded"}
-                                    </span>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center gap-1">
-                                    <Upload size={14} className={isDragging ? "text-purple-400" : "text-neutral-600"} />
-                                    <span className={`text-[7px] tracking-wider ${isDragging ? "text-purple-400" : "text-neutral-500"}`}>
-                                        {isDragging ? "Drop video here" : "Drag & drop or click to upload"}
-                                    </span>
-                                    <span className="text-[6px] text-neutral-700">.mp4 · Max 100MB</span>
-                                </div>
-                            )}
-                        </button>
-                    </div>
 
-                    {/* Motion Prompt (optional) */}
-                    <div className="mb-2">
-                        <label className="text-[7px] text-neutral-500 tracking-[1px] uppercase block mb-1">
-                            Scene Context (optional)
-                        </label>
-                        <textarea
-                            value={motionPrompt}
-                            onChange={(e) => setMotionPrompt(e.target.value)}
-                            placeholder='e.g. "A dancer performing on a stage with dramatic lighting"'
-                            className="w-full bg-[#111] border border-[#1a1a1a] rounded px-2.5 py-2 text-[9px] text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-purple-500/50"
-                            rows={2}
-                        />
-                    </div>
-
-                    {/* Provider Toggle */}
-                    <ProviderToggle
-                        value={motionProvider}
-                        onChange={setMotionProvider}
-                        labels={{ "kling": "Kling", "seedance-2": "Seedance 2.0" }}
-                        descriptions={{
-                            "kling": "Motion Control — maps pose from ref video",
-                            "seedance-2": "V2V — blends motion with prompt",
-                        }}
-                        color="purple"
-                    />
-
-                    {/* Motion Direction + Version (Kling only) */}
-                    {motionProvider === "kling" && (
-                        <>
-                            <div className="mb-2 mt-2 flex gap-1">
-                                {(["video", "image"] as const).map((o) => (
-                                    <button
-                                        key={o}
-                                        onClick={() => setMotionDirection(o)}
-                                        className={`flex-1 py-1 rounded text-[7px] font-bold tracking-[1px] uppercase transition-all ${
-                                            motionDirection === o
-                                                ? "bg-purple-600/20 text-purple-400 border border-purple-500/30"
-                                                : "bg-[#111] text-neutral-600 border border-[#1a1a1a] hover:border-[#333]"
-                                        }`}
-                                    >
-                                        {o === "video" ? "Match Video (30s)" : "Keep Image (10s)"}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="mb-3 flex gap-1">
-                                {(["2.6", "3.0"] as const).map((v) => (
-                                    <button
-                                        key={v}
-                                        onClick={() => setKlingVersion(v)}
-                                        className={`flex-1 py-1 rounded text-[7px] font-bold tracking-[1px] uppercase transition-all ${
-                                            klingVersion === v
-                                                ? "bg-purple-600/20 text-purple-400 border border-purple-500/30"
-                                                : "bg-[#111] text-neutral-600 border border-[#1a1a1a] hover:border-[#333]"
-                                        }`}
-                                    >
-                                        Kling v{v}
-                                    </button>
-                                ))}
-                            </div>
-                        </>
-                    )}
-
+                {/* ═══ APPLY LOOK — Primary CTA ═══ */}
+                <div className="px-4 py-3 border-b border-[#111]">
                     <button
-                        onClick={handleMotionTransfer}
-                        disabled={isProcessing || !refVideoUrl || !clip.thumbnailUrl}
-                        className="w-full py-2 rounded bg-purple-600/20 border border-purple-500/30 text-[9px] text-purple-400 font-bold tracking-[2px] uppercase hover:bg-purple-600/30 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                        onClick={handleApplyLook}
+                        disabled={isProcessing || !clip.videoUrl || !hasLookInput}
+                        className={`w-full py-2.5 rounded-md text-[9px] font-bold tracking-[3px] uppercase transition-all flex items-center justify-center gap-2 relative overflow-hidden ${
+                            !clip.videoUrl
+                                ? "bg-neutral-800 text-neutral-600 cursor-not-allowed"
+                                : !hasLookInput
+                                ? "bg-[#1a1a1a] text-neutral-500 border border-[#222]"
+                                : "bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.25)] hover:shadow-[0_0_30px_rgba(229,9,20,0.4)] hover:bg-[#ff1a25]"
+                        } disabled:opacity-50`}
                     >
-                        {isProcessing && processingAction === "motion" ? (
-                            <Loader2 size={10} className="animate-spin" />
+                        {isProcessing && processingAction === "look" ? (
+                            <Loader2 size={11} className="animate-spin" />
                         ) : (
-                            <Move size={10} />
+                            <Sparkles size={11} />
                         )}
-                        APPLY MOTION
+                        {!clip.videoUrl
+                            ? "NO VIDEO — GENERATE FIRST"
+                            : !hasLookInput
+                            ? "SET A LOOK TO APPLY"
+                            : "APPLY LOOK"}
                     </button>
-                </Section>
-            </div>
-
-            {/* Bottom Actions */}
-            <div className="p-3 border-t border-[#1a1a1a] flex gap-2 shrink-0">
-                <button
-                    onClick={handleRegenerate}
-                    disabled={isProcessing}
-                    className="flex-1 py-2 rounded bg-[#E50914] text-white text-[9px] font-bold tracking-[2px] uppercase hover:bg-[#ff1a25] disabled:opacity-50 transition-all flex items-center justify-center gap-1.5"
-                >
-                    {isProcessing && processingAction === "regenerate" ? (
-                        <Loader2 size={10} className="animate-spin" />
-                    ) : (
-                        <RotateCcw size={10} />
+                    {hasLookInput && clip.videoUrl && (
+                        <p className="text-[6px] text-neutral-700 text-center mt-1.5 tracking-wider">
+                            Seedance V2V — motion preserved · ~2-5 min render
+                        </p>
                     )}
-                    REGENERATE
-                </button>
+                </div>
+
+
+                {/* ═══ MOTION TRANSFER — Collapsible Advanced ═══ */}
+                <div className="border-b border-[#111]">
+                    <button
+                        onClick={() => setShowMotionSection(!showMotionSection)}
+                        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-[#0a0a0a] transition-colors"
+                    >
+                        <div className="flex items-center gap-2">
+                            <Move size={10} className="text-purple-500" />
+                            <span className="text-[8px] font-bold text-neutral-400 tracking-[2px] uppercase">
+                                Motion Transfer
+                            </span>
+                        </div>
+                        {showMotionSection ? <ChevronUp size={10} className="text-neutral-600" /> : <ChevronDown size={10} className="text-neutral-600" />}
+                    </button>
+
+                    <AnimatePresence>
+                        {showMotionSection && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="px-4 pb-3 space-y-2">
+                                    <p className="text-[7px] text-neutral-600 leading-relaxed">
+                                        Transfer motion from a reference video onto this shot&apos;s character.
+                                    </p>
+
+                                    {/* Character Image (auto from shot) */}
+                                    <div className="flex items-center gap-2 bg-[#0a0a0a] border border-[#151515] rounded-md px-2 py-1.5">
+                                        {clip.thumbnailUrl ? (
+                                            <>
+                                                <img src={clip.thumbnailUrl} alt="character" className="w-7 h-7 rounded object-cover" />
+                                                <div>
+                                                    <span className="text-[7px] text-emerald-500 flex items-center gap-1">
+                                                        <CheckCircle size={7} /> Character detected
+                                                    </span>
+                                                    <span className="text-[6px] text-neutral-700 block">From shot frame</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <span className="text-[7px] text-red-500">No image — generate shot first</span>
+                                        )}
+                                    </div>
+
+                                    {/* Reference Video Upload */}
+                                    <input
+                                        ref={videoInputRef}
+                                        type="file"
+                                        accept="video/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleRefVideoUpload(file);
+                                            e.target.value = "";
+                                        }}
+                                    />
+                                    <button
+                                        onClick={() => videoInputRef.current?.click()}
+                                        disabled={isUploadingVideo}
+                                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingVideo(true); }}
+                                        onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingVideo(false); }}
+                                        onDrop={(e) => {
+                                            e.preventDefault(); e.stopPropagation(); setIsDraggingVideo(false);
+                                            const file = e.dataTransfer.files?.[0];
+                                            if (file) handleRefVideoUpload(file);
+                                        }}
+                                        className={`w-full bg-[#0a0a0a] border border-dashed rounded-md px-2 py-3 text-center transition-all disabled:opacity-50 ${
+                                            isDraggingVideo
+                                                ? "border-purple-500 bg-purple-500/5"
+                                                : "border-[#222] hover:border-purple-500/40"
+                                        }`}
+                                    >
+                                        {isUploadingVideo ? (
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <Loader2 size={10} className="animate-spin text-purple-400" />
+                                                <span className="text-[7px] text-purple-400 tracking-wider">Uploading...</span>
+                                            </div>
+                                        ) : refVideoUrl ? (
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <CheckCircle size={10} className="text-emerald-500" />
+                                                <span className="text-[7px] text-emerald-500 truncate max-w-[180px]">
+                                                    {refVideoName || "Video uploaded"}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-1">
+                                                <Upload size={12} className={isDraggingVideo ? "text-purple-400" : "text-neutral-600"} />
+                                                <span className="text-[7px] text-neutral-500 tracking-wider">
+                                                    Drop reference motion video
+                                                </span>
+                                                <span className="text-[6px] text-neutral-700">.mp4 · Max 100MB</span>
+                                            </div>
+                                        )}
+                                    </button>
+
+                                    {/* Motion Prompt */}
+                                    <textarea
+                                        value={motionPrompt}
+                                        onChange={(e) => setMotionPrompt(e.target.value)}
+                                        placeholder='Scene context: "A dancer on a dimly lit stage"'
+                                        className="w-full bg-[#0a0a0a] border border-[#151515] rounded-md px-2.5 py-2 text-[8px] text-white placeholder:text-neutral-700 resize-none focus:outline-none focus:border-purple-500/40 transition-colors"
+                                        rows={2}
+                                    />
+
+                                    {/* Provider Toggle */}
+                                    <div className="flex gap-1">
+                                        {(["kling", "seedance-2"] as const).map((p) => (
+                                            <button
+                                                key={p}
+                                                onClick={() => setMotionProvider(p)}
+                                                className={`flex-1 py-1.5 rounded-md text-[7px] font-bold tracking-[1px] uppercase transition-all border ${
+                                                    motionProvider === p
+                                                        ? "bg-purple-600/15 text-purple-400 border-purple-500/30"
+                                                        : "bg-[#0a0a0a] text-neutral-600 border-[#151515] hover:border-[#333]"
+                                                }`}
+                                            >
+                                                {p === "kling" ? "Kling" : "Seedance 2.0"}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-[6px] text-neutral-700 italic">
+                                        {motionProvider === "kling" ? "Motion Control — maps pose from ref video" : "V2V — blends motion with prompt"}
+                                    </p>
+
+                                    {/* Kling-specific options */}
+                                    {motionProvider === "kling" && (
+                                        <div className="flex gap-1">
+                                            {(["video", "image"] as const).map((o) => (
+                                                <button
+                                                    key={o}
+                                                    onClick={() => setMotionDirection(o)}
+                                                    className={`flex-1 py-1 rounded-md text-[6px] font-bold tracking-[1px] uppercase transition-all border ${
+                                                        motionDirection === o
+                                                            ? "bg-purple-600/15 text-purple-400 border-purple-500/30"
+                                                            : "bg-[#0a0a0a] text-neutral-600 border-[#151515]"
+                                                    }`}
+                                                >
+                                                    {o === "video" ? "Match Video (30s)" : "Keep Image (10s)"}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Apply Motion */}
+                                    <button
+                                        onClick={handleMotionTransfer}
+                                        disabled={isProcessing || !refVideoUrl || !clip.thumbnailUrl}
+                                        className="w-full py-2 rounded-md bg-purple-600/15 border border-purple-500/30 text-[8px] text-purple-400 font-bold tracking-[2px] uppercase hover:bg-purple-600/25 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        {isProcessing && processingAction === "motion" ? (
+                                            <Loader2 size={10} className="animate-spin" />
+                                        ) : (
+                                            <Move size={10} />
+                                        )}
+                                        APPLY MOTION
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
             </div>
         </motion.div>
     );
 }
 
 
-// ── Reusable Section ──
-function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+// ── Section Header ──
+function SectionHeader({ icon, label, sublabel }: { icon: React.ReactNode; label: string; sublabel?: string }) {
     return (
-        <div className="px-4 py-3 border-b border-[#141414]">
-            <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-neutral-500">{icon}</span>
-                <span className="text-[8px] font-bold text-neutral-400 tracking-[2px] uppercase">{title}</span>
+        <div className="flex items-start gap-1.5 mb-2">
+            <span className="text-neutral-600 mt-0.5">{icon}</span>
+            <div>
+                <span className="text-[8px] font-bold text-neutral-400 tracking-[2px] uppercase block leading-none">
+                    {label}
+                </span>
+                {sublabel && (
+                    <span className="text-[6px] text-neutral-700 tracking-wider block mt-0.5">
+                        {sublabel}
+                    </span>
+                )}
             </div>
-            {children}
-        </div>
-    );
-}
-
-
-// ── Provider Toggle Component ──
-function ProviderToggle({
-    value,
-    onChange,
-    labels,
-    descriptions,
-    color,
-}: {
-    value: ProviderOption;
-    onChange: (v: ProviderOption) => void;
-    labels: Record<ProviderOption, string>;
-    descriptions: Record<ProviderOption, string>;
-    color: "amber" | "purple";
-}) {
-    const activeClasses = color === "amber"
-        ? "bg-amber-600/20 text-amber-400 border-amber-500/30"
-        : "bg-purple-600/20 text-purple-400 border-purple-500/30";
-
-    return (
-        <div className="space-y-1">
-            <div className="flex gap-1">
-                {(Object.keys(labels) as ProviderOption[]).map((key) => (
-                    <button
-                        key={key}
-                        onClick={() => onChange(key)}
-                        className={`flex-1 py-1.5 rounded text-[7px] font-bold tracking-[1px] uppercase transition-all border ${
-                            value === key
-                                ? activeClasses
-                                : "bg-[#111] text-neutral-600 border-[#1a1a1a] hover:border-[#333]"
-                        }`}
-                    >
-                        {labels[key]}
-                    </button>
-                ))}
-            </div>
-            <p className="text-[7px] text-neutral-600 italic">{descriptions[value]}</p>
         </div>
     );
 }

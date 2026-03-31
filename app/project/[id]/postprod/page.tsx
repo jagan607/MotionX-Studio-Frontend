@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-    Loader2, ArrowLeft, Film, Download,
+    Loader2, ArrowLeft, Film, Download, SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { AnimatePresence } from "framer-motion";
@@ -18,12 +18,15 @@ import { Project, Shot } from "@/lib/types";
 import Timeline from "@/components/studio/postprod/Timeline";
 import ShotInspector from "@/components/studio/postprod/ShotInspector";
 import TransportControls from "@/components/studio/postprod/TransportControls";
+import VideoEditOverlay from "@/components/studio/postprod/VideoEditOverlay";
 import ExportPanel from "@/components/studio/postprod/ExportPanel";
+import AudioGenerateBar from "@/components/studio/postprod/AudioGenerateBar";
 
 import {
     TimelineState,
     TimelineTrack,
     TimelineClip,
+    TrackType,
 } from "@/lib/types/postprod";
 
 import {
@@ -68,6 +71,7 @@ export default function PostProdPage() {
 
     // Panels
     const [showExport, setShowExport] = useState(false);
+    const [exportProgress, setExportProgress] = useState<{ status: string | null; progress: number }>({ status: null, progress: 0 });
     const [showShotInspector, setShowShotInspector] = useState(false);
 
     // Undo/Redo
@@ -79,6 +83,8 @@ export default function PostProdPage() {
 
     // Processing clips (motion transfer / relighting in progress)
     const [processingClipIds, setProcessingClipIds] = useState<Set<string>>(new Set());
+    // Client-side timeout safety net: tracks when each shotId entered processing
+    const processingStartTimesRef = useRef<Map<string, number>>(new Map());
 
     // Resizable layout panels
     const [previewHeightPct, setPreviewHeightPct] = useState(35); // % of main area
@@ -90,6 +96,14 @@ export default function PostProdPage() {
     const playbackRef = useRef<number | null>(null);
     const isSavingRef = useRef(false);
     const timelineContainerRef = useRef<HTMLDivElement>(null);
+    const previewContainerRef = useRef<HTMLDivElement>(null);
+
+    // Edit mode (Generative Edit overlay)
+    const [isEditMode, setIsEditMode] = useState(false);
+
+    // Audio generation
+    const [audioGenBar, setAudioGenBar] = useState<{ type: 'sfx' | 'bgm'; trackId: string } | null>(null);
+    const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
     // ─── PUSH STATE TO UNDO STACK ───
     const pushUndo = useCallback((state: TimelineState) => {
@@ -181,6 +195,11 @@ export default function PostProdPage() {
                             muted: c.muted ?? false,
                             selected: false,
                             speed: c.speed ?? 1,
+                            // Audio metadata
+                            audioType: c.audio_type ?? c.audioType,
+                            audioPrompt: c.audio_prompt ?? c.audioPrompt,
+                            // Version history
+                            videoHistory: c.video_history ?? c.videoHistory,
                         });
 
                         const filteredTracks = (tl.tracks || []).map((track: any) => ({
@@ -211,7 +230,6 @@ export default function PostProdPage() {
                             selectedClipIds: [],
                         });
                         restoredFromSave = true;
-                        toast.success("Restored saved timeline");
                     }
                 } catch {
                     console.warn("No saved timeline found, building from shots");
@@ -307,11 +325,16 @@ export default function PostProdPage() {
                 db, "projects", projectId, "episodes", episodeId,
                 "scenes", sceneId, "shots", shotId
             );
+            // Track whether each shot's initial snapshot has fired.
+            // Suppress toasts during initial load to avoid spam on page refresh.
+            const initialFired = new Set<string>();
             return onSnapshot(shotDocRef, (snap) => {
                 const data = snap.data();
                 if (!data) return;
                 const newVideoUrl = data.video_url;
                 const status = data.video_status;
+                const isInitialSnapshot = !initialFired.has(shotId);
+                if (isInitialSnapshot) initialFired.add(shotId);
 
                 // Find clip IDs for this shot
                 const clipIdsForShot: string[] = [];
@@ -330,7 +353,12 @@ export default function PostProdPage() {
                         clipIdsForShot.forEach((id) => next.add(id));
                         return next;
                     });
+                    // Record when this shot started processing (for timeout)
+                    if (!processingStartTimesRef.current.has(shotId)) {
+                        processingStartTimesRef.current.set(shotId, Date.now());
+                    }
                 } else if (status === "ready") {
+                    processingStartTimesRef.current.delete(shotId);
                     setProcessingClipIds((prev) => {
                         const next = new Set(prev);
                         clipIdsForShot.forEach((id) => next.delete(id));
@@ -339,6 +367,7 @@ export default function PostProdPage() {
                 }
 
                 if (status === "ready" && newVideoUrl) {
+                    const videoHistory = data.video_history || [];
                     setTimeline((prev) => {
                         if (!prev) return prev;
                         let changed = false;
@@ -347,13 +376,18 @@ export default function PostProdPage() {
                             clips: track.clips.map((clip) => {
                                 if (clip.shotId === shotId && (clip.videoUrl !== newVideoUrl || clip.videoStatus !== "ready")) {
                                     changed = true;
-                                    return { ...clip, videoUrl: newVideoUrl, videoStatus: "ready" as const, errorMessage: undefined };
+                                    return { ...clip, videoUrl: newVideoUrl, videoStatus: "ready" as const, errorMessage: undefined, videoHistory: videoHistory };
+                                }
+                                // Also update video_history even if videoUrl hasn't changed
+                                if (clip.shotId === shotId && JSON.stringify(clip.videoHistory) !== JSON.stringify(videoHistory)) {
+                                    changed = true;
+                                    return { ...clip, videoHistory: videoHistory };
                                 }
                                 return clip;
                             }),
                         }));
                         if (!changed) return prev;
-                        toast.success(`Video ready for ${shotId.slice(-6)}`);
+                        if (!isInitialSnapshot) toast.success(`Video ready for ${shotId.slice(-6)}`);
                         return { ...prev, tracks: updatedTracks };
                     });
                 } else if (status === "animating" || status === "processing" || status === "pending") {
@@ -375,6 +409,7 @@ export default function PostProdPage() {
                     });
                 } else if (status === "error" || status === "failed") {
                     const errMsg = data.error_message || "Video generation failed";
+                    processingStartTimesRef.current.delete(shotId);
                     setProcessingClipIds((prev) => {
                         const next = new Set(prev);
                         clipIdsForShot.forEach((id) => next.delete(id));
@@ -394,7 +429,7 @@ export default function PostProdPage() {
                             }),
                         }));
                         if (!changed) return prev;
-                        toast.error(`Shot ${shotId.slice(-6)}: ${errMsg}`);
+                        if (!isInitialSnapshot) toast.error(`Shot ${shotId.slice(-6)}: ${errMsg}`);
                         return { ...prev, tracks: updatedTracks };
                     });
                 }
@@ -407,6 +442,50 @@ export default function PostProdPage() {
         timeline?.tracks.flatMap(t => t.clips.map(c => c.shotId)).join(","),
         projectId, episodeId,
     ]);
+
+    // ─── CLIENT-SIDE TIMEOUT SAFETY NET ───
+    // If a shot stays in "animating" for >15 min, auto-mark as error (webhook may have failed)
+    useEffect(() => {
+        const TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes — PiAPI may queue as "Staged" during high traffic
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const staleShots: string[] = [];
+            processingStartTimesRef.current.forEach((startTime, shotId) => {
+                if (now - startTime > TIMEOUT_MS) {
+                    staleShots.push(shotId);
+                }
+            });
+            if (staleShots.length === 0) return;
+
+            // Clear stale shots from processing
+            staleShots.forEach((shotId) => processingStartTimesRef.current.delete(shotId));
+
+            setProcessingClipIds((prev) => {
+                const next = new Set(prev);
+                setTimeline((prevTl) => {
+                    if (!prevTl) return prevTl;
+                    const updatedTracks = prevTl.tracks.map((track) => ({
+                        ...track,
+                        clips: track.clips.map((clip) => {
+                            if (staleShots.includes(clip.shotId) && clip.videoStatus === "animating") {
+                                next.delete(clip.id);
+                                return { ...clip, videoStatus: "error" as const, errorMessage: "Timed out — generation took too long. Try again." };
+                            }
+                            return clip;
+                        }),
+                    }));
+                    return { ...prevTl, tracks: updatedTracks };
+                });
+                return next;
+            });
+
+            staleShots.forEach((shotId) =>
+                toast.error(`Shot ${shotId.slice(-6)} timed out — try again.`)
+            );
+        }, 60_000); // Check every 60 seconds
+
+        return () => clearInterval(interval);
+    }, []);
 
     // ─── SAVE ───
     const saveTimelineToBackend = useCallback(async () => {
@@ -428,6 +507,11 @@ export default function PostProdPage() {
                     trim_in: c.trimIn, trim_out: c.trimOut,
                     color: c.color, locked: c.locked, muted: c.muted,
                     speed: c.speed,
+                    // Audio metadata
+                    audio_type: c.audioType || null,
+                    audio_prompt: c.audioPrompt || null,
+                    // Version history
+                    video_history: c.videoHistory || null,
                 })),
             }));
 
@@ -512,6 +596,13 @@ export default function PostProdPage() {
         const video = videoRef.current;
         const localTime = (timeline?.playheadPosition || 0) - activeVideoClip.startTime + activeVideoClip.trimIn;
 
+        // Compute trim bounds in terms of the source video time
+        const trimStart = activeVideoClip.trimIn;
+        const trimEnd = video.duration
+            ? video.duration - (activeVideoClip.trimOut || 0)
+            : Infinity;
+        const clampedTime = Math.max(trimStart, Math.min(localTime, trimEnd));
+
         // Sync audio: mute/volume from the clip's parent track
         const parentTrack = timeline?.tracks.find(t => t.clips.some(c => c.id === activeVideoClip.id));
         if (parentTrack) {
@@ -520,15 +611,73 @@ export default function PostProdPage() {
         }
 
         if (timeline?.isPlaying) {
-            if (video.paused) {
-                video.currentTime = Math.max(0, localTime);
+            // If we've reached the trim end, stop
+            if (localTime >= trimEnd && isFinite(trimEnd)) {
+                video.pause();
+                video.currentTime = trimEnd;
+            } else if (video.paused) {
+                video.currentTime = Math.max(0, clampedTime);
                 video.play().catch(() => { });
             }
         } else {
             video.pause();
-            video.currentTime = Math.max(0, localTime);
+            video.currentTime = Math.max(0, clampedTime);
         }
     }, [activeVideoClip, timeline?.isPlaying, timeline?.playheadPosition, timeline?.tracks]);
+
+    // ─── AUDIO PLAYBACK SYNC (SFX / BGM tracks) ───
+    useEffect(() => {
+        if (!timeline) return;
+        const { playheadPosition, isPlaying, tracks } = timeline;
+
+        // Collect all audio-type clips across all audio tracks
+        const audioTracks = tracks.filter(t => t.type === 'sfx' || t.type === 'music');
+        const activeClipIds = new Set<string>();
+
+        for (const track of audioTracks) {
+            for (const clip of track.clips) {
+                if (!clip.audioUrl) continue;
+                const clipEnd = clip.startTime + clip.duration;
+                const isInRange = playheadPosition >= clip.startTime && playheadPosition < clipEnd;
+
+                if (isInRange) {
+                    activeClipIds.add(clip.id);
+                    let audio = audioElementsRef.current.get(clip.id);
+                    if (!audio) {
+                        audio = new Audio(clip.audioUrl);
+                        audio.preload = "auto";
+                        audioElementsRef.current.set(clip.id, audio);
+                    }
+
+                    // Volume & mute
+                    audio.muted = track.muted || clip.muted;
+                    audio.volume = track.volume ?? 1;
+
+                    const localTime = playheadPosition - clip.startTime + clip.trimIn;
+                    if (isPlaying) {
+                        if (audio.paused) {
+                            audio.currentTime = Math.max(0, localTime);
+                            audio.play().catch(() => {});
+                        }
+                        // Correct drift > 0.3s
+                        if (Math.abs(audio.currentTime - localTime) > 0.3) {
+                            audio.currentTime = Math.max(0, localTime);
+                        }
+                    } else {
+                        audio.pause();
+                        audio.currentTime = Math.max(0, localTime);
+                    }
+                }
+            }
+        }
+
+        // Pause any audio elements no longer in range
+        audioElementsRef.current.forEach((audio, clipId) => {
+            if (!activeClipIds.has(clipId)) {
+                audio.pause();
+            }
+        });
+    }, [timeline?.isPlaying, timeline?.playheadPosition, timeline?.tracks]);
 
     // ─── PLAYBACK ───
     // Keep a ref to selectedClip for the playback tick closure
@@ -638,6 +787,8 @@ export default function PostProdPage() {
             return;
         }
 
+        const isAudioClip = !!clip.audioType || !!clip.audioUrl;
+
         if (addToSelection) {
             // Shift+click: toggle in selection
             setTimeline((prev) => {
@@ -648,10 +799,12 @@ export default function PostProdPage() {
                 return { ...prev, selectedClipIds: ids };
             });
             setSelectedClip(clip);
-            setShowShotInspector(true);
+            if (!isAudioClip) setShowShotInspector(true);
         } else {
             setSelectedClip(clip);
-            setShowShotInspector(true);
+            // Only show inspector for video clips, not SFX/BGM
+            if (!isAudioClip) setShowShotInspector(true);
+            else setShowShotInspector(false);
             setTimeline((prev) => prev ? { ...prev, selectedClipIds: [clip.id] } : prev);
         }
     }, []);
@@ -669,18 +822,45 @@ export default function PostProdPage() {
             setSelectedClip(found);
             setShowShotInspector(!!found);
         } else if (selectedClip) {
-            // Refresh selectedClip data in case it was trimmed/moved or video updated
+            // Refresh selectedClip data in case it was trimmed/moved/muted or video updated
             const refreshed = findClipById(timeline.tracks, selectedClip.id);
             if (refreshed && (
                 refreshed.duration !== selectedClip.duration ||
                 refreshed.startTime !== selectedClip.startTime ||
                 refreshed.videoUrl !== selectedClip.videoUrl ||
-                refreshed.videoStatus !== selectedClip.videoStatus
+                refreshed.videoStatus !== selectedClip.videoStatus ||
+                refreshed.muted !== selectedClip.muted ||
+                refreshed.trimIn !== selectedClip.trimIn
             )) {
                 setSelectedClip(refreshed);
             }
         }
     }, [timeline?.tracks, timeline?.selectedClipIds]);
+
+    // ═════════════════════════════════════════════════════════
+    //   EXPORT PROGRESS (Firestore real-time listener)
+    // ═════════════════════════════════════════════════════════
+    useEffect(() => {
+        if (!projectId || !episodeId) return;
+
+        const episodeRef = doc(db, "projects", projectId, "episodes", episodeId);
+        const unsub = onSnapshot(episodeRef, (snap) => {
+            const data = snap.data();
+            if (!data) return;
+            const status = data.ugc_export_status || null;
+            const progress = data.ugc_export_progress || 0;
+
+            if (status === "queued" || status === "exporting") {
+                setExportProgress({ status, progress });
+            } else if (status === "completed") {
+                setExportProgress({ status: null, progress: 0 });
+            } else if (status === "error") {
+                setExportProgress({ status: null, progress: 0 });
+            }
+        });
+
+        return () => unsub();
+    }, [projectId, episodeId]);
 
     // ═════════════════════════════════════════════════════════
     //   CLIP OPERATIONS (all use applyEdit for undo support)
@@ -721,17 +901,33 @@ export default function PostProdPage() {
         applyEdit((prev) => {
             const playhead = time ?? prev.playheadPosition;
 
-            // If no clipId, find the clip under the playhead
+            // If no clipId, prefer the selected clip, else find clip under playhead
             let targetId = clipId;
             if (!targetId) {
-                for (const track of prev.tracks) {
-                    for (const clip of track.clips) {
-                        if (playhead >= clip.startTime && playhead < clip.startTime + clip.duration) {
-                            targetId = clip.id;
-                            break;
+                // First: check if any selected clip is under the playhead
+                if (prev.selectedClipIds.length > 0) {
+                    for (const track of prev.tracks) {
+                        for (const clip of track.clips) {
+                            if (prev.selectedClipIds.includes(clip.id) &&
+                                playhead >= clip.startTime && playhead < clip.startTime + clip.duration) {
+                                targetId = clip.id;
+                                break;
+                            }
                         }
+                        if (targetId) break;
                     }
-                    if (targetId) break;
+                }
+                // Fallback: find any clip under playhead
+                if (!targetId) {
+                    for (const track of prev.tracks) {
+                        for (const clip of track.clips) {
+                            if (playhead >= clip.startTime && playhead < clip.startTime + clip.duration) {
+                                targetId = clip.id;
+                                break;
+                            }
+                        }
+                        if (targetId) break;
+                    }
                 }
             }
 
@@ -879,6 +1075,19 @@ export default function PostProdPage() {
         toast.success(`Speed: ${speed}x`);
     }, [applyEdit]);
 
+    // ─── CLIP MUTE (per-clip audio toggle) ───
+    const onClipToggleMute = useCallback((clipId: string) => {
+        applyEdit((prev) => ({
+            ...prev,
+            tracks: prev.tracks.map((t) => ({
+                ...t,
+                clips: t.clips.map((c) =>
+                    c.id === clipId ? { ...c, muted: !c.muted } : c
+                ),
+            })),
+        }));
+    }, [applyEdit]);
+
     // ─── TRACK MUTE / LOCK ───
     const onTrackToggleMute = useCallback((trackId: string) => {
         setTimeline((prev) => {
@@ -897,6 +1106,88 @@ export default function PostProdPage() {
             ) };
         });
     }, []);
+
+    // ─── ADD / DELETE AUDIO TRACKS ───
+    const onAddTrack = useCallback((type: TrackType) => {
+        if (!timeline) return;
+        const trackId = `track-${type}-${shortId()}`;
+        const newTrack: TimelineTrack = {
+            id: trackId,
+            type,
+            label: type === 'sfx' ? 'SFX' : 'BGM',
+            color: type === 'sfx' ? '#22d3ee' : '#a855f7',
+            muted: false,
+            locked: false,
+            solo: false,
+            height: 50,
+            clips: [],
+            volume: 1,
+        };
+        applyEdit((prev) => ({
+            ...prev,
+            tracks: [...prev.tracks, newTrack],
+        }));
+        // Open audio generate bar for the new track
+        setAudioGenBar({ type: type === 'sfx' ? 'sfx' : 'bgm', trackId });
+        toast.success(`${type === 'sfx' ? 'SFX' : 'BGM'} track added`);
+    }, [timeline, applyEdit]);
+
+    const onDeleteTrack = useCallback((trackId: string) => {
+        if (!timeline) return;
+        // Clean up audio elements for clips in this track
+        const track = timeline.tracks.find(t => t.id === trackId);
+        if (track) {
+            track.clips.forEach(c => {
+                const audio = audioElementsRef.current.get(c.id);
+                if (audio) { audio.pause(); audioElementsRef.current.delete(c.id); }
+            });
+        }
+        applyEdit((prev) => ({
+            ...prev,
+            tracks: prev.tracks.filter(t => t.id !== trackId),
+        }));
+        if (audioGenBar?.trackId === trackId) setAudioGenBar(null);
+        toast.success('Track deleted');
+    }, [timeline, applyEdit, audioGenBar]);
+
+    const onAudioGenerated = useCallback((audioUrl: string, prompt: string, duration: number) => {
+        if (!timeline || !audioGenBar) return;
+        const clipId = `clip-${audioGenBar.type}-${shortId()}`;
+        const playhead = timeline.playheadPosition;
+        const newClip: TimelineClip = {
+            id: clipId,
+            trackId: audioGenBar.trackId,
+            sceneId: '',
+            shotId: '',
+            label: prompt.length > 20 ? prompt.slice(0, 20) + '...' : prompt,
+            audioUrl,
+            startTime: playhead,
+            duration,
+            trimIn: 0,
+            trimOut: 0,
+            color: audioGenBar.type === 'sfx' ? '#22d3ee' : '#a855f7',
+            locked: false,
+            muted: false,
+            selected: false,
+            speed: 1,
+            audioType: audioGenBar.type === 'sfx' ? 'sfx' : 'bgm',
+            audioPrompt: prompt,
+        };
+        applyEdit((prev) => {
+            const updatedTracks = prev.tracks.map(t =>
+                t.id === audioGenBar.trackId
+                    ? { ...t, clips: [...t.clips, newClip] }
+                    : t
+            );
+            return {
+                ...prev,
+                tracks: updatedTracks,
+                duration: recalcDuration(updatedTracks),
+            };
+        });
+        toast.success(`${audioGenBar.type === 'sfx' ? 'SFX' : 'BGM'} clip added`);
+        setAudioGenBar(null);
+    }, [timeline, audioGenBar, applyEdit]);
 
     // ─── KEYBOARD SHORTCUTS ───
     // B7 fix: warn on unsaved changes
@@ -949,6 +1240,15 @@ export default function PostProdPage() {
                     onDeleteSelected();
                     break;
 
+                // ── Mute selected clip (M key)
+                case "m":
+                case "M":
+                    if (!isMeta && selectedClip) {
+                        e.preventDefault();
+                        onClipToggleMute(selectedClip.id);
+                    }
+                    break;
+
                 // ── Undo (⌘Z)
                 case "z":
                 case "Z":
@@ -988,9 +1288,31 @@ export default function PostProdPage() {
                     if (isMeta) { e.preventDefault(); zoomOut(); }
                     break;
 
+                // ── Generative Edit (E)
+                case "e":
+                case "E":
+                    if (!isMeta && !e.altKey) {
+                        const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+                        if (tag !== "input" && tag !== "textarea") {
+                            e.preventDefault();
+                            const hasVideo = !!(selectedClip?.videoUrl || activeVideoClip?.videoUrl);
+                            if (!isEditMode && hasVideo) {
+                                if (timeline?.isPlaying) togglePlayback();
+                                setIsEditMode(true);
+                            } else {
+                                setIsEditMode(false);
+                            }
+                        }
+                    }
+                    break;
+
                 // ── Deselect (Escape)
                 case "Escape":
-                    onClipSelect(null);
+                    if (isEditMode) {
+                        setIsEditMode(false);
+                    } else {
+                        onClipSelect(null);
+                    }
                     break;
             }
         };
@@ -999,7 +1321,7 @@ export default function PostProdPage() {
         return () => window.removeEventListener("keydown", handler);
     }, [togglePlayback, skipForward, skipBackward, zoomIn, zoomOut, zoomToFit,
         saveTimelineToBackend, onClipSplit, onDeleteSelected, onDuplicateSelected,
-        undo, redo, onClipSelect]);
+        undo, redo, onClipSelect, isEditMode, selectedClip, activeVideoClip, timeline?.isPlaying]);
 
     // ─── LOADING ───
     if (loading || !project || !timeline) {
@@ -1047,10 +1369,55 @@ export default function PostProdPage() {
                     </div>
                     <div className="h-3 w-px bg-[#333]" />
                     <button
-                        onClick={() => setShowExport(!showExport)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#111] border border-[#222] hover:border-[#444] text-[9px] font-bold tracking-widest text-neutral-400 transition-all"
+                        onClick={() => {
+                            if (showShotInspector) {
+                                setShowShotInspector(false);
+                            } else {
+                                // If no clip selected, select the first video clip automatically
+                                if (!selectedClip) {
+                                    const firstVideoClip = timeline.tracks
+                                        .filter(t => t.type === 'video')
+                                        .flatMap(t => t.clips)
+                                        .find(c => c.videoUrl);
+                                    if (firstVideoClip) {
+                                        onClipSelect(firstVideoClip);
+                                    } else {
+                                        toast.error('Select a clip in the timeline first');
+                                        return;
+                                    }
+                                }
+                                setShowShotInspector(true);
+                                setShowExport(false);
+                            }
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-[9px] font-bold tracking-widest transition-all ${
+                            showShotInspector
+                                ? 'bg-[#E50914]/10 border-[#E50914]/30 text-[#E50914]'
+                                : 'bg-[#111] border-[#222] hover:border-[#444] text-neutral-400'
+                        }`}
                     >
-                        <Download size={11} /> EXPORT
+                        <SlidersHorizontal size={11} /> INSPECTOR
+                    </button>
+                    <button
+                        onClick={() => setShowExport(!showExport)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-[9px] font-bold tracking-widest transition-all ${
+                            exportProgress.status === 'exporting' || exportProgress.status === 'queued'
+                                ? 'bg-[#E50914]/20 border-[#E50914]/50 text-[#E50914] animate-pulse'
+                                : showExport
+                                    ? 'bg-[#E50914]/10 border-[#E50914]/30 text-[#E50914]'
+                                    : 'bg-[#111] border-[#222] hover:border-[#444] text-neutral-400'
+                        }`}
+                    >
+                        {exportProgress.status === 'exporting' || exportProgress.status === 'queued' ? (
+                            <>
+                                <Loader2 size={11} className="animate-spin" />
+                                EXPORTING {exportProgress.progress}%
+                            </>
+                        ) : (
+                            <>
+                                <Download size={11} /> EXPORT
+                            </>
+                        )}
                     </button>
                 </div>
             </header>
@@ -1060,6 +1427,7 @@ export default function PostProdPage() {
                 <div className="flex-1 flex flex-col overflow-hidden">
                     {/* ──── VIDEO PREVIEW ──── */}
                     <div
+                        ref={previewContainerRef}
                         className="min-h-[120px] bg-black flex items-center justify-center border-b border-[#1a1a1a] relative"
                         style={{ height: `${previewHeightPct}%` }}
                     >
@@ -1072,6 +1440,7 @@ export default function PostProdPage() {
                                 key={previewClip.videoUrl}
                                 src={previewClip.videoUrl}
                                 className="max-h-full max-w-full object-contain"
+                                crossOrigin="anonymous"
                                 playsInline
                                 preload="auto"
                             />
@@ -1082,6 +1451,20 @@ export default function PostProdPage() {
                                 <Film size={40} strokeWidth={1} />
                                 <span className="text-[10px] tracking-[3px] uppercase font-mono">Select a clip to preview</span>
                             </div>
+                        )}
+                        {/* Generative Edit overlay */}
+                        {isEditMode && previewClip?.videoUrl && (
+                            <VideoEditOverlay
+                                clip={previewClip}
+                                projectId={projectId}
+                                episodeId={episodeId}
+                                videoRef={videoRef}
+                                containerRef={previewContainerRef}
+                                onClose={() => setIsEditMode(false)}
+                                onProcessingStart={(clipId) => {
+                                    setProcessingClipIds((prev) => new Set([...prev, clipId]));
+                                }}
+                            />
                         )}
 
 
@@ -1147,6 +1530,17 @@ export default function PostProdPage() {
                             elapsed: Math.max(0, timeline.playheadPosition - selectedClip.startTime),
                             total: selectedClip.duration,
                         } : null}
+                        isEditMode={isEditMode}
+                        onToggleEditMode={() => {
+                            if (!isEditMode && previewClip?.videoUrl) {
+                                // Entering edit mode — auto-pause
+                                if (timeline.isPlaying) togglePlayback();
+                                setIsEditMode(true);
+                            } else {
+                                setIsEditMode(false);
+                            }
+                        }}
+                        hasVideo={!!previewClip?.videoUrl}
                     />
 
                     {/* Timeline */}
@@ -1160,6 +1554,7 @@ export default function PostProdPage() {
                         onClipDelete={onDeleteSelected}
                         onClipDuplicate={onDuplicateSelected}
                         onClipSpeed={onClipSpeed}
+                        onClipToggleMute={onClipToggleMute}
                         onSeek={seekTo}
                         selectedClipIds={timeline.selectedClipIds}
                         onTrackToggleMute={onTrackToggleMute}
@@ -1170,7 +1565,20 @@ export default function PostProdPage() {
                         activeSceneId={activeSceneId}
                         onSceneChange={onSceneChange}
                         processingClipIds={processingClipIds}
+                        onAddTrack={onAddTrack}
+                        onDeleteTrack={onDeleteTrack}
+                        onOpenAudioGen={(trackId, type) => setAudioGenBar({ type, trackId })}
                     />
+
+                    {/* Audio Generate Bar */}
+                    {audioGenBar && (
+                        <AudioGenerateBar
+                            type={audioGenBar.type}
+                            projectId={projectId}
+                            onGenerated={onAudioGenerated}
+                            onClose={() => setAudioGenBar(null)}
+                        />
+                    )}
                 </div>
 
                 {/* ──── VERTICAL RESIZE HANDLE (main area ↔ sidebar) ──── */}

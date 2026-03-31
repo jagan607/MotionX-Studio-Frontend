@@ -14,7 +14,7 @@ export const TRACK_COLORS: Record<string, string> = {
     video: "#E50914",
     audio: "#3B82F6",
     music: "#A855F7",
-    sfx: "#F59E0B",
+    sfx: "#22D3EE",
     voiceover: "#10B981",
 };
 
