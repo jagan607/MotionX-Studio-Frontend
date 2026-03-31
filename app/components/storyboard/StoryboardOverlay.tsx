@@ -559,7 +559,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         onUpdate={(data) => setSceneSetDesign(data)}
                         locationName={sceneLoc}
                         locations={locations}
-                        sceneAction={currentScene?.visual_action || currentScene?.summary}
+                        sceneAction={currentScene?.visual_action || currentScene?.synopsis || currentScene?.summary || currentScene?.description || ""}
                         onOpenAssets={() => setShowAssets(true)}
                         sceneList={sceneList}
                         currentSceneNumber={currentScene?.scene_number}
@@ -576,7 +576,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         existingData={sceneWardrobe}
                         castMembers={castMembers}
                         onUpdate={(data) => setSceneWardrobe(data)}
-                        sceneAction={currentScene?.visual_action || currentScene?.summary}
+                        sceneAction={currentScene?.visual_action || currentScene?.synopsis || currentScene?.summary || currentScene?.description || ""}
                     />
                 )}
 
