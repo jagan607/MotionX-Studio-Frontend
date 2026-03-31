@@ -268,14 +268,28 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
                         <div className="flex items-center gap-2 text-emerald-400 text-[9px] font-bold tracking-wider uppercase">
                             <CheckCircle size={12} /> Export Complete
                         </div>
-                        <a
-                            href={exportUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const res = await fetch(exportUrl!);
+                                    const blob = await res.blob();
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `export_${config.platform}_${config.resolution}.${config.format}`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    URL.revokeObjectURL(url);
+                                } catch {
+                                    // Fallback: open in new tab
+                                    window.open(exportUrl!, '_blank');
+                                }
+                            }}
                             className="w-full py-2.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold tracking-[3px] uppercase transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
                         >
                             <Download size={12} /> DOWNLOAD VIDEO
-                        </a>
+                        </button>
                         <button
                             onClick={() => { setExportUrl(null); setExportStatus(null); }}
                             className="w-full py-1.5 rounded bg-[#111] border border-[#1a1a1a] text-neutral-500 text-[8px] tracking-wider uppercase hover:text-white transition-all"
