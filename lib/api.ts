@@ -630,3 +630,231 @@ export const processScript = async (
     });
     return res.data;
 };
+
+// --- 14. POST-PRODUCTION ---
+
+export const saveTimeline = async (
+    projectId: string,
+    episodeId: string,
+    tracks: any[],
+    transitions: any[],
+    duration: number,
+    fps: number
+) => {
+    const res = await api.post("/api/v1/postprod/save_timeline", {
+        project_id: projectId,
+        episode_id: episodeId,
+        tracks,
+        transitions,
+        duration,
+        fps,
+    });
+    return res.data;
+};
+
+export const loadTimeline = async (projectId: string, episodeId: string = "main") => {
+    const res = await api.get(`/api/v1/postprod/load_timeline/${projectId}`, {
+        params: { episode_id: episodeId },
+    });
+    return res.data;
+};
+
+export const aiEditTimeline = async (
+    projectId: string,
+    episodeId: string,
+    prompt: string,
+    scope: "clip" | "scene" | "global" = "global",
+    targetIds: string[] = []
+) => {
+    const res = await api.post("/api/v1/postprod/ai_edit", {
+        project_id: projectId,
+        episode_id: episodeId,
+        prompt,
+        scope,
+        target_ids: targetIds,
+    });
+    return res.data;
+};
+
+export const exportTimeline = async (
+    projectId: string,
+    episodeId: string,
+    config: {
+        aspect_ratio: string;
+        resolution: string;
+        format: string;
+        watermark: boolean;
+        platform: string;
+        fps: number;
+    }
+) => {
+    const res = await api.post("/api/v1/postprod/export", {
+        project_id: projectId,
+        episode_id: episodeId,
+        ...config,
+    });
+    return res.data;
+};
+
+
+// ═══════════════════════════════════════════════════════════
+//   AI VIDEO-TO-VIDEO FEATURES
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Upload a reference motion video to Firebase Storage.
+ * Returns the download URL for use in motion transfer API calls.
+ */
+export const uploadMotionRefVideo = async (
+    projectId: string,
+    file: File
+): Promise<string> => {
+    const storageRef = ref(
+        storage,
+        `projects/${projectId}/postprod/motion_refs/${Date.now()}_${file.name}`
+    );
+    const snapshot = await uploadBytes(storageRef, file);
+    return await getDownloadURL(snapshot.ref);
+};
+
+export const motionTransfer = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    shotId: string,
+    imageUrl: string,
+    videoUrl: string,
+    prompt: string = "",
+    provider: "kling" | "seedance-2" = "kling",
+    motionDirection: "video" | "image" = "video",
+    version: string = "2.6"
+) => {
+    const res = await api.post("/api/v1/postprod/motion_transfer", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        shot_id: shotId,
+        image_url: imageUrl,
+        video_url: videoUrl,
+        prompt,
+        provider,
+        motion_direction: motionDirection,
+        version,
+    });
+    return res.data;
+};
+
+export const videoEdit = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    shotId: string,
+    videoUrl: string,
+    prompt: string,
+    provider: "kling" | "seedance-2" = "kling",
+    imageUrl?: string,
+    duration: string = "5",
+    aspectRatio: string = "16:9",
+    referenceImageUrls: string[] = [],
+    trimStart?: number,
+    trimEnd?: number,
+) => {
+    const res = await api.post("/api/v1/postprod/video_edit", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        shot_id: shotId,
+        video_url: videoUrl,
+        image_url: imageUrl || undefined,
+        prompt,
+        provider,
+        duration,
+        aspect_ratio: aspectRatio,
+        reference_image_urls: referenceImageUrls,
+        trim_start: trimStart,
+        trim_end: trimEnd,
+    });
+    return res.data;
+};
+
+export const generativeEdit = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    shotId: string,
+    videoUrl: string,
+    frameImageUrl: string,
+    selectionBounds: { x: number; y: number; width: number; height: number },
+    editPrompt: string,
+    editAction: "remove" | "replace" | "restyle" | "custom" = "replace",
+    referenceImageUrl?: string,
+    aspectRatio: string = "16:9",
+    trimStart?: number,
+    trimEnd?: number,
+) => {
+    const res = await api.post("/api/v1/postprod/generative_edit", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        shot_id: shotId,
+        video_url: videoUrl,
+        frame_image_url: frameImageUrl,
+        selection_bounds: selectionBounds,
+        edit_prompt: editPrompt,
+        edit_action: editAction,
+        reference_image_url: referenceImageUrl || undefined,
+        aspect_ratio: aspectRatio,
+        trim_start: trimStart,
+        trim_end: trimEnd,
+    });
+    return res.data;
+};
+
+export const revertVideo = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    shotId: string,
+    videoUrl: string,
+) => {
+    const res = await api.post("/api/v1/postprod/revert_video", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        shot_id: shotId,
+        video_url: videoUrl,
+    });
+    return res.data;
+};
+
+// ═══════════════ SFX & BGM Generation ═══════════════
+
+export const generateSfx = async (
+    projectId: string,
+    prompt: string,
+    durationSeconds?: number,
+    promptInfluence: number = 0.3,
+) => {
+    const res = await api.post("/api/v1/postprod/generate_sfx", {
+        project_id: projectId,
+        prompt,
+        duration_seconds: durationSeconds,
+        prompt_influence: promptInfluence,
+    });
+    return res.data;
+};
+
+export const generateBgm = async (
+    projectId: string,
+    prompt: string,
+    durationSeconds: number = 30,
+    forceInstrumental: boolean = true,
+) => {
+    const res = await api.post("/api/v1/postprod/generate_bgm", {
+        project_id: projectId,
+        prompt,
+        duration_seconds: durationSeconds,
+        force_instrumental: forceInstrumental,
+    });
+    return res.data;
+};

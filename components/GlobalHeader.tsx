@@ -49,6 +49,7 @@ export default function GlobalHeader() {
         pathname.includes('/studio') ||
         pathname.includes('/preproduction') ||
         pathname.includes('/storyboard') ||
+        pathname.includes('/postprod') ||
         pathname.includes('/draft') ||
         pathname.includes('/assets') ||
         pathname.includes('/editor') ||
