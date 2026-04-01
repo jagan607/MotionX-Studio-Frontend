@@ -209,6 +209,12 @@ export default function MoodboardPage() {
             if (res.data.status === "success") {
                 setAppliedMoodId(selectedMood.id);
                 toastSuccess(`Mood "${res.data.selected_mood?.name || "selected"}" applied`);
+
+                // Dual-gate check: if both scenes + moodboard are locked, extraction starts
+                if (res.data.asset_extraction_triggered) {
+                    toastSuccess("Assets extracting — finalizing your project...");
+                }
+
                 router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
             } else { toastError("Failed to apply mood"); setPhase("select"); }
         } catch (e: any) {

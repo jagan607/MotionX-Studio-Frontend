@@ -143,7 +143,7 @@ export const ScriptTimeline: React.FC<ScriptTimelineProps> = ({
                             </div>
                         </div>
                     ) : (
-                        <div className="text-[10px] font-bold text-[#555] uppercase tracking-widest flex items-center gap-2">
+                        <div className="text-[11px] font-medium text-[#555] tracking-wide flex items-center gap-2">
                             <Scissors size={12} /> Timeline
                         </div>
                     )}

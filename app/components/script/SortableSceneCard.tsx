@@ -49,96 +49,98 @@ export const SortableSceneCard: React.FC<SortableSceneCardProps> = ({
             ref={setNodeRef}
             style={style}
             onClick={onEdit}
-            className={`group relative flex w-full border transition-all duration-200 cursor-pointer rounded-sm overflow-hidden
+            className={`group relative flex w-full transition-all duration-200 cursor-pointer rounded-lg overflow-hidden
                 ${isActive
-                    ? 'bg-[#111] border-[#444] border-l-2 border-l-red-600 shadow-xl z-10'
-                    : 'bg-[#0A0A0A] border-[#222] hover:border-[#444] hover:bg-[#0E0E0E]'}`}
+                    ? 'bg-[#141414] border border-[#2A2A2A] border-l-[2px] border-l-red-500 shadow-lg shadow-black/20 z-10'
+                    : 'bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#2A2A2A] hover:bg-[#0E0E0E]'}`}
         >
             {/* 1. DRAG HANDLE */}
             <div
                 {...attributes}
                 {...listeners}
-                className="w-8 flex items-center justify-center border-r border-[#1A1A1A] cursor-grab active:cursor-grabbing hover:bg-[#151515] transition-colors shrink-0"
+                className="w-8 flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-white/[0.03] transition-colors shrink-0"
                 onClick={(e) => e.stopPropagation()}
             >
-                <GripVertical size={14} className="text-[#333] group-hover:text-[#666]" />
+                <GripVertical size={14} className="text-[#2A2A2A] group-hover:text-[#555]" />
             </div>
 
             {/* 2. MAIN CONTENT */}
             <div className="flex-1 p-4 flex flex-col relative min-w-0">
 
-                {/* DELETE BUTTON (Enhanced) */}
+                {/* DELETE BUTTON */}
                 <button
                     onClick={(e) => { e.stopPropagation(); onDelete(scene.id); }}
-                    className="absolute top-2 right-2 p-2 rounded text-[#444] hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all z-20"
+                    className="absolute top-2.5 right-2.5 p-1.5 rounded-md text-[#333] hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all z-20"
                     title="Delete Scene"
                 >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                 </button>
 
-                {/* A. MONOSPACE SLUGLINE HEADER */}
-                <div className="flex items-baseline gap-3 mb-3 border-b border-[#1A1A1A] pb-2 mr-8">
-                    <span className={`font-mono text-xs font-bold ${isActive ? 'text-red-500' : 'text-[#555]'}`}>
+                {/* A. SCENE HEADER */}
+                <div className="flex items-baseline gap-3 mb-2.5 mr-8">
+                    <span className={`text-[11px] font-semibold tabular-nums ${isActive ? 'text-red-400' : 'text-[#444]'}`}>
                         {String(index + 1).padStart(2, '0')}
                     </span>
 
-                    <span className="font-mono text-xs text-[#888] font-medium truncate uppercase tracking-tight">
+                    <span className="text-[11px] text-[#888] font-medium truncate uppercase tracking-wide">
                         {formattedHeader}
                     </span>
 
                     {scene.time && (
-                        <div className="ml-auto flex items-center gap-1.5 opacity-50">
-                            <Clock size={10} className="text-[#555]" />
-                            <span className="font-mono text-[10px] text-[#555] uppercase">{scene.time}</span>
+                        <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                            <Clock size={9} className="text-[#3A3A3A]" />
+                            <span className="text-[9px] text-[#3A3A3A] uppercase font-medium">{scene.time}</span>
                         </div>
                     )}
                 </div>
 
-                {/* B. SCRIPT CONTENT (Full Text) */}
-                <div className="mb-4 pl-1">
-                    <p className="text-sm text-[#CCC] leading-relaxed font-serif whitespace-pre-wrap">
-                        {scene.summary || <span className="text-[#444] italic">No visual description available.</span>}
+                {/* B. SCRIPT CONTENT (3-line clamp) */}
+                <div className="mb-3">
+                    <p className="text-[13px] text-[#999] leading-relaxed whitespace-pre-wrap" style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                    }}>
+                        {scene.summary || <span className="text-[#333] italic">No visual description available.</span>}
                     </p>
                 </div>
 
-                {/* C. METADATA TAGS (Dimmed) */}
-                <div className="flex items-center gap-2 flex-wrap">
-                    {/* Location Tag - Dimmed Monochrome */}
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-[#151515] border border-[#222] rounded text-[#666]">
-                        <MapPin size={10} />
-                        <span className="text-[9px] font-bold uppercase tracking-wider max-w-[120px] truncate">
+                {/* C. METADATA TAGS (Dimmed outlines) */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* Location Tag */}
+                    <div className="flex items-center gap-1 px-2 py-0.5 border border-[#1A1A1A] rounded-md text-[#444]">
+                        <MapPin size={9} />
+                        <span className="text-[8px] font-medium uppercase tracking-wider max-w-[120px] truncate">
                             {cleanLocation || "LOC"}
                         </span>
                     </div>
 
-                    {/* Cast Tags - Dimmed Blue */}
+                    {/* Cast Tags */}
                     {castList.length > 0 ? (
                         castList.map((cast: string, i: number) => (
-                            <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-blue-950/20 border border-blue-900/20 rounded text-blue-400/60">
-                                <Users size={10} />
-                                <span className="text-[9px] font-bold uppercase tracking-wider max-w-[100px] truncate">
+                            <div key={i} className="flex items-center gap-1 px-2 py-0.5 border border-[#1A1A1A] rounded-md text-[#444]">
+                                <Users size={9} />
+                                <span className="text-[8px] font-medium uppercase tracking-wider max-w-[100px] truncate">
                                     {cast.replace(/_/g, " ")}
                                 </span>
                             </div>
                         ))
                     ) : (
-                        <span className="text-[9px] font-mono text-[#333] italic pl-1">No cast assigned</span>
+                        <span className="text-[8px] text-[#2A2A2A] italic pl-1">No cast</span>
                     )}
 
-                    {/* Mood Chip - Purple/Amber tint */}
+                    {/* Mood Chip */}
                     {hasMood && (
-                        <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-950/20 border border-amber-900/20 rounded text-amber-400/70">
-                            <Palette size={10} />
-                            <span className="text-[9px] font-bold uppercase tracking-wider max-w-[120px] truncate">
+                        <div className="flex items-center gap-1 px-2 py-0.5 border border-[#1A1A1A] rounded-md text-[#444]">
+                            <Palette size={9} />
+                            <span className="text-[8px] font-medium uppercase tracking-wider max-w-[120px] truncate">
                                 {mood.atmosphere || mood.color_palette || "Mood"}
                             </span>
                         </div>
                     )}
                 </div>
             </div>
-
-            {/* 3. ACTIVE INDICATOR STRIP */}
-            <div className={`w-1 transition-colors ${isActive ? 'bg-red-600' : 'bg-transparent'}`} />
         </div>
     );
 };

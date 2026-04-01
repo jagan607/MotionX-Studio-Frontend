@@ -14,12 +14,11 @@ import {
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
 import { api, fetchEpisodes } from "@/lib/api";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, RefreshCw, Loader2 } from "lucide-react";
 import { v4 as uuidv4 } from 'uuid';
 
 // --- COMPONENTS ---
 import { ScriptWorkstation, WorkstationScene, LocationAsset } from "@/app/components/script/ScriptWorkstation";
-import { MotionButton } from "@/components/ui/MotionButton";
 import { AddSceneControls } from "@/components/script/AddSceneControls";
 
 export default function DraftPage() {
@@ -44,6 +43,7 @@ export default function DraftPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isCommitting, setIsCommitting] = useState(false);
     const [isExtending, setIsExtending] = useState(false);
+    const [isRegenerating, setIsRegenerating] = useState(false);
 
     // Refs for safety
     const isCommittingRef = useRef(false);
@@ -414,13 +414,34 @@ export default function DraftPage() {
         isCommittingRef.current = true;
 
         try {
-            await api.post("api/v1/script/commit-draft", {
+            // Build the approved_scenes[] payload from current local state
+            const approvedScenes = scenes.map(s => ({
+                id: s.id,
+                scene_number: s.scene_number,
+                header: s.header,
+                summary: s.summary,
+                time: s.time || "",
+                location_id: s.location_id || "",
+                cast_ids: s.cast_ids || s.characters || [],
+                characters: s.characters || s.cast_ids || [],
+            }));
+
+            const res = await api.post("/api/v1/script/commit-scene-sequence", {
                 project_id: projectId,
-                draft_id: draftId
+                draft_id: draftId,
+                approved_scenes: approvedScenes,
             });
 
             toast.success("Sequence Approved");
-            router.push(`/project/${projectId}/moodboard?onboarding=true`);
+
+            // Dual-gate check: if both scenes + moodboard are locked, extraction starts
+            if (res.data.asset_extraction_triggered) {
+                toast.success("Assets extracting \u2014 finalizing your project...");
+                router.push(`/project/${projectId}/preproduction`);
+            } else {
+                // Scenes approved but moodboard not yet selected — route to moodboard
+                router.push(`/project/${projectId}/moodboard?onboarding=true`);
+            }
 
         } catch (e: any) {
             console.error(e);
@@ -430,25 +451,57 @@ export default function DraftPage() {
         }
     };
 
+    const handleRegenerate = async () => {
+        setIsRegenerating(true);
+        try {
+            await api.post("/api/v1/script/regenerate-scenes", {
+                project_id: projectId,
+                draft_id: draftId,
+            });
+            toast.success("Regenerating scenes...");
+            // New scenes will stream in via the existing onSnapshot listener
+        } catch (e: any) {
+            console.error(e);
+            toast.error("Regeneration failed: " + (e.response?.data?.detail || e.message));
+        } finally {
+            setIsRegenerating(false);
+        }
+    };
+
     const DraftHeader = (
-        <div className="h-20 border-b border-[#222] bg-[#080808] flex items-center justify-between px-8 shrink-0">
+        <div className="h-20 border-b border-[#1A1A1A] bg-[#080808] flex items-center justify-between px-8 shrink-0">
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3 text-[#EEE]">
                     <div>
-                        <div className="text-lg font-bold tracking-wide leading-none">SCENE SEQUENCE EDITOR</div>
-                        <div className="text-[10px] font-mono text-[#555] mt-1">DRAFT MODE • UNSAVED CHANGES</div>
+                        <div className="text-[15px] font-semibold tracking-tight leading-none">Review Scene Sequence</div>
+                        <div className="text-[11px] text-[#555] mt-1.5 font-normal">Review, reorder, and edit the AI-generated scenes before locking in your draft.</div>
                     </div>
                 </div>
             </div>
-            <div className="w-[240px]">
-                <MotionButton
-                    onClick={handleCommit}
-                    loading={isCommitting}
-                    disabled={isProcessing}
-                    className="shadow-[0_0_30px_rgba(220,38,38,0.2)]"
+            <div className="flex items-center gap-3">
+                <button
+                    onClick={handleRegenerate}
+                    disabled={isRegenerating || isCommitting || isProcessing}
+                    className="flex items-center gap-2 h-9 px-4 text-[11px] font-medium text-white/40 tracking-wide border border-white/[0.08] rounded-lg hover:text-white/80 hover:border-white/15 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                    <CheckCircle2 size={16} strokeWidth={2.5} /> APPROVE SEQUENCE
-                </MotionButton>
+                    {isRegenerating ? (
+                        <><Loader2 size={13} className="animate-spin" /> Regenerating...</>
+                    ) : (
+                        <><RefreshCw size={13} /> Regenerate</>
+                    )}
+                </button>
+                <button
+                    onClick={handleCommit}
+                    disabled={isCommitting || isProcessing || isRegenerating}
+                    className="flex items-center gap-2 h-9 px-6 text-[11px] font-semibold tracking-wide bg-white text-[#111] rounded-lg hover:bg-white/90 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.06)]"
+                >
+                    {isCommitting ? (
+                        <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                        <CheckCircle2 size={14} strokeWidth={2.5} />
+                    )}
+                    Approve Sequence
+                </button>
             </div>
         </div>
     );

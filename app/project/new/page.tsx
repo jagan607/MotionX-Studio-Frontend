@@ -36,28 +36,37 @@ const PLACEHOLDERS = [
 ];
 
 /* ═══════════════════════════════════════════════════════════
-   SCANNER STEP DEFINITIONS
+   DUAL-ENGINE PROGRESS TRACKER
    ═══════════════════════════════════════════════════════════ */
-const SCANNER_STEPS = [
-    { key: "loading", label: "Loading Script", patterns: ["loading", "uploading", "creating project", "downloading"] },
-    { key: "cinematic", label: "Analyzing Cinematic DNA", patterns: ["cinematic dna", "analyzing"] },
-    { key: "scenes", label: "Extracting Structural Scenes", patterns: ["structural scene", "extracting"] },
-    { key: "workspace", label: "Creating Workspace", patterns: ["workspace", "draft", "blueprint"] },
-    { key: "moodboards", label: "Generating Visual Moodboards", patterns: ["moodboard", "visual moodboards", "generating visual"] },
-];
 
-function matchStep(status: string): number {
-    if (!status) return 0;
+type EnginePhase = "idle" | "active" | "done";
+
+function parseEngineStates(status: string): { story: EnginePhase; art: EnginePhase } {
+    if (!status) return { story: "idle", art: "idle" };
     const lower = status.toLowerCase();
-    for (let i = SCANNER_STEPS.length - 1; i >= 0; i--) {
-        if (SCANNER_STEPS[i].patterns.some(p => lower.includes(p.toLowerCase()))) return i;
-    }
-    return 0;
+
+    const storyDonePatterns = ["draft", "scene draft", "preparing draft", "workspace", "blueprint"];
+    const storyActivePatterns = ["loading", "uploading", "creating project", "downloading", "cinematic dna", "analyzing", "structural scene", "extracting"];
+    const artDonePatterns = ["moodboard ready", "moodboard complete"];
+    const artActivePatterns = ["moodboard", "visual moodboards", "generating visual", "rendering", "visual archetypes"];
+
+    let story: EnginePhase = "idle";
+    let art: EnginePhase = "idle";
+
+    if (storyDonePatterns.some(p => lower.includes(p))) story = "done";
+    else if (storyActivePatterns.some(p => lower.includes(p))) story = "active";
+
+    if (artDonePatterns.some(p => lower.includes(p))) art = "done";
+    else if (artActivePatterns.some(p => lower.includes(p))) art = "active";
+
+    if (story === "active" && art === "idle") art = "active";
+    if (story === "done" && art === "idle") art = "active";
+
+    return { story, art };
 }
 
-
 /* ═══════════════════════════════════════════════════════════
-   CINEMATIC SCANNER COMPONENT
+   CINEMATIC SCANNER — DUAL ENGINE ORBITAL
    ═══════════════════════════════════════════════════════════ */
 interface CinematicScannerProps {
     processingStatus: string;
@@ -68,11 +77,10 @@ interface CinematicScannerProps {
 }
 
 function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransitioning, error }: CinematicScannerProps) {
-    const activeStep = matchStep(processingStatus);
+    const engines = parseEngineStates(processingStatus);
     const [archetypeVisible, setArchetypeVisible] = useState(false);
     const [fadeOut, setFadeOut] = useState(false);
 
-    // Animate archetype reveal
     useEffect(() => {
         if (detectedArchetype) {
             const t = setTimeout(() => setArchetypeVisible(true), 300);
@@ -80,182 +88,218 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
         }
     }, [detectedArchetype]);
 
-    // Graceful fade-out on error
     useEffect(() => {
         if (error) {
-            // Show error state for 2.5s, then fade out
             const t = setTimeout(() => setFadeOut(true), 2500);
             return () => clearTimeout(t);
-        } else {
-            setFadeOut(false);
-        }
+        } else { setFadeOut(false); }
     }, [error]);
 
     if (phase === "prompt" && !error) return null;
     if (fadeOut) return null;
+
+    const storyLabel = engines.story === "done" ? "Structure Locked" : engines.story === "active" ? "Architecting Narrative Structure" : "Story Engine Standby";
+    const artLabel = engines.art === "done" ? "Archetypes Rendered" : engines.art === "active" ? "Synthesizing Visual Archetypes" : "Art Engine Standby";
+
+    const OUTER_R = 68;
+    const INNER_R = 54;
+    const outerCirc = 2 * Math.PI * OUTER_R;
+    const innerCirc = 2 * Math.PI * INNER_R;
+    const outerFill = engines.art === "done" || isTransitioning ? 1 : engines.art === "active" ? 0.65 : 0;
+    const innerFill = engines.story === "done" || isTransitioning ? 1 : engines.story === "active" ? 0.55 : 0;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center transition-all duration-700"
             style={{
                 opacity: fadeOut ? 0 : 1,
                 background: error
-                    ? "radial-gradient(ellipse at center, rgba(239,68,68,0.08) 0%, rgba(8,8,8,0.95) 60%)"
+                    ? "radial-gradient(ellipse at center, rgba(239,68,68,0.08) 0%, rgba(8,8,8,0.97) 60%)"
                     : isTransitioning
-                        ? "radial-gradient(ellipse at center, rgba(16,185,129,0.08) 0%, rgba(8,8,8,0.95) 60%)"
-                        : "radial-gradient(ellipse at center, rgba(229,9,20,0.04) 0%, rgba(8,8,8,0.95) 60%)"
+                        ? "radial-gradient(ellipse at center, rgba(16,185,129,0.08) 0%, rgba(8,8,8,0.97) 60%)"
+                        : "radial-gradient(ellipse at center, rgba(229,9,20,0.03) 0%, rgba(8,8,8,0.97) 60%)"
             }}>
 
-            {/* Backdrop blur layer */}
             <div className="absolute inset-0 backdrop-blur-xl" />
 
-            {/* Film grain overlay */}
-            <div className="absolute inset-0 opacity-[0.025] pointer-events-none"
+            <div className="absolute inset-0 opacity-[0.02] pointer-events-none"
                 style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
                     backgroundSize: "200px 200px", animation: "grain 0.5s steps(5) infinite",
-                }}
-            />
+                }} />
 
-            {/* Central content */}
-            <div className="relative z-10 flex flex-col items-center w-full max-w-lg px-8">
+            <div className="relative z-10 flex flex-col items-center w-full max-w-2xl px-8">
 
-                {/* ── Ambient glow ── */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full blur-[100px] transition-all duration-1000 pointer-events-none"
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full blur-[120px] pointer-events-none"
                     style={{
                         background: error
-                            ? "radial-gradient(circle, rgba(239,68,68,0.15) 0%, transparent 70%)"
+                            ? "radial-gradient(circle, rgba(239,68,68,0.12) 0%, transparent 70%)"
                             : isTransitioning
-                                ? "radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)"
-                                : "radial-gradient(circle, rgba(229,9,20,0.1) 0%, transparent 70%)",
+                                ? "radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)"
+                                : "radial-gradient(circle, rgba(229,9,20,0.08) 0%, transparent 70%)",
                         animation: "breathe 6s ease-in-out infinite"
                     }} />
 
-                {/* ── Central icon ── */}
-                <div className="relative w-20 h-20 mb-10 flex items-center justify-center">
-                    {/* Outer ring */}
-                    <div className={`absolute inset-0 rounded-full border transition-all duration-700 ${error ? "border-red-500/40" : isTransitioning ? "border-emerald-500/40" : "border-white/[0.05]"
-                        }`} />
-                    {/* Spinning ring */}
-                    <div className={`absolute inset-0 rounded-full border border-t-transparent transition-all duration-700 ${error ? "border-red-400/50" : isTransitioning ? "border-emerald-400/50" : "border-[#E50914]/40"
-                        }`}
-                        style={{ animation: (isTransitioning || error) ? "none" : "spin 1.5s linear infinite" }} />
-                    {/* Inner ring */}
-                    <div className={`absolute inset-2 rounded-full border border-b-transparent transition-all duration-700 ${error ? "border-red-400/30" : isTransitioning ? "border-emerald-400/30" : "border-[#E50914]/20"
-                        }`}
-                        style={{ animation: (isTransitioning || error) ? "none" : "spin 2s linear infinite reverse" }} />
+                {/* ═══ ORBITAL CENTER ═══ */}
+                <div className="relative w-36 h-36 mb-10 flex items-center justify-center">
 
-                    {/* Icon swap */}
-                    {error ? (
-                        <div className="animate-[scaleIn_0.4s_ease_both]">
-                            <AlertTriangle size={22} className="text-red-400" />
-                        </div>
-                    ) : isTransitioning ? (
-                        <div className="animate-[scaleIn_0.4s_ease_both]">
-                            <Check size={24} className="text-emerald-400" strokeWidth={3} />
-                        </div>
-                    ) : (
-                        <BrainCircuit size={22} className="text-[#E50914] animate-pulse" />
-                    )}
+                    {/* Outer ring — Art Engine */}
+                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 144 144">
+                        <circle cx="72" cy="72" r={OUTER_R} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1.5" />
+                        <circle cx="72" cy="72" r={OUTER_R} fill="none"
+                            stroke={error ? "rgba(239,68,68,0.4)" : isTransitioning || engines.art === "done" ? "rgba(16,185,129,0.5)" : "rgba(229,9,20,0.25)"}
+                            strokeWidth="1.5" strokeLinecap="round"
+                            strokeDasharray={outerCirc}
+                            strokeDashoffset={outerCirc * (1 - outerFill)}
+                            transform="rotate(-90 72 72)"
+                            style={{ transition: "stroke-dashoffset 1.5s ease-out, stroke 0.7s ease" }} />
+                        {engines.art === "active" && !isTransitioning && !error && (
+                            <circle cx="72" cy="4" r="2" fill="#E50914" opacity="0.6"
+                                style={{ transformOrigin: "72px 72px", animation: "spin 4s linear infinite" }} />
+                        )}
+                    </svg>
+
+                    {/* Inner ring — Story Engine */}
+                    <svg className="absolute inset-[14px] w-[calc(100%-28px)] h-[calc(100%-28px)]" viewBox="0 0 116 116">
+                        <circle cx="58" cy="58" r={INNER_R} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1.5" />
+                        <circle cx="58" cy="58" r={INNER_R} fill="none"
+                            stroke={error ? "rgba(239,68,68,0.5)" : isTransitioning || engines.story === "done" ? "rgba(16,185,129,0.6)" : "rgba(229,9,20,0.4)"}
+                            strokeWidth="1.5" strokeLinecap="round"
+                            strokeDasharray={innerCirc}
+                            strokeDashoffset={innerCirc * (1 - innerFill)}
+                            transform="rotate(-90 58 58)"
+                            style={{ transition: "stroke-dashoffset 1.5s ease-out, stroke 0.7s ease" }} />
+                        {engines.story === "active" && !isTransitioning && !error && (
+                            <circle cx="58" cy="4" r="2" fill="#E50914" opacity="0.8"
+                                style={{ transformOrigin: "58px 58px", animation: "spin 3s linear infinite reverse" }} />
+                        )}
+                    </svg>
+
+                    {/* Center icon */}
+                    <div className={`relative z-10 w-16 h-16 rounded-full flex items-center justify-center transition-all duration-700 ${
+                        error ? "bg-red-500/10 border border-red-500/20"
+                        : isTransitioning ? "bg-emerald-500/10 border border-emerald-500/20"
+                        : "bg-white/[0.03] border border-white/[0.06]"
+                    }`}>
+                        {error ? (
+                            <div className="animate-[scaleIn_0.4s_ease_both]"><AlertTriangle size={22} className="text-red-400" /></div>
+                        ) : isTransitioning ? (
+                            <div className="animate-[scaleIn_0.4s_ease_both]"><Check size={24} className="text-emerald-400" strokeWidth={3} /></div>
+                        ) : (
+                            <BrainCircuit size={22} className="text-[#E50914]" style={{ animation: "breathe 3s ease-in-out infinite" }} />
+                        )}
+                    </div>
                 </div>
 
-                {/* ── Status heading ── */}
-                <h3 className={`font-anton uppercase tracking-[3px] text-xl mb-2 text-center transition-colors duration-700 ${error ? "text-red-400" : isTransitioning ? "text-emerald-300" : "text-white"
-                    }`}>
-                    {error
-                        ? "Process Failed"
-                        : isTransitioning
-                            ? "Scan Complete"
-                            : (processingStatus.includes('...') ? processingStatus.replace('...', '') : processingStatus || "Initializing")
-                    }
+                {/* ═══ STATUS HEADING ═══ */}
+                <h3 className={`font-anton uppercase tracking-[3px] text-xl mb-2 text-center transition-colors duration-700 ${
+                    error ? "text-red-400" : isTransitioning ? "text-emerald-300" : "text-white"
+                }`}>
+                    {error ? "Process Failed" : isTransitioning ? "Scan Complete" : "Analyzing & Generating"}
                 </h3>
 
-                <p className={`text-[10px] tracking-[1.5px] uppercase font-mono text-center mb-10 ${error ? "text-red-400/60" : "text-neutral-600"}`}>
-                    {error ? error : isTransitioning ? "Entering moodboard" : "Do not close this window"}
+                <p className={`text-[10px] tracking-[1.5px] uppercase font-mono text-center mb-10 ${
+                    error ? "text-red-400/60" : "text-neutral-600"
+                }`}>
+                    {error ? error : isTransitioning ? "Entering scene editor" : "Do not close this window"}
                 </p>
 
-                {/* ── Step tracker ── */}
-                <div className="w-full space-y-0 mb-8">
-                    {SCANNER_STEPS.map((step, i) => {
-                        const isActive = i === activeStep && !isTransitioning;
-                        const isDone = i < activeStep || isTransitioning;
-
-                        return (
-                            <div key={step.key}
-                                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-500 ${isActive ? "bg-white/[0.04]" : ""
-                                    }`}>
-                                {/* Step indicator */}
-                                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border transition-all duration-500 ${isDone
-                                        ? "border-emerald-500/50 bg-emerald-500/10"
-                                        : isActive
-                                            ? "border-[#E50914]/50 bg-[#E50914]/10"
-                                            : "border-white/[0.06] bg-transparent"
-                                    }`}>
-                                    {isDone ? (
-                                        <Check size={10} className="text-emerald-400" strokeWidth={3} />
-                                    ) : isActive ? (
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
-                                    ) : (
-                                        <div className="w-1 h-1 rounded-full bg-white/10" />
-                                    )}
+                {/* ═══ DUAL ENGINE STATUS CARDS ═══ */}
+                {!error && (
+                    <div className="w-full grid grid-cols-2 gap-4 mb-8">
+                        {/* Story Engine */}
+                        <div className={`relative rounded-xl border px-5 py-4 overflow-hidden transition-all duration-700 ${
+                            engines.story === "done" || isTransitioning ? "border-emerald-500/20 bg-emerald-500/[0.03]"
+                            : engines.story === "active" ? "border-white/[0.08] bg-white/[0.02]"
+                            : "border-white/[0.04] bg-white/[0.01] opacity-40"
+                        }`}>
+                            {engines.story === "active" && !isTransitioning && (
+                                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                                    <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#E50914]/[0.06] to-transparent animate-[scan_2.5s_ease-in-out_infinite]" />
                                 </div>
-
-                                {/* Step label */}
-                                <span className={`text-[10px] tracking-[1.5px] uppercase font-mono transition-all duration-500 ${isDone
-                                        ? "text-emerald-400/60"
-                                        : isActive
-                                            ? "text-white"
-                                            : "text-neutral-700"
-                                    }`}>
-                                    {step.label}
-                                </span>
-
-                                {/* Scanning indicator for active step */}
-                                {isActive && (
-                                    <div className="ml-auto w-16 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
-                                        <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent animate-[scan_1.5s_ease-in-out_infinite]" />
-                                    </div>
-                                )}
+                            )}
+                            <div className="relative flex items-start gap-3">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 ${
+                                    engines.story === "done" || isTransitioning ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-white/[0.04] border border-white/[0.06]"
+                                }`}>
+                                    {engines.story === "done" || isTransitioning
+                                        ? <Check size={14} className="text-emerald-400" strokeWidth={3} />
+                                        : <Film size={14} className={engines.story === "active" ? "text-white/60" : "text-white/20"} />
+                                    }
+                                </div>
+                                <div className="min-w-0">
+                                    <p className={`text-[8px] tracking-[2px] uppercase font-mono mb-1 transition-colors duration-500 ${
+                                        engines.story === "done" || isTransitioning ? "text-emerald-400/60" : "text-white/30"
+                                    }`}>Story Engine</p>
+                                    <p className={`text-[11px] font-medium leading-snug transition-colors duration-500 ${
+                                        engines.story === "done" || isTransitioning ? "text-emerald-300/80" : engines.story === "active" ? "text-white/70" : "text-white/25"
+                                    }`}>{isTransitioning ? "Structure Locked" : storyLabel}</p>
+                                </div>
                             </div>
-                        );
-                    })}
-                </div>
+                            {engines.story === "active" && !isTransitioning && (
+                                <div className="mt-3 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
+                                    <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914]/60 to-transparent animate-[scan_1.5s_ease-in-out_infinite]" />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Art Engine */}
+                        <div className={`relative rounded-xl border px-5 py-4 overflow-hidden transition-all duration-700 ${
+                            engines.art === "done" || isTransitioning ? "border-emerald-500/20 bg-emerald-500/[0.03]"
+                            : engines.art === "active" ? "border-white/[0.08] bg-white/[0.02]"
+                            : "border-white/[0.04] bg-white/[0.01] opacity-40"
+                        }`}>
+                            {engines.art === "active" && !isTransitioning && (
+                                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                                    <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#E50914]/[0.06] to-transparent animate-[scan_3s_ease-in-out_infinite]" />
+                                </div>
+                            )}
+                            <div className="relative flex items-start gap-3">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 ${
+                                    engines.art === "done" || isTransitioning ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-white/[0.04] border border-white/[0.06]"
+                                }`}>
+                                    {engines.art === "done" || isTransitioning
+                                        ? <Check size={14} className="text-emerald-400" strokeWidth={3} />
+                                        : <Sparkles size={14} className={engines.art === "active" ? "text-white/60" : "text-white/20"} />
+                                    }
+                                </div>
+                                <div className="min-w-0">
+                                    <p className={`text-[8px] tracking-[2px] uppercase font-mono mb-1 transition-colors duration-500 ${
+                                        engines.art === "done" || isTransitioning ? "text-emerald-400/60" : "text-white/30"
+                                    }`}>Art Engine</p>
+                                    <p className={`text-[11px] font-medium leading-snug transition-colors duration-500 ${
+                                        engines.art === "done" || isTransitioning ? "text-emerald-300/80" : engines.art === "active" ? "text-white/70" : "text-white/25"
+                                    }`}>{isTransitioning ? "Archetypes Rendered" : artLabel}</p>
+                                </div>
+                            </div>
+                            {engines.art === "active" && !isTransitioning && (
+                                <div className="mt-3 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
+                                    <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914]/60 to-transparent animate-[scan_2s_ease-in-out_infinite]" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* ── Archetype glimpse ── */}
                 {detectedArchetype && (
-                    <div className={`w-full transition-all duration-700 ${archetypeVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
-                        }`}>
+                    <div className={`w-full transition-all duration-700 ${archetypeVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}>
                         <div className="relative rounded-xl border border-[#E50914]/20 bg-[#E50914]/[0.04] backdrop-blur-sm px-5 py-4 overflow-hidden"
                             style={{ animation: "pulseGlow 4s ease-in-out infinite" }}>
-                            {/* Inner scan line */}
                             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                                 <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#E50914]/10 to-transparent animate-[scan_3s_ease-in-out_infinite]" />
                             </div>
-
                             <div className="relative flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center shrink-0">
-                                    <Sparkles size={14} className="text-[#E50914]" />
+                                    <BrainCircuit size={14} className="text-[#E50914]" />
                                 </div>
                                 <div>
-                                    <p className="text-[8px] text-[#E50914]/60 tracking-[2px] uppercase font-mono mb-0.5">
-                                        Archetype Locked
-                                    </p>
-                                    <p className="text-[14px] text-white font-medium tracking-wide">
-                                        {detectedArchetype}
-                                    </p>
+                                    <p className="text-[8px] text-[#E50914]/60 tracking-[2px] uppercase font-mono mb-0.5">Archetype Locked</p>
+                                    <p className="text-[14px] text-white font-medium tracking-wide">{detectedArchetype}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
-
-                {/* ── Bottom progress bar ── */}
-                <div className="w-full mt-8 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
-                    {isTransitioning ? (
-                        <div className="h-full w-full bg-gradient-to-r from-emerald-500/60 to-emerald-400/40 transition-all duration-700" />
-                    ) : (
-                        <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent animate-[scan_2s_ease-in-out_infinite]" />
-                    )}
-                </div>
             </div>
         </div>
     );
@@ -387,13 +431,20 @@ export default function NewProjectPage() {
                 unsubJobRef.current?.();
                 unsubJobRef.current = null;
 
-                // Graceful handoff — show success state, then route
+                // Graceful handoff — show success state, then route to Draft Review
                 setIsTransitioning(true);
                 setTimeout(() => {
                     unsubProjectRef.current?.();
                     unsubProjectRef.current = null;
                     const epId = projectDataRef.current?.default_episode_id || 'main';
-                    router.push(`/project/${projectId}/moodboard?episode_id=${epId}`);
+
+                    // Route to Draft Review page if draft_id is available (new flow)
+                    // Fall back to moodboard for legacy jobs without draft_id
+                    if (data.draft_id) {
+                        router.push(`/project/${projectId}/draft/${data.draft_id}`);
+                    } else {
+                        router.push(`/project/${projectId}/moodboard?episode_id=${epId}`);
+                    }
                 }, 1500);
             }
 
