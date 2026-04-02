@@ -175,11 +175,10 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                     </svg>
 
                     {/* Center icon */}
-                    <div className={`relative z-10 w-16 h-16 rounded-full flex items-center justify-center transition-all duration-700 ${
-                        error ? "bg-red-500/10 border border-red-500/20"
+                    <div className={`relative z-10 w-16 h-16 rounded-full flex items-center justify-center transition-all duration-700 ${error ? "bg-red-500/10 border border-red-500/20"
                         : isTransitioning ? "bg-emerald-500/10 border border-emerald-500/20"
-                        : "bg-white/[0.03] border border-white/[0.06]"
-                    }`}>
+                            : "bg-white/[0.03] border border-white/[0.06]"
+                        }`}>
                         {error ? (
                             <div className="animate-[scaleIn_0.4s_ease_both]"><AlertTriangle size={22} className="text-red-400" /></div>
                         ) : isTransitioning ? (
@@ -191,15 +190,13 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                 </div>
 
                 {/* ═══ STATUS HEADING ═══ */}
-                <h3 className={`font-anton uppercase tracking-[3px] text-xl mb-2 text-center transition-colors duration-700 ${
-                    error ? "text-red-400" : isTransitioning ? "text-emerald-300" : "text-white"
-                }`}>
+                <h3 className={`font-anton uppercase tracking-[3px] text-xl mb-2 text-center transition-colors duration-700 ${error ? "text-red-400" : isTransitioning ? "text-emerald-300" : "text-white"
+                    }`}>
                     {error ? "Process Failed" : isTransitioning ? "Scan Complete" : "Analyzing & Generating"}
                 </h3>
 
-                <p className={`text-[10px] tracking-[1.5px] uppercase font-mono text-center mb-10 ${
-                    error ? "text-red-400/60" : "text-neutral-600"
-                }`}>
+                <p className={`text-[10px] tracking-[1.5px] uppercase font-mono text-center mb-10 ${error ? "text-red-400/60" : "text-neutral-600"
+                    }`}>
                     {error ? error : isTransitioning ? "Entering scene editor" : "Do not close this window"}
                 </p>
 
@@ -207,32 +204,28 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                 {!error && (
                     <div className="w-full grid grid-cols-2 gap-4 mb-8">
                         {/* Story Engine */}
-                        <div className={`relative rounded-xl border px-5 py-4 overflow-hidden transition-all duration-700 ${
-                            engines.story === "done" || isTransitioning ? "border-emerald-500/20 bg-emerald-500/[0.03]"
+                        <div className={`relative rounded-xl border px-5 py-4 overflow-hidden transition-all duration-700 ${engines.story === "done" || isTransitioning ? "border-emerald-500/20 bg-emerald-500/[0.03]"
                             : engines.story === "active" ? "border-white/[0.08] bg-white/[0.02]"
-                            : "border-white/[0.04] bg-white/[0.01] opacity-40"
-                        }`}>
+                                : "border-white/[0.04] bg-white/[0.01] opacity-40"
+                            }`}>
                             {engines.story === "active" && !isTransitioning && (
                                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                                     <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#E50914]/[0.06] to-transparent animate-[scan_2.5s_ease-in-out_infinite]" />
                                 </div>
                             )}
                             <div className="relative flex items-start gap-3">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 ${
-                                    engines.story === "done" || isTransitioning ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-white/[0.04] border border-white/[0.06]"
-                                }`}>
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 ${engines.story === "done" || isTransitioning ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-white/[0.04] border border-white/[0.06]"
+                                    }`}>
                                     {engines.story === "done" || isTransitioning
                                         ? <Check size={14} className="text-emerald-400" strokeWidth={3} />
                                         : <Film size={14} className={engines.story === "active" ? "text-white/60" : "text-white/20"} />
                                     }
                                 </div>
                                 <div className="min-w-0">
-                                    <p className={`text-[8px] tracking-[2px] uppercase font-mono mb-1 transition-colors duration-500 ${
-                                        engines.story === "done" || isTransitioning ? "text-emerald-400/60" : "text-white/30"
-                                    }`}>Story Engine</p>
-                                    <p className={`text-[11px] font-medium leading-snug transition-colors duration-500 ${
-                                        engines.story === "done" || isTransitioning ? "text-emerald-300/80" : engines.story === "active" ? "text-white/70" : "text-white/25"
-                                    }`}>{isTransitioning ? "Structure Locked" : storyLabel}</p>
+                                    <p className={`text-[8px] tracking-[2px] uppercase font-mono mb-1 transition-colors duration-500 ${engines.story === "done" || isTransitioning ? "text-emerald-400/60" : "text-white/30"
+                                        }`}>Story Engine</p>
+                                    <p className={`text-[11px] font-medium leading-snug transition-colors duration-500 ${engines.story === "done" || isTransitioning ? "text-emerald-300/80" : engines.story === "active" ? "text-white/70" : "text-white/25"
+                                        }`}>{isTransitioning ? "Structure Locked" : storyLabel}</p>
                                 </div>
                             </div>
                             {engines.story === "active" && !isTransitioning && (
@@ -243,32 +236,28 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                         </div>
 
                         {/* Art Engine */}
-                        <div className={`relative rounded-xl border px-5 py-4 overflow-hidden transition-all duration-700 ${
-                            engines.art === "done" || isTransitioning ? "border-emerald-500/20 bg-emerald-500/[0.03]"
+                        <div className={`relative rounded-xl border px-5 py-4 overflow-hidden transition-all duration-700 ${engines.art === "done" || isTransitioning ? "border-emerald-500/20 bg-emerald-500/[0.03]"
                             : engines.art === "active" ? "border-white/[0.08] bg-white/[0.02]"
-                            : "border-white/[0.04] bg-white/[0.01] opacity-40"
-                        }`}>
+                                : "border-white/[0.04] bg-white/[0.01] opacity-40"
+                            }`}>
                             {engines.art === "active" && !isTransitioning && (
                                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                                     <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#E50914]/[0.06] to-transparent animate-[scan_3s_ease-in-out_infinite]" />
                                 </div>
                             )}
                             <div className="relative flex items-start gap-3">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 ${
-                                    engines.art === "done" || isTransitioning ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-white/[0.04] border border-white/[0.06]"
-                                }`}>
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 ${engines.art === "done" || isTransitioning ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-white/[0.04] border border-white/[0.06]"
+                                    }`}>
                                     {engines.art === "done" || isTransitioning
                                         ? <Check size={14} className="text-emerald-400" strokeWidth={3} />
                                         : <Sparkles size={14} className={engines.art === "active" ? "text-white/60" : "text-white/20"} />
                                     }
                                 </div>
                                 <div className="min-w-0">
-                                    <p className={`text-[8px] tracking-[2px] uppercase font-mono mb-1 transition-colors duration-500 ${
-                                        engines.art === "done" || isTransitioning ? "text-emerald-400/60" : "text-white/30"
-                                    }`}>Art Engine</p>
-                                    <p className={`text-[11px] font-medium leading-snug transition-colors duration-500 ${
-                                        engines.art === "done" || isTransitioning ? "text-emerald-300/80" : engines.art === "active" ? "text-white/70" : "text-white/25"
-                                    }`}>{isTransitioning ? "Archetypes Rendered" : artLabel}</p>
+                                    <p className={`text-[8px] tracking-[2px] uppercase font-mono mb-1 transition-colors duration-500 ${engines.art === "done" || isTransitioning ? "text-emerald-400/60" : "text-white/30"
+                                        }`}>Art Engine</p>
+                                    <p className={`text-[11px] font-medium leading-snug transition-colors duration-500 ${engines.art === "done" || isTransitioning ? "text-emerald-300/80" : engines.art === "active" ? "text-white/70" : "text-white/25"
+                                        }`}>{isTransitioning ? "Archetypes Rendered" : artLabel}</p>
                                 </div>
                             </div>
                             {engines.art === "active" && !isTransitioning && (
@@ -333,6 +322,11 @@ export default function NewProjectPage() {
     const [validationErrors, setValidationErrors] = useState<{ title?: boolean; genre?: boolean; vision?: boolean }>({});
     const [scannerError, setScannerError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // ══════ SCRIPT EXPANSION STATE ══════
+    const [isExpanding, setIsExpanding] = useState(false);
+    const [expandedScript, setExpandedScript] = useState<string | null>(null);
+    const [scriptApplied, setScriptApplied] = useState(false);
 
     // ══════ PROCESSING / SCANNER STATE ══════
     const [processingStatus, setProcessingStatus] = useState("");
@@ -482,6 +476,30 @@ export default function NewProjectPage() {
         });
     };
 
+    // ══════ EXPAND SYNOPSIS → FULL SCRIPT ══════
+    const handleExpandSynopsis = async () => {
+        if (!vision.trim() || isExpanding) return;
+        setIsExpanding(true);
+        try {
+            const FORMAT_MAP: Record<string, string> = { film: "movie", series: "micro_drama", ad: "ad" };
+            const res = await api.post("/api/v1/script/expand-synopsis", {
+                synopsis: vision.trim(),
+                project_type: FORMAT_MAP[selectedFormat] || "movie",
+                runtime_mins: Math.max(1, Math.round(runtime / 60)),
+                genre: genre.trim() || undefined,
+            });
+            if (res.data?.script_text) {
+                setExpandedScript(res.data.script_text);
+            } else {
+                toast.error("No script was generated. Please try again.");
+            }
+        } catch (e: any) {
+            toast.error(e.response?.data?.detail || "Failed to generate script.");
+        } finally {
+            setIsExpanding(false);
+        }
+    };
+
     // ══════ CREATE PROJECT ══════
     const handleCreate = async () => {
         // Validate required fields
@@ -526,10 +544,9 @@ export default function NewProjectPage() {
                 setProcessingStatus("Uploading script...");
                 formData.append("file", scriptFile);
             } else {
-                setProcessingStatus("Generating script from your vision...");
-                const content = `[TYPE: SYNOPSIS/TREATMENT]\n\n${vision}`;
-                const blob = new Blob([content], { type: "text/plain" });
-                formData.append("file", new File([blob], "synopsis.txt"));
+                setProcessingStatus("Loading script into AI memory...");
+                const blob = new Blob([vision], { type: "text/plain" });
+                formData.append("file", new File([blob], "script.txt"));
             }
 
             const uploadRes = await api.post("/api/v1/script/upload-script", formData, {
@@ -604,7 +621,7 @@ export default function NewProjectPage() {
 
             {/* ══════ MAIN CONTENT ══════ */}
             <div className="relative z-10 flex-1 flex flex-col items-center overflow-y-auto">
-                <div className="w-full max-w-xl px-6 flex-1 flex flex-col justify-center py-8">
+                <div className="w-full max-w-3xl px-6 flex-1 flex flex-col justify-center py-8">
 
                     {/* Cinematic Scanner overlay */}
                     <CinematicScanner
@@ -640,11 +657,25 @@ export default function NewProjectPage() {
                     <div className="relative fade-in-1">
                         <div className={`rounded-2xl border bg-black/40 backdrop-blur-sm p-5 transition-all duration-300 ${validationErrors.vision ? 'border-[#E50914]/60 shadow-[0_0_30px_rgba(229,9,20,0.08)]' : 'border-white/[0.06] focus-within:border-[#E50914]/20 focus-within:bg-black/50 focus-within:shadow-[0_0_60px_rgba(229,9,20,0.04)]'}`}>
 
-                            {/* Editable textarea */}
-                            <textarea ref={textareaRef} autoFocus value={vision}
-                                onChange={(e) => { setVision(e.target.value); if (validationErrors.vision) setValidationErrors(v => ({ ...v, vision: false })); }} onKeyDown={handleKeyDown}
-                                className="w-full bg-transparent text-[15px] text-white focus:outline-none resize-none leading-[1.7] caret-[#E50914] min-h-[80px]"
-                                placeholder={displayedPlaceholder || " "} rows={3} />
+                            {/* Editable textarea with expansion overlay */}
+                            <div className="relative">
+                                <textarea ref={textareaRef} autoFocus value={vision}
+                                    onChange={(e) => { setVision(e.target.value); setScriptApplied(false); setExpandedScript(null); if (validationErrors.vision) setValidationErrors(v => ({ ...v, vision: false })); }} onKeyDown={handleKeyDown}
+                                    disabled={isExpanding}
+                                    className={`w-full bg-transparent text-[15px] text-white focus:outline-none resize-none leading-[1.7] caret-[#E50914] min-h-[80px] transition-opacity duration-300 ${isExpanding ? 'opacity-30' : ''}`}
+                                    placeholder={displayedPlaceholder || " "} rows={3} />
+                                {isExpanding && (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="absolute inset-0 overflow-hidden rounded-lg">
+                                            <div className="absolute top-0 bottom-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent animate-[scan_2s_ease-in-out_infinite]" />
+                                        </div>
+                                        <div className="relative flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/60 border border-white/[0.08]">
+                                            <Loader2 size={14} className="animate-spin text-[#E50914]" />
+                                            <span className="text-[11px] font-medium text-white/60">Generating script...</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Script attachment */}
                             {scriptFile && (
@@ -652,7 +683,7 @@ export default function NewProjectPage() {
                                     <FileText size={14} className="text-[#E50914] shrink-0" />
                                     <span className="text-[11px] text-neutral-300 truncate flex-1">{scriptFile.name}</span>
                                     <span className="text-[9px] text-neutral-600">{(scriptFile.size / 1024 / 1024).toFixed(1)} MB</span>
-                                    <button onClick={() => setScriptFile(null)} className="text-neutral-600 hover:text-white transition-colors cursor-pointer"><X size={12} /></button>
+                                    <button onClick={() => { setScriptFile(null); setScriptApplied(false); }} className="text-neutral-600 hover:text-white transition-colors cursor-pointer"><X size={12} /></button>
                                 </div>
                             )}
 
@@ -666,20 +697,79 @@ export default function NewProjectPage() {
                                         <Upload size={11} />{scriptFile ? 'Replace' : 'Upload script'}
                                     </button>
                                     <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleFileSelect} />
-                                    <span className="text-[9px] text-neutral-800">⏎ to create</span>
                                 </div>
-                                <button onClick={handleCreate}
-                                    disabled={isSubmitting || phase !== 'prompt' || !title.trim() || !genre.trim() || (!vision.trim() && !scriptFile)}
-                                    className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-semibold tracking-[1px] transition-all duration-300 cursor-pointer
-                                        ${isSubmitting || phase !== 'prompt' || !title.trim() || !genre.trim() || (!vision.trim() && !scriptFile) ? 'text-neutral-700 cursor-not-allowed' : 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25]'}`}>
-                                    {isSubmitting ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} {isSubmitting ? 'Creating...' : 'Create'}
-                                </button>
+
+                                <div className="flex items-center gap-2">
+                                    {/* Generate Script CTA — only for raw text, no file, no active expansion */}
+                                    {vision.trim().length > 0 && !scriptFile && !expandedScript && (
+                                        <button onClick={handleExpandSynopsis}
+                                            disabled={isExpanding || !vision.trim()}
+                                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-semibold tracking-[1px] transition-all duration-300 border
+                                                ${isExpanding
+                                                    ? 'border-white/[0.1] text-neutral-500 bg-white/[0.04] cursor-not-allowed'
+                                                    : 'border-white/[0.1] text-neutral-300 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.2] hover:text-white cursor-pointer'}`}>
+                                            Generate Script
+                                        </button>
+                                    )}
+
+                                    {/* Create Project CTA — visible when text/file present, hidden during AI review */}
+                                    {(vision.trim().length > 0 || scriptFile) && !expandedScript && (
+                                        <button onClick={handleCreate}
+                                            disabled={isSubmitting || phase !== 'prompt'}
+                                            className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-semibold tracking-[1px] transition-all duration-300 cursor-pointer
+                                                ${isSubmitting || phase !== 'prompt'
+                                                    ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                                                    : 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25]'}`}>
+                                            {isSubmitting ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
+                                            {isSubmitting ? 'Creating...' : 'Create Project'}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* ── Format / Engine / Aspect / Runtime pills ── */}
-                    <div>
+                    {/* ── Suggested Script ── */}
+                    {expandedScript && (
+                        <div className="mt-4 fade-in-1">
+                            <div className="rounded-2xl border border-white/[0.08] bg-black/40 backdrop-blur-sm overflow-hidden">
+                                {/* Header */}
+                                <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
+                                    <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-[2px] flex items-center gap-1.5">
+                                        Suggested Script
+                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            onClick={() => {
+                                                setVision(expandedScript);
+                                                setExpandedScript(null);
+                                                setScriptApplied(true);
+                                            }}
+                                            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-bold bg-white text-[#111] hover:bg-neutral-200 transition-all cursor-pointer">
+                                            <Check size={10} /> Apply
+                                        </button>
+                                        <button
+                                            onClick={() => setExpandedScript(null)}
+                                            className="p-1.5 rounded-full text-neutral-600 hover:text-neutral-300 hover:bg-white/[0.06] transition-all cursor-pointer">
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                </div>
+                                {/* Script body (editable) */}
+                                <div className="px-5 py-4 h-[400px]">
+                                    <textarea
+                                        value={expandedScript}
+                                        onChange={(e) => setExpandedScript(e.target.value)}
+                                        className="w-full h-full bg-transparent text-[12px] text-neutral-300 leading-relaxed font-mono resize-none focus:outline-none"
+                                        placeholder="Edit your script here..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Format / Engine / Aspect / Runtime pills (hidden during AI review) ── */}
+                    <div style={{ display: expandedScript ? 'none' : undefined }}>
                         <div className="mt-6 flex items-center justify-center gap-2 fade-in-2">
                             {[
                                 { icon: Film, text: 'Film', key: 'film', seed: 'A feature film about ' },
