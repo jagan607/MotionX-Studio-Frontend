@@ -95,7 +95,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const showSoundToggle = isKling26 || isSeedance15;
 
     // --- Pricing ---
-    const { getVideoCost, getLipSyncCost } = usePricing();
+    const { getVideoCost, getVideoEditRate, getLipSyncCost } = usePricing();
     const [quality, setQuality] = useState<'fast' | 'pro'>(initialSettings?.quality || 'fast');
     const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '4:3' | '3:4' | '1:1'>(initialSettings?.aspect_ratio || '16:9');
     const [refImages, setRefImages] = useState<string[]>(initialSettings?.reference_image_urls || []);
@@ -308,12 +308,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
     const isDurationValid = !(isV3 && multiShot) || shotType === 'intelligence' || getTotalSegmentDuration() === parseFloat(duration);
 
-    // Video-edit cost override: use trimmed duration × per-second rate (credits, not dollars)
-    const VIDEO_EDIT_RATE_FAST = 0.6;   // credits/sec for Draft
-    const VIDEO_EDIT_RATE_PRO = 1.0;    // credits/sec for Final
+    // Video-edit cost override: use trimmed duration × per-second rate from pricing API
+    const editMode = quality === 'fast' ? 'std' : 'pro';
     const editDuration = (generationMode === 'edit' && trimmedDuration > 0) ? trimmedDuration : sourceVideoDuration;
     const videoEditCost = (generationMode === 'edit' && sourceVideoUrl && editDuration)
-        ? Math.round(editDuration * (quality === 'fast' ? VIDEO_EDIT_RATE_FAST : VIDEO_EDIT_RATE_PRO) * 10) / 10
+        ? Math.round(editDuration * getVideoEditRate(provider, editMode as 'std' | 'pro') * 10) / 10
         : null;
     const displayCost = videoEditCost ?? videoCost;
 
@@ -375,15 +374,13 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             handleAnimate,
             cost: displayCost,
             disabled: (!hasImage && !hasVideo) || isBusy || !isDurationValid,
-            label: isBusy
-                ? (hasVideo ? 'Animating...' : 'Generating...')
-                : isLinked
-                    ? 'Morph to Next'
-                    : generationMode === 'edit'
-                        ? 'Apply Video Edit'
-                        : generationMode === 'extend'
-                            ? 'Extend Video'
-                            : (hasVideo ? 'Re-Animate' : 'Animate'),
+            label: isLinked
+                ? 'Morph to Next'
+                : generationMode === 'edit'
+                    ? 'Apply Video Edit'
+                    : generationMode === 'extend'
+                        ? 'Extend Video'
+                        : (hasVideo ? 'Re-Animate' : 'Animate'),
             icon: isBusy ? 'busy' : isLinked ? 'morph' : (hasVideo ? 're-animate' : 'animate'),
             extendAction,
         });
@@ -441,8 +438,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         <div className="mt-2 pt-2 border-t border-white/[0.06] space-y-2">
 
             {/* ── Provider Selector ── */}
-            {!isBusy && (
-                <div className="flex gap-1.5 flex-wrap">
+            <div className="flex gap-1.5 flex-wrap">
                     <button
                         type="button"
                         onClick={() => setProvider('seedance-2')}
@@ -469,12 +465,10 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                     >
                         Kling 2.6
                     </button>
-                </div>
-            )}
+            </div>
 
             {/* ── Basic Controls ── */}
-            {!isBusy && (
-                <div className="flex gap-1.5 flex-wrap">
+            <div className="flex gap-1.5 flex-wrap">
                     {/* Duration */}
                     <div className="flex gap-1 flex-1 min-w-[100px]">
                         {generationMode === 'edit' ? (
@@ -535,11 +529,10 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             1080p
                         </button>
                     </div>
-                </div>
-            )}
+            </div>
 
             {/* ── Sound Toggle (Kling 2.6 & Seedance 1.5) ── */}
-            {showSoundToggle && !isBusy && (
+            {showSoundToggle && (
                 <div className="flex items-center justify-between px-1">
                     <span className="text-[10px] font-semibold text-neutral-400 flex items-center gap-1.5">
                         <Volume2 size={12} className={sound === 'on' ? 'text-emerald-400' : 'text-neutral-600'} />
@@ -557,7 +550,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             )}
 
             {/* ── Seedance 2.0 Features ── */}
-            {isSeedance2 && !isBusy && (
+            {isSeedance2 && (
                 <div className="space-y-2">
                     {/* Peak Hours Warning */}
                     {peakStatus?.is_peak && (
@@ -1044,7 +1037,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
             {/* ── Advanced Settings (Kling 3.0 only) ── */}
             {
-                isV3 && !isBusy && (
+                isV3 && (
                     <div className="rounded-lg border border-white/[0.06] overflow-hidden">
                         <button
                             type="button"

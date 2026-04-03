@@ -66,6 +66,9 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     const [preflightWarnings, setPreflightWarnings] = useState<string[]>([]);
     const preflightSeenRef = useRef(false);
 
+    // ── Local Submitting State (covers preflight + animate dead zone) ──
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     // Sync local prompt from Firestore ONLY when the shot changes (by ID)
     useEffect(() => {
         if (shot) {
@@ -281,20 +284,25 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
             skipPreflight: preflightSeenRef.current,
         };
 
-        // Await the result of the animation/preflight attempt
-        const result = await onAnimate(provider, endFrameUrl, mergedOptions);
+        setIsSubmitting(true);
+        try {
+            // Await the result of the animation/preflight attempt
+            const result = await onAnimate(provider, endFrameUrl, mergedOptions);
 
-        // If it was intercepted by preflight and returned warnings, halt!
-        if (result?.preflight) {
-            setPreflightWarnings(result.warnings);
-            preflightSeenRef.current = true;
-            return; // DO NOT close the panel
+            // If it was intercepted by preflight and returned warnings, halt!
+            if (result?.preflight) {
+                setPreflightWarnings(result.warnings);
+                preflightSeenRef.current = true;
+                return; // DO NOT close the panel
+            }
+
+            // If successful or bypassed (no warnings), clear warnings and close
+            setPreflightWarnings([]);
+            preflightSeenRef.current = false;
+            onClose();
+        } finally {
+            setIsSubmitting(false);
         }
-
-        // If successful or bypassed (no warnings), clear warnings and close
-        setPreflightWarnings([]);
-        preflightSeenRef.current = false;
-        onClose();
     };
 
     const handleExtend = (parentTaskId: string, options?: AnimateOptions) => {
@@ -529,7 +537,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                     <VideoSettingsPanel
                                         hasImage={!!shot.image_url}
                                         hasVideo={!!shot.video_url}
-                                        isBusy={isGenerating}
+                                        isBusy={isGenerating || isSubmitting}
                                         isLinked={isLinked}
                                         nextShotImage={nextShotImage}
                                         onAnimate={handleAnimateWrapper}
@@ -577,21 +585,20 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                                     ? 'bg-white/[0.03] text-neutral-600 border border-white/[0.05] cursor-not-allowed'
                                                     : 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
                                             }
-                                            ${animateInfo.icon === 'busy' ? '!cursor-not-allowed opacity-50' : ''}
                                         `}
                                     >
                                         {animateInfo.icon === 'busy' ? (
-                                            <><Loader2 size={14} className="animate-spin" /> {animateInfo.label}</>
+                                            <Loader2 size={14} className="animate-spin" />
                                         ) : animateInfo.icon === 'morph' ? (
-                                            <><Link2 size={14} /> {animateInfo.label} {animateInfo.cost > 0 && <span className="opacity-60 text-[10px] font-normal">· {formatCredits(animateInfo.cost)} cr</span>}</>
+                                            <Link2 size={14} />
+                                        ) : animateInfo.icon === 're-animate' ? (
+                                            <RefreshCw size={14} />
                                         ) : (
-                                            <>
-                                                {animateInfo.icon === 're-animate' ? <RefreshCw size={14} /> : <Film size={14} />}
-                                                {animateInfo.label}
-                                                {animateInfo.cost > 0 && (
-                                                    <span className="opacity-60 text-[10px] font-normal">· {formatCredits(animateInfo.cost)} cr</span>
-                                                )}
-                                            </>
+                                            <Film size={14} />
+                                        )}
+                                        {animateInfo.label}
+                                        {!animateInfo.disabled && animateInfo.cost > 0 && (
+                                            <span className="opacity-60 text-[10px] font-normal">· {formatCredits(animateInfo.cost)} cr</span>
                                         )}
                                     </button>
                                 </div>

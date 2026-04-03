@@ -55,7 +55,9 @@ export interface PreflightResult {
 export const useShotVideoGen = (
     projectId: string,
     episodeId: string,
-    sceneId: string | null
+    sceneId: string | null,
+    addLoadingShot?: (id: string) => void,
+    removeLoadingShot?: (id: string) => void
 ) => {
 
     const handleAnimateShot = async (
@@ -66,6 +68,8 @@ export const useShotVideoGen = (
     ): Promise<PreflightResult | void> => {
         if (!shot.image_url) { toastError("No image to animate"); return; }
 
+        const shotId = shot.id;
+        addLoadingShot?.(shotId);
         try {
             // Seedance 2.0 @tag prompt mutation when end frame is present
             const isSeedance = provider === 'seedance-2' || provider === 'seedance' || provider === 'seedance-1.5';
@@ -151,6 +155,8 @@ export const useShotVideoGen = (
             toastSuccess("Animation Queued");
         } catch (e: any) {
             toastError(getApiErrorMessage(e, "Animation request failed"));
+        } finally {
+            removeLoadingShot?.(shotId);
         }
     };
 

@@ -21,8 +21,14 @@ interface LipsyncPricing {
     minimum: number;
 }
 
+interface VideoEditRates {
+    standard: number; // credits per second for Draft / Standard
+    pro: number;      // credits per second for Final / Pro
+}
+
 export interface Pricing {
     video: { [provider: string]: ProviderPricing };
+    video_edit: { [provider: string]: VideoEditRates };
     image: { flash: number; pro: number };
     upscale: { flash: number; pro: number };
     edit: number;
@@ -43,6 +49,7 @@ interface PricingContextValue {
     pricing: Pricing | null;
     isLoaded: boolean;
     getVideoCost: (provider: string, mode: string, duration: string, options?: VideoCostOptions) => number;
+    getVideoEditRate: (provider: string, mode: 'std' | 'pro') => number;
     getLipSyncCost: (durationSeconds: number) => number;
     getImageCost: (tier?: 'flash' | 'pro') => number;
     getUpscaleCost: (tier?: 'flash' | 'pro') => number;
@@ -75,14 +82,14 @@ const DEFAULT_PRICING: Pricing = {
             "audio_surcharge": { "standard": 0.5, "pro": 1.0 }
         },
         "seedance-2": {
-            "standard": { "5s": 2.0, "10s": 4.0, "15s": 6.0 },
-            "pro": { "5s": 3.0, "10s": 6.0, "15s": 9.0 },
+            "standard": { "5s": 3.0, "10s": 6.0, "15s": 9.0 },
+            "pro": { "5s": 4.0, "10s": 8.0, "15s": 12.0 },
             "audio_surcharge": { "standard": 0.0, "pro": 0.0 },
             "end_frame_surcharge": { "standard": 0.3, "pro": 0.3 }
         },
         "seedance": {
-            "standard": { "5s": 2.0, "10s": 4.0, "15s": 6.0 },
-            "pro": { "5s": 3.0, "10s": 6.0, "15s": 9.0 },
+            "standard": { "5s": 3.0, "10s": 6.0, "15s": 9.0 },
+            "pro": { "5s": 4.0, "10s": 8.0, "15s": 12.0 },
             "audio_surcharge": { "standard": 0.0, "pro": 0.0 },
             "end_frame_surcharge": { "standard": 0.3, "pro": 0.3 }
         },
@@ -91,6 +98,10 @@ const DEFAULT_PRICING: Pricing = {
             "pro": { "5s": 2.0, "10s": 4.0 },
             "audio_surcharge": { "standard": 0.0, "pro": 0.0 }
         }
+    },
+    video_edit: {
+        "seedance-2": { standard: 0.8, pro: 1.2 },
+        "seedance":   { standard: 0.8, pro: 1.2 },
     },
     image: { flash: 1, pro: 2 },
     upscale: { flash: 3, pro: 3 },
@@ -106,6 +117,7 @@ const PricingContext = createContext<PricingContextValue>({
     pricing: null,
     isLoaded: false,
     getVideoCost: () => 0,
+    getVideoEditRate: () => 0,
     getLipSyncCost: () => 0,
     getImageCost: () => 0,
     getUpscaleCost: () => 0,
@@ -210,6 +222,14 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // Upscaling always costs the pro amount (default 3) regardless of the selected tier
         return up?.['pro'] ?? 3;
     };
+    /** Returns the per-second credit rate for video editing on a given provider + tier. */
+    const getVideoEditRate = (provider: string, mode: 'std' | 'pro'): number => {
+        const modeKey = mode === 'std' ? 'standard' : 'pro';
+        const rates = pricing.video_edit?.[provider] ?? DEFAULT_PRICING.video_edit?.[provider];
+        if (!rates) return modeKey === 'pro' ? 1.2 : 0.8; // ultimate fallback
+        return rates[modeKey as keyof VideoEditRates] ?? (modeKey === 'pro' ? 1.2 : 0.8);
+    };
+
     const getVoiceoverCost = () => pricing.voiceover;
     const getFinalizeCost = () => pricing.finalize;
     const getSfxCost = () => pricing.sfx;
@@ -220,6 +240,7 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             pricing,
             isLoaded,
             getVideoCost,
+            getVideoEditRate,
             getLipSyncCost,
             getImageCost,
             getUpscaleCost,

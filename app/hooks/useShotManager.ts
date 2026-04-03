@@ -107,7 +107,7 @@ export const useShotManager = (
 
     const imageGen = useShotImageGen(projectId, episodeId, activeSceneId, addLoadingShot, removeLoadingShot, onLowCredits);
 
-    const videoGen = useShotVideoGen(projectId, episodeId, activeSceneId);
+    const videoGen = useShotVideoGen(projectId, episodeId, activeSceneId, addLoadingShot, removeLoadingShot);
 
     const audioGen = useShotAudioGen(projectId, episodeId, activeSceneId);
 
