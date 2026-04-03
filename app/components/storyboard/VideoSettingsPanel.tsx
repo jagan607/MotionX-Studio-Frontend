@@ -362,6 +362,10 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         onAnimate(provider, endFrame, { ...options, skipPreflight: preflightWarnings.length > 0 });
     };
 
+    // Keep a ref to the latest handleAnimate so the useEffect closure is never stale
+    const handleAnimateRef = React.useRef(handleAnimate);
+    handleAnimateRef.current = handleAnimate;
+
     // Report animate info to parent when hideActions is on
     React.useEffect(() => {
         if (!onAnimateInfoChange) return;
@@ -371,7 +375,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                 cost: videoCost
             } : undefined;
         onAnimateInfoChange({
-            handleAnimate,
+            handleAnimate: () => handleAnimateRef.current(),
             cost: displayCost,
             disabled: (!hasImage && !hasVideo) || isBusy || !isDurationValid,
             label: isLinked
