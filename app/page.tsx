@@ -10,6 +10,7 @@ import {
   Clapperboard, Users, Zap, Headphones, TrendingUp,
   Video, Megaphone, Tv, Target, Clock, DollarSign,
   CheckCircle2, Building2, Shield, Server, MessageSquare,
+  Scissors, Eye, UserCheck, Volume2, VolumeX,
 } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 import { fetchGlobalFeed } from "@/lib/api";
@@ -19,6 +20,20 @@ import { fetchGlobalFeed } from "@/lib/api";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CALENDLY_URL = "https://calendly.com/jagan-motionx/30min";
+
+// Firebase Storage URLs for landing page screenshots
+const LANDING_IMAGES = {
+  dashboard: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/landing%2Fnew-dashboard.png?alt=media&token=6a5f5807-a561-4a27-b512-3f0b9ab0cd8b",
+  projectHub: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/landing%2Fnew-project-hub.png?alt=media&token=688a55bf-9fbb-4626-b8bc-c520b663df86",
+  preproductionCanvas: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/landing%2Fnew-preproduction-canvas.png?alt=media&token=1c3924ea-e877-4085-a108-a6285a8b4628",
+  storyboard: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/landing%2Fnew-storyboard.png?alt=media&token=2d1a689a-ef62-4ce9-b63c-f94909350576",
+  postproduction: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/landing%2Fnew-postproduction.png?alt=media&token=ceabf528-f2b2-4760-9ad0-3646c3127086",
+  adrTerminal: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/landing%2Fnew-adr-terminal.png?alt=media&token=73e445c4-fcad-481c-8766-5d3d3a65e01e",
+  shotConfig: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/landing%2Fnew-shot-config.png?alt=media&token=4c8aae94-9ec5-4aa0-834c-0edbccb42d8e",
+  setBlueprint: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/landing%2Fnew-set-blueprint.png?alt=media&token=5db1e0cd-40e6-49ae-a299-eb5b7bdfc4b0",
+  characterProfile: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/landing%2Fnew-character-profile.png?alt=media&token=9668c8eb-7ebe-4878-80a3-0f24f9dcdce1",
+  treatment: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/landing%2Fnew-treatment.png?alt=media&token=43fee0e4-a94d-4f9d-9119-2069ad98dd9f",
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ANIMATION VARIANTS
@@ -37,8 +52,44 @@ const fadeIn = {
   visible: { opacity: 1, transition: { duration: 0.8 } },
 };
 
+const scaleUp = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: (i: number = 0) => ({
+    opacity: 1, scale: 1,
+    transition: { duration: 0.7, ease: [0.25, 0.4, 0.25, 1] as [number, number, number, number], delay: i * 0.12 },
+  }),
+};
+
+const slideFromLeft = {
+  hidden: { opacity: 0, x: -60 },
+  visible: (i: number = 0) => ({
+    opacity: 1, x: 0,
+    transition: { duration: 0.7, ease: [0.25, 0.4, 0.25, 1] as [number, number, number, number], delay: i * 0.12 },
+  }),
+};
+
+const slideFromRight = {
+  hidden: { opacity: 0, x: 60 },
+  visible: (i: number = 0) => ({
+    opacity: 1, x: 0,
+    transition: { duration: 0.7, ease: [0.25, 0.4, 0.25, 1] as [number, number, number, number], delay: i * 0.12 },
+  }),
+};
+
+const blurIn = {
+  hidden: { opacity: 0, filter: 'blur(12px)' },
+  visible: (i: number = 0) => ({
+    opacity: 1, filter: 'blur(0px)',
+    transition: { duration: 0.8, ease: [0.25, 0.4, 0.25, 1] as [number, number, number, number], delay: i * 0.15 },
+  }),
+};
+
 const stagger = {
   visible: { transition: { staggerChildren: 0.12 } },
+};
+
+const staggerSlow = {
+  visible: { transition: { staggerChildren: 0.2 } },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -180,12 +231,53 @@ const AnimatedCounter = ({ target, suffix = "" }: { target: number; suffix?: str
 // HERO SECTION
 // ─────────────────────────────────────────────────────────────────────────────
 
+const ROTATING_TAGLINES = [
+  "Direct your film without a crew",
+  "Visualize scenes before production",
+  "Edit your footage with AI",
+  "Maintain consistency across every shot",
+];
+
 const HeroSection = () => {
-  const headline = "AI Filmmaking Platform";
-  const { displayText, isComplete } = useTypingEffect(headline, 65, 600);
+  const headline = "Script to Film";
+  const [countdownDone, setCountdownDone] = useState(false);
+  const [countdownNum, setCountdownNum] = useState(3);
+  const { displayText, isComplete } = useTypingEffect(headline, 65, countdownDone ? 400 : 99999);
   const [activeIdx, setActiveIdx] = useState(0);
   const [heroVideos, setHeroVideos] = useState<string[]>([]);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const [taglineIdx, setTaglineIdx] = useState(0);
+  const [taglineFading, setTaglineFading] = useState(false);
+
+  // Film countdown: 3 → 2 → 1 → ACTION → done
+  useEffect(() => {
+    let step = 3;
+    const timer = setInterval(() => {
+      step--;
+      if (step > 0) {
+        setCountdownNum(step);
+      } else if (step === 0) {
+        setCountdownNum(0); // "ACTION"
+      } else {
+        setCountdownDone(true);
+        clearInterval(timer);
+      }
+    }, 700);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Rotate taglines every 3 seconds
+  useEffect(() => {
+    if (!isComplete) return;
+    const timer = setInterval(() => {
+      setTaglineFading(true);
+      setTimeout(() => {
+        setTaglineIdx(prev => (prev + 1) % ROTATING_TAGLINES.length);
+        setTaglineFading(false);
+      }, 400);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [isComplete]);
 
   // Fetch 4 videos from Firebase global feed
   useEffect(() => {
@@ -222,7 +314,7 @@ const HeroSection = () => {
   }, [activeIdx, heroVideos.length]);
 
   return (
-    <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
+    <section className="relative w-full flex flex-col items-center justify-center overflow-hidden" style={{ minHeight: '100vh' }}>
       {/* Cross-Fade Video Background */}
       {heroVideos.map((src, i) => (
         <video
@@ -241,8 +333,47 @@ const HeroSection = () => {
       {/* Overlays */}
       <div className="absolute inset-0 z-[1] bg-[#050505]/70" />
       <div className="absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,transparent_15%,#050505_75%)]" />
-      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#050505] to-transparent z-[2]" />
+      <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-[#050505] to-transparent z-[2]" />
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#050505] to-transparent z-[2]" />
+
+      {/* ── Film Countdown Overlay ── */}
+      <div
+        className="absolute inset-0 z-30 flex items-center justify-center bg-[#050505] pointer-events-none"
+        style={{
+          opacity: countdownDone ? 0 : 1,
+          transition: 'opacity 0.6s ease-out',
+          pointerEvents: countdownDone ? 'none' : 'auto',
+        }}
+      >
+        <div className="relative flex flex-col items-center">
+          {/* Projector circle */}
+          <div
+            className="w-32 h-32 rounded-full border-2 border-white/20 flex items-center justify-center"
+            style={{ animation: 'countdown-pulse 0.7s ease-in-out infinite' }}
+          >
+            <span
+              style={{ fontFamily: "Anton, sans-serif" }}
+              className="text-6xl text-white"
+              key={countdownNum}
+            >
+              {countdownNum > 0 ? countdownNum : ''}
+            </span>
+          </div>
+          {countdownNum === 0 && (
+            <span
+              style={{ fontFamily: "Anton, sans-serif" }}
+              className="text-2xl tracking-[0.3em] uppercase text-[#E50914] mt-6 animate-fade-up"
+            >
+              Action
+            </span>
+          )}
+          {/* Film leader marks */}
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-[1px] h-4 bg-white/20" />
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[1px] h-4 bg-white/20" />
+          <div className="absolute top-1/2 -left-2 -translate-y-1/2 w-4 h-[1px] bg-white/20" />
+          <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-4 h-[1px] bg-white/20" />
+        </div>
+      </div>
 
       {/* Viewfinder Frame (Desktop Only) */}
       <div className="hidden md:block">
@@ -285,12 +416,12 @@ const HeroSection = () => {
       </div>
 
       {/* Hero Content */}
-      <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
+      <div className="relative z-10 text-center px-6 max-w-4xl mx-auto pt-32 md:pt-40">
         {/* Badge */}
         <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#E50914]/30 bg-[#E50914]/10 backdrop-blur-md mb-6">
           <div className="w-1.5 h-1.5 rounded-full bg-[#E50914]" style={{ animation: "pulse-dot 2s ease-in-out infinite" }} />
           <span className="text-[11px] font-bold tracking-[0.25em] uppercase text-white drop-shadow-lg">
-            Enterprise AI Studio
+            AI Filmmaking Engine
           </span>
         </div>
 
@@ -319,35 +450,135 @@ const HeroSection = () => {
           />
         </h1>
 
-        {/* Single concise subheadline */}
-        <p className="animate-fade-up-delay text-base md:text-xl mt-5 md:mt-6 max-w-2xl mx-auto font-sans font-medium text-neutral-300 leading-relaxed tracking-wide drop-shadow-xl">
-          Produce <span className="text-white font-bold">10x more video</span> at <span className="text-white font-bold bg-white/10 border border-white/20 px-2 py-0.5 rounded-md mx-0.5 whitespace-nowrap">90% lower cost</span> , no cameras, no large crews, or delays.
+        {/* Rotating Tagline */}
+        <div className="mt-5 md:mt-6 h-8 flex items-center justify-center overflow-hidden">
+          <p
+            className="text-base md:text-xl font-sans font-medium text-neutral-400 tracking-wide transition-all duration-400"
+            style={{
+              opacity: isComplete ? (taglineFading ? 0 : 1) : 0,
+              transform: taglineFading ? 'translateY(10px)' : 'translateY(0)',
+              transition: 'opacity 0.4s ease, transform 0.4s ease',
+            }}
+          >
+            {ROTATING_TAGLINES[taglineIdx]}
+          </p>
+        </div>
+
+        {/* Static Subheadline */}
+        <p className="animate-fade-up-delay text-sm md:text-base mt-3 max-w-2xl mx-auto font-sans text-neutral-500 leading-relaxed tracking-wide drop-shadow-xl">
+          From script to final film — all in one studio. MotionX is an AI-native filmmaking engine that lets you{" "}
+          <span className="text-neutral-300 font-medium">direct, generate, and edit</span> films in a single workflow.
         </p>
 
         {/* CTAs */}
         <div className="animate-fade-up-delay-2 flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 md:mt-10 w-full max-w-sm sm:max-w-none mx-auto">
+          <Link
+            href="/login"
+            className="w-full sm:w-auto justify-center px-8 py-3.5 sm:px-10 sm:py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(229,9,20,0.5)] flex items-center gap-3 backdrop-blur-md"
+          >
+            <Play size={14} fill="currentColor" /> Start Creating Your Film
+          </Link>
           <a
             href={CALENDLY_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:w-auto justify-center px-8 py-3.5 sm:px-10 sm:py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(229,9,20,0.5)] flex items-center gap-3 backdrop-blur-md"
-          >
-            <Play size={14} fill="currentColor" /> Book Enterprise Demo
-          </a>
-          <Link
-            href="/login"
             className="w-full sm:w-auto justify-center px-8 py-3.5 sm:px-10 sm:py-4 bg-white/10 border border-white/20 hover:bg-white/20 hover:border-white/50 text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all flex items-center gap-3 backdrop-blur-md"
           >
-            Start Free Trial
-          </Link>
+            Book a Demo
+          </a>
         </div>
       </div>
 
-      {/* Bottom Accent */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-3">
-        <div className="w-[1px] h-8 bg-gradient-to-b from-transparent to-white/20" />
+      {/* ── Horizontal Video Reel ── */}
+      <div className="relative z-10 w-full mt-12 md:mt-16 overflow-hidden">
+        {/* Edge fade masks */}
+        <div className="absolute left-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-l from-[#050505] to-transparent z-10 pointer-events-none" />
+
+        {/* Scrolling track: duplicated for seamless loop */}
+        <div
+          className="flex gap-4 items-center"
+          style={{
+            animation: 'marquee-scroll 30s linear infinite',
+            width: 'max-content',
+          }}
+        >
+          {[...heroVideos, ...heroVideos].map((src, i) => (
+            <div
+              key={i}
+              className="flex-shrink-0 w-[280px] md:w-[360px] rounded-xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/50"
+            >
+              <video
+                src={src}
+                muted
+                playsInline
+                loop
+                autoPlay
+                preload="metadata"
+                className="w-full h-auto object-cover"
+                style={{ aspectRatio: '16/9' }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Scroll Indicator ── */}
+      <div className="relative z-10 flex flex-col items-center gap-2 mt-8 mb-4 pb-8">
+        <span className="text-[9px] font-semibold tracking-[0.3em] uppercase text-neutral-600">
+          Scroll to explore
+        </span>
+        <div style={{ animation: 'scroll-bounce 2s ease-in-out infinite' }}>
+          <ChevronRight size={16} className="text-neutral-600 rotate-90" />
+        </div>
       </div>
     </section>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHOWCASE VIDEO (with mute/unmute)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ShowcaseVideo = ({ src, index }: { src: string; index: number }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isMuted, setIsMuted] = useState(true);
+  const containerRef = useRef(null);
+  const inView = useInView(containerRef, { once: true, margin: "-100px" });
+
+  return (
+    <motion.div
+      ref={containerRef}
+      variants={fadeUp}
+      custom={index}
+      className="group relative rounded-2xl overflow-hidden border border-white/[0.06] hover:border-white/[0.12] transition-all bg-black"
+    >
+      <video
+        ref={videoRef}
+        src={src}
+        muted={isMuted}
+        playsInline
+        loop
+        autoPlay
+        preload="metadata"
+        className="w-full h-auto"
+      />
+      {/* Mute/Unmute Toggle */}
+      <button
+        onClick={() => {
+          setIsMuted(prev => !prev);
+          if (videoRef.current) {
+            videoRef.current.muted = !isMuted;
+          }
+        }}
+        className="absolute bottom-4 right-4 z-10 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-black/80 transition-all"
+        aria-label={isMuted ? "Unmute" : "Mute"}
+      >
+        {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+      </button>
+      {/* Subtle overlay gradient at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+    </motion.div>
   );
 };
 
@@ -409,6 +640,14 @@ export default function LandingPage() {
           0%, 100% { box-shadow: 0 0 15px rgba(229, 9, 20, 0.15); }
           50% { box-shadow: 0 0 30px rgba(229, 9, 20, 0.3); }
         }
+        @keyframes countdown-pulse {
+          0%, 100% { transform: scale(1); border-color: rgba(255,255,255,0.2); }
+          50% { transform: scale(1.05); border-color: rgba(229, 9, 20, 0.4); }
+        }
+        @keyframes scroll-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(6px); }
+        }
         .animate-fade-up { animation: fade-up 0.8s ease-out forwards; }
         .animate-fade-up-delay { animation: fade-up 0.8s ease-out 0.2s forwards; opacity: 0; }
         .animate-fade-up-delay-2 { animation: fade-up 0.8s ease-out 0.4s forwards; opacity: 0; }
@@ -422,6 +661,81 @@ export default function LandingPage() {
           opacity: 1;
           animation: ken-burns 6s ease-out forwards;
         }
+
+        /* ── Shimmer heading effect ── */
+        @keyframes shimmer-slide {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        .shimmer-text {
+          background: linear-gradient(
+            90deg,
+            #ffffff 0%,
+            #E50914 25%,
+            #ffffff 50%,
+            #E50914 75%,
+            #ffffff 100%
+          );
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: shimmer-slide 6s linear infinite;
+        }
+
+        /* ── Glowing divider ── */
+        @keyframes glow-sweep {
+          0% { transform: translateX(-100%); opacity: 0; }
+          50% { opacity: 1; }
+          100% { transform: translateX(100%); opacity: 0; }
+        }
+        .glow-divider {
+          position: relative;
+          height: 1px;
+          background: rgba(255,255,255,0.03);
+          overflow: hidden;
+        }
+        .glow-divider::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 50%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(229,9,20,0.4), transparent);
+          animation: glow-sweep 4s ease-in-out infinite;
+        }
+
+        /* ── Floating particles ── */
+        @keyframes float-particle {
+          0%, 100% { transform: translateY(0) translateX(0); opacity: 0.15; }
+          25% { transform: translateY(-30px) translateX(10px); opacity: 0.3; }
+          50% { transform: translateY(-15px) translateX(-8px); opacity: 0.15; }
+          75% { transform: translateY(-40px) translateX(5px); opacity: 0.25; }
+        }
+
+        /* ── Card 3D tilt hover ── */
+        .card-tilt {
+          transition: transform 0.5s cubic-bezier(0.25, 0.4, 0.25, 1), box-shadow 0.5s ease;
+        }
+        .card-tilt:hover {
+          transform: perspective(800px) rotateY(-2deg) rotateX(2deg) translateY(-4px);
+          box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 30px rgba(229,9,20,0.05);
+        }
+
+        /* ── Screenshot parallax container ── */
+        .screenshot-reveal {
+          transition: transform 0.7s cubic-bezier(0.25, 0.4, 0.25, 1);
+        }
+        .screenshot-reveal:hover {
+          transform: scale(1.02);
+        }
+
+        /* ── Pulsing border ── */
+        @keyframes border-pulse {
+          0%, 100% { border-color: rgba(229,9,20,0.1); }
+          50% { border-color: rgba(229,9,20,0.25); }
+        }
       `}</style>
 
       {/* ──────── FILM GRAIN OVERLAY ──────── */}
@@ -432,6 +746,24 @@ export default function LandingPage() {
             'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
         }}
       />
+
+      {/* ──────── FLOATING AMBIENT PARTICLES ──────── */}
+      <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-[#E50914]"
+            style={{
+              width: `${2 + (i % 3)}px`,
+              height: `${2 + (i % 3)}px`,
+              left: `${8 + (i * 7.5)}%`,
+              top: `${10 + ((i * 23) % 80)}%`,
+              opacity: 0.15,
+              animation: `float-particle ${6 + (i % 4) * 2}s ease-in-out ${i * 0.5}s infinite`,
+            }}
+          />
+        ))}
+      </div>
 
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* NAVIGATION                                                         */}
@@ -463,6 +795,12 @@ export default function LandingPage() {
               How It Works
             </a>
             <a
+              href="#the-studio"
+              className="hidden md:block text-[11px] font-semibold tracking-[0.15em] uppercase text-neutral-300 hover:text-white transition-colors"
+            >
+              The Studio
+            </a>
+            <a
               href="#enterprise"
               className="hidden md:block text-[11px] font-semibold tracking-[0.15em] uppercase text-neutral-300 hover:text-white transition-colors"
             >
@@ -480,14 +818,12 @@ export default function LandingPage() {
             >
               Log In
             </Link>
-            <a
-              href={CALENDLY_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/login"
               className="px-5 py-2 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_20px_rgba(229,9,20,0.3)]"
             >
-              Book Demo
-            </a>
+              Start Creating
+            </Link>
           </div>
         </div>
       </nav>
@@ -503,13 +839,13 @@ export default function LandingPage() {
       <Section className="py-20 px-6 md:px-10 border-y border-white/[0.04]">
         <div className="max-w-[1200px] mx-auto">
           <motion.p variants={fadeUp} className="text-center text-[11px] font-semibold tracking-[0.25em] uppercase text-neutral-600 mb-12">
-            Used by global teams producing high-volume video content
+            Trusted by independent filmmakers and creative studios
           </motion.p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             {[
-              { value: 300, suffix: "+", label: "Minutes of content produced monthly", sub: "by partner studios" },
-              { value: 10, suffix: "x", label: "Faster content delivery", sub: "compared to traditional production" },
-              { value: 90, suffix: "%", label: "Lower production costs", sub: "no cameras, crews, or delays" },
+              { value: 300, suffix: "+", label: "Minutes of film produced monthly", sub: "by filmmakers & studios" },
+              { value: 10, suffix: "x", label: "Faster than traditional production", sub: "from script to final cut" },
+              { value: 90, suffix: "%", label: "Lower cost than crew-based shoots", sub: "no cameras, crews, or delays" },
             ].map((stat, i) => (
               <motion.div key={i} variants={fadeUp} custom={i} className="text-center">
                 <div
@@ -526,7 +862,7 @@ export default function LandingPage() {
 
           {/* Content types produced */}
           <motion.div variants={fadeUp} custom={3} className="mt-14 flex flex-wrap items-center justify-center gap-3">
-            {["Advertisements", "Microdramas", "Long-form Storytelling", "Social Content", "Sports Promos"].map((tag) => (
+            {["Short Films", "Feature Films", "Series & Episodes", "Music Videos", "Branded Cinema"].map((tag) => (
               <span
                 key={tag}
                 className="px-4 py-2 rounded-full border border-white/[0.06] bg-white/[0.02] text-[11px] tracking-wider uppercase text-neutral-500"
@@ -538,51 +874,101 @@ export default function LandingPage() {
         </div>
       </Section>
 
+      {/* Glowing Divider */}
+      <div className="glow-divider max-w-[600px] mx-auto" />
+
       {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* 3. WHO THIS IS FOR                                                 */}
+      {/* 3. POSITIONING STATEMENT                                           */}
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      <Section className="py-28 md:py-40 px-6 md:px-10">
+        <div className="max-w-[900px] mx-auto text-center">
+          <motion.p
+            variants={fadeUp}
+            className="text-[13px] font-semibold tracking-[0.3em] uppercase text-neutral-600 mb-8"
+          >
+            The real shift
+          </motion.p>
+          <motion.h2
+            variants={blurIn}
+            custom={1}
+            style={{ fontFamily: "Anton, sans-serif" }}
+            className="text-4xl md:text-7xl uppercase tracking-tight leading-[0.95]"
+          >
+            MotionX doesn&apos;t generate videos.
+          </motion.h2>
+          <motion.h2
+            variants={blurIn}
+            custom={2}
+            style={{ fontFamily: "Anton, sans-serif" }}
+            className="text-4xl md:text-7xl uppercase tracking-tight leading-[0.95] shimmer-text mt-2"
+          >
+            It helps you make films.
+          </motion.h2>
+          <motion.p
+            variants={fadeUp}
+            custom={3}
+            className="text-lg md:text-xl text-neutral-500 mt-8 max-w-2xl mx-auto leading-relaxed"
+          >
+            We don&apos;t help you make more videos faster. We give filmmakers a new way to make films —
+            with AI as your crew, your camera, and your editing suite.
+          </motion.p>
+        </div>
+      </Section>
+
+      {/* Glowing Divider */}
+      <div className="glow-divider max-w-[600px] mx-auto" />
+
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* 4. WHY FILMMAKERS CHOOSE US (BENEFITS)                             */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       <Section className="py-28 md:py-36 px-6 md:px-10">
         <div className="max-w-[1200px] mx-auto">
           <div className="text-center mb-16">
-            <Badge>Built For Scale</Badge>
+            <Badge>Why Filmmakers Choose Us</Badge>
             <motion.h2
               variants={fadeUp}
               style={{ fontFamily: "Anton, sans-serif" }}
               className="text-4xl md:text-6xl uppercase tracking-tight"
             >
-              Built for teams producing{" "}
-              <span className="text-[#E50914]">content at scale</span>
+              A new way to{" "}
+              <span className="text-[#E50914]">make films</span>
             </motion.h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               {
                 icon: Clapperboard,
-                title: "Studios & Production Houses",
-                desc: "Create films, series, and branded content without traditional production bottlenecks.",
+                title: "Direct Without a Crew",
+                desc: "Go from script to screen with AI as your production team. No scheduling, no logistics, no delays.",
                 accent: "🎬",
               },
               {
-                icon: Megaphone,
-                title: "Advertising Agencies",
-                desc: "Generate ad concepts, campaign visuals, and client-ready videos in hours instead of weeks.",
-                accent: "📢",
+                icon: Eye,
+                title: "Visualize Before You Shoot",
+                desc: "See your scenes, characters, and sets before committing to production. Iterate freely.",
+                accent: "🎥",
               },
               {
-                icon: Tv,
-                title: "Media Networks",
-                desc: "Produce promos, fillers, and episodic content at scale with consistent quality.",
-                accent: "📺",
+                icon: Scissors,
+                title: "Edit Your Story, Not Just Clips",
+                desc: "Work in a full filmmaking timeline — compose scenes, refine pacing, add audio, and finalize your film.",
+                accent: "✂️",
+              },
+              {
+                icon: UserCheck,
+                title: "Maintain Visual Consistency",
+                desc: "Characters, costumes, locations, and color stay consistent across every shot and scene.",
+                accent: "🎭",
               },
             ].map((card, i) => (
               <motion.div
                 key={i}
-                variants={fadeUp}
+                variants={scaleUp}
                 custom={i}
-                className="group relative p-8 md:p-10 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#E50914]/20 hover:bg-white/[0.03] transition-all duration-500 hover:-translate-y-1"
+                className="card-tilt group relative p-8 md:p-10 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#E50914]/20 hover:bg-white/[0.03] transition-all duration-500"
               >
-                <div className="text-4xl mb-6">{card.accent}</div>
+                <div className="text-4xl mb-6" style={{ animation: `float ${3 + i * 0.5}s ease-in-out infinite` }}>{card.accent}</div>
                 <h3
                   style={{ fontFamily: "Anton, sans-serif" }}
                   className="text-xl md:text-2xl uppercase tracking-wide mb-4"
@@ -597,49 +983,8 @@ export default function LandingPage() {
         </div>
       </Section>
 
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* 4. WHAT YOU CAN CREATE                                             */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      <Section className="py-28 md:py-36 px-6 md:px-10 border-t border-white/[0.04]">
-        <div className="max-w-[1200px] mx-auto">
-          <div className="text-center mb-16">
-            <Badge>Capabilities</Badge>
-            <motion.h2
-              variants={fadeUp}
-              style={{ fontFamily: "Anton, sans-serif" }}
-              className="text-4xl md:text-6xl uppercase tracking-tight"
-            >
-              From idea to cinematic output
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={1} className="text-neutral-500 mt-4 text-base md:text-lg max-w-xl mx-auto">
-              All in one platform
-            </motion.p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { icon: Target, label: "High-quality advertisements and brand films" },
-              { icon: Film, label: "Episodic content and microdrama series" },
-              { icon: Video, label: "Social media videos and short-form content" },
-              { icon: Zap, label: "Sports promos and event marketing videos" },
-              { icon: Layers, label: "Film scenes and long-form storytelling" },
-              { icon: Sparkles, label: "Campaign visuals and client pitches" },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                variants={fadeUp}
-                custom={i}
-                className="flex items-center gap-4 p-5 rounded-xl border border-white/[0.04] bg-white/[0.015] hover:border-white/[0.08] hover:bg-white/[0.03] transition-all group"
-              >
-                <div className="w-10 h-10 rounded-lg bg-[#E50914]/10 flex items-center justify-center flex-shrink-0 group-hover:bg-[#E50914]/15 transition-colors">
-                  <item.icon size={18} className="text-[#E50914]" />
-                </div>
-                <span className="text-[14px] text-neutral-300">{item.label}</span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </Section>
+      {/* Glowing Divider */}
+      <div className="glow-divider max-w-[600px] mx-auto" />
 
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* 5. CORE DIFFERENTIATOR                                             */}
@@ -648,7 +993,7 @@ export default function LandingPage() {
         <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-16 lg:gap-24 items-center">
           {/* Left Text */}
           <div className="flex-1">
-            <Badge>Your Moat</Badge>
+            <Badge>The Difference</Badge>
             <motion.h2
               variants={fadeUp}
               style={{ fontFamily: "Anton, sans-serif" }}
@@ -661,7 +1006,7 @@ export default function LandingPage() {
               MotionX is built around how directors think. Instead of generating random clips, you control every creative decision.
             </motion.p>
             <motion.p variants={fadeUp} custom={2} className="text-base text-neutral-400 leading-relaxed">
-              This allows teams to produce <span className="text-white font-medium">cohesive, cinematic content</span> , not just isolated AI clips.
+              This allows filmmakers to produce <span className="text-white font-medium">cohesive, cinematic content</span> — not just isolated AI clips.
             </motion.p>
           </div>
 
@@ -704,8 +1049,8 @@ export default function LandingPage() {
               style={{ fontFamily: "Anton, sans-serif" }}
               className="text-4xl md:text-6xl uppercase tracking-tight"
             >
-              From concept to final video{" "}
-              <span className="text-[#E50914]">in minutes</span>
+              From script to final film{" "}
+              <span className="text-[#E50914]">in one workflow</span>
             </motion.h2>
           </div>
 
@@ -713,50 +1058,38 @@ export default function LandingPage() {
             {[
               {
                 step: "01",
-                title: "Upload Your Script",
-                desc: "Describe your vision or upload a screenplay. Set genre, format, aspect ratio, and runtime.",
+                title: "Write Your Script",
+                desc: "Describe your vision or upload a screenplay. Set genre, format, and runtime. AI breaks it into scenes and shots automatically.",
                 img: "/landing/step-0-script.png",
               },
               {
                 step: "02",
-                title: "Build Your World",
-                desc: "Create characters, locations, and props with AI. Your cast and sets persist across every scene.",
-                img: "/landing/step-1-assets.png",
+                title: "Visualize Scenes & Shots",
+                desc: "Build characters, design locations and sets, and plan your visual world. See your storyboard — every scene visualized before production.",
+                img: LANDING_IMAGES.preproductionCanvas,
               },
               {
                 step: "03",
-                title: "Set the Mood",
-                desc: "Choose a cinematic style , color palette, lighting, texture, atmosphere , and apply it globally.",
-                img: "/landing/step-2-moodboard.png",
+                title: "Generate Cinematic Footage",
+                desc: "Turn storyboard frames into cinematic video with full camera control, lighting, and visual consistency across every shot.",
+                img: LANDING_IMAGES.shotConfig,
               },
               {
                 step: "04",
-                title: "Storyboard & Direct",
-                desc: "AI breaks your script into scenes and generates shots with full control over shot type, cast, and framing.",
-                img: "/landing/step-3-storyboard.png",
-              },
-              {
-                step: "05",
-                title: "Fine-Tune the Camera",
-                desc: "Use the 3D Camera Rig to adjust lens, angle, and framing , then regenerate with precision.",
-                img: "/landing/step-4-camera.png",
-              },
-              {
-                step: "06",
-                title: "Animate & Export",
-                desc: "Turn storyboard frames into motion. Choose duration, model, and quality , then export production-ready video.",
-                img: "/landing/step-5-animate.png",
+                title: "Edit & Finalize Your Film",
+                desc: "Select any region of your footage and transform it with AI — motion transfer, relighting, object removal, and scene modifications. Compose your timeline, add dialogue and score, then export your finished film.",
+                img: LANDING_IMAGES.postproduction,
               },
             ].map((item, i) => (
               <motion.div
                 key={i}
-                variants={fadeUp}
+                variants={i % 2 === 0 ? slideFromLeft : slideFromRight}
                 custom={i}
                 className={`flex flex-col ${i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"} gap-8 md:gap-12 items-center`}
               >
                 {/* Screenshot */}
                 <div className="flex-1 w-full">
-                  <div className="rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/40">
+                  <div className="screenshot-reveal rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/40">
                     <img
                       src={item.img}
                       alt={item.title}
@@ -769,7 +1102,7 @@ export default function LandingPage() {
                 {/* Text */}
                 <div className="flex-1 w-full md:max-w-md">
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center flex-shrink-0" style={{ animation: 'border-pulse 3s ease-in-out infinite' }}>
                       <span
                         style={{ fontFamily: "Anton, sans-serif" }}
                         className="text-[#E50914] text-lg"
@@ -794,103 +1127,199 @@ export default function LandingPage() {
         </div>
       </Section>
 
+      {/* Glowing Divider */}
+      <div className="glow-divider max-w-[600px] mx-auto" />
+
       {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* 7. COST & SPEED COMPARISON                                         */}
+      {/* 7. THE STUDIO — PRODUCTION PHASES                                  */}
       {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* <Section className="py-28 md:py-36 px-6 md:px-10">
-        <div className="max-w-[1100px] mx-auto">
+      <Section id="the-studio" className="py-28 md:py-36 px-6 md:px-10 border-t border-white/[0.04]">
+        <div className="max-w-[1200px] mx-auto">
           <div className="text-center mb-16">
-            <Badge>The Economics</Badge>
+            <Badge>The Studio</Badge>
             <motion.h2
               variants={fadeUp}
               style={{ fontFamily: "Anton, sans-serif" }}
               className="text-4xl md:text-6xl uppercase tracking-tight"
             >
-              Traditional production vs{" "}
-              <span className="text-[#E50914]">MotionX</span>
+              Your complete{" "}
+              <span className="text-[#E50914]">filmmaking studio</span>
             </motion.h2>
+            <motion.p variants={fadeUp} custom={1} className="text-neutral-500 mt-4 text-base md:text-lg max-w-xl mx-auto">
+              Everything you need, from first draft to final export
+            </motion.p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                phase: "🎬",
+                icon: Clapperboard,
+                title: "Pre-Production",
+                subtitle: "Develop your vision",
+                desc: "Script to scene breakdown, characters, locations, set design, mood boards, and visual planning — all before a single frame is generated.",
+                img: LANDING_IMAGES.characterProfile,
+                features: ["Script Editor", "Character Design", "Location Builder", "Mood & Style"],
+              },
+              {
+                phase: "🎥",
+                icon: Camera,
+                title: "Production",
+                subtitle: "Bring it to life",
+                desc: "Generate cinematic shots with camera control, lighting direction, and character consistency. Direct your scenes with the precision of a real set.",
+                img: LANDING_IMAGES.storyboard,
+                features: ["Storyboard", "Camera Control", "Shot Generation", "Set Design"],
+              },
+              {
+                phase: "🎞️",
+                icon: Film,
+                title: "Post-Production",
+                subtitle: "Edit & export",
+                desc: "Edit, refine, add dialogue and sound effects, apply look development, and finalize your film inside one timeline.",
+                img: LANDING_IMAGES.postproduction,
+                features: ["Timeline Editor", "Dialogue & ADR", "Sound Design", "Look Dev & Export"],
+              },
+            ].map((card, i) => (
+              <motion.div
+                key={i}
+                variants={scaleUp}
+                custom={i}
+                className="card-tilt group relative rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#E50914]/20 hover:bg-white/[0.03] transition-all duration-500 overflow-hidden"
+              >
+                {/* Screenshot */}
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={card.img}
+                    alt={card.title}
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent" />
+                  <div className="absolute bottom-4 left-6 text-3xl">{card.phase}</div>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 md:p-8">
+                  <h3
+                    style={{ fontFamily: "Anton, sans-serif" }}
+                    className="text-2xl uppercase tracking-wide mb-1"
+                  >
+                    {card.title}
+                  </h3>
+                  <p className="text-[12px] text-[#E50914] font-medium tracking-wider uppercase mb-4">
+                    {card.subtitle}
+                  </p>
+                  <p className="text-[14px] text-neutral-500 leading-relaxed mb-6">
+                    {card.desc}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {card.features.map((f) => (
+                      <span
+                        key={f}
+                        className="px-3 py-1 rounded-full border border-white/[0.06] bg-white/[0.02] text-[10px] tracking-wider uppercase text-neutral-500"
+                      >
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#E50914]/0 to-transparent group-hover:via-[#E50914]/30 transition-all duration-500" />
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* 8. INSIDE THE STUDIO — FEATURE SCREENSHOTS                        */}
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      <Section className="py-28 md:py-36 px-6 md:px-10">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="text-center mb-16">
+            <Badge>Inside the Studio</Badge>
+            <motion.h2
+              variants={fadeUp}
+              style={{ fontFamily: "Anton, sans-serif" }}
+              className="text-4xl md:text-6xl uppercase tracking-tight"
+            >
+              Powerful tools for{" "}
+              <span className="text-[#E50914]">every stage</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={1} className="text-neutral-500 mt-4 text-base md:text-lg max-w-xl mx-auto">
+              A closer look at the tools that power your filmmaking workflow
+            </motion.p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              { img: LANDING_IMAGES.dashboard, label: "Creative Studio", desc: "Your command center — projects, community feed, and workspace at a glance." },
+              { img: LANDING_IMAGES.setBlueprint, label: "Set Blueprint", desc: "Design locations with spatial awareness, angles, props, and atmosphere." },
+              { img: LANDING_IMAGES.characterProfile, label: "Character Design", desc: "Full character profiles — wardrobe, accessories, grooming, and costume control." },
+              { img: LANDING_IMAGES.adrTerminal, label: "ADR Terminal", desc: "Synthesize dialogue with emotion, sync lip movement to generated characters." },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                variants={blurIn}
+                custom={i}
+                className="group relative rounded-2xl overflow-hidden border border-white/[0.06] hover:border-white/[0.12] transition-all"
+              >
+                <img
+                  src={item.img}
+                  alt={item.label}
+                  className="w-full h-auto group-hover:scale-[1.03] transition-transform duration-700"
+                  loading="lazy"
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+                  <span
+                    style={{ fontFamily: "Anton, sans-serif" }}
+                    className="text-[13px] tracking-[0.15em] uppercase text-white block mb-1"
+                  >
+                    {item.label}
+                  </span>
+                  <span className="text-[12px] text-neutral-400">
+                    {item.desc}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* 8b. SEE THE OUTPUT — VIDEO SHOWCASE                                */}
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      <Section className="py-28 md:py-36 px-6 md:px-10 border-t border-white/[0.04]">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="text-center mb-16">
+            <Badge>See the Output</Badge>
+            <motion.h2
+              variants={fadeUp}
+              style={{ fontFamily: "Anton, sans-serif" }}
+              className="text-4xl md:text-6xl uppercase tracking-tight"
+            >
+              Films made with <span className="text-[#E50914]">MotionX</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={1} className="text-neutral-500 mt-4 text-base md:text-lg max-w-xl mx-auto">
+              Real cinematic clips — directed, generated, and edited entirely in MotionX Studio
+            </motion.p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <motion.div
-              variants={fadeUp}
-              className="p-8 md:p-10 rounded-2xl bg-white/[0.02] border border-white/[0.06]"
-            >
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-3 h-3 rounded-full bg-neutral-700" />
-                <span
-                  style={{ fontFamily: "Anton, sans-serif" }}
-                  className="text-xl uppercase tracking-wide text-neutral-400"
-                >
-                  Traditional Production
-                </span>
-              </div>
-
-              <div className="space-y-5">
-                {[
-                  { icon: DollarSign, text: "$50K–$100K+ budgets" },
-                  { icon: Users, text: "Large crews and equipment" },
-                  { icon: Clock, text: "Weeks to months of production" },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-lg bg-neutral-900 flex items-center justify-center">
-                      <item.icon size={16} className="text-neutral-600" />
-                    </div>
-                    <span className="text-[15px] text-neutral-500">{item.text}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
-            <motion.div
-              variants={fadeUp}
-              custom={1}
-              className="p-8 md:p-10 rounded-2xl bg-gradient-to-br from-[#E50914]/5 to-transparent border border-[#E50914]/15 relative overflow-hidden"
-            >
-              
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#E50914]/5 rounded-full blur-3xl" />
-
-              <div className="relative">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="w-3 h-3 rounded-full bg-[#E50914] shadow-[0_0_8px_#E50914]" />
-                  <span
-                    style={{ fontFamily: "Anton, sans-serif" }}
-                    className="text-xl uppercase tracking-wide text-white"
-                  >
-                    MotionX AI Production
-                  </span>
-                </div>
-
-                <div className="space-y-5">
-                  {[
-                    { icon: DollarSign, text: "$5K–$10K equivalent output" },
-                    { icon: Zap, text: "No physical production required" },
-                    { icon: TrendingUp, text: "Delivered in days" },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-4">
-                      <div className="w-8 h-8 rounded-lg bg-[#E50914]/10 flex items-center justify-center">
-                        <item.icon size={16} className="text-[#E50914]" />
-                      </div>
-                      <span className="text-[15px] text-white">{item.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
+            {[
+              { src: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/WhatsApp%20Video%202026-03-11%20at%2013.53.49.mp4?alt=media&token=c388f242-8360-4db5-b585-43d643a1d113" },
+              { src: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/WhatsApp%20Video%202026-03-11%20at%2013.54.06.mp4?alt=media&token=836bc61d-3024-45aa-83d6-c0829b2c7462" },
+              { src: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/WhatsApp%20Video%202026-03-11%20at%2013.55.37.mp4?alt=media&token=4909ea2a-e8e9-4e64-a49a-7e4ec617e1ea" },
+              { src: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/WhatsApp%20Video%202026-03-11%20at%2013.57.52.mp4?alt=media&token=2709a580-0525-4e96-a6df-162677717df9" },
+            ].map((vid, i) => (
+              <ShowcaseVideo key={i} src={vid.src} index={i} />
+            ))}
           </div>
-
-          <motion.p
-            variants={fadeUp}
-            custom={2}
-            className="text-center mt-10 text-neutral-500 text-lg"
-          >
-            Scale content production <span className="text-white font-medium">without scaling costs.</span>
-          </motion.p>
         </div>
-      </Section> */}
+      </Section>
 
       {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* 8. ENTERPRISE SECTION                                              */}
+      {/* 9. ENTERPRISE SECTION                                              */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       <Section id="enterprise" className="py-28 md:py-36 px-6 md:px-10 border-t border-white/[0.04]">
         <div className="max-w-[1100px] mx-auto">
@@ -903,14 +1332,14 @@ export default function LandingPage() {
                 style={{ fontFamily: "Anton, sans-serif" }}
                 className="text-4xl md:text-6xl uppercase leading-[0.95] tracking-tight mb-6"
               >
-                Built for <span className="text-[#E50914]">teams</span>,<br />
-                not just individuals
+                Built for <span className="text-[#E50914]">studios</span><br />
+                and teams
               </motion.h2>
               <motion.p variants={fadeUp} custom={1} className="text-lg text-neutral-500 leading-relaxed mb-6">
-                MotionX is designed for organizations producing content at scale.
+                From solo filmmakers to full production studios — MotionX scales with your creative ambitions.
               </motion.p>
               <motion.p variants={fadeUp} custom={2} className="text-[13px] text-neutral-600 leading-relaxed">
-                Enterprise plans tailored for studios, agencies, and media companies.
+                Enterprise plans tailored for studios, agencies, and production companies.
               </motion.p>
               <motion.div variants={fadeUp} custom={3} className="mt-8">
                 <a
@@ -954,74 +1383,6 @@ export default function LandingPage() {
       </Section>
 
       {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* 9. USE CASE EXAMPLES                                               */}
-      {/* ════════════════════════════════════════════════════════════════════ */}
-      <Section className="py-28 md:py-36 px-6 md:px-10">
-        <div className="max-w-[1000px] mx-auto">
-          <div className="text-center mb-16">
-            <Badge>Use Cases</Badge>
-            <motion.h2
-              variants={fadeUp}
-              style={{ fontFamily: "Anton, sans-serif" }}
-              className="text-4xl md:text-6xl uppercase tracking-tight"
-            >
-              Real-world use cases
-            </motion.h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              {
-                stat: "100+",
-                title: "Episode Series",
-                desc: "Produce entire series without traditional production infrastructure.",
-              },
-              {
-                stat: "24-48h",
-                title: "Ad Creatives",
-                desc: "Generate campaign-ready ad creatives in hours, not weeks.",
-              },
-              {
-                stat: "Instant",
-                title: "Sports Promos",
-                desc: "Create sports promos and campaign videos on demand.",
-              },
-              {
-                stat: "End-to-End",
-                title: "Content Pipelines",
-                desc: "Build entire production pipelines powered by AI.",
-              },
-            ].map((useCase, i) => (
-              <motion.div
-                key={i}
-                variants={fadeUp}
-                custom={i}
-                className="flex gap-5 p-6 md:p-8 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.1] transition-all group"
-              >
-                <div className="flex-shrink-0">
-                  <span
-                    style={{ fontFamily: "Anton, sans-serif" }}
-                    className="text-2xl md:text-3xl text-[#E50914]"
-                  >
-                    {useCase.stat}
-                  </span>
-                </div>
-                <div>
-                  <h4
-                    style={{ fontFamily: "Anton, sans-serif" }}
-                    className="text-lg uppercase tracking-wide mb-1"
-                  >
-                    {useCase.title}
-                  </h4>
-                  <p className="text-[13px] text-neutral-500 leading-relaxed">{useCase.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </Section>
-
-      {/* ════════════════════════════════════════════════════════════════════ */}
       {/* 10. FINAL CTA                                                      */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       <Section className="py-28 md:py-36 px-6 md:px-10 border-t border-white/[0.04]">
@@ -1031,27 +1392,27 @@ export default function LandingPage() {
             style={{ fontFamily: "Anton, sans-serif" }}
             className="text-4xl md:text-7xl uppercase tracking-tight mb-6"
           >
-            Start producing content{" "}
-            <span className="text-[#E50914]">at scale</span>
+            Start making{" "}
+            <span className="text-[#E50914]">your film</span>
           </motion.h2>
           <motion.p variants={fadeUp} custom={1} className="text-neutral-500 text-lg mb-10 max-w-lg mx-auto">
-            See how your team can produce faster, cheaper, and at scale with MotionX.
+            From script to final cut — your AI filmmaking studio is ready.
           </motion.p>
           <motion.div variants={fadeUp} custom={2} className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 px-10 py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[13px] font-bold tracking-[0.12em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(229,9,20,0.25)]"
+            >
+              Start Creating Your Film <ArrowRight size={16} />
+            </Link>
             <a
               href={CALENDLY_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-10 py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[13px] font-bold tracking-[0.12em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(229,9,20,0.25)]"
-            >
-              Book Enterprise Demo <ArrowRight size={16} />
-            </a>
-            <Link
-              href="/login"
               className="inline-flex items-center gap-2 px-10 py-4 border border-white/20 hover:border-white/40 text-white text-[13px] font-bold tracking-[0.12em] uppercase rounded-full transition-all hover:bg-white/[0.04]"
             >
-              Start Free Trial
-            </Link>
+              Book a Demo
+            </a>
           </motion.div>
         </div>
       </Section>
@@ -1064,8 +1425,7 @@ export default function LandingPage() {
           {/* Positioning Line */}
           <div className="mb-16 max-w-2xl">
             <p className="text-[14px] text-neutral-600 leading-relaxed italic">
-              MotionX is an AI filmmaking platform designed to transform how studios, agencies,
-              and media companies produce content.
+              MotionX doesn&apos;t generate videos. It helps you make films.
             </p>
           </div>
 
@@ -1088,18 +1448,13 @@ export default function LandingPage() {
                 <a href="#how-it-works" className="hover:text-white transition-colors">
                   How It Works
                 </a>
+                <a href="#the-studio" className="hover:text-white transition-colors">
+                  The Studio
+                </a>
                 <a href="#enterprise" className="hover:text-white transition-colors">
                   Enterprise
                 </a>
               </div>
-              {/* <div className="flex flex-col gap-3">
-                <span className="text-white font-semibold tracking-wider text-[11px] uppercase mb-1">
-                  Legal
-                </span>
-                <span>Terms of Service</span>
-                <span>Privacy Policy</span>
-                <span>Copyright</span>
-              </div> */}
               <div className="flex flex-col gap-3">
                 <span className="text-white font-semibold tracking-wider text-[11px] uppercase mb-1">
                   Connect
@@ -1124,20 +1479,18 @@ export default function LandingPage() {
       </footer>
 
       {/* ════════════════════════════════════════════════════════════════════ */}
-      {/* STICKY "BOOK DEMO" BUTTON                                          */}
+      {/* STICKY "START CREATING" BUTTON                                     */}
       {/* ════════════════════════════════════════════════════════════════════ */}
-      <a
-        href={CALENDLY_URL}
-        target="_blank"
-        rel="noopener noreferrer"
+      <Link
+        href="/login"
         className={`fixed bottom-6 right-6 z-50 px-6 py-3 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold tracking-[0.15em] uppercase rounded-full shadow-lg transition-all duration-500 flex items-center gap-2 ${showSticky
           ? "translate-y-0 opacity-100"
           : "translate-y-4 opacity-0 pointer-events-none"
           }`}
         style={{ animation: showSticky ? "subtle-glow 3s ease-in-out infinite" : "none" }}
       >
-        <Play size={12} fill="currentColor" /> Book Demo
-      </a>
+        <Play size={12} fill="currentColor" /> Start Creating
+      </Link>
     </main>
   );
 }
