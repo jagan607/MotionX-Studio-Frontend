@@ -28,26 +28,51 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MotionX Studio | AI Video Production Software for Teams & Agencies",
-  description: "AI video production software for global teams, agencies, and studios. Produce cinematic videos 10x faster at 90% lower cost. No cameras, no crews, no delays.",
+  title: "MotionX Studio | AI Filmmaking Engine — From Script to Film",
+  description: "MotionX Studio is an AI-native filmmaking engine. Direct, generate, and edit films in a single workflow — from script to final cut. No cameras, no crews, no delays.",
   metadataBase: new URL('https://studio.motionx.in'),
-  keywords: ["AI video production", "AI filmmaking", "video production software", "AI video generator", "content production platform", "AI ad video generator", "video production for agencies"],
+  keywords: [
+    "AI filmmaking", "AI film production", "AI video editor", "AI movie maker",
+    "script to film", "AI cinematography", "AI video generation",
+    "AI post production", "AI storyboard", "film production software",
+    "AI directed films", "cinematic AI", "AI motion transfer",
+    "video production platform", "AI filmmaking engine", "Seedance 2.0",
+  ],
+  alternates: {
+    canonical: "https://studio.motionx.in",
+  },
   openGraph: {
-    title: "MotionX Studio | AI Video Production Software",
-    description: "Produce cinematic videos 10x faster at 90% lower cost. Built for global teams, agencies, and studios.",
+    title: "MotionX Studio | AI Filmmaking Engine",
+    description: "From script to final film — all in one studio. Direct, generate, and edit films with AI as your crew.",
     url: "https://studio.motionx.in",
     siteName: "MotionX Studio",
     type: "website",
     locale: "en_US",
+    images: [
+      {
+        url: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/landing%2Fnew-dashboard.png?alt=media&token=6a5f5807-a561-4a27-b512-3f0b9ab0cd8b",
+        width: 1920,
+        height: 1080,
+        alt: "MotionX Studio — AI Filmmaking Engine",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "MotionX Studio | AI Video Production Software",
-    description: "Produce cinematic videos 10x faster at 90% lower cost. Built for global teams, agencies, and studios.",
+    title: "MotionX Studio | AI Filmmaking Engine",
+    description: "From script to final film — all in one studio. Direct, generate, and edit films with AI.",
+    images: ["https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/landing%2Fnew-dashboard.png?alt=media&token=6a5f5807-a561-4a27-b512-3f0b9ab0cd8b"],
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 
@@ -64,13 +89,21 @@ export default function RootLayout({
     "url": "https://studio.motionx.in",
     "applicationCategory": "MultimediaApplication",
     "operatingSystem": "Web",
-    "description": "AI video production software for global teams, agencies, and studios. Produce cinematic videos 10x faster at 90% lower cost.",
+    "description": "MotionX Studio is an AI-native filmmaking engine that lets you direct, generate, and edit films in a single workflow — from script to final cut.",
+    "featureList": [
+      "AI Script-to-Film Pipeline",
+      "Character & Location Design",
+      "Cinematic Shot Generation",
+      "AI Video Editing (motion transfer, relighting, object removal)",
+      "Dialogue & ADR Synthesis",
+      "Full Post-Production Timeline",
+    ],
     "offers": {
       "@type": "AggregateOffer",
       "lowPrice": "0",
       "highPrice": "3000",
       "priceCurrency": "USD",
-      "description": "Free trial available. Enterprise plans starting at $3,000/month."
+      "description": "Free trial available. Enterprise plans for studios and production companies."
     },
     "author": {
       "@type": "Organization",

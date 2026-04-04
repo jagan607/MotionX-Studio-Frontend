@@ -871,6 +871,14 @@ export default function LandingPage() {
               </span>
             ))}
           </motion.div>
+
+          {/* Powered by */}
+          <motion.div variants={fadeUp} custom={4} className="mt-8 flex items-center justify-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#E50914]" />
+            <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-neutral-600">
+              Powered by Seedance 2.0
+            </span>
+          </motion.div>
         </div>
       </Section>
 
@@ -1071,7 +1079,7 @@ export default function LandingPage() {
               {
                 step: "03",
                 title: "Generate Cinematic Footage",
-                desc: "Turn storyboard frames into cinematic video with full camera control, lighting, and visual consistency across every shot.",
+                desc: "Turn storyboard frames into cinematic video powered by Seedance 2.0 — with full camera control, lighting, and visual consistency across every shot.",
                 img: LANDING_IMAGES.shotConfig,
               },
               {
