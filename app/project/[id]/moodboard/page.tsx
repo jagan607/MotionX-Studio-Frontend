@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import {
     Loader2, Check, Palette, Sun, Layers, CloudFog,
     ChevronRight, ChevronLeft, RefreshCw, AlertCircle,
-    ArrowLeft, SkipForward, Sparkles, Undo2, Upload
+    ArrowLeft, SkipForward, Sparkles, Undo2, Upload, X
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -60,9 +60,7 @@ export default function MoodboardPage() {
     const [resolvedEpisodeId, setResolvedEpisodeId] = useState<string>(paramEpisodeId || "main");
     const episodeId = resolvedEpisodeId;
 
-    const assetsQuery = searchParams.toString();
-    const assetsUrl = `/project/${projectId}/assets${assetsQuery ? `?${assetsQuery}` : ''}`;
-    const studioUrl = `/project/${projectId}/studio`;
+    const preproductionUrl = `/project/${projectId}/preproduction?episode_id=${episodeId}`;
     const isOnboarding = searchParams.get("onboarding") === "true";
 
     // --- State ---
@@ -400,9 +398,9 @@ export default function MoodboardPage() {
             <div className="absolute top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-6 bg-gradient-to-b from-black/80 to-transparent">
                 {/* Left: back + project name */}
                 <div className="flex items-center gap-4">
-                    <Link href={studioUrl} className="flex items-center gap-2 text-white/40 hover:text-white transition-colors no-underline group">
+                    <Link href={preproductionUrl} className="flex items-center gap-2 text-white/40 hover:text-white transition-colors no-underline group">
                         <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-[10px] font-bold tracking-[2px] uppercase">Studio</span>
+                        <span className="text-[10px] font-bold tracking-[2px] uppercase">Pre-Production</span>
                     </Link>
                     {projectTitle && (
                         <>
@@ -440,11 +438,11 @@ export default function MoodboardPage() {
                         </button>
                     )}
 
-                    {/* Close (from studio) — hidden during onboarding */}
+                    {/* Close — back to pre-production (hidden during onboarding) */}
                     {!isOnboarding && (
-                        <Link href={studioUrl}
+                        <Link href={preproductionUrl}
                             className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all no-underline">
-                            <ArrowLeft size={12} />
+                            <X size={12} />
                             Close
                         </Link>
                     )}

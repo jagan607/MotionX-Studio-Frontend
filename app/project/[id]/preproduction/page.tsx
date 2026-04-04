@@ -5,11 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, onSnapshot, collection, query, getDocs, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
-    api, fetchEpisodes, fetchProjectAssets, updateAsset, deleteAsset, triggerAssetGeneration,
-    uploadStyleRef
+    fetchEpisodes, fetchProjectAssets, updateAsset, deleteAsset, triggerAssetGeneration,
 } from "@/lib/api";
 import { Project, Scene, CharacterProfile, LocationProfile, ProductProfile } from "@/lib/types";
-import { ArrowLeft, Loader2, Play, Upload, Palette, Sparkles, ImageIcon, X, ChevronLeft, ChevronRight, Sun, Layers, CloudFog, RefreshCw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { PreProductionHeader } from "./components/PreProductionHeader";
 import { AssetManagerModal } from "@/app/components/studio/AssetManagerModal";
 import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionModal";
@@ -24,7 +23,7 @@ import { CanvasMinimap } from "./components/CanvasMinimap";
 import { SceneNavigator } from "./components/SceneNavigator";
 import { Lightbox } from "./components/Lightbox";
 import { ScriptSection } from "./components/ScriptSection";
-import { MoodSection } from "./components/MoodSection";
+
 import { Phase3Skeleton } from "./components/Phase3Skeleton";
 
 // ─── TYPES ───────────────────────────────────────────────────
@@ -258,12 +257,10 @@ export default function PreProductionCanvas() {
     const [selectedAsset, setSelectedAsset] = useState<{ data: any; type: "character" | "location" | "product" } | null>(null);
     const [lightboxData, setLightboxData] = useState<{ url: string; title: string } | null>(null);
     const [genPrompt, setGenPrompt] = useState("");
-    const [showMoodboard, setShowMoodboard] = useState(false);
     const [editingScene, setEditingScene] = useState<Scene | null>(null);
     const [editHeader, setEditHeader] = useState("");
     const [editSummary, setEditSummary] = useState("");
     const containerRef = useRef<HTMLDivElement>(null);
-    const moodAutoOpened = useRef(false);
 
     // Header Modal State
     const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -272,16 +269,7 @@ export default function PreProductionCanvas() {
     // Scene Draft State
     const [isDraftApproved, setIsDraftApproved] = useState(false);
 
-    // Onboarding Moodboard State
-    const [showOnboardingMood, setShowOnboardingMood] = useState(false);
-    const [styleRefFile, setStyleRefFile] = useState<File | null>(null);
-    const [isUploadingStyle, setIsUploadingStyle] = useState(false);
-    const [isGeneratingMood, setIsGeneratingMood] = useState(false);
-    const [moodOptions, setMoodOptions] = useState<any[]>([]);
-    const [isApplyingMood, setIsApplyingMood] = useState<string | null>(null);
-    const [isDraggingStyle, setIsDraggingStyle] = useState(false);
-    const styleInputRef = useRef<HTMLInputElement>(null);
-    const [selectedMoodIdx, setSelectedMoodIdx] = useState(0);
+
 
     // ─── LOCK BODY SCROLL ───
     useEffect(() => {
@@ -391,7 +379,6 @@ export default function PreProductionCanvas() {
     const wires = useMemo(() => buildWires(canvasNodes, scenes), [canvasNodes, scenes]);
 
     // Extract moodboard data for theming
-    const moodAtmosphere = (project as any)?.moodboard_style?.atmosphere || "";
     const moodboardBgUrl = useMemo(() => {
         if (!project) return null;
         const mb = project.moodboard;
@@ -492,7 +479,7 @@ export default function PreProductionCanvas() {
             setEditHeader(scene.header || (scene as any).slugline || "");
             setEditSummary(scene.summary || (scene as any).synopsis || "");
         } else if (node.nodeType === "moodboard") {
-            setShowMoodboard(true);
+            router.push(`/project/${projectId}/moodboard?episode_id=${activeEpisodeId || 'main'}`);
         } else {
             setSelectedAsset({
                 data: node.raw,
@@ -526,80 +513,16 @@ export default function PreProductionCanvas() {
         }
     }, [project, characters.length, products.length, isCommercial]);
 
-    // Auto-show onboarding moodboard on first visit if no moodboard selected
+    // Redirect to moodboard page if no visual direction is set
+    const moodRedirected = useRef(false);
     useEffect(() => {
-        if (!project || moodAutoOpened.current) return;
+        if (!project || !hasScript || !isDraftApproved || moodRedirected.current) return;
         const hasMood = (project as any).moodboard_image_url || (project as any).style_ref_url;
-        if (!hasMood && hasScript && isDraftApproved) {
-            setShowOnboardingMood(true);
-            moodAutoOpened.current = true;
+        if (!hasMood) {
+            moodRedirected.current = true;
+            router.push(`/project/${projectId}/moodboard?episode_id=${activeEpisodeId || 'main'}`);
         }
-    }, [project, hasScript, isDraftApproved]);
-
-    // Listen to moodboard options for onboarding
-    useEffect(() => {
-        if (!showOnboardingMood || !project?.id) return;
-        const colRef = collection(db, "projects", project.id, "moodboard_options");
-        const unsub = onSnapshot(colRef, (snap) => {
-            setMoodOptions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        });
-        return () => unsub();
-    }, [showOnboardingMood, project?.id]);
-
-    // Onboarding handlers
-    const handleStyleRefUpload = async (file: File) => {
-        setIsUploadingStyle(true);
-        try {
-            const res = await uploadStyleRef(projectId, file);
-            toast.success("Style reference applied!");
-            setProject(prev => prev ? { ...prev, style_ref_url: res.url || res.style_ref_url } as any : prev);
-            setShowOnboardingMood(false);
-        } catch (e: any) {
-            toast.error(e.response?.data?.detail || "Upload failed");
-        } finally { setIsUploadingStyle(false); }
-    };
-
-    const handleGenerateMoods = async (referenceMood?: any) => {
-        setIsGeneratingMood(true);
-        try {
-            const payload: any = {
-                project_id: projectId,
-                episode_id: activeEpisodeId || "main",  // activeEpisodeId is resolved from Firestore, 'main' is last-resort fallback
-            };
-            if (referenceMood) {
-                payload.reference_mood = {
-                    name: referenceMood.name,
-                    color_palette: referenceMood.color_palette,
-                    lighting: referenceMood.lighting,
-                    texture: referenceMood.texture,
-                    atmosphere: referenceMood.atmosphere,
-                };
-            }
-            await api.post("/api/v1/shot/generate_moodboard", payload);
-            toast.success(referenceMood ? `Generating variations of "${referenceMood.name}"...` : "Generating cinematic styles...");
-        } catch (e: any) {
-            toast.error(e.response?.data?.detail || "Generation failed");
-        } finally { setIsGeneratingMood(false); }
-    };
-
-    const handleSelectMood = async (mood: any) => {
-        setIsApplyingMood(mood.id);
-        try {
-            await api.post("/api/v1/shot/select_moodboard", {
-                project_id: projectId,
-                mood_option_id: mood.id,
-            });
-            toast.success(`Style "${mood.name}" applied!`);
-            setProject(prev => prev ? {
-                ...prev,
-                style_ref_url: mood.image_url || prev.style_ref_url,
-                moodboard_image_url: mood.image_url,
-            } as any : prev);
-            setShowOnboardingMood(false);
-        } catch (e: any) {
-            toast.error(e.response?.data?.detail || "Selection failed");
-        } finally { setIsApplyingMood(null); }
-    };
+    }, [project, hasScript, isDraftApproved, projectId, activeEpisodeId, router]);
 
     // ─── LOADING STATE ───
     if (loading || !project) {
@@ -629,15 +552,7 @@ export default function PreProductionCanvas() {
 
             {/* ── MAIN CANVAS ── */}
             <div className="relative flex-1 overflow-hidden" style={{ maxHeight: '100%' }}>
-                <style jsx>{`
-                    @keyframes mbHeroFade { from { opacity: 0; } to { opacity: 1; } }
-                    @keyframes mbLabelReveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-                    @keyframes mbScanDrift { 0% { top: 10%; } 100% { top: 90%; } }
-                    @keyframes mbPulseGlow { 0%,100% { box-shadow: 0 0 20px rgba(229,9,20,0.15); } 50% { box-shadow: 0 0 40px rgba(229,9,20,0.3); } }
-                    @keyframes mbFlowBlob1 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(25%,15%) scale(1.3); } 66% { transform: translate(-15%,25%) scale(0.9); } }
-                    @keyframes mbFlowBlob2 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(-20%,-15%) scale(1.15); } 66% { transform: translate(15%,-10%) scale(1.25); } }
-                    @keyframes mbPulseText { 0%,100% { opacity: 0.5; } 50% { opacity: 0.25; } }
-                `}</style>
+
 
                 {(!hasScript || (project?.script_status === "ready" && !isDraftApproved)) ? (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -653,272 +568,6 @@ export default function PreProductionCanvas() {
                     </div>
                 ) : (project?.script_status === "extracting" || project?.script_status !== "ready") ? (
                     <Phase3Skeleton project={project} />
-                ) : showOnboardingMood ? (
-                    /* ═══════════════════════════════════════════════════════
-                       IMMERSIVE MOODBOARD — Full Cinema Experience
-                       ═══════════════════════════════════════════════════════ */
-                    (() => {
-                        const currentMood = moodOptions[selectedMoodIdx] || null;
-                        const readyMoods = moodOptions.filter(m => m.status === 'ready');
-                        const hasMoods = moodOptions.length > 0;
-                        const hasCurrentImage = currentMood?.status === 'ready' && currentMood?.image_url;
-
-                        return (
-                            <div className="absolute inset-0 bg-[#020202]">
-                                {!hasMoods ? (
-                                    /* ── Empty State: Generate ── */
-                                    <div className="absolute inset-0">
-                                        <div className="absolute inset-0 overflow-hidden">
-                                            <div className="absolute w-[50%] h-[50%] rounded-full bg-[#E50914]/15 blur-[80px]"
-                                                style={{ animation: 'mbFlowBlob1 6s ease-in-out infinite', top: '15%', left: '20%' }} />
-                                            <div className="absolute w-[40%] h-[40%] rounded-full bg-[#ff4d4d]/[0.08] blur-[60px]"
-                                                style={{ animation: 'mbFlowBlob2 7s ease-in-out infinite', top: '40%', right: '15%' }} />
-                                            <div className="absolute inset-0 backdrop-blur-3xl bg-white/[0.01]" />
-                                        </div>
-
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-                                            {isGeneratingMood ? (
-                                                <>
-                                                    <Loader2 size={24} className="text-[#E50914] animate-spin mb-4" />
-                                                    <span className="text-[10px] text-white/40 tracking-[4px] uppercase">Generating moods...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Palette size={36} className="text-[#E50914]/30 mb-6" />
-                                                    <h2 className="text-2xl sm:text-3xl uppercase tracking-wide mb-3 font-anton text-white/80">Visual Direction</h2>
-                                                    <p className="text-[11px] text-white/30 tracking-[2px] uppercase mb-8">Define the cinematic look for your project</p>
-                                                    <button onClick={handleGenerateMoods}
-                                                        className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer">
-                                                        <Palette size={14} /> Generate Moodboard
-                                                    </button>
-                                                    <button onClick={() => setShowOnboardingMood(false)}
-                                                        className="mt-6 text-[9px] text-neutral-600 hover:text-white/40 tracking-[2px] uppercase transition-colors cursor-pointer">
-                                                        Skip for now →
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    /* ── Immersive Hero View ── */
-                                    <>
-                                        {/* HERO BACKGROUND */}
-                                        <div key={currentMood?.id + (currentMood?.image_url || '')} className="absolute inset-0 z-0" style={{ animation: 'mbHeroFade 0.8s ease both' }}>
-                                            {hasCurrentImage ? (
-                                                <img src={currentMood!.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="absolute inset-0 bg-[#050505] overflow-hidden">
-                                                    <div className="absolute w-[55%] h-[55%] rounded-full bg-[#E50914]/25 blur-[60px]"
-                                                        style={{ animation: 'mbFlowBlob1 5s ease-in-out infinite', top: '10%', left: '15%' }} />
-                                                    <div className="absolute w-[45%] h-[45%] rounded-full bg-[#ff4d4d]/[0.12] blur-[50px]"
-                                                        style={{ animation: 'mbFlowBlob2 6s ease-in-out infinite', top: '35%', right: '10%' }} />
-                                                    <div className="absolute inset-0 backdrop-blur-2xl bg-white/[0.02]" />
-                                                    <div className="absolute inset-0 flex items-center justify-center">
-                                                        <span className="text-[11px] font-semibold text-white/40 tracking-[4px] uppercase"
-                                                            style={{ animation: 'mbPulseText 2.5s ease-in-out infinite' }}>
-                                                            Rendering...
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {/* Cinematic overlays */}
-                                            <div className="absolute inset-0 bg-black/30" />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-[#020202]/40" />
-                                            <div className="absolute inset-0 bg-gradient-to-r from-[#020202]/70 via-transparent to-[#020202]/50" />
-                                        </div>
-
-                                        {/* LETTERBOX BARS */}
-                                        <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-[#020202] to-transparent z-30" />
-                                        <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-[#020202] via-[#020202] to-transparent z-30" />
-
-                                        {/* VIEWFINDER FRAME */}
-                                        <div className="absolute inset-0 z-20 pointer-events-none">
-                                            <div className="absolute top-8 left-8 w-10 h-10 border-t border-l border-white/[0.06]" />
-                                            <div className="absolute top-8 right-8 w-10 h-10 border-t border-r border-white/[0.06]" />
-                                            <div className="absolute bottom-32 left-8 w-10 h-10 border-b border-l border-white/[0.06]" />
-                                            <div className="absolute bottom-32 right-8 w-10 h-10 border-b border-r border-white/[0.06]" />
-                                            <div className="absolute left-12 right-12 h-[1px] bg-gradient-to-r from-transparent via-[#E50914]/15 to-transparent"
-                                                style={{ animation: 'mbScanDrift 6s ease-in-out infinite alternate' }} />
-                                        </div>
-
-                                        {/* CENTER: MOOD INFO */}
-                                        <div className="absolute inset-0 z-30 flex items-center pointer-events-none">
-                                            <div key={currentMood?.id} className="ml-12 max-w-lg" style={{ animation: 'mbLabelReveal 0.5s ease both' }}>
-                                                <div className="flex items-center gap-3 mb-4">
-                                                    <div className="h-[1px] w-10 bg-[#E50914]/40" />
-                                                    <span className="text-[9px] font-mono text-[#E50914]/60 uppercase tracking-[4px]">
-                                                        Mood {selectedMoodIdx + 1} of {moodOptions.length}
-                                                    </span>
-                                                </div>
-
-                                                <h1 className="text-4xl md:text-5xl font-anton uppercase tracking-tight leading-[0.9] mb-5 text-white">
-                                                    {currentMood?.name || 'Untitled'}
-                                                </h1>
-
-                                                {/* Attribute tags */}
-                                                <div className="space-y-0 border-l border-white/[0.06] pl-5">
-                                                    {currentMood?.color_palette && (
-                                                        <div className="flex items-start gap-3 py-2">
-                                                            <Palette size={13} className="text-white/20 mt-0.5" />
-                                                            <div>
-                                                                <span className="text-[8px] font-mono text-white/25 uppercase tracking-[3px] block mb-0.5">Color Palette</span>
-                                                                <span className="text-[12px] text-white/70 leading-relaxed">{currentMood.color_palette}</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {currentMood?.lighting && (
-                                                        <div className="flex items-start gap-3 py-2">
-                                                            <Sun size={13} className="text-white/20 mt-0.5" />
-                                                            <div>
-                                                                <span className="text-[8px] font-mono text-white/25 uppercase tracking-[3px] block mb-0.5">Lighting</span>
-                                                                <span className="text-[12px] text-white/70 leading-relaxed">{currentMood.lighting}</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {currentMood?.texture && (
-                                                        <div className="flex items-start gap-3 py-2">
-                                                            <Layers size={13} className="text-white/20 mt-0.5" />
-                                                            <div>
-                                                                <span className="text-[8px] font-mono text-white/25 uppercase tracking-[3px] block mb-0.5">Texture</span>
-                                                                <span className="text-[12px] text-white/70 leading-relaxed">{currentMood.texture}</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {currentMood?.atmosphere && (
-                                                        <div className="flex items-start gap-3 py-2">
-                                                            <CloudFog size={13} className="text-white/20 mt-0.5" />
-                                                            <div>
-                                                                <span className="text-[8px] font-mono text-white/25 uppercase tracking-[3px] block mb-0.5">Atmosphere</span>
-                                                                <span className="text-[12px] text-white/70 leading-relaxed">{currentMood.atmosphere}</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Rendering indicator */}
-                                                {currentMood?.status !== 'ready' && (
-                                                    <div className="flex items-center gap-2 mt-6">
-                                                        <Loader2 size={12} className="animate-spin text-[#E50914]/40" />
-                                                        <span className="text-[9px] text-white/20 uppercase tracking-[3px] font-mono">Rendering preview...</span>
-                                                    </div>
-                                                )}
-
-                                                {/* Generate More Like This */}
-                                                {currentMood?.status === 'ready' && (
-                                                    <button
-                                                        onClick={() => handleGenerateMoods(currentMood)}
-                                                        disabled={isGeneratingMood}
-                                                        className="pointer-events-auto mt-5 flex items-center gap-2 px-4 py-2 text-[9px] font-bold text-white/40 uppercase tracking-[1.5px] border border-white/[0.08] rounded-lg hover:text-white hover:border-white/20 hover:bg-white/[0.05] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur-sm"
-                                                    >
-                                                        <RefreshCw size={10} className={isGeneratingMood ? 'animate-spin' : ''} />
-                                                        Generate More Like This
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* NAVIGATION ARROWS */}
-                                        {moodOptions.length > 1 && (
-                                            <div className="absolute inset-y-0 left-0 right-0 z-40 flex items-center justify-between px-5 pointer-events-none">
-                                                <button onClick={() => setSelectedMoodIdx(prev => (prev - 1 + moodOptions.length) % moodOptions.length)}
-                                                    className="w-10 h-10 rounded-full border border-white/[0.08] bg-black/30 backdrop-blur-sm flex items-center justify-center hover:border-white/[0.2] hover:bg-black/50 transition-all cursor-pointer pointer-events-auto group">
-                                                    <ChevronLeft size={16} className="text-white/30 group-hover:text-white transition-colors" />
-                                                </button>
-                                                <button onClick={() => setSelectedMoodIdx(prev => (prev + 1) % moodOptions.length)}
-                                                    className="w-10 h-10 rounded-full border border-white/[0.08] bg-black/30 backdrop-blur-sm flex items-center justify-center hover:border-white/[0.2] hover:bg-black/50 transition-all cursor-pointer pointer-events-auto group">
-                                                    <ChevronRight size={16} className="text-white/30 group-hover:text-white transition-colors" />
-                                                </button>
-                                            </div>
-                                        )}
-
-                                        {/* BOTTOM FILMSTRIP */}
-                                        <div className="absolute bottom-0 left-0 right-0 z-40">
-                                            {/* Perforations */}
-                                            <div className="flex items-center justify-center gap-[6px] mb-1 opacity-15">
-                                                {[...Array(60)].map((_, i) => (
-                                                    <div key={i} className="w-[6px] h-[3px] rounded-[1px] bg-white/60" />
-                                                ))}
-                                            </div>
-
-                                            <div className="flex h-[64px] border-t border-white/[0.04] bg-[#020202]/80 backdrop-blur-md">
-                                                {moodOptions.map((mood, idx) => {
-                                                    const active = idx === selectedMoodIdx;
-                                                    const hasImage = mood.status === 'ready' && mood.image_url;
-                                                    return (
-                                                        <button key={mood.id}
-                                                            onClick={() => setSelectedMoodIdx(idx)}
-                                                            className={`relative flex-1 overflow-hidden transition-all duration-500 cursor-pointer group
-                                                                ${idx > 0 ? 'border-l border-white/[0.03]' : ''}
-                                                                ${active ? 'flex-[1.8]' : 'opacity-40 hover:opacity-70'}`}>
-                                                            {hasImage ? (
-                                                                <img src={mood.image_url} alt={mood.name}
-                                                                    className={`absolute inset-0 w-full h-full object-cover transition-all duration-700
-                                                                        ${active ? 'scale-100 brightness-90' : 'scale-110 brightness-50 group-hover:brightness-75 group-hover:scale-105'}`} />
-                                                            ) : (
-                                                                <div className="absolute inset-0 bg-[#060606] overflow-hidden">
-                                                                    <div className="absolute w-[70%] h-[70%] rounded-full bg-[#E50914]/20 blur-[25px]"
-                                                                        style={{ animation: 'mbFlowBlob1 4s ease-in-out infinite', top: '5%', left: '10%' }} />
-                                                                    <div className="absolute inset-0 backdrop-blur-xl bg-white/[0.02]" />
-                                                                </div>
-                                                            )}
-                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
-                                                            {active && <div className="absolute top-0 inset-x-0 h-[2px] bg-[#E50914] shadow-[0_0_8px_rgba(229,9,20,0.5)]" />}
-                                                            <div className="absolute bottom-0 inset-x-0 p-2">
-                                                                <span className={`text-[8px] font-bold uppercase tracking-wider block truncate ${active ? 'text-white' : 'text-white/50'}`}>
-                                                                    {mood.name}
-                                                                </span>
-                                                                {!hasImage && (
-                                                                    <div className="flex items-center gap-1 mt-0.5">
-                                                                        <Loader2 size={7} className="animate-spin text-[#E50914]/30" />
-                                                                        <span className="text-[7px] text-white/15 uppercase tracking-wider font-mono">Rendering</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-
-                                            {/* Bottom perforations */}
-                                            <div className="flex items-center justify-center gap-[6px] mt-1 mb-1 opacity-15">
-                                                {[...Array(60)].map((_, i) => (
-                                                    <div key={i} className="w-[6px] h-[3px] rounded-[1px] bg-white/60" />
-                                                ))}
-                                            </div>
-
-                                            {/* CTA Bar */}
-                                            <div className="flex items-center justify-between px-6 py-1.5 bg-[#020202]">
-                                                <div className="flex items-center gap-4">
-                                                    <span className="text-[8px] font-mono text-white/10 uppercase tracking-[3px]">
-                                                        ← → Navigate
-                                                    </span>
-                                                    <button onClick={handleGenerateMoods} disabled={isGeneratingMood}
-                                                        className="flex items-center gap-2 px-3 py-1 text-[9px] font-bold text-white/30 uppercase tracking-[1px] border border-white/[0.06] rounded-md hover:text-white hover:border-white/15 hover:bg-white/[0.03] transition-all cursor-pointer disabled:opacity-30">
-                                                        <RefreshCw size={10} className={isGeneratingMood ? 'animate-spin' : ''} />
-                                                        Regenerate
-                                                    </button>
-                                                    <button onClick={() => setShowOnboardingMood(false)}
-                                                        className="flex items-center gap-2 px-3 py-1 text-[9px] font-bold text-white/30 uppercase tracking-[1px] border border-white/[0.06] rounded-md hover:text-white hover:border-white/15 hover:bg-white/[0.03] transition-all cursor-pointer">
-                                                        Skip
-                                                    </button>
-                                                </div>
-                                                <button onClick={() => currentMood && handleSelectMood(currentMood)}
-                                                    disabled={!hasCurrentImage || !!isApplyingMood}
-                                                    className="flex items-center gap-2 px-6 py-2 rounded-lg bg-[#E50914] hover:bg-[#ff1a25] text-white text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(229,9,20,0.2)] hover:shadow-[0_0_30px_rgba(229,9,20,0.4)]"
-                                                    style={hasCurrentImage && !isApplyingMood ? { animation: 'mbPulseGlow 2.5s ease-in-out infinite' } : undefined}>
-                                                    {isApplyingMood ? (
-                                                        <><Loader2 size={12} className="animate-spin" /> Applying...</>
-                                                    ) : (
-                                                        <>Apply This Mood <ChevronRight size={13} /></>
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        );
-                    })()
                 ) : (
                     <>
                         {/* Canvas Engine */}
@@ -1017,7 +666,7 @@ export default function PreProductionCanvas() {
                                 data: { id: 'new', name: '', type: 'product', visual_traits: {}, created_at: new Date() },
                                 type: "product"
                             })}
-                            onOpenMoodboard={() => setShowMoodboard(true)}
+                            onOpenMoodboard={() => router.push(`/project/${projectId}/moodboard?episode_id=${activeEpisodeId || 'main'}`)}
                         />
                         <CanvasMinimap
                             nodes={canvasNodes.map(n => ({ id: n.id, type: n.nodeType, position: n.position }))}
@@ -1135,18 +784,7 @@ export default function PreProductionCanvas() {
                 </div>
             )}
 
-            {/* Moodboard Overlay (for returning users via toolbar) */}
-            {showMoodboard && (
-                <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-md flex items-center justify-center p-8">
-                    <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-[#0A0A0A] border border-white/10 rounded-2xl p-1">
-                        <button
-                            onClick={() => setShowMoodboard(false)}
-                            className="absolute top-4 right-4 z-10 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white/50 hover:text-white transition-colors"
-                        >✕</button>
-                        <MoodSection project={project} onUpdateProject={setProject} activeEpisodeId={activeEpisodeId} />
-                    </div>
-                </div>
-            )}
+
 
             {/* ── HEADER MODALS ── */}
             <AssetManagerModal
