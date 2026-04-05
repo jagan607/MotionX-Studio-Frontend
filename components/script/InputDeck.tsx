@@ -9,7 +9,7 @@ import {
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess, toastInfo } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiErrors";
-import { api, checkJobStatus, uploadScriptToStorage, fetchProjectScript } from "@/lib/api";
+import { api, checkJobStatus, uploadScriptToStorage, fetchEpisodeScript } from "@/lib/api";
 import { MotionButton } from "@/components/ui/MotionButton";
 import ScriptProcessingLoader from "@/components/script/ScriptProcessingLoader";
 import { ContextReference } from "@/app/components/script/ContextSelectorModal";
@@ -154,12 +154,12 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     // --- LAZY-LOAD SCRIPT (Phase 1: new proxy endpoint) ---
     useEffect(() => {
         if (activeTab !== 'current') return;
-        if (!projectId || lazyScript !== null) return; // Already loaded, skip
+        if (!projectId || !episodeId || lazyScript !== null) return; // Already loaded, skip
 
         setIsLoadingScript(true);
         setScriptFetchFailed(false);
 
-        fetchProjectScript(projectId)
+        fetchEpisodeScript(projectId, episodeId)
             .then((data) => {
                 setLazyScript(data.script_text);
             })
@@ -628,7 +628,9 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-[10px] text-neutral-400">
-                                    This is the current script for this episode. Switch to another tab to replace it.
+                                    {isSingleUnit
+                                        ? "This is the current script for this project. Switch to another tab to replace it."
+                                        : "This is the current script for this episode. Switch to another tab to replace it."}
                                 </span>
                                 {isLoadingScript ? (
                                     <span className="text-[9px] font-bold text-amber-400 bg-amber-900/20 px-2 py-0.5 rounded border border-amber-900/50 flex items-center gap-1">

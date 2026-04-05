@@ -194,14 +194,14 @@ export const fetchEpisodes = async (projectId: string) => {
 };
 
 /**
- * Fetch the full script text for a project.
- * Primary endpoint for script content — episode.script_preview has been removed (Phase 2 complete).
+ * Fetch the full script text for a specific episode.
+ * Episode-level endpoint — supports both Series and single-unit projects.
  */
-export const fetchProjectScript = async (projectId: string): Promise<{
+export const fetchEpisodeScript = async (projectId: string, episodeId: string): Promise<{
     script_text: string;
     script_file_url: string;
 }> => {
-    const res = await api.get(`/api/v1/project/${projectId}/script`);
+    const res = await api.get(`/api/v1/project/${projectId}/episodes/${episodeId}/script`);
     return res.data;
 };
 

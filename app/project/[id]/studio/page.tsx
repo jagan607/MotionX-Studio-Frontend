@@ -15,7 +15,7 @@ import {
     fetchEpisodes,
     fetchUserCredits,
     checkJobStatus,
-    fetchProjectScript
+    fetchEpisodeScript
 } from "@/lib/api";
 import { Project, Asset } from "@/lib/types";
 import { SceneData } from "@/components/studio/SceneCard";
@@ -558,7 +558,7 @@ export default function StudioPage() {
         setIsRegenerating(true);
         try {
             // Fetch the script from the new lazy-load endpoint
-            const { script_text } = await fetchProjectScript(projectId);
+            const { script_text } = await fetchEpisodeScript(projectId, activeEpisodeId);
             if (!script_text) {
                 toastError("No script found for this project. Use the Script button to add one first.");
                 setIsRegenerating(false);
