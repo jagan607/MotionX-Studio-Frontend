@@ -490,8 +490,39 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 <span className="text-red-500 bg-red-950/30 px-1.5 rounded text-[8px] border border-red-900/30">REQUIRED</span>
                             )}
                         </label>
+                        {/* Custom number input — aligned with Title baseline */}
+                        <div className="relative">
+                            <input
+                                type="number"
+                                min="1"
+                                step={runtimeUnit === 'min' ? '0.5' : '1'}
+                                className={`w-full bg-transparent border-b py-2 text-xl font-mono text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors pr-16
+                                    ${runtimeError ? 'border-red-500/50 text-red-100' : 'border-neutral-700'}
+                                `}
+                                placeholder={runtimeUnit === 'min' ? 'minutes' : 'seconds'}
+                                value={runtimeUnit === 'min' ? (runtime ? (Number(runtime) / 60) : '') : runtime}
+                                onChange={(e) => {
+                                    const raw = e.target.value;
+                                    if (raw === '') { setRuntime(''); return; }
+                                    const val = parseFloat(raw);
+                                    if (isNaN(val) || val < 0) return;
+                                    let secs = runtimeUnit === 'min' ? Math.round(val * 60) : val;
+                                    setRuntime(secs);
+                                    setRuntimeError(false);
+                                }}
+                                disabled={isUploading}
+                            />
+                            {runtimeError && <AlertCircle className="absolute right-14 top-3 text-red-500 animate-pulse" size={14} />}
+                            <button
+                                type="button"
+                                onClick={() => setRuntimeUnit(prev => prev === 'sec' ? 'min' : 'sec')}
+                                className="absolute right-0 top-1.5 px-2 py-1 text-[10px] font-bold font-mono uppercase tracking-wider rounded border border-white/10 hover:border-white/30 text-neutral-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] transition-all cursor-pointer"
+                            >
+                                {runtimeUnit === 'sec' ? 'SEC' : 'MIN'}
+                            </button>
+                        </div>
                         {/* Preset chips */}
-                        <div className="flex flex-wrap gap-1.5 mb-2.5">
+                        <div className="flex flex-wrap gap-1.5 mt-2.5">
                             {[
                                 { label: "15s", val: 15 },
                                 { label: "30s", val: 30 },
@@ -511,37 +542,6 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     {p.label}
                                 </button>
                             ))}
-                        </div>
-                        <div className="relative">
-                            <input
-                                type="number"
-                                min="1"
-                                step={runtimeUnit === 'min' ? '0.5' : '1'}
-                                className={`w-full bg-transparent border-b py-2 text-xl font-mono text-white placeholder:text-neutral-700 focus:outline-none focus:border-motion-red transition-colors pr-16
-                                    ${runtimeError ? 'border-red-500/50 text-red-100' : 'border-neutral-700'}
-                                `}
-                                placeholder={runtimeUnit === 'min' ? 'minutes' : 'seconds'}
-                                value={runtimeUnit === 'min' ? (runtime ? (Number(runtime) / 60) : '') : runtime}
-                                onChange={(e) => {
-                                    const raw = e.target.value;
-                                    if (raw === '') { setRuntime(''); return; }
-                                    const val = parseFloat(raw);
-                                    if (isNaN(val) || val < 0) return;
-                                    // Convert to seconds internally
-                                    let secs = runtimeUnit === 'min' ? Math.round(val * 60) : val;
-                                    setRuntime(secs);
-                                    setRuntimeError(false);
-                                }}
-                                disabled={isUploading}
-                            />
-                            {runtimeError && <AlertCircle className="absolute right-14 top-3 text-red-500 animate-pulse" size={14} />}
-                            <button
-                                type="button"
-                                onClick={() => setRuntimeUnit(prev => prev === 'sec' ? 'min' : 'sec')}
-                                className="absolute right-0 top-1.5 px-2 py-1 text-[10px] font-bold font-mono uppercase tracking-wider rounded border border-white/10 hover:border-white/30 text-neutral-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] transition-all cursor-pointer"
-                            >
-                                {runtimeUnit === 'sec' ? 'SEC' : 'MIN'}
-                            </button>
                         </div>
                     </div>
                 </div>
