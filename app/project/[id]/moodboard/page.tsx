@@ -516,20 +516,6 @@ export default function MoodboardPage() {
                                 </div>
                             )}
 
-                            {/* Generate More Like This CTA */}
-                            {selectedMood.status === "ready" && (
-                                <button
-                                    onClick={() => generateVariations(selectedMood.id)}
-                                    disabled={isGeneratingVariations}
-                                    className="pointer-events-auto flex items-center gap-2.5 mt-8 px-6 py-3 rounded-lg text-[11px] font-bold uppercase tracking-[1.5px] border border-[#E50914]/30 bg-[#E50914]/10 backdrop-blur-sm text-white/80 hover:text-white hover:border-[#E50914]/60 hover:bg-[#E50914]/20 transition-all cursor-pointer disabled:opacity-30 group shadow-[0_0_15px_rgba(229,9,20,0.1)] hover:shadow-[0_0_25px_rgba(229,9,20,0.2)]"
-                                >
-                                    {isGeneratingVariations ? (
-                                        <><Loader2 size={14} className="animate-spin" /> Generating...</>
-                                    ) : (
-                                        <><Sparkles size={14} className="text-[#E50914] group-hover:text-[#ff1a25] transition-colors" /> Generate More Like This</>
-                                    )}
-                                </button>
-                            )}
                         </div>
                     </div>
 
@@ -655,19 +641,34 @@ export default function MoodboardPage() {
                                     ← → Navigate • Enter to Apply
                                 </span>
                             </div>
-                            <button onClick={handleConfirm}
-                                disabled={isApplied}
-                                className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
-                                    ${isApplied
-                                        ? 'bg-emerald-900/30 text-emerald-400/60 border border-emerald-500/20 cursor-default'
-                                        : 'bg-[#E50914] hover:bg-[#ff1a25] text-white shadow-[0_0_20px_rgba(229,9,20,0.2)] hover:shadow-[0_0_30px_rgba(229,9,20,0.4)]'}`}
-                                style={!isApplied ? { animation: "pulseGlow 2.5s ease-in-out infinite" } : undefined}>
-                                {isApplied ? (
-                                    <><Check size={13} /> Applied</>
-                                ) : (
-                                    <>Apply This Mood <ChevronRight size={13} /></>
+                            <div className="flex items-center gap-4">
+                                {selectedMood.status === "ready" && (
+                                    <button
+                                        onClick={() => generateVariations(selectedMood.id)}
+                                        disabled={isGeneratingVariations}
+                                        className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-[2px] border border-white/10 bg-white/5 text-white/70 hover:text-white hover:border-white/30 hover:bg-white/10 transition-all cursor-pointer disabled:opacity-30"
+                                    >
+                                        {isGeneratingVariations ? (
+                                            <><Loader2 size={13} className="animate-spin" /> Generating...</>
+                                        ) : (
+                                            <><Sparkles size={13} className="text-white/50" /> Generate More Like This</>
+                                        )}
+                                    </button>
                                 )}
-                            </button>
+                                <button onClick={handleConfirm}
+                                    disabled={isApplied}
+                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
+                                        ${isApplied
+                                            ? 'bg-emerald-900/30 text-emerald-400/60 border border-emerald-500/20 cursor-default'
+                                            : 'bg-[#E50914] hover:bg-[#ff1a25] text-white shadow-[0_0_20px_rgba(229,9,20,0.2)] hover:shadow-[0_0_30px_rgba(229,9,20,0.4)]'}`}
+                                    style={!isApplied ? { animation: "pulseGlow 2.5s ease-in-out infinite" } : undefined}>
+                                    {isApplied ? (
+                                        <><Check size={13} /> Applied</>
+                                    ) : (
+                                        <>Apply This Mood <ChevronRight size={13} /></>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </>
