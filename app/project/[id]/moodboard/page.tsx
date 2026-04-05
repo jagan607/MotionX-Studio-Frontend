@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import {
     Loader2, Check, Palette, Sun, Layers, CloudFog,
     ChevronRight, ChevronLeft, RefreshCw, AlertCircle,
-    ArrowLeft, SkipForward, Sparkles, Undo2, Upload, X
+    ArrowLeft, Sparkles, Undo2, X, Trash2
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -81,45 +81,9 @@ export default function MoodboardPage() {
     const selectedMood = moods[selectedIdx] || null;
     const isApplied = selectedMood && appliedMoodId === selectedMood.id;
 
-    // --- Custom Moodboard Upload State ---
-    const [customMood, setCustomMood] = useState<{
-        localImageUrl: string;
-        name: string;
-        color_palette: string;
-        lighting: string;
-        texture: string;
-        atmosphere: string;
-        isAnalyzing: boolean;
-    } | null>(null);
-    const [pendingAction, setPendingAction] = useState<{
-        type: 'select_taxonomy' | 'regenerate';
-        payload?: number;
-    } | null>(null);
+    // --- Custom Moodboard Upload ---
     const [showCustomModal, setShowCustomModal] = useState(false);
-
-    const isCustomMode = customMood !== null;
-    const isCustomAnalyzing = customMood?.isAnalyzing ?? false;
-
-    // The "virtual" selected mood — either from moods[] or customMood
-    const displayMood: MoodOption | null = isCustomMode
-        ? {
-            id: '__custom__',
-            name: customMood!.name || 'Analyzing...',
-            image_url: customMood!.localImageUrl,
-            color_palette: customMood!.color_palette,
-            lighting: customMood!.lighting,
-            texture: customMood!.texture,
-            atmosphere: customMood!.atmosphere,
-            status: customMood!.isAnalyzing ? 'generating' : 'ready',
-        }
-        : selectedMood;
-
-    // Cleanup blob URL on unmount or when custom mood changes
-    useEffect(() => {
-        return () => {
-            if (customMood?.localImageUrl) URL.revokeObjectURL(customMood.localImageUrl);
-        };
-    }, [customMood?.localImageUrl]);
+    const [isCustomSubmitting, setIsCustomSubmitting] = useState(false);
 
     // --- Fetch project doc for title & applied mood ---
     useEffect(() => {
@@ -128,7 +92,9 @@ export default function MoodboardPage() {
             const data = snap.data();
             if (data) {
                 setProjectTitle(data.title || "");
-                setAppliedMoodId(data.selected_mood_id || null);
+                const dbSelectedId = data.selected_mood_id || null;
+                setAppliedMoodId(dbSelectedId);
+
                 // Resolve episode ID from project doc if available
                 if (data.default_episode_id) {
                     setResolvedEpisodeId(data.default_episode_id);
@@ -172,6 +138,17 @@ export default function MoodboardPage() {
         });
         return () => unsub();
     }, [projectId]);
+
+    // --- Auto-focus the applied moodboard on initial load ---
+    const hasAutoFocused = useRef(false);
+    useEffect(() => {
+        if (hasAutoFocused.current || moods.length === 0 || !appliedMoodId || appliedMoodId === 'custom_upload') return;
+        const idx = moods.findIndex(m => m.id === appliedMoodId);
+        if (idx !== -1) {
+            setSelectedIdx(idx);
+            hasAutoFocused.current = true;
+        }
+    }, [moods, appliedMoodId]);
 
     // --- Generate moods API ---
     const generateMoods = useCallback(async () => {
@@ -240,94 +217,43 @@ export default function MoodboardPage() {
 
     // --- Custom Moodboard Submit (from modal) ---
     const handleCustomSubmit = async (result: CustomMoodboardResult) => {
-        // If there's already a custom mood, revoke the old blob
-        if (customMood?.localImageUrl) URL.revokeObjectURL(customMood.localImageUrl);
-
-        const localUrl = URL.createObjectURL(result.file);
-        setCustomMood({
-            localImageUrl: localUrl,
-            name: result.mode === 'manual' ? (result.manualParams?.name || '') : '',
-            color_palette: result.mode === 'manual' ? (result.manualParams?.color_palette || '') : '',
-            lighting: result.mode === 'manual' ? (result.manualParams?.lighting || '') : '',
-            texture: result.mode === 'manual' ? (result.manualParams?.texture || '') : '',
-            atmosphere: result.mode === 'manual' ? (result.manualParams?.atmosphere || '') : '',
-            isAnalyzing: result.mode === 'ai',
-        });
-        setShowCustomModal(false);
-
-        if (result.mode === 'ai') {
-            // AI Auto-Extract: call the analyze endpoint
-            try {
-                const formData = new FormData();
-                formData.append('project_id', projectId);
-                formData.append('file', result.file);
-
-                const res = await api.post(
-                    '/api/v1/shot/analyze_custom_moodboard',
-                    formData,
-                    { headers: { 'Content-Type': 'multipart/form-data' } }
-                );
-
-                if (res.data.status === 'success') {
-                    const style = res.data.moodboard_style;
-                    setCustomMood(prev => prev ? {
-                        ...prev,
-                        name: style.name,
-                        color_palette: style.color_palette,
-                        lighting: style.lighting,
-                        texture: style.texture,
-                        atmosphere: style.atmosphere,
-                        isAnalyzing: false,
-                    } : null);
-
-                    toastSuccess(`Style "${style.name}" extracted — review and apply when ready`);
-                }
-            } catch (e: any) {
-                toastError(e.response?.data?.detail || 'Analysis failed');
-                URL.revokeObjectURL(localUrl);
-                setCustomMood(null);
+        setIsCustomSubmitting(true);
+        try {
+            const formData = new FormData();
+            formData.append('project_id', projectId);
+            formData.append('file', result.file);
+            if (result.mode === 'manual' && result.manualParams) {
+                formData.append('manual_params', JSON.stringify(result.manualParams));
             }
-        } else {
-            // Manual Entry: parameters already set, ready for review
-            toastSuccess('Custom moodboard ready — review and apply when ready');
+
+            await api.post(
+                '/api/v1/shot/analyze_custom_moodboard',
+                formData,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
+            );
+
+            toastSuccess('Custom moodboard added to options');
+            setShowCustomModal(false);
+        } catch (e: any) {
+            toastError(e.response?.data?.detail || 'Custom upload failed');
+        } finally {
+            setIsCustomSubmitting(false);
         }
     };
 
-    // --- Guard functions for switching away from custom ---
-    const handleTaxonomySelect = (idx: number) => {
-        if (isCustomMode) {
-            setPendingAction({ type: 'select_taxonomy', payload: idx });
-        } else {
-            setSelectedIdx(idx);
+    // --- Delete Moodboard Option ---
+    const handleDeleteMood = async (moodId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const toastId = toast.loading("Deleting moodboard...");
+        try {
+            await api.post("/api/v1/shot/delete_moodboard_option", {
+                project_id: projectId,
+                mood_option_id: moodId,
+            });
+            toast.success("Moodboard deleted", { id: toastId });
+        } catch (error: any) {
+            toast.error(error.response?.data?.detail || "Failed to delete moodboard", { id: toastId });
         }
-    };
-
-    const handleRegenerateGuarded = () => {
-        if (isCustomMode) {
-            setPendingAction({ type: 'regenerate' });
-        } else {
-            generateMoods();
-        }
-    };
-
-    const confirmDiscardCustom = () => {
-        if (customMood) URL.revokeObjectURL(customMood.localImageUrl);
-        setCustomMood(null);
-
-        if (pendingAction?.type === 'select_taxonomy' && pendingAction.payload !== undefined) {
-            setSelectedIdx(pendingAction.payload);
-        } else if (pendingAction?.type === 'regenerate') {
-            generateMoods();
-        }
-        setPendingAction(null);
-    };
-
-    // --- Apply custom moodboard (user confirms after review) ---
-    const handleConfirmCustom = () => {
-        if (!customMood || isCustomAnalyzing) return;
-        setAppliedMoodId('__custom__');
-        toastSuccess(`Mood "${customMood.name || 'Custom'}" applied to your project`);
-        router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
     };
 
     const handleConfirm = async () => {
@@ -423,7 +349,7 @@ export default function MoodboardPage() {
                     )}
 
                     {isViewingVariations && (
-                        <button onClick={handleRegenerateGuarded} disabled={isRegenerating}
+                        <button onClick={() => generateMoods()} disabled={isRegenerating}
                             className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30">
                             <Undo2 size={12} />
                             Back to Originals
@@ -431,7 +357,7 @@ export default function MoodboardPage() {
                     )}
 
                     {selectedMood && (
-                        <button onClick={handleRegenerateGuarded} disabled={isRegenerating}
+                        <button onClick={() => generateMoods()} disabled={isRegenerating}
                             className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30">
                             <RefreshCw size={12} className={isRegenerating ? "animate-spin" : ""} />
                             Regenerate
@@ -507,12 +433,12 @@ export default function MoodboardPage() {
             )}
 
             {/* ══════════════════════ SELECT — FULL IMMERSIVE ══════════════════════ */}
-            {phase === "select" && (displayMood || isCustomMode) && (
+            {phase === "select" && selectedMood && (
                 <>
                     {/* ── HERO BACKGROUND IMAGE ── */}
-                    <div key={displayMood!.id + (displayMood!.image_url || '')} className="absolute inset-0 z-0" style={{ animation: "heroFade 0.8s ease both" }}>
-                        {displayMood!.image_url ? (
-                            <img src={displayMood!.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    <div key={selectedMood.id + (selectedMood.image_url || '')} className="absolute inset-0 z-0" style={{ animation: "heroFade 0.8s ease both" }}>
+                        {selectedMood.image_url ? (
+                            <img src={selectedMood.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
                         ) : (
                             <div className="absolute inset-0 bg-[#050505] overflow-hidden">
                                 <div className="absolute w-[55%] h-[55%] rounded-full bg-[#E50914]/25 blur-[60px]"
@@ -549,36 +475,20 @@ export default function MoodboardPage() {
                     </div>
 
                     {/* ── CENTER STAGE: MOOD INFO ── */}
-                    <div className="absolute inset-0 z-30 flex items-center pointer-events-none">
-                        <div key={displayMood!.id} className="ml-16 max-w-lg" style={{ animation: "labelReveal 0.5s ease both" }}>
+                    <div className="absolute inset-0 z-30 flex items-start pointer-events-none overflow-y-auto">
+                        <div key={selectedMood.id} className="ml-16 max-w-lg mt-[15vh] pb-[220px]" style={{ animation: "labelReveal 0.5s ease both" }}>
                             {/* Mood index + badges */}
                             <div className="flex items-center gap-3 mb-4">
-                                <div className={`h-[1px] w-10 ${isCustomMode ? 'bg-amber-500/40' : 'bg-[#E50914]/40'}`} />
-                                {isCustomMode ? (
-                                    <span className="flex items-center gap-1.5 text-[9px] font-mono text-amber-400/60 uppercase tracking-[4px]">
-                                        <Upload size={10} /> Custom Reference
-                                    </span>
-                                ) : (
-                                    <span className="text-[9px] font-mono text-[#E50914]/60 uppercase tracking-[4px]">
-                                        {isViewingVariations ? "Variation" : "Mood"} {selectedIdx + 1} of {totalCount}
-                                    </span>
-                                )}
-                                {isViewingVariations && !isCustomMode && (
+                                <div className="h-[1px] w-10 bg-[#E50914]/40" />
+                                <span className="text-[9px] font-mono text-[#E50914]/60 uppercase tracking-[4px]">
+                                    {isViewingVariations ? "Variation" : "Mood"} {selectedIdx + 1} of {totalCount}
+                                </span>
+                                {isViewingVariations && (
                                     <span className="flex items-center gap-1 text-[8px] font-bold text-purple-400/80 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
                                         <Sparkles size={9} /> Variation
                                     </span>
                                 )}
-                                {isCustomMode && !isCustomAnalyzing && appliedMoodId === '__custom__' && (
-                                    <span className="flex items-center gap-1 text-[8px] font-bold text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
-                                        <Check size={9} /> Applied
-                                    </span>
-                                )}
-                                {isCustomMode && !isCustomAnalyzing && appliedMoodId !== '__custom__' && (
-                                    <span className="flex items-center gap-1 text-[8px] font-bold text-amber-400/80 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
-                                        <Sparkles size={9} /> Ready to Apply
-                                    </span>
-                                )}
-                                {!isCustomMode && isApplied && (
+                                {isApplied && (
                                     <span className="flex items-center gap-1 text-[8px] font-bold text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
                                         <Check size={9} /> Applied
                                     </span>
@@ -586,62 +496,37 @@ export default function MoodboardPage() {
                             </div>
 
                             {/* Big name */}
-                            {isCustomAnalyzing ? (
-                                <div className="mb-6">
-                                    <div className="h-12 w-80 bg-white/[0.06] rounded-lg animate-pulse" />
-                                </div>
-                            ) : (
-                                <h1 className="text-6xl md:text-7xl font-display uppercase tracking-tight leading-[0.9] mb-6 text-white">
-                                    {displayMood!.name}
-                                </h1>
-                            )}
+                            <h1 className="text-6xl md:text-7xl font-display uppercase tracking-tight leading-[0.9] mb-6 text-white">
+                                {selectedMood.name}
+                            </h1>
 
                             {/* Attributes */}
-                            {isCustomAnalyzing ? (
-                                <div className="space-y-3 border-l border-white/[0.06] pl-5">
-                                    {['Color Palette', 'Lighting', 'Texture', 'Atmosphere'].map(label => (
-                                        <div key={label} className="py-2.5">
-                                            <span className="text-[8px] font-mono text-white/25 uppercase tracking-[3px] block mb-2">{label}</span>
-                                            <div className="h-3 w-48 bg-white/[0.06] rounded animate-pulse" />
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="space-y-0 border-l border-white/[0.06] pl-5">
-                                    <AttrTag icon={<Palette size={13} />} label="Color Palette" value={displayMood!.color_palette} />
-                                    <AttrTag icon={<Sun size={13} />} label="Lighting" value={displayMood!.lighting} />
-                                    <AttrTag icon={<Layers size={13} />} label="Texture" value={displayMood!.texture} />
-                                    <AttrTag icon={<CloudFog size={13} />} label="Atmosphere" value={displayMood!.atmosphere} />
-                                </div>
-                            )}
+                            <div className="space-y-0 border-l border-white/[0.06] pl-5">
+                                <AttrTag icon={<Palette size={13} />} label="Color Palette" value={selectedMood.color_palette} />
+                                <AttrTag icon={<Sun size={13} />} label="Lighting" value={selectedMood.lighting} />
+                                <AttrTag icon={<Layers size={13} />} label="Texture" value={selectedMood.texture} />
+                                <AttrTag icon={<CloudFog size={13} />} label="Atmosphere" value={selectedMood.atmosphere} />
+                            </div>
 
                             {/* Image generating indicator */}
-                            {!isCustomMode && displayMood!.status !== "ready" && (
+                            {selectedMood.status !== "ready" && (
                                 <div className="flex items-center gap-2 mt-6">
                                     <Loader2 size={12} className="animate-spin text-[#E50914]/40" />
                                     <span className="text-[9px] text-white/20 uppercase tracking-[3px] font-mono">Rendering preview...</span>
                                 </div>
                             )}
 
-                            {/* Analyzing indicator for custom */}
-                            {isCustomAnalyzing && (
-                                <div className="flex items-center gap-2 mt-6">
-                                    <Loader2 size={12} className="animate-spin text-amber-400/60" />
-                                    <span className="text-[9px] text-amber-300/40 uppercase tracking-[3px] font-mono">Analyzing your reference...</span>
-                                </div>
-                            )}
-
-                            {/* Generate More Like This CTA — hidden for custom */}
-                            {!isCustomMode && displayMood!.status === "ready" && (
+                            {/* Generate More Like This CTA */}
+                            {selectedMood.status === "ready" && (
                                 <button
-                                    onClick={() => generateVariations(displayMood!.id)}
+                                    onClick={() => generateVariations(selectedMood.id)}
                                     disabled={isGeneratingVariations}
-                                    className="pointer-events-auto flex items-center gap-2 mt-6 px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-[1.5px] border border-white/[0.1] bg-white/[0.04] backdrop-blur-sm text-white/50 hover:text-white hover:border-white/25 hover:bg-white/[0.08] transition-all cursor-pointer disabled:opacity-30 group"
+                                    className="pointer-events-auto flex items-center gap-2.5 mt-8 px-6 py-3 rounded-lg text-[11px] font-bold uppercase tracking-[1.5px] border border-[#E50914]/30 bg-[#E50914]/10 backdrop-blur-sm text-white/80 hover:text-white hover:border-[#E50914]/60 hover:bg-[#E50914]/20 transition-all cursor-pointer disabled:opacity-30 group shadow-[0_0_15px_rgba(229,9,20,0.1)] hover:shadow-[0_0_25px_rgba(229,9,20,0.2)]"
                                 >
                                     {isGeneratingVariations ? (
-                                        <><Loader2 size={13} className="animate-spin" /> Generating...</>
+                                        <><Loader2 size={14} className="animate-spin" /> Generating...</>
                                     ) : (
-                                        <><Sparkles size={13} className="text-[#E50914]/60 group-hover:text-[#E50914] transition-colors" /> Generate More Like This</>
+                                        <><Sparkles size={14} className="text-[#E50914] group-hover:text-[#ff1a25] transition-colors" /> Generate More Like This</>
                                     )}
                                 </button>
                             )}
@@ -671,22 +556,22 @@ export default function MoodboardPage() {
                             ))}
                         </div>
 
-                        <div className="flex h-[100px] border-t border-white/[0.04] bg-[#020202]/80 backdrop-blur-md">
+                        <div className="flex h-[130px] border-t border-white/[0.04] bg-[#020202]/80 backdrop-blur-md">
                             {moods.map((mood, idx) => {
-                                const active = !isCustomMode && idx === selectedIdx;
+                                const active = idx === selectedIdx;
                                 const hasImage = mood.status === "ready" && mood.image_url;
                                 const isMoodApplied = mood.id === appliedMoodId;
                                 return (
                                     <button key={mood.id}
-                                        onClick={() => handleTaxonomySelect(idx)}
+                                        onClick={() => setSelectedIdx(idx)}
                                         className={`relative flex-1 overflow-hidden transition-all duration-500 cursor-pointer group
                                             ${idx > 0 ? 'border-l border-white/[0.03]' : ''}
-                                            ${active ? 'flex-[1.8]' : 'opacity-40 hover:opacity-70'}`}
+                                            ${isMoodApplied ? 'flex-[1.6] opacity-100 ring-1 ring-emerald-500/50' : active ? 'flex-[1.8] opacity-100' : 'opacity-40 hover:opacity-70'}`}
                                     >
                                         {hasImage ? (
                                             <img src={mood.image_url!} alt={mood.name}
                                                 className={`absolute inset-0 w-full h-full object-cover transition-all duration-700
-                                                    ${active ? 'scale-100 brightness-90' : 'scale-110 brightness-50 group-hover:brightness-75 group-hover:scale-105'}`}
+                                                    ${isMoodApplied ? 'scale-100 brightness-[0.85]' : active ? 'scale-100 brightness-90' : 'scale-110 brightness-50 group-hover:brightness-75 group-hover:scale-105'}`}
                                             />
                                         ) : (
                                             <div className="absolute inset-0 bg-[#060606] overflow-hidden">
@@ -703,25 +588,34 @@ export default function MoodboardPage() {
                                         {/* Active indicator — red line */}
                                         {active && <div className="absolute top-0 inset-x-0 h-[2px] bg-[#E50914] shadow-[0_0_8px_rgba(229,9,20,0.5)]" />}
 
-                                        {/* Applied badge on thumbnail */}
+                                        {/* Applied indicator — emerald glow line + badge */}
                                         {isMoodApplied && (
-                                            <div className="absolute top-2 right-2 bg-emerald-500/20 border border-emerald-500/30 rounded px-1.5 py-0.5">
-                                                <Check size={8} className="text-emerald-400" />
+                                            <>
+                                                <div className="absolute top-0 inset-x-0 h-[2px] bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.6)]" />
+                                                <div className="absolute bottom-0 inset-x-0 h-[2px] bg-emerald-400/40" />
+                                                <div className="absolute top-2 right-2 flex items-center gap-1 bg-emerald-500/30 border border-emerald-400/50 rounded-full px-2 py-0.5 backdrop-blur-sm">
+                                                    <Check size={8} className="text-emerald-300" />
+                                                    <span className="text-[7px] font-bold text-emerald-300 uppercase tracking-wider">Applied</span>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Delete button — hover-visible, hidden for applied */}
+                                        {!isMoodApplied && (
+                                            <div
+                                                onClick={(e) => handleDeleteMood(mood.id, e)}
+                                                className="absolute top-2 left-2 z-50 p-1.5 rounded-md bg-black/40 backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:border-red-500/50 transition-all cursor-pointer"
+                                            >
+                                                <Trash2 size={12} className="text-white/60 hover:text-red-400 transition-colors" />
                                             </div>
                                         )}
 
                                         {/* Label */}
                                         <div className="absolute bottom-0 inset-x-0 p-2.5">
                                             <span className={`text-[9px] font-bold uppercase tracking-wider block truncate
-                                                ${active ? 'text-white' : 'text-white/50'}`}>
+                                                ${isMoodApplied ? 'text-emerald-300' : active ? 'text-white' : 'text-white/50'}`}>
                                                 {mood.name}
                                             </span>
-                                            {active && hasImage && !isMoodApplied && (
-                                                <span className="text-[7px] text-[#E50914]/60 uppercase tracking-[2px] font-mono mt-0.5 block">Selected</span>
-                                            )}
-                                            {active && isMoodApplied && (
-                                                <span className="text-[7px] text-emerald-400/60 uppercase tracking-[2px] font-mono mt-0.5 block">Currently Applied</span>
-                                            )}
                                             {!hasImage && (
                                                 <div className="flex items-center gap-1 mt-0.5">
                                                     <Loader2 size={7} className="animate-spin text-[#E50914]/30" />
@@ -736,38 +630,13 @@ export default function MoodboardPage() {
                             {/* ── Custom Upload Cell ── */}
                             <button
                                 onClick={() => setShowCustomModal(true)}
-                                className={`relative flex-1 min-w-[80px] overflow-hidden border-l border-white/[0.03] transition-all duration-500 cursor-pointer group
-                                    ${isCustomMode ? 'flex-[1.8] opacity-100' : 'opacity-40 hover:opacity-70'}`}
+                                className="relative flex-1 min-w-[80px] overflow-hidden border-l border-white/[0.03] transition-all duration-500 cursor-pointer group opacity-70 hover:opacity-100"
                             >
-                                {isCustomMode && customMood ? (
-                                    <>
-                                        <img src={customMood.localImageUrl} alt="Custom" className="absolute inset-0 w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
-                                    </>
-                                ) : (
-                                    <div className="absolute inset-0 bg-[#060606] flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-white/[0.06] m-1 rounded">
-                                        <Upload size={14} className="text-white/15" />
-                                        <span className="text-[7px] text-white/15 uppercase tracking-widest font-mono">Upload</span>
+                                <div className="absolute inset-0 bg-[#0a0a0a] flex flex-col items-center justify-center gap-1.5 border border-dashed border-white/20 m-1 rounded group-hover:border-white/40 transition-all">
+                                    <div className="w-6 h-6 rounded-full border border-white/50 flex items-center justify-center group-hover:border-white group-hover:bg-white/10 transition-all">
+                                        <span className="text-white/70 text-sm font-light group-hover:text-white transition-colors">+</span>
                                     </div>
-                                )}
-                                {isCustomMode && <div className="absolute top-0 inset-x-0 h-[2px] bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />}
-                                <div className="absolute bottom-0 inset-x-0 p-2.5">
-                                    <span className={`text-[9px] font-bold uppercase tracking-wider block truncate
-                                        ${isCustomMode ? 'text-white' : 'text-white/50'}`}>
-                                        {isCustomMode ? (customMood?.name || 'Analyzing...') : 'Custom'}
-                                    </span>
-                                    {isCustomMode && !isCustomAnalyzing && (
-                                        <span className={`text-[7px] uppercase tracking-[2px] font-mono mt-0.5 block
-                                            ${appliedMoodId === '__custom__' ? 'text-emerald-400/60' : 'text-amber-400/60'}`}>
-                                            {appliedMoodId === '__custom__' ? '✦ Applied' : '✦ Ready'}
-                                        </span>
-                                    )}
-                                    {isCustomMode && isCustomAnalyzing && (
-                                        <div className="flex items-center gap-1 mt-0.5">
-                                            <Loader2 size={7} className="animate-spin text-amber-400/40" />
-                                            <span className="text-[7px] text-amber-300/30 uppercase tracking-wider font-mono">Analyzing</span>
-                                        </div>
-                                    )}
+                                    <span className="text-[8px] text-white/60 uppercase tracking-[2px] font-bold group-hover:text-white transition-colors">Custom</span>
                                 </div>
                             </button>
                         </div>
@@ -786,25 +655,15 @@ export default function MoodboardPage() {
                                     ← → Navigate • Enter to Apply
                                 </span>
                             </div>
-                            <button onClick={isCustomMode ? handleConfirmCustom : handleConfirm}
-                                disabled={isCustomAnalyzing || (!isCustomMode && isApplied)}
+                            <button onClick={handleConfirm}
+                                disabled={isApplied}
                                 className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
-                                    ${isCustomMode
-                                        ? (isCustomAnalyzing
-                                            ? 'bg-amber-900/20 text-amber-400/60 border border-amber-500/20 cursor-default'
-                                            : 'bg-amber-500 hover:bg-amber-400 text-black shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:shadow-[0_0_30px_rgba(245,158,11,0.3)]')
-                                        : isApplied
-                                            ? 'bg-emerald-900/30 text-emerald-400/60 border border-emerald-500/20 cursor-default'
-                                            : 'bg-[#E50914] hover:bg-[#ff1a25] text-white shadow-[0_0_20px_rgba(229,9,20,0.2)] hover:shadow-[0_0_30px_rgba(229,9,20,0.4)]'}`}
-                                style={(!isApplied && !isCustomMode) || (isCustomMode && !isCustomAnalyzing) ? { animation: "pulseGlow 2.5s ease-in-out infinite" } : undefined}>
-                                {isCustomMode ? (
-                                    isCustomAnalyzing ? (
-                                        <><Loader2 size={13} className="animate-spin" /> Analyzing Reference...</>
-                                    ) : (
-                                        <>Apply This Mood <ChevronRight size={13} /></>
-                                    )
-                                ) : isApplied ? (
-                                    <><Check size={13} /> Already Applied</>
+                                    ${isApplied
+                                        ? 'bg-emerald-900/30 text-emerald-400/60 border border-emerald-500/20 cursor-default'
+                                        : 'bg-[#E50914] hover:bg-[#ff1a25] text-white shadow-[0_0_20px_rgba(229,9,20,0.2)] hover:shadow-[0_0_30px_rgba(229,9,20,0.4)]'}`}
+                                style={!isApplied ? { animation: "pulseGlow 2.5s ease-in-out infinite" } : undefined}>
+                                {isApplied ? (
+                                    <><Check size={13} /> Applied</>
                                 ) : (
                                     <>Apply This Mood <ChevronRight size={13} /></>
                                 )}
@@ -834,39 +693,14 @@ export default function MoodboardPage() {
                 </div>
             )}
 
-            {/* ══════════════════════ WARNING MODAL — Custom Moodboard Discard ══════════════════════ */}
-            {pendingAction && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setPendingAction(null)} />
-                    <div className="relative z-10 bg-[#111] border border-white/[0.1] rounded-xl p-8 max-w-md text-center" style={{ animation: "fadeSlideUp 0.3s ease both" }}>
-                        <AlertCircle size={32} className="text-amber-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-display uppercase tracking-wide mb-2">
-                            Replace Custom Moodboard?
-                        </h3>
-                        <p className="text-[12px] text-neutral-400 leading-relaxed mb-8">
-                            {pendingAction.type === 'regenerate'
-                                ? 'Generating new archetypes will discard your uploaded custom reference.'
-                                : 'Switching to a generated moodboard will discard your uploaded reference.'}
-                        </p>
-                        <div className="flex gap-3 justify-center">
-                            <button onClick={() => setPendingAction(null)}
-                                className="px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-white/[0.1] text-neutral-300 hover:bg-white/[0.05] transition-all cursor-pointer">
-                                Cancel
-                            </button>
-                            <button onClick={confirmDiscardCustom}
-                                className="px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-[#E50914] text-white hover:bg-[#ff1a25] transition-all cursor-pointer">
-                                Continue
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+
 
             {/* Custom Moodboard Modal */}
             <CustomMoodboardModal
                 isOpen={showCustomModal}
                 onClose={() => setShowCustomModal(false)}
                 onSubmit={handleCustomSubmit}
+                isSubmitting={isCustomSubmitting}
             />
         </main>
     );

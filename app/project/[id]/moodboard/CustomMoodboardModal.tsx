@@ -2,8 +2,8 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import {
-    X, Upload, Sparkles, PenLine, Loader2,
-    Palette, Sun, Layers, CloudFog, ImageIcon
+    X, Upload, Scan, PenLine, Loader2,
+    Palette, Sun, Layers, CloudFog, ImageIcon, Type
 } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -233,7 +233,7 @@ export default function CustomMoodboardModal({
                                 ${isSubmitting ? 'pointer-events-none' : ''}
                             `}
                         >
-                            <Sparkles size={13} className={mode === 'ai' ? 'text-amber-400' : ''} />
+                            <Scan size={13} className={mode === 'ai' ? 'text-amber-400' : ''} />
                             AI Auto-Extract
                         </button>
                         <button
@@ -258,7 +258,7 @@ export default function CustomMoodboardModal({
                         /* AI Mode — Just a description, no fields */
                         <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] p-4">
                             <div className="flex items-start gap-3">
-                                <Sparkles size={16} className="text-amber-400/40 mt-0.5 flex-shrink-0" />
+                                <Scan size={16} className="text-amber-400/40 mt-0.5 flex-shrink-0" />
                                 <div>
                                     <p className="text-[11px] text-white/50 leading-relaxed">
                                         Our AI will analyze your reference image and automatically extract the
@@ -277,7 +277,7 @@ export default function CustomMoodboardModal({
                         /* Manual Mode — Editable text fields */
                         <div className="space-y-3">
                             <ParamField
-                                icon={<Sparkles size={12} />}
+                                icon={<Type size={12} />}
                                 label="Name"
                                 placeholder="e.g. Amber Noir Intimacy"
                                 value={name}
@@ -341,9 +341,9 @@ export default function CustomMoodboardModal({
                         {isSubmitting ? (
                             <><Loader2 size={13} className="animate-spin" /> Analyzing...</>
                         ) : mode === 'ai' ? (
-                            <><Sparkles size={13} /> Analyze & Apply</>
+                            <>Analyze</>
                         ) : (
-                            <><PenLine size={13} /> Apply Mood</>
+                            <><PenLine size={13} /> Save Custom Mood</>
                         )}
                     </button>
                 </div>
