@@ -18,6 +18,7 @@ interface ScriptIngestionModalProps {
     mode: 'new' | 'edit';
     episodeId?: string; // If edit mode
     initialTitle?: string;
+    /** @deprecated Phase 2 — InputDeck now lazy-loads script from the API */
     initialScript?: string;
     initialRuntime?: string | number;
 
@@ -85,7 +86,6 @@ export const ScriptIngestionModal: React.FC<ScriptIngestionModalProps> = ({
 
                         // Also derive initial data from the episode if we are targeting it
                         const effectiveTitle = (isSingleUnit && firstEpisode) ? firstEpisode.title : initialTitle;
-                        const effectiveScript = (isSingleUnit && firstEpisode) ? firstEpisode.script_preview : initialScript;
                         const effectiveRuntime = (isSingleUnit && firstEpisode) ? firstEpisode.runtime : initialRuntime;
 
                         return (
@@ -97,7 +97,6 @@ export const ScriptIngestionModal: React.FC<ScriptIngestionModalProps> = ({
                                 episodes={episodes}
                                 onSwitchEpisode={onSwitchEpisode}
                                 initialTitle={effectiveTitle}
-                                initialScript={effectiveScript}
                                 initialRuntime={effectiveRuntime}
                                 previousEpisode={previousEpisode}
                                 onSuccess={onSuccess}

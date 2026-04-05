@@ -193,6 +193,18 @@ export const fetchEpisodes = async (projectId: string) => {
     return res.data;
 };
 
+/**
+ * Fetch the full script text for a project.
+ * Primary endpoint for script content — episode.script_preview has been removed (Phase 2 complete).
+ */
+export const fetchProjectScript = async (projectId: string): Promise<{
+    script_text: string;
+    script_file_url: string;
+}> => {
+    const res = await api.get(`/api/v1/project/${projectId}/script`);
+    return res.data;
+};
+
 export interface DashboardProject extends Project {
     previewVideo?: string | null;
     previewImage?: string | null;

@@ -805,7 +805,6 @@ export default function PreProductionCanvas() {
                 episodeId={activeEpisodeId || undefined}
                 episodes={episodes}
                 initialTitle={episodes.find((e: any) => e.id === activeEpisodeId)?.title}
-                initialScript={episodes.find((e: any) => e.id === activeEpisodeId)?.script_preview}
                 initialRuntime={episodes.find((e: any) => e.id === activeEpisodeId)?.runtime}
                 onSuccess={() => {
                     setIsScriptModalOpen(false);

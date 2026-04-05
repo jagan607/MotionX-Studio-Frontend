@@ -9,7 +9,7 @@ import {
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess, toastInfo } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiErrors";
-import { api, checkJobStatus, uploadScriptToStorage } from "@/lib/api";
+import { api, checkJobStatus, uploadScriptToStorage, fetchProjectScript } from "@/lib/api";
 import { MotionButton } from "@/components/ui/MotionButton";
 import ScriptProcessingLoader from "@/components/script/ScriptProcessingLoader";
 import { ContextReference } from "@/app/components/script/ContextSelectorModal";
@@ -21,6 +21,7 @@ interface InputDeckProps {
     episodeId?: string | null;
 
     initialTitle?: string;
+    /** @deprecated Phase 2 complete — use lazy-loaded script from GET /api/v1/project/{projectId}/script */
     initialScript?: string;
     initialRuntime?: string | number;
 
@@ -29,7 +30,6 @@ interface InputDeckProps {
         id: string;
         episode_number: number;
         title: string;
-        script_preview: string;
     } | null;
 
     onSuccess: (redirectUrl: string) => void;
@@ -54,7 +54,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     projectType,
     episodeId,
     initialTitle = "",
-    initialScript = "",
+    initialScript,
     initialRuntime = "",
     previousEpisode = null,
     onSuccess,
@@ -85,6 +85,11 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
     // User Instructions for Continuity
     const [continuityInstruction, setContinuityInstruction] = useState("");
+
+    // Lazy-loaded script content (Phase 1 migration)
+    const [lazyScript, setLazyScript] = useState<string | null>(null);
+    const [isLoadingScript, setIsLoadingScript] = useState(false);
+    const [scriptFetchFailed, setScriptFetchFailed] = useState(false);
 
     const [logs, setLogs] = useState<string[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -129,9 +134,10 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     }, [isSingleUnit, projectTitle, initialTitle, initialRuntime]);
 
     useEffect(() => {
-        // If there's an existing script, default to the 'current' tab to show it
-        // Keep AI assistant textarea clean for fresh prompts
-        if (initialScript) {
+        // Default to 'current' tab if we're in edit mode (existing episode with content)
+        // The actual script content will be lazy-loaded from the API
+        const isExistingEpisode = !!episodeId && episodeId !== "new_placeholder";
+        if (isExistingEpisode) {
             setActiveTab('current');
         } else {
             setActiveTab('ai');
@@ -140,9 +146,35 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         setSynopsisText("");
         setPastedScript("");
         setSelectedFile(null);
-    }, [initialScript, episodeId]);
+        // Reset lazy-loaded script when episode changes
+        setLazyScript(null);
+        setScriptFetchFailed(false);
+    }, [episodeId]);
 
-    const isUpdateMode = !!episodeId && !!initialScript && episodeId !== "new_placeholder";
+    // --- LAZY-LOAD SCRIPT (Phase 1: new proxy endpoint) ---
+    useEffect(() => {
+        if (activeTab !== 'current') return;
+        if (!projectId || lazyScript !== null) return; // Already loaded, skip
+
+        setIsLoadingScript(true);
+        setScriptFetchFailed(false);
+
+        fetchProjectScript(projectId)
+            .then((data) => {
+                setLazyScript(data.script_text);
+            })
+            .catch((err) => {
+                console.warn("[InputDeck] Lazy script fetch failed", err);
+                setScriptFetchFailed(true);
+            })
+            .finally(() => {
+                setIsLoadingScript(false);
+            });
+        // lazyScript intentionally excluded — used as a guard, reset on episode change
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, projectId, episodeId]);
+
+    const isUpdateMode = !!episodeId && episodeId !== "new_placeholder";
 
     // Check modification based on active tab
     const hasNewContent =
@@ -173,7 +205,8 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     };
 
     // Derived: whether an existing script is available for the 'current' tab
-    const hasExistingScript = !!initialScript && isUpdateMode;
+    // Show the 'Current Script' tab when in update mode (lazy-loaded content will fill it)
+    const hasExistingScript = isUpdateMode;
 
     // --- MAIN PROTOCOL EXECUTION ---
     const executeProtocol = async (mode: 'standard' | 'continuity' = 'standard') => {
@@ -525,7 +558,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 </span>
                             </div>
                             <p className="text-[10px] text-blue-200/60 line-clamp-2 font-mono mb-4 pl-1 border-l border-blue-800">
-                                &quot;{previousEpisode.script_preview || "No preview available..."}&quot;
+                                Previous episode available for continuity context.
                             </p>
                             <div className="flex gap-3">
                                 <input
@@ -557,7 +590,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                 )}
 
                 {/* --- CONTEXT CTA (shared across all tabs) --- */}
-                {onOpenContextModal && episodes && episodes.some((ep: any) => ep.script_preview) && (
+                {onOpenContextModal && episodes && episodes.length > 0 && (
                     <div className="flex items-center justify-end gap-2 mb-2">
                         {contextReferences.length > 0 && (
                             <div className="flex items-center gap-1">
@@ -589,7 +622,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
                 {/* --- 3. INPUT CONTENT --- */}
 
-                {/* D. CURRENT SCRIPT TAB (read-only preview) */}
+                {/* D. CURRENT SCRIPT TAB (read-only preview — lazy-loaded from proxy endpoint) */}
                 {
                     activeTab === 'current' && hasExistingScript && (
                         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -597,16 +630,29 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 <span className="text-[10px] text-neutral-400">
                                     This is the current script for this episode. Switch to another tab to replace it.
                                 </span>
-                                <span className="text-[9px] font-bold text-green-500 bg-green-900/20 px-2 py-0.5 rounded border border-green-900/50 flex items-center gap-1">
-                                    <CheckCircle2 size={10} /> SYNCED
-                                </span>
+                                {isLoadingScript ? (
+                                    <span className="text-[9px] font-bold text-amber-400 bg-amber-900/20 px-2 py-0.5 rounded border border-amber-900/50 flex items-center gap-1">
+                                        <Loader2 size={10} className="animate-spin" /> LOADING
+                                    </span>
+                                ) : (
+                                    <span className="text-[9px] font-bold text-green-500 bg-green-900/20 px-2 py-0.5 rounded border border-green-900/50 flex items-center gap-1">
+                                        <CheckCircle2 size={10} /> SYNCED
+                                    </span>
+                                )}
                             </div>
-                            <div className="relative h-[240px]">
-                                <textarea
-                                    className="w-full h-full bg-black/20 border border-neutral-800 p-4 font-mono text-xs text-neutral-300 resize-none leading-relaxed rounded-lg cursor-default"
-                                    value={initialScript}
-                                    readOnly
-                                />
+                            <div className="relative min-h-[240px] h-[35vh]">
+                                {isLoadingScript ? (
+                                    <div className="w-full h-full bg-black/20 border border-neutral-800 rounded-lg flex flex-col items-center justify-center gap-3">
+                                        <Loader2 size={24} className="animate-spin text-neutral-600" />
+                                        <span className="text-[10px] font-mono text-neutral-600 uppercase tracking-widest">Loading Script...</span>
+                                    </div>
+                                ) : (
+                                    <textarea
+                                        className="w-full h-full bg-black/20 border border-neutral-800 p-4 font-mono text-xs text-neutral-300 resize-none leading-relaxed rounded-lg cursor-default overflow-y-auto"
+                                        value={lazyScript || ""}
+                                        readOnly
+                                    />
+                                )}
                             </div>
                         </div>
                     )

@@ -73,7 +73,8 @@ interface StoryboardOverlayProps {
     castMembers: any[];
     locations: any[];
     products: any[]; // [NEW] Added products prop
-    initialScript?: string; // [NEW] Script content (fetched by parent)
+    /** @deprecated Phase 2 — InputDeck now lazy-loads script */
+    initialScript?: string;
     initialRuntime?: string | number; // [NEW] Runtime
 
     // Mood Props
@@ -532,7 +533,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     mode="edit"
                     episodeId={episodeId}
                     initialTitle={episodeTitle} // [NEW] Pass episode title
-                    initialScript={initialScript}
                     initialRuntime={initialRuntime} // [NEW] Pass runtime
                     onSuccess={() => setShowScript(false)}
                 />

@@ -14,7 +14,8 @@ import {
     fetchProjectAssets,
     fetchEpisodes,
     fetchUserCredits,
-    checkJobStatus
+    checkJobStatus,
+    fetchProjectScript
 } from "@/lib/api";
 import { Project, Asset } from "@/lib/types";
 import { SceneData } from "@/components/studio/SceneCard";
@@ -154,7 +155,7 @@ export default function StudioPage() {
                 }
 
             } else {
-                // Movie / Ad — single episode, but fetch real data for script_preview, runtime etc.
+                // Movie / Ad — single episode, but fetch real data for runtime etc.
                 const mainReelId = projData.default_episode_id || "main";
                 try {
                     const epsData = await fetchEpisodes(projectId);
@@ -554,22 +555,25 @@ export default function StudioPage() {
 
     // REGENERATE SCENES
     const handleRegenerateScenes = async () => {
-        const activeEp = episodes.find(e => e.id === activeEpisodeId);
-        if (!activeEp?.script_preview) {
-            toastError("No script found for this episode. Use the Script button to add one first.");
-            return;
-        }
-
         setIsRegenerating(true);
         try {
+            // Fetch the script from the new lazy-load endpoint
+            const { script_text } = await fetchProjectScript(projectId);
+            if (!script_text) {
+                toastError("No script found for this project. Use the Script button to add one first.");
+                setIsRegenerating(false);
+                return;
+            }
+
+            const activeEp = episodes.find(e => e.id === activeEpisodeId);
             const formData = new FormData();
             formData.append("project_id", projectId);
-            formData.append("script_title", activeEp.title || project?.title || "Untitled");
+            formData.append("script_title", activeEp?.title || project?.title || "Untitled");
             formData.append("episode_id", activeEpisodeId);
-            if (activeEp.runtime) formData.append("runtime_seconds", String(activeEp.runtime));
+            if (activeEp?.runtime) formData.append("runtime_seconds", String(activeEp.runtime));
 
-            // Re-send the existing script as a text file
-            const blob = new Blob([activeEp.script_preview], { type: "text/plain" });
+            // Send the fetched script as a text file
+            const blob = new Blob([script_text], { type: "text/plain" });
             formData.append("file", new File([blob], "regenerate.txt"));
 
             const res = await api.post("/api/v1/script/upload-script", formData, {
@@ -703,7 +707,6 @@ export default function StudioPage() {
                     else handleEditEpisode(id);
                 }}
                 initialTitle={episodes.find(e => e.id === scriptTargetEpId)?.title}
-                initialScript={episodes.find(e => e.id === scriptTargetEpId)?.script_preview}
                 initialRuntime={episodes.find(e => e.id === scriptTargetEpId)?.runtime}
                 previousEpisode={
                     scriptMode === 'new' && episodes.length > 0
@@ -713,7 +716,6 @@ export default function StudioPage() {
                                 id: lastEp.id,
                                 episode_number: lastEp.episode_number,
                                 title: lastEp.title || `Episode ${lastEp.episode_number}`,
-                                script_preview: lastEp.script_preview || ""
                             } : null;
                         })()
                         : null

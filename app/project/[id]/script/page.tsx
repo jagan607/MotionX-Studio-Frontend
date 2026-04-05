@@ -189,7 +189,6 @@ export default function ScriptIngestionPage() {
     const isSingleUnit = project?.type === 'movie' || project?.type === 'ad';
     const currentTitle = isSingleUnit ? (project?.title || "") : (activeEpisode?.title || "");
 
-    const currentScript = activeEpisode?.script_preview || "";
     const currentRuntime = activeEpisode?.runtime || "";
 
     let previousEpisodeData = null;
@@ -200,7 +199,6 @@ export default function ScriptIngestionPage() {
                 id: lastEp.id,
                 episode_number: lastEp.episode_number,
                 title: lastEp.title || `Episode ${lastEp.episode_number}`,
-                script_preview: lastEp.script_preview || ""
             };
         }
     }
@@ -411,7 +409,6 @@ export default function ScriptIngestionPage() {
                                     projectType={project?.type || "micro_drama"}
                                     episodeId={selectedEpisodeId}
                                     initialTitle={currentTitle}
-                                    initialScript={currentScript}
                                     initialRuntime={currentRuntime}
                                     isModal={false}
                                     className="w-full"

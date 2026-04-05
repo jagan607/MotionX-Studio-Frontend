@@ -65,7 +65,6 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     const [realEpisodeTitle, setRealEpisodeTitle] = useState<string>(
         episodeId === 'main' ? "FEATURE FILM" : `EPISODE ${episodeId}`
     );
-    const [realScript, setRealScript] = useState<string>("");
     const [realRuntime, setRealRuntime] = useState<string | number>(""); // [NEW]
 
     // Mood State
@@ -93,9 +92,6 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                     const data = epSnap.data();
                     if (data.title) {
                         setRealEpisodeTitle(data.title.toUpperCase());
-                    }
-                    if (data.script_preview) {
-                        setRealScript(data.script_preview);
                     }
                     if (data.runtime) {
                         setRealRuntime(data.runtime);
@@ -281,7 +277,6 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
 
                 seriesName={seriesTitle || "UNTITLED PROJECT"}
                 episodeTitle={realEpisodeTitle}
-                initialScript={realScript}
                 initialRuntime={realRuntime} // [NEW] Pass runtime
 
                 // Mood Props
