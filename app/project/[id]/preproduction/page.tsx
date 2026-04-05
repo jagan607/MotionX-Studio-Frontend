@@ -805,7 +805,7 @@ export default function PreProductionCanvas() {
                 episodeId={activeEpisodeId || undefined}
                 episodes={episodes}
                 initialTitle={episodes.find((e: any) => e.id === activeEpisodeId)?.title}
-                initialRuntime={episodes.find((e: any) => e.id === activeEpisodeId)?.runtime}
+                initialRuntime={episodes.find((e: any) => e.id === activeEpisodeId)?.runtime_seconds || episodes.find((e: any) => e.id === activeEpisodeId)?.runtime}
                 onSuccess={() => {
                     setIsScriptModalOpen(false);
                     fetchAssets();

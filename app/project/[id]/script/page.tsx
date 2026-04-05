@@ -189,7 +189,7 @@ export default function ScriptIngestionPage() {
     const isSingleUnit = project?.type === 'movie' || project?.type === 'ad';
     const currentTitle = isSingleUnit ? (project?.title || "") : (activeEpisode?.title || "");
 
-    const currentRuntime = activeEpisode?.runtime || "";
+    const currentRuntime = activeEpisode?.runtime_seconds || activeEpisode?.runtime || "";
 
     let previousEpisodeData = null;
     if (project?.type === 'micro_drama' && selectedEpisodeId === null && episodes.length > 0) {

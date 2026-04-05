@@ -86,7 +86,7 @@ export const ScriptIngestionModal: React.FC<ScriptIngestionModalProps> = ({
 
                         // Also derive initial data from the episode if we are targeting it
                         const effectiveTitle = (isSingleUnit && firstEpisode) ? firstEpisode.title : initialTitle;
-                        const effectiveRuntime = (isSingleUnit && firstEpisode) ? firstEpisode.runtime : initialRuntime;
+                        const effectiveRuntime = (isSingleUnit && firstEpisode) ? (firstEpisode.runtime_seconds || firstEpisode.runtime) : initialRuntime;
 
                         return (
                             <InputDeck

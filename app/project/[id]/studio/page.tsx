@@ -707,7 +707,7 @@ export default function StudioPage() {
                     else handleEditEpisode(id);
                 }}
                 initialTitle={episodes.find(e => e.id === scriptTargetEpId)?.title}
-                initialRuntime={episodes.find(e => e.id === scriptTargetEpId)?.runtime}
+                initialRuntime={episodes.find(e => e.id === scriptTargetEpId)?.runtime_seconds || episodes.find(e => e.id === scriptTargetEpId)?.runtime}
                 previousEpisode={
                     scriptMode === 'new' && episodes.length > 0
                         ? (() => {

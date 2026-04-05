@@ -530,6 +530,7 @@ export default function NewProjectPage() {
             const res = await api.post("/api/v1/project/create", {
                 title: projectTitle, genre: genre.trim() || "Drama",
                 type, aspect_ratio: aspectRatio, style: selectedStyle,
+                runtime_seconds: runtime,
             });
             const projectId = res.data.id;
             setCreatedProjectId(projectId);

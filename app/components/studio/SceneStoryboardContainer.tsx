@@ -93,8 +93,8 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                     if (data.title) {
                         setRealEpisodeTitle(data.title.toUpperCase());
                     }
-                    if (data.runtime) {
-                        setRealRuntime(data.runtime);
+                    if (data.runtime_seconds || data.runtime) {
+                        setRealRuntime(data.runtime_seconds || data.runtime);
                     }
                 }
             } catch (err) {
