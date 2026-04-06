@@ -15,6 +15,7 @@ export interface RefMediaItem {
     url: string;
     type: 'image' | 'video' | 'audio';
     name: string;
+    locked?: boolean; // Synthetic base items (shot image / source video)
 }
 
 const MAX_REF_MEDIA = 12;
@@ -74,7 +75,7 @@ interface VideoSettingsPanelProps {
     onOpenElementLibrary?: () => void;
 
     // Seedance 2.0
-    shot?: { seedance_task_id?: string; video_url?: string; video_provider?: string };
+    shot?: { seedance_task_id?: string; video_url?: string; video_provider?: string; image_url?: string };
     sceneCharacters?: { name: string; image_url: string }[];
     locationImage?: string;
     onExtend?: (parentTaskId: string, options?: AnimateOptions) => void;
@@ -365,13 +366,28 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         : null;
     const displayCost = videoEditCost ?? videoCost;
 
-    // ── Omni-Reference derived values ──
+    // ── Omni-Reference: synthetic locked items + display list ──
+    const lockedItems: RefMediaItem[] = React.useMemo(() => {
+        const items: RefMediaItem[] = [];
+        if (generationMode === 'new' && shotData?.image_url) {
+            items.push({ url: shotData.image_url, type: 'image', name: 'Base Shot Image', locked: true });
+        }
+        if (generationMode === 'edit' && sourceVideoUrl) {
+            items.push({ url: sourceVideoUrl, type: 'video', name: 'Source Video', locked: true });
+        }
+        return items;
+    }, [generationMode, shotData?.image_url, sourceVideoUrl]);
+
+    // Display list = locked items + user-uploaded items (for rendering & tag indexing)
+    const displayMedia = [...lockedItems, ...refMedia];
+
     const hasCustomAudio = refMedia.some(r => r.type === 'audio');
     const isVideoEditWithSource = generationMode === 'edit' && !!sourceVideoUrl;
     const hasOnlyAudio = refMedia.length > 0 && refMedia.every(r => r.type === 'audio') && !isVideoEditWithSource;
 
     const buildOptions = (): AnimateOptions => {
         // Split refMedia into three typed arrays for PiAPI omni_reference
+        // CRITICAL: Only send user-uploaded items — locked/synthetic items are handled server-side
         const refImageUrls = refMedia.filter(r => r.type === 'image').map(r => r.url);
         const refVideoUrls = refMedia.filter(r => r.type === 'video').map(r => r.url);
         const refAudioUrls = refMedia.filter(r => r.type === 'audio').map(r => r.url);
@@ -746,25 +762,30 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             Mix up to {MAX_REF_MEDIA} images, videos, or audio tracks to guide style and motion.
                         </p>
                         <div className="flex gap-1.5 overflow-x-auto pb-1 flex-wrap">
-                            {refMedia.map((item, i) => {
-                                const tag = getMediaTag(refMedia, i);
-                                const borderColor = item.type === 'video'
-                                    ? 'border-purple-500/30 hover:border-purple-400/60'
-                                    : item.type === 'audio'
-                                        ? 'border-cyan-500/30 hover:border-cyan-400/60'
-                                        : 'border-white/[0.1] hover:border-white/40';
-                                const badgeBg = item.type === 'video'
-                                    ? 'bg-purple-900/80'
-                                    : item.type === 'audio'
-                                        ? 'bg-cyan-900/80'
-                                        : 'bg-black/70';
+                            {displayMedia.map((item, i) => {
+                                const tag = getMediaTag(displayMedia, i);
+                                const isLocked = !!item.locked;
+                                const borderColor = isLocked
+                                    ? 'border-amber-500/30'
+                                    : item.type === 'video'
+                                        ? 'border-purple-500/30 hover:border-purple-400/60'
+                                        : item.type === 'audio'
+                                            ? 'border-cyan-500/30 hover:border-cyan-400/60'
+                                            : 'border-white/[0.1] hover:border-white/40';
+                                const badgeBg = isLocked
+                                    ? 'bg-amber-900/80'
+                                    : item.type === 'video'
+                                        ? 'bg-purple-900/80'
+                                        : item.type === 'audio'
+                                            ? 'bg-cyan-900/80'
+                                            : 'bg-black/70';
 
                                 return (
                                     <div
-                                        key={i}
+                                        key={isLocked ? `locked-${i}` : `user-${i}`}
                                         className={`relative w-14 h-14 rounded-lg overflow-hidden border flex-shrink-0 group transition-all cursor-pointer
                                             ${borderColor}`}
-                                        title={item.name}
+                                        title={isLocked ? `${item.name} (locked — ${tag})` : item.name}
                                         onClick={() => setPreviewMedia(item)}
                                     >
                                         {/* Type-specific thumbnail */}
@@ -789,6 +810,13 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                 : <Play size={16} className="text-white fill-white" />}
                                         </div>
 
+                                        {/* Lock icon for synthetic items */}
+                                        {isLocked && (
+                                            <div className="absolute top-0.5 left-0.5 p-0.5 bg-black/60 rounded-br z-10">
+                                                <Lock size={8} className="text-amber-400" />
+                                            </div>
+                                        )}
+
                                         {/* @tag badge pill — INSERT action zone */}
                                         {onInsertPromptTag && (
                                             <button
@@ -807,14 +835,21 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                             </span>
                                         )}
 
-                                        {/* Delete button */}
-                                        <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); setRefMedia(prev => prev.filter((_, idx) => idx !== i)); }}
-                                            className="absolute top-0 right-0 p-0.5 bg-black/70 rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                                        >
-                                            <Trash2 size={10} className="text-red-400" />
-                                        </button>
+                                        {/* Delete button — hidden for locked items */}
+                                        {!isLocked && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // i is index in displayMedia; subtract locked count to get refMedia index
+                                                    const refIdx = i - lockedItems.length;
+                                                    setRefMedia(prev => prev.filter((_, idx) => idx !== refIdx));
+                                                }}
+                                                className="absolute top-0 right-0 p-0.5 bg-black/70 rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                            >
+                                                <Trash2 size={10} className="text-red-400" />
+                                            </button>
+                                        )}
                                     </div>
                                 );
                             })}

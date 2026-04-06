@@ -552,6 +552,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                             seedance_task_id: (shot as any).seedance_task_id,
                                             video_url: shot.video_url,
                                             video_provider: shot.video_settings?.provider,
+                                            image_url: shot.image_url,
                                         }}
                                         sceneCharacters={sceneCharacters}
                                         locationImage={locationImage}
