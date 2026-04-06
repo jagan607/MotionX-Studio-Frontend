@@ -23,7 +23,7 @@ const MAX_FILE_SIZE_MB = 10;
 const MAX_AUDIO_DURATION_S = 15;
 
 /** Compute the PiAPI @tag for a media item based on its position and type */
-const getMediaTag = (items: RefMediaItem[], index: number): string => {
+export const getMediaTag = (items: RefMediaItem[], index: number): string => {
     const item = items[index];
     const sameTypeBefore = items.slice(0, index).filter(r => r.type === item.type).length;
     const prefix = item.type === 'image' ? 'image' : item.type === 'video' ? 'video' : 'audio';
@@ -87,6 +87,9 @@ interface VideoSettingsPanelProps {
     // Prompt tagging (Phase 2)
     onInsertPromptTag?: (tag: string) => void;
 
+    // @mention autocomplete bridge
+    onDisplayMediaChange?: (items: RefMediaItem[]) => void;
+
     // Preflight warnings (Phase 3)
     preflightWarnings?: string[];
     onClearPreflightWarnings?: () => void;
@@ -124,6 +127,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     onExtend,
     hideActions = false,
     onInsertPromptTag,
+    onDisplayMediaChange,
     preflightWarnings = [],
     onClearPreflightWarnings,
     onAnimateInfoChange
@@ -380,6 +384,12 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
     // Display list = locked items + user-uploaded items (for rendering & tag indexing)
     const displayMedia = [...lockedItems, ...refMedia];
+
+    // Surface displayMedia to parent for @mention autocomplete
+    React.useEffect(() => {
+        onDisplayMediaChange?.(displayMedia);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [JSON.stringify(displayMedia.map(m => m.url + m.type)), onDisplayMediaChange]);
 
     const hasCustomAudio = refMedia.some(r => r.type === 'audio');
     const isVideoEditWithSource = generationMode === 'edit' && !!sourceVideoUrl;

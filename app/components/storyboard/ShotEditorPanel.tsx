@@ -3,10 +3,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2, Check, Film, RefreshCw, Link2, Plus } from 'lucide-react';
 import { VideoHistoryStrip } from './VideoHistoryStrip';
-import { VideoSettingsPanel } from './VideoSettingsPanel';
+import { VideoSettingsPanel, RefMediaItem, getMediaTag } from './VideoSettingsPanel';
+import { MentionDropdown } from './MentionDropdown';
 import { ElementLibraryModal } from './ElementLibraryModal';
 import { KlingElement, useElementLibrary } from '@/app/hooks/shot-manager/useElementLibrary';
 import { AnimateOptions, VideoProvider, PreflightResult } from '@/app/hooks/shot-manager/useShotVideoGen';
+import { usePromptMention, MentionItem } from '@/app/hooks/usePromptMention';
 import { formatCredits } from '@/app/hooks/usePricing';
 import { api } from '@/lib/api';
 import Image from 'next/image';
@@ -65,6 +67,13 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     // ── Preflight Warnings State (Phase 3) ──
     const [preflightWarnings, setPreflightWarnings] = useState<string[]>([]);
     const preflightSeenRef = useRef(false);
+
+    // ── @Mention Autocomplete Bridge ──
+    const [displayMedia, setDisplayMedia] = useState<RefMediaItem[]>([]);
+    const handleDisplayMediaChange = useCallback((items: RefMediaItem[]) => {
+        setDisplayMedia(items);
+    }, []);
+
 
     // ── Local Submitting State (covers preflight + animate dead zone) ──
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,6 +141,26 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
             });
         }
     }, [shot?.id, localPrompt, onUpdateShot]);
+
+    // ── @Mention Autocomplete Hook (must be after handleInsertPromptTag) ──
+    const isSeedance2 = shot?.video_settings?.provider === 'seedance-2' || shot?.video_settings?.provider === 'seedance';
+    const mentionItems: MentionItem[] = React.useMemo(() =>
+        displayMedia.map((item, i) => ({
+            tag: getMediaTag(displayMedia, i),
+            type: item.type,
+            url: item.url,
+            name: item.name,
+            locked: item.locked,
+        })),
+        [displayMedia]
+    );
+
+    const mention = usePromptMention({
+        textareaRef: promptTextareaRef,
+        items: mentionItems,
+        enabled: !!isSeedance2,
+    });
+
 
     const [isEnhancing, setIsEnhancing] = useState(false);
     const {
@@ -449,11 +478,30 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                     <textarea
                                         ref={promptTextareaRef}
                                         value={localPrompt}
-                                        onChange={(e) => handlePromptChange(e.target.value)}
+                                        onChange={(e) => {
+                                            handlePromptChange(e.target.value);
+                                            mention.handleChange(e.target.value, e.target.selectionStart ?? undefined);
+                                        }}
+                                        onKeyDown={mention.handleKeyDown}
+                                        onBlur={mention.handleBlur}
+                                        aria-expanded={mention.isOpen}
+                                        aria-activedescendant={mention.isOpen ? `mention-option-${mention.activeIndex}` : undefined}
                                         placeholder="Describe the shot..."
                                         className={`w-full h-40 bg-[#0a0a0a] border border-white/[0.1] rounded-lg px-3 py-3 text-[13px] text-white outline-none focus:border-white/[0.3] resize-none leading-relaxed transition-all
                                             ${isEnhancing ? 'animate-pulse opacity-60' : ''}`}
                                     />
+
+                                    {/* @mention autocomplete dropdown */}
+                                    {mention.isOpen && (
+                                        <MentionDropdown
+                                            items={mention.filteredItems}
+                                            activeIndex={mention.activeIndex}
+                                            position={mention.menuPosition}
+                                            onSelect={mention.insertTag}
+                                            onHover={(i) => {}}
+                                        />
+                                    )}
+
                                     <div className="absolute bottom-2 right-2 flex gap-1">
                                         {(shot.video_settings?.provider === 'kling-v3') && (
                                             <button
@@ -560,6 +608,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                         hideActions
                                         onAnimateInfoChange={handleAnimateInfoChange}
                                         onInsertPromptTag={handleInsertPromptTag}
+                                        onDisplayMediaChange={handleDisplayMediaChange}
                                         preflightWarnings={preflightWarnings}
                                         onClearPreflightWarnings={() => { setPreflightWarnings([]); preflightSeenRef.current = false; }}
                                     />
