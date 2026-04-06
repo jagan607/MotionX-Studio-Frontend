@@ -762,7 +762,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 return (
                                     <div
                                         key={i}
-                                        className={`relative w-10 h-10 rounded-md overflow-hidden border flex-shrink-0 group transition-all cursor-pointer
+                                        className={`relative w-14 h-14 rounded-lg overflow-hidden border flex-shrink-0 group transition-all cursor-pointer
                                             ${borderColor}`}
                                         title={item.name}
                                         onClick={() => setPreviewMedia(item)}
@@ -773,20 +773,20 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         )}
                                         {item.type === 'video' && (
                                             <div className="w-full h-full bg-purple-950/40 flex items-center justify-center">
-                                                <Video size={14} className="text-purple-400" />
+                                                <Video size={18} className="text-purple-400" />
                                             </div>
                                         )}
                                         {item.type === 'audio' && (
                                             <div className="w-full h-full bg-cyan-950/40 flex items-center justify-center">
-                                                <Music size={14} className="text-cyan-400" />
+                                                <Music size={18} className="text-cyan-400" />
                                             </div>
                                         )}
 
                                         {/* Preview hover indicator */}
                                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                             {item.type === 'image'
-                                                ? <Eye size={12} className="text-white" />
-                                                : <Play size={12} className="text-white fill-white" />}
+                                                ? <Eye size={16} className="text-white" />
+                                                : <Play size={16} className="text-white fill-white" />}
                                         </div>
 
                                         {/* @tag badge pill — INSERT action zone */}
@@ -795,14 +795,14 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                 type="button"
                                                 onClick={(e) => { e.stopPropagation(); onInsertPromptTag(tag); }}
                                                 title={`Click to insert ${tag} into prompt`}
-                                                className={`absolute bottom-0 inset-x-0 ${badgeBg} text-[6px] text-center text-neutral-200 font-mono py-px tracking-tight
+                                                className={`absolute bottom-0 inset-x-0 ${badgeBg} text-[7px] text-center text-neutral-200 font-mono py-0.5 tracking-tight
                                                     hover:!bg-amber-600/90 hover:text-white transition-colors cursor-copy z-[5]`}
                                             >
                                                 {tag}
                                             </button>
                                         )}
                                         {!onInsertPromptTag && (
-                                            <span className={`absolute bottom-0 inset-x-0 ${badgeBg} text-[6px] text-center text-neutral-200 font-mono py-px tracking-tight`}>
+                                            <span className={`absolute bottom-0 inset-x-0 ${badgeBg} text-[7px] text-center text-neutral-200 font-mono py-0.5 tracking-tight`}>
                                                 {tag}
                                             </span>
                                         )}
@@ -813,7 +813,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                             onClick={(e) => { e.stopPropagation(); setRefMedia(prev => prev.filter((_, idx) => idx !== i)); }}
                                             className="absolute top-0 right-0 p-0.5 bg-black/70 rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                         >
-                                            <Trash2 size={8} className="text-red-400" />
+                                            <Trash2 size={10} className="text-red-400" />
                                         </button>
                                     </div>
                                 );
@@ -825,35 +825,52 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     <input
                                         type="file"
                                         accept="image/*,video/mp4,video/quicktime,audio/mpeg,audio/wav"
+                                        multiple
                                         className="hidden"
                                         ref={refInputRef}
                                         onChange={async (e) => {
-                                            const file = e.target.files?.[0];
-                                            if (!file) return;
+                                            const fileList = e.target.files;
+                                            if (!fileList || fileList.length === 0) return;
+
+                                            // ── Guardrail: Remaining slot check ──
+                                            const remaining = MAX_REF_MEDIA - refMedia.length;
+                                            let files = Array.from(fileList);
+                                            if (files.length > remaining) {
+                                                files = files.slice(0, remaining);
+                                                toastError(`Only ${MAX_REF_MEDIA} reference files allowed. Some files were skipped.`);
+                                            }
+                                            if (files.length === 0) return;
+
+                                            setIsUploadingRef(true);
+                                            const uploaded: RefMediaItem[] = [];
                                             try {
-                                                // ── Guardrail: File size ──
-                                                if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-                                                    toastError(`File exceeds ${MAX_FILE_SIZE_MB}MB limit. Please compress or choose a smaller file.`);
-                                                    return;
-                                                }
-
-                                                const mediaType = detectMediaType(file.type);
-
-                                                // ── Guardrail: Audio duration ──
-                                                if (mediaType === 'audio') {
-                                                    const dur = await getAudioDuration(file);
-                                                    if (dur !== null && dur > MAX_AUDIO_DURATION_S) {
-                                                        toastError(`Audio references must be ${MAX_AUDIO_DURATION_S} seconds or shorter. This file is ${dur.toFixed(1)}s.`);
-                                                        return;
+                                                for (const file of files) {
+                                                    // ── Guardrail: File size ──
+                                                    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+                                                        toastError(`"${file.name}" exceeds ${MAX_FILE_SIZE_MB}MB limit. Skipped.`);
+                                                        continue;
                                                     }
-                                                }
 
-                                                setIsUploadingRef(true);
-                                                const path = `ref_media/${Date.now()}_${file.name}`;
-                                                const storageRef = ref(storage, path);
-                                                await uploadBytes(storageRef, file);
-                                                const url = await getDownloadURL(storageRef);
-                                                setRefMedia(prev => [...prev, { url, type: mediaType, name: file.name }].slice(0, MAX_REF_MEDIA));
+                                                    const mediaType = detectMediaType(file.type);
+
+                                                    // ── Guardrail: Audio duration ──
+                                                    if (mediaType === 'audio') {
+                                                        const dur = await getAudioDuration(file);
+                                                        if (dur !== null && dur > MAX_AUDIO_DURATION_S) {
+                                                            toastError(`"${file.name}" is ${dur.toFixed(1)}s — max ${MAX_AUDIO_DURATION_S}s. Skipped.`);
+                                                            continue;
+                                                        }
+                                                    }
+
+                                                    const path = `ref_media/${Date.now()}_${file.name}`;
+                                                    const storageRef = ref(storage, path);
+                                                    await uploadBytes(storageRef, file);
+                                                    const url = await getDownloadURL(storageRef);
+                                                    uploaded.push({ url, type: mediaType, name: file.name });
+                                                }
+                                                if (uploaded.length > 0) {
+                                                    setRefMedia(prev => [...prev, ...uploaded].slice(0, MAX_REF_MEDIA));
+                                                }
                                             } catch (err) {
                                                 console.error('[RefMediaUpload] Failed:', err);
                                                 toastError('Upload failed. Please try again.');
@@ -867,14 +884,14 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         type="button"
                                         disabled={isUploadingRef}
                                         onClick={() => refInputRef.current?.click()}
-                                        className="w-10 h-10 rounded-md border border-dashed border-white/[0.15] flex items-center justify-center flex-shrink-0
+                                        className="w-14 h-14 rounded-lg border border-dashed border-white/[0.15] flex items-center justify-center flex-shrink-0
                                             bg-white/[0.02] hover:bg-white/[0.06] hover:border-amber-500/40 transition-all cursor-pointer
                                             disabled:opacity-40 disabled:cursor-wait"
-                                        title="Add image, video, or audio reference"
+                                        title="Add image, video, or audio references"
                                     >
                                         {isUploadingRef
-                                            ? <Loader2 size={12} className="text-amber-400 animate-spin" />
-                                            : <Plus size={14} className="text-neutral-500" />}
+                                            ? <Loader2 size={14} className="text-amber-400 animate-spin" />
+                                            : <Plus size={18} className="text-neutral-500" />}
                                     </button>
                                 </>
                             )}
