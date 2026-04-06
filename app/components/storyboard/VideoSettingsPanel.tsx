@@ -3,11 +3,55 @@ import {
     Film, RefreshCw, Link2, Mic2, Video, Pencil,
     ChevronDown, ChevronUp, Sliders, Plus, Trash2, AlertCircle, Loader2,
     RectangleHorizontal, RectangleVertical, Square, Volume2, FastForward,
-    ImagePlus, X, AlertTriangle, Lock, Scissors
+    ImagePlus, X, AlertTriangle, Lock, Scissors, Music, Eye, Play
 } from 'lucide-react';
 import type { VideoProvider, AnimateOptions, PromptSegment } from '@/app/hooks/shot-manager/useShotVideoGen';
 import type { KlingElement } from '@/app/hooks/shot-manager/useElementLibrary';
 import { usePricing, formatCredits } from '@/app/hooks/usePricing';
+import { toastError } from '@/lib/toast';
+
+// ── Omni-Reference Types ──
+export interface RefMediaItem {
+    url: string;
+    type: 'image' | 'video' | 'audio';
+    name: string;
+}
+
+const MAX_REF_MEDIA = 12;
+const MAX_FILE_SIZE_MB = 10;
+const MAX_AUDIO_DURATION_S = 15;
+
+/** Compute the PiAPI @tag for a media item based on its position and type */
+const getMediaTag = (items: RefMediaItem[], index: number): string => {
+    const item = items[index];
+    const sameTypeBefore = items.slice(0, index).filter(r => r.type === item.type).length;
+    const prefix = item.type === 'image' ? 'image' : item.type === 'video' ? 'video' : 'audio';
+    return `@${prefix}${sameTypeBefore + 1}`;
+};
+
+/** Detect media type from MIME string */
+const detectMediaType = (mime: string): 'image' | 'video' | 'audio' => {
+    if (mime.startsWith('video/')) return 'video';
+    if (mime.startsWith('audio/')) return 'audio';
+    return 'image';
+};
+
+/** Extract audio duration (returns seconds or null on failure) */
+const getAudioDuration = (file: File): Promise<number | null> => {
+    return new Promise((resolve) => {
+        const audio = new Audio();
+        const objectUrl = URL.createObjectURL(file);
+        audio.preload = 'metadata';
+        audio.src = objectUrl;
+        const timeout = setTimeout(() => { URL.revokeObjectURL(objectUrl); resolve(null); }, 5000);
+        audio.onloadedmetadata = () => {
+            clearTimeout(timeout);
+            URL.revokeObjectURL(objectUrl);
+            resolve(audio.duration);
+        };
+        audio.onerror = () => { clearTimeout(timeout); URL.revokeObjectURL(objectUrl); resolve(null); };
+    });
+};
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { api } from '@/lib/api';
@@ -98,8 +142,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const { getVideoCost, getVideoEditRate, getLipSyncCost } = usePricing();
     const [quality, setQuality] = useState<'fast' | 'pro'>(initialSettings?.quality || 'fast');
     const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '4:3' | '3:4' | '1:1'>(initialSettings?.aspect_ratio || '16:9');
-    const [refImages, setRefImages] = useState<string[]>(initialSettings?.reference_image_urls || []);
+    const [refMedia, setRefMedia] = useState<RefMediaItem[]>(initialSettings?.reference_media || []);
     const [isUploadingRef, setIsUploadingRef] = useState(false);
+    const [previewMedia, setPreviewMedia] = useState<RefMediaItem | null>(null);
     const refInputRef = useRef<HTMLInputElement>(null);
 
      // End Frame (Seedance 2.0 start-to-end)
@@ -277,7 +322,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         if (!onSettingsChange) return;
         const currentSettings = {
             provider, duration, mode, quality, aspect_ratio: aspectRatio,
-            reference_image_urls: refImages,
+            reference_media: refMedia,
             end_frame_url: endFrameUrl,
             source_video_url: sourceVideoUrl,
             source_video_duration: sourceVideoDuration,
@@ -291,7 +336,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             onSettingsChange(currentSettings);
         }, 500);
         return () => clearTimeout(timer);
-    }, [provider, duration, mode, quality, aspectRatio, refImages, endFrameUrl, sourceVideoUrl, sourceVideoDuration, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, onSettingsChange]);
+    }, [provider, duration, mode, quality, aspectRatio, refMedia, endFrameUrl, sourceVideoUrl, sourceVideoDuration, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, onSettingsChange]);
 
     // Clear preflight warnings when settings change
     React.useEffect(() => {
@@ -299,7 +344,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             onClearPreflightWarnings();
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [provider, duration, mode, quality, aspectRatio, refImages, endFrameUrl, sourceVideoUrl, sourceVideoDuration]);
+    }, [provider, duration, mode, quality, aspectRatio, refMedia, endFrameUrl, sourceVideoUrl, sourceVideoDuration]);
 
     // --- Validation & Options Building ---
     const getTotalSegmentDuration = () => {
@@ -309,21 +354,38 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const isDurationValid = !(isV3 && multiShot) || shotType === 'intelligence' || getTotalSegmentDuration() === parseFloat(duration);
 
     // Video-edit cost override: use trimmed duration × per-second rate from pricing API
+    // PiAPI enforces a 5-second minimum output — clamp billing duration accordingly
+    const MIN_EDIT_DURATION = 5;
     const editMode = quality === 'fast' ? 'std' : 'pro';
-    const editDuration = (generationMode === 'edit' && trimmedDuration > 0) ? trimmedDuration : sourceVideoDuration;
+    const rawEditDuration = (generationMode === 'edit' && trimmedDuration > 0) ? trimmedDuration : sourceVideoDuration;
+    const editDuration = rawEditDuration ? Math.max(rawEditDuration, MIN_EDIT_DURATION) : rawEditDuration;
+    const isTrimBelowMinimum = generationMode === 'edit' && trimmedDuration > 0 && trimmedDuration < MIN_EDIT_DURATION;
     const videoEditCost = (generationMode === 'edit' && sourceVideoUrl && editDuration)
         ? Math.round(editDuration * getVideoEditRate(provider, editMode as 'std' | 'pro') * 10) / 10
         : null;
     const displayCost = videoEditCost ?? videoCost;
 
-    const buildOptions = (): AnimateOptions => ({
+    // ── Omni-Reference derived values ──
+    const hasCustomAudio = refMedia.some(r => r.type === 'audio');
+    const isVideoEditWithSource = generationMode === 'edit' && !!sourceVideoUrl;
+    const hasOnlyAudio = refMedia.length > 0 && refMedia.every(r => r.type === 'audio') && !isVideoEditWithSource;
+
+    const buildOptions = (): AnimateOptions => {
+        // Split refMedia into three typed arrays for PiAPI omni_reference
+        const refImageUrls = refMedia.filter(r => r.type === 'image').map(r => r.url);
+        const refVideoUrls = refMedia.filter(r => r.type === 'video').map(r => r.url);
+        const refAudioUrls = refMedia.filter(r => r.type === 'audio').map(r => r.url);
+
+        return {
         duration,
         mode,
         aspect_ratio: aspectRatio,
         ...(isSeedance2 ? {
-            sound: 'on',
+            sound: hasCustomAudio ? 'off' : 'on',
             quality,
-            reference_image_urls: refImages.length > 0 ? refImages : undefined,
+            ...(refImageUrls.length > 0 ? { reference_image_urls: refImageUrls } : {}),
+            ...(refVideoUrls.length > 0 ? { reference_video_urls: refVideoUrls } : {}),
+            ...(refAudioUrls.length > 0 ? { reference_audio_urls: refAudioUrls } : {}),
             ...(sourceVideoUrl ? { video_url: sourceVideoUrl } : {}),
             ...(sourceVideoDuration ? { source_video_duration: sourceVideoDuration } : {}),
             ...(generationMode === 'edit' && sourceVideoUrl ? {
@@ -344,7 +406,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             // element_list: elementList.length > 0 ? elementList.map(id => ({ element_id: String(id) })) : undefined,  // TODO: Uncomment for official Kling API
             // voice_list: voiceList.length > 0 ? voiceList.map(id => ({ voice_id: id })) : undefined,                  // TODO: Uncomment for official Kling API
         } : {}),
-    });
+    };
+    };
 
     const handleAnimate = () => {
         if (!isDurationValid) return;
@@ -377,7 +440,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         onAnimateInfoChange({
             handleAnimate: () => handleAnimateRef.current(),
             cost: displayCost,
-            disabled: (!hasImage && !hasVideo) || isBusy || !isDurationValid,
+            disabled: (!hasImage && !hasVideo) || isBusy || !isDurationValid || hasOnlyAudio,
             label: isLinked
                 ? 'Morph to Next'
                 : generationMode === 'edit'
@@ -390,9 +453,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [provider, duration, mode, quality, aspectRatio, endFrameUrl, negativePrompt, cfgScale, sound,
-        watermark, multiShot, shotType, segments, elementList, voiceList, refImages,
+        watermark, multiShot, shotType, segments, elementList, voiceList, refMedia,
         hasImage, hasVideo, isBusy, isLinked, isDurationValid, videoCost, displayCost,
-        generationMode, sourceVideoUrl, sourceVideoDuration, trimStart, trimEnd, preflightWarnings]);
+        generationMode, sourceVideoUrl, sourceVideoDuration, trimStart, trimEnd, preflightWarnings, hasOnlyAudio]);
 
     // --- Helpers ---
     const addSegment = () => {
@@ -666,57 +729,134 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         </div>
                     )}
 
-                    {/* Reference Images Strip */}
-                    <div>
+                    {/* Extend mode helper */}
+                    {generationMode === 'extend' && (
+                        <p className="text-[8px] text-amber-400/70 leading-relaxed px-0.5 -mt-0.5">
+                            Extensions add 5s to your original video using only the text prompt.
+                        </p>
+                    )}
+
+                    {/* ── Reference Media Strip (Omni-Reference) — hidden in Extend mode ── */}
+                    {generationMode !== 'extend' && <div>
                         <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex items-center justify-between">
-                            <span>Reference Images</span>
-                            <span className="text-neutral-600">{refImages.length}/5</span>
+                            <span>Reference Media</span>
+                            <span className="text-neutral-600">{refMedia.length}/{MAX_REF_MEDIA}</span>
                         </label>
-                        <div className="flex gap-1.5 overflow-x-auto pb-1">
-                            {refImages.map((url, i) => (
-                                <div
-                                    key={i}
-                                    className={`relative w-10 h-10 rounded-md overflow-hidden border flex-shrink-0 group transition-all
-                                        ${onInsertPromptTag
-                                            ? 'cursor-pointer border-white/[0.1] hover:border-white/40 hover:ring-1 hover:ring-white/30 active:opacity-50'
-                                            : 'border-white/[0.1]'}`}
-                                    title={onInsertPromptTag ? `Click to insert @image${i + 1} into prompt` : undefined}
-                                    onClick={() => onInsertPromptTag?.(`@image${i + 1}`)}
-                                >
-                                    <img src={url} alt="" className="w-full h-full object-cover" />
-                                    {/* @imageN label */}
-                                    <span className="absolute bottom-0 inset-x-0 bg-black/70 text-[7px] text-center text-neutral-300 font-mono py-px">
-                                        @img{i + 1}
-                                    </span>
-                                    {/* Delete button */}
-                                    <button
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); setRefImages(refImages.filter((_, idx) => idx !== i)); }}
-                                        className="absolute top-0 right-0 p-0.5 bg-black/70 rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        <p className="text-[7px] text-neutral-600 mb-1.5 leading-relaxed">
+                            Mix up to {MAX_REF_MEDIA} images, videos, or audio tracks to guide style and motion.
+                        </p>
+                        <div className="flex gap-1.5 overflow-x-auto pb-1 flex-wrap">
+                            {refMedia.map((item, i) => {
+                                const tag = getMediaTag(refMedia, i);
+                                const borderColor = item.type === 'video'
+                                    ? 'border-purple-500/30 hover:border-purple-400/60'
+                                    : item.type === 'audio'
+                                        ? 'border-cyan-500/30 hover:border-cyan-400/60'
+                                        : 'border-white/[0.1] hover:border-white/40';
+                                const badgeBg = item.type === 'video'
+                                    ? 'bg-purple-900/80'
+                                    : item.type === 'audio'
+                                        ? 'bg-cyan-900/80'
+                                        : 'bg-black/70';
+
+                                return (
+                                    <div
+                                        key={i}
+                                        className={`relative w-10 h-10 rounded-md overflow-hidden border flex-shrink-0 group transition-all cursor-pointer
+                                            ${borderColor}`}
+                                        title={item.name}
+                                        onClick={() => setPreviewMedia(item)}
                                     >
-                                        <Trash2 size={8} className="text-red-400" />
-                                    </button>
-                                </div>
-                            ))}
-                            {refImages.length < 5 && (
+                                        {/* Type-specific thumbnail */}
+                                        {item.type === 'image' && (
+                                            <img src={item.url} alt="" className="w-full h-full object-cover" />
+                                        )}
+                                        {item.type === 'video' && (
+                                            <div className="w-full h-full bg-purple-950/40 flex items-center justify-center">
+                                                <Video size={14} className="text-purple-400" />
+                                            </div>
+                                        )}
+                                        {item.type === 'audio' && (
+                                            <div className="w-full h-full bg-cyan-950/40 flex items-center justify-center">
+                                                <Music size={14} className="text-cyan-400" />
+                                            </div>
+                                        )}
+
+                                        {/* Preview hover indicator */}
+                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                            {item.type === 'image'
+                                                ? <Eye size={12} className="text-white" />
+                                                : <Play size={12} className="text-white fill-white" />}
+                                        </div>
+
+                                        {/* @tag badge pill — INSERT action zone */}
+                                        {onInsertPromptTag && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); onInsertPromptTag(tag); }}
+                                                title={`Click to insert ${tag} into prompt`}
+                                                className={`absolute bottom-0 inset-x-0 ${badgeBg} text-[6px] text-center text-neutral-200 font-mono py-px tracking-tight
+                                                    hover:!bg-amber-600/90 hover:text-white transition-colors cursor-copy z-[5]`}
+                                            >
+                                                {tag}
+                                            </button>
+                                        )}
+                                        {!onInsertPromptTag && (
+                                            <span className={`absolute bottom-0 inset-x-0 ${badgeBg} text-[6px] text-center text-neutral-200 font-mono py-px tracking-tight`}>
+                                                {tag}
+                                            </span>
+                                        )}
+
+                                        {/* Delete button */}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); setRefMedia(prev => prev.filter((_, idx) => idx !== i)); }}
+                                            className="absolute top-0 right-0 p-0.5 bg-black/70 rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                        >
+                                            <Trash2 size={8} className="text-red-400" />
+                                        </button>
+                                    </div>
+                                );
+                            })}
+
+                            {/* Add button */}
+                            {refMedia.length < MAX_REF_MEDIA && (
                                 <>
                                     <input
                                         type="file"
-                                        accept="image/*"
+                                        accept="image/*,video/mp4,video/quicktime,audio/mpeg,audio/wav"
                                         className="hidden"
                                         ref={refInputRef}
                                         onChange={async (e) => {
                                             const file = e.target.files?.[0];
                                             if (!file) return;
                                             try {
+                                                // ── Guardrail: File size ──
+                                                if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+                                                    toastError(`File exceeds ${MAX_FILE_SIZE_MB}MB limit. Please compress or choose a smaller file.`);
+                                                    return;
+                                                }
+
+                                                const mediaType = detectMediaType(file.type);
+
+                                                // ── Guardrail: Audio duration ──
+                                                if (mediaType === 'audio') {
+                                                    const dur = await getAudioDuration(file);
+                                                    if (dur !== null && dur > MAX_AUDIO_DURATION_S) {
+                                                        toastError(`Audio references must be ${MAX_AUDIO_DURATION_S} seconds or shorter. This file is ${dur.toFixed(1)}s.`);
+                                                        return;
+                                                    }
+                                                }
+
                                                 setIsUploadingRef(true);
-                                                const path = `ref_images/${Date.now()}_${file.name}`;
+                                                const path = `ref_media/${Date.now()}_${file.name}`;
                                                 const storageRef = ref(storage, path);
                                                 await uploadBytes(storageRef, file);
                                                 const url = await getDownloadURL(storageRef);
-                                                setRefImages(prev => [...prev, url].slice(0, 5));
+                                                setRefMedia(prev => [...prev, { url, type: mediaType, name: file.name }].slice(0, MAX_REF_MEDIA));
                                             } catch (err) {
-                                                console.error('[RefUpload] Failed:', err);
+                                                console.error('[RefMediaUpload] Failed:', err);
+                                                toastError('Upload failed. Please try again.');
                                             } finally {
                                                 setIsUploadingRef(false);
                                                 if (refInputRef.current) refInputRef.current.value = '';
@@ -730,6 +870,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         className="w-10 h-10 rounded-md border border-dashed border-white/[0.15] flex items-center justify-center flex-shrink-0
                                             bg-white/[0.02] hover:bg-white/[0.06] hover:border-amber-500/40 transition-all cursor-pointer
                                             disabled:opacity-40 disabled:cursor-wait"
+                                        title="Add image, video, or audio reference"
                                     >
                                         {isUploadingRef
                                             ? <Loader2 size={12} className="text-amber-400 animate-spin" />
@@ -738,10 +879,82 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 </>
                             )}
                         </div>
-                    </div>
 
-                    {/* ── End Frame Upload Zone (hidden in Edit mode) ── */}
-                    {generationMode !== 'edit' && <div>
+                        {/* ── Audio-Only Guardrail Warning ── */}
+                        {hasOnlyAudio && (
+                            <div className="flex items-start gap-1.5 mt-1.5 px-2 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/25">
+                                <AlertTriangle size={10} className="text-amber-400 mt-0.5 flex-shrink-0" />
+                                <span className="text-[8px] text-amber-300 leading-relaxed">
+                                    Audio references require at least one accompanying image or video.
+                                </span>
+                            </div>
+                        )}
+                    </div>}
+
+                    {/* ── Media Preview Lightbox ── */}
+                    {previewMedia && (
+                        <div
+                            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                            onClick={() => setPreviewMedia(null)}
+                            onKeyDown={(e) => { if (e.key === 'Escape') setPreviewMedia(null); }}
+                            tabIndex={-1}
+                            ref={(el) => el?.focus()}
+                        >
+                            <div
+                                className="relative max-w-[90vw] max-h-[80vh] rounded-xl overflow-hidden bg-neutral-900 border border-white/10 shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* Close button */}
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewMedia(null)}
+                                    className="absolute top-2 right-2 z-20 p-1.5 bg-black/60 hover:bg-red-500/80 rounded-full text-white transition-colors"
+                                >
+                                    <X size={14} />
+                                </button>
+
+                                {/* Image preview */}
+                                {previewMedia.type === 'image' && (
+                                    <img
+                                        src={previewMedia.url}
+                                        alt={previewMedia.name}
+                                        className="max-w-[90vw] max-h-[80vh] object-contain"
+                                    />
+                                )}
+
+                                {/* Video preview */}
+                                {previewMedia.type === 'video' && (
+                                    <video
+                                        src={previewMedia.url}
+                                        controls
+                                        autoPlay
+                                        className="max-w-[90vw] max-h-[80vh] object-contain"
+                                    />
+                                )}
+
+                                {/* Audio preview */}
+                                {previewMedia.type === 'audio' && (
+                                    <div className="flex flex-col items-center gap-4 px-10 py-8 min-w-[280px]">
+                                        <div className="w-16 h-16 rounded-full bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center">
+                                            <Music size={28} className="text-cyan-400" />
+                                        </div>
+                                        <span className="text-[11px] text-neutral-300 font-medium text-center max-w-[200px] truncate">
+                                            {previewMedia.name}
+                                        </span>
+                                        <audio
+                                            src={previewMedia.url}
+                                            controls
+                                            autoPlay
+                                            className="w-full max-w-[260px]"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── End Frame Upload Zone (hidden in Edit & Extend mode) ── */}
+                    {generationMode === 'new' && <div>
                         <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex items-center justify-between">
                             <span>
                                 End Frame
@@ -1010,6 +1223,16 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                             </button>
                                         </div>
                                     )}
+
+                                    {/* Short-clip warning */}
+                                    {isTrimBelowMinimum && (
+                                        <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/25">
+                                            <AlertTriangle size={10} className="text-amber-400 mt-0.5 flex-shrink-0" />
+                                            <span className="text-[8px] text-amber-300 leading-relaxed">
+                                                Clips shorter than 5s will be automatically extended to meet the AI&apos;s 5-second minimum output requirement. Billing is based on this 5s minimum.
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -1030,11 +1253,13 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         </div>
                     )}
 
-                    {/* Native Audio Badge */}
-                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">
-                        <Volume2 size={10} className="text-emerald-400" />
-                        <span className="text-[9px] font-semibold text-emerald-400 tracking-wider uppercase">Native Audio Included</span>
-                    </div>
+                    {/* Native Audio Badge — hidden when user provides custom audio reference */}
+                    {!hasCustomAudio && (
+                        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+                            <Volume2 size={10} className="text-emerald-400" />
+                            <span className="text-[9px] font-semibold text-emerald-400 tracking-wider uppercase">Native Audio Included</span>
+                        </div>
+                    )}
                 </div>
             )
             }

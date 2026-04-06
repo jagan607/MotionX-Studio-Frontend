@@ -31,9 +31,11 @@ export interface AnimateOptions {
     element_list?: Array<{ element_id: string }>;
     voice_list?: Array<{ voice_id: string }>;
 
-    // Seedance 2.0
+    // Seedance 2.0 — Omni-Reference
     quality?: 'fast' | 'pro';                // Draft vs Final
-    reference_image_urls?: string[];         // Multi-ref images
+    reference_image_urls?: string[];         // Omni-ref: image URLs
+    reference_video_urls?: string[];         // Omni-ref: video URLs
+    reference_audio_urls?: string[];         // Omni-ref: audio URLs
     parent_task_id?: string;                 // Video extension
 
     // Seedance 2.0 — Video Edit
@@ -102,10 +104,16 @@ export const useShotVideoGen = (
                 if (options.sound) payload.sound = options.sound;
                 if (options.watermark !== undefined) payload.watermark = options.watermark;
 
-                // Seedance 2.0
+                // Seedance 2.0 — Omni-Reference
                 if (options.quality) payload.quality = options.quality;
                 if (options.reference_image_urls && options.reference_image_urls.length > 0) {
                     payload.reference_image_urls = options.reference_image_urls;
+                }
+                if (options.reference_video_urls && options.reference_video_urls.length > 0) {
+                    payload.reference_video_urls = options.reference_video_urls;
+                }
+                if (options.reference_audio_urls && options.reference_audio_urls.length > 0) {
+                    payload.reference_audio_urls = options.reference_audio_urls;
                 }
                 if (options.parent_task_id) payload.parent_task_id = options.parent_task_id;
 
