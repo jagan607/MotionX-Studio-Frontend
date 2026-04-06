@@ -19,7 +19,7 @@ export interface RefMediaItem {
 }
 
 const MAX_REF_MEDIA = 12;
-const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_MB = 50;
 const MAX_AUDIO_DURATION_S = 15;
 
 /** Compute the PiAPI @tag for a media item based on its position and type */
