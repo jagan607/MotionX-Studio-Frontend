@@ -36,6 +36,7 @@ export interface AnimateOptions {
     reference_image_urls?: string[];         // Omni-ref: image URLs
     reference_video_urls?: string[];         // Omni-ref: video URLs
     reference_audio_urls?: string[];         // Omni-ref: audio URLs
+    reference_video_durations?: number[];    // Durations in seconds for uploaded videos
     parent_task_id?: string;                 // Video extension
 
     // Seedance 2.0 — Video Edit

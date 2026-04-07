@@ -16,6 +16,7 @@ export interface RefMediaItem {
     type: 'image' | 'video' | 'audio';
     name: string;
     locked?: boolean; // Synthetic base items (shot image / source video)
+    duration?: number; // Duration in seconds (for video/audio files)
 }
 
 const MAX_REF_MEDIA = 12;
@@ -51,6 +52,23 @@ const getAudioDuration = (file: File): Promise<number | null> => {
             resolve(audio.duration);
         };
         audio.onerror = () => { clearTimeout(timeout); URL.revokeObjectURL(objectUrl); resolve(null); };
+    });
+};
+
+/** Extract video duration (returns seconds or null on failure) */
+const getVideoDuration = (file: File): Promise<number | null> => {
+    return new Promise((resolve) => {
+        const video = document.createElement('video');
+        const objectUrl = URL.createObjectURL(file);
+        video.preload = 'metadata';
+        video.src = objectUrl;
+        const timeout = setTimeout(() => { URL.revokeObjectURL(objectUrl); resolve(null); }, 8000);
+        video.onloadedmetadata = () => {
+            clearTimeout(timeout);
+            URL.revokeObjectURL(objectUrl);
+            resolve(video.duration);
+        };
+        video.onerror = () => { clearTimeout(timeout); URL.revokeObjectURL(objectUrl); resolve(null); };
     });
 };
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -226,11 +244,16 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     // Surcharge-aware pricing (must be after state declarations)
     // For Seedance 1.5: Sound toggle determines the pricing TIER (std/pro), not a surcharge
     const pricingMode = isSeedance15 ? (sound === 'on' ? 'pro' : 'std') : mode;
+    const refVideoDurations = React.useMemo(
+        () => refMedia.filter(r => r.type === 'video' && r.duration != null).map(r => r.duration!),
+        [refMedia]
+    );
     const surchargeFlags = {
         sound: isV3 ? sound === 'on' : (!isSeedance15 && showSoundToggle ? sound === 'on' : false),
         multiShot: isV3 && multiShot,
         hasEndFrame: (isSeedance2 || isV3) && (!!endFrameUrl || (isLinked && !!nextShotImage)),
         resolution: mode as 'std' | 'pro',
+        referenceVideoDurations: isSeedance2 ? refVideoDurations : undefined,
     };
     const videoCost = getVideoCost(provider, pricingMode, duration, surchargeFlags);
 
@@ -260,15 +283,17 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const availableDurations = (() => {
         if (provider === 'kling') return ['5', '10'] as const;
         if (provider === 'seedance-1.5') return ['5', '10'] as const;
-        if (isSeedance2) return ['5', '10', '15'] as const;
-        return ['3', '5', '10', '15'] as const; // kling-v3
+        // Seedance 2 and Kling v3 use slider (4-15 / 3-15), not button pills
+        return ['3', '5', '10', '15'] as const; // fallback for non-slider providers
     })();
 
     // Auto-correct duration if not available for selected provider
     React.useEffect(() => {
-        if (provider === 'kling-v3') {
+        if (isV3 || isSeedance2) {
             const val = parseInt(duration);
-            if (isNaN(val) || val < 3 || val > 15) setDuration('5');
+            const min = isSeedance2 ? 4 : 3;
+            const max = 15;
+            if (isNaN(val) || val < min || val > max) setDuration(isSeedance2 ? '5' : '5');
         } else if (!availableDurations.includes(duration as any)) {
             setDuration(availableDurations[1] as any); // default to 5s
         }
@@ -432,6 +457,12 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             ...(refImageUrls.length > 0 ? { reference_image_urls: refImageUrls } : {}),
             ...(refVideoUrls.length > 0 ? { reference_video_urls: refVideoUrls } : {}),
             ...(refAudioUrls.length > 0 ? { reference_audio_urls: refAudioUrls } : {}),
+            ...(() => {
+                const videoDurations = refMedia
+                    .filter(r => r.type === 'video' && r.duration != null)
+                    .map(r => r.duration!);
+                return videoDurations.length > 0 ? { reference_video_durations: videoDurations } : {};
+            })(),
             ...(sourceVideoUrl ? { video_url: sourceVideoUrl } : {}),
             ...(sourceVideoDuration ? { source_video_duration: sourceVideoDuration } : {}),
             ...(generationMode === 'edit' && sourceVideoUrl ? {
@@ -596,12 +627,12 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 </span>
                                 <span className="text-[8px] text-neutral-600">locked</span>
                             </div>
-                        ) : isV3 ? (
+                        ) : isV3 || isSeedance2 ? (
                             <div className="flex items-center gap-2 flex-1 px-2 py-1 bg-white/[0.03] border border-white/[0.08] rounded-md group hover:border-white/20 transition-colors">
                                 <span className="text-[10px] font-semibold text-neutral-400 group-hover:text-neutral-300 w-4">{duration}s</span>
                                 <input
                                     type="range"
-                                    min="3"
+                                    min={isSeedance2 ? "4" : "3"}
                                     max="15"
                                     step="1"
                                     value={duration}
@@ -944,7 +975,18 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                     const storageRef = ref(storage, path);
                                                     await uploadBytes(storageRef, file);
                                                     const url = await getDownloadURL(storageRef);
-                                                    uploaded.push({ url, type: mediaType, name: file.name });
+
+                                                    // Extract duration for video/audio files
+                                                    let fileDuration: number | undefined;
+                                                    if (mediaType === 'video') {
+                                                        const dur = await getVideoDuration(file);
+                                                        if (dur != null && isFinite(dur)) fileDuration = Math.round(dur * 10) / 10;
+                                                    } else if (mediaType === 'audio') {
+                                                        const dur = await getAudioDuration(file);
+                                                        if (dur != null && isFinite(dur)) fileDuration = Math.round(dur * 10) / 10;
+                                                    }
+
+                                                    uploaded.push({ url, type: mediaType, name: file.name, duration: fileDuration });
                                                 }
                                                 if (uploaded.length > 0) {
                                                     setRefMedia(prev => [...prev, ...uploaded].slice(0, MAX_REF_MEDIA));

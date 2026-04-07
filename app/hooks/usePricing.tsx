@@ -43,6 +43,7 @@ export interface VideoCostOptions {
     multiShot?: boolean;
     hasEndFrame?: boolean;
     resolution?: 'std' | 'pro'; // For providers where resolution affects pricing independently (e.g., Seedance 1.5)
+    referenceVideoDurations?: number[]; // Durations of uploaded reference videos (seconds)
 }
 
 interface PricingContextValue {
@@ -180,7 +181,16 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             const base5s = tierData?.[options?.resolution === 'pro' ? '5s_1080p' : '5s'] ?? tierData?.['5s'] ?? 0;
             const total5sBase = base5s + surcharges;
             const rawCost = (total5sBase / 5) * dur;
-            return Math.round(rawCost * 10) / 10;
+
+            // Reference video surcharge: each ref video second is billed at the same per-second rate
+            let refVideoSurcharge = 0;
+            if (options?.referenceVideoDurations && options.referenceVideoDurations.length > 0) {
+                const perSecondRate = total5sBase / 5;
+                const totalRefSeconds = options.referenceVideoDurations.reduce((a, b) => a + b, 0);
+                refVideoSurcharge = perSecondRate * totalRefSeconds;
+            }
+
+            return Math.round((rawCost + refVideoSurcharge) * 10) / 10;
         }
 
         // Fallback: proportional from 5s base
@@ -202,8 +212,16 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const total5sBase = base5s + surcharges;
         const rawCost = (total5sBase / 5) * dur;
 
+        // Reference video surcharge: each ref video second is billed at the same per-second rate
+        let refVideoSurcharge = 0;
+        if (options?.referenceVideoDurations && options.referenceVideoDurations.length > 0) {
+            const perSecondRate = total5sBase / 5;
+            const totalRefSeconds = options.referenceVideoDurations.reduce((a, b) => a + b, 0);
+            refVideoSurcharge = perSecondRate * totalRefSeconds;
+        }
+
         // 4. Round to 1 decimal
-        return Math.round(rawCost * 10) / 10;
+        return Math.round((rawCost + refVideoSurcharge) * 10) / 10;
     };
 
     const getLipSyncCost = (durationSeconds: number): number => {
