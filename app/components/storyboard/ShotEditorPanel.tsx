@@ -74,6 +74,32 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         setDisplayMedia(items);
     }, []);
 
+    // ── Trigger @mention from banner click ──
+    const handleTriggerMention = useCallback(() => {
+        const textarea = promptTextareaRef.current;
+        if (!textarea) return;
+        textarea.focus();
+        // Insert ' @' at cursor to trigger the autocomplete
+        const pos = textarea.selectionStart ?? textarea.value.length;
+        const before = textarea.value.slice(0, pos);
+        const after = textarea.value.slice(pos);
+        const needsSpace = before.length > 0 && !before.endsWith(' ');
+        const injection = (needsSpace ? ' ' : '') + '@';
+        const newValue = before + injection + after;
+        const newCursorPos = pos + injection.length;
+
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+            window.HTMLTextAreaElement.prototype, 'value'
+        )?.set;
+        if (nativeInputValueSetter) {
+            nativeInputValueSetter.call(textarea, newValue);
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        requestAnimationFrame(() => {
+            textarea.focus();
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        });
+    }, []);
 
     // ── Local Submitting State (covers preflight + animate dead zone) ──
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -609,6 +635,8 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                         onAnimateInfoChange={handleAnimateInfoChange}
                                         onInsertPromptTag={handleInsertPromptTag}
                                         onDisplayMediaChange={handleDisplayMediaChange}
+                                        promptText={localPrompt}
+                                        onTriggerMention={handleTriggerMention}
                                         preflightWarnings={preflightWarnings}
                                         onClearPreflightWarnings={() => { setPreflightWarnings([]); preflightSeenRef.current = false; }}
                                     />

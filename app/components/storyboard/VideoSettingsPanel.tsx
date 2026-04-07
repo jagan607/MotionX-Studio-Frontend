@@ -90,6 +90,10 @@ interface VideoSettingsPanelProps {
     // @mention autocomplete bridge
     onDisplayMediaChange?: (items: RefMediaItem[]) => void;
 
+    // Untagged media nudge
+    promptText?: string;
+    onTriggerMention?: () => void;
+
     // Preflight warnings (Phase 3)
     preflightWarnings?: string[];
     onClearPreflightWarnings?: () => void;
@@ -128,6 +132,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     hideActions = false,
     onInsertPromptTag,
     onDisplayMediaChange,
+    promptText,
+    onTriggerMention,
     preflightWarnings = [],
     onClearPreflightWarnings,
     onAnimateInfoChange
@@ -394,6 +400,20 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const hasCustomAudio = refMedia.some(r => r.type === 'audio');
     const isVideoEditWithSource = generationMode === 'edit' && !!sourceVideoUrl;
     const hasOnlyAudio = refMedia.length > 0 && refMedia.every(r => r.type === 'audio') && !isVideoEditWithSource;
+
+    // ── Untagged media nudge: compute set of display indices missing from prompt ──
+    const untaggedItems = React.useMemo(() => {
+        if (!isSeedance2 || !promptText) return new Set<number>();
+        const missing = new Set<number>();
+        displayMedia.forEach((item, i) => {
+            if (item.locked) return; // backend auto-injects locked items
+            const tag = getMediaTag(displayMedia, i);
+            if (!promptText.includes(tag)) {
+                missing.add(i);
+            }
+        });
+        return missing;
+    }, [isSeedance2, promptText, displayMedia]);
 
     const buildOptions = (): AnimateOptions => {
         // Split refMedia into three typed arrays for PiAPI omni_reference
@@ -827,6 +847,19 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                             </div>
                                         )}
 
+                                        {/* Untagged indicator — pulsing amber dot */}
+                                        {untaggedItems.has(i) && (
+                                            <div
+                                                className="absolute top-0.5 left-0.5 z-10"
+                                                title={`Not referenced in prompt — click badge or type ${tag}`}
+                                            >
+                                                <span className="flex h-2.5 w-2.5">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
+                                                </span>
+                                            </div>
+                                        )}
+
                                         {/* @tag badge pill — INSERT action zone */}
                                         {onInsertPromptTag && (
                                             <button
@@ -950,6 +983,22 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     Audio references require at least one accompanying image or video.
                                 </span>
                             </div>
+                        )}
+
+                        {/* ── Untagged Media Nudge Banner ── */}
+                        {untaggedItems.size > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => onTriggerMention?.()}
+                                className="flex items-center gap-1.5 w-full px-2 py-1.5 mt-1.5 rounded-md bg-amber-500/[0.08] border border-amber-500/20
+                                    hover:bg-amber-500/[0.12] hover:border-amber-500/30 transition-all text-left cursor-pointer group"
+                            >
+                                <AlertTriangle size={10} className="text-amber-400 flex-shrink-0" />
+                                <p className="text-[8px] text-amber-400/80 leading-relaxed">
+                                    {untaggedItems.size} reference{untaggedItems.size > 1 ? 's' : ''} not mentioned in your prompt.
+                                    {' '}<span className="font-mono font-bold group-hover:underline">Use @ to tag them</span> for better results.
+                                </p>
+                            </button>
                         )}
                     </div>}
 
