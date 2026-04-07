@@ -126,24 +126,42 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const [showImportMenu, setShowImportMenu] = useState(false);
     const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
     const [isRetryingAngle, setIsRetryingAngle] = useState(false);
+    const [retryingAngleKey, setRetryingAngleKey] = useState<string | null>(null);
+    // Frozen snapshot of image_urls taken at retry-start — UI renders from this
+    // during a single-angle retry so no Firestore intermediate state can flash.
+    const frozenViewsRef = useRef<Record<string, string> | null>(null);
 
     const location = locations.find(
         l => l.name === locationName || l.id === locationName?.replace(/[\s.]+/g, '_').toUpperCase()
     );
     
-    const generatedViews = existingData?.image_urls;
-    const generatedImage = generatedViews ? (generatedViews[activeView as keyof typeof generatedViews] || existingData?.image_url) : existingData?.image_url;
-    const heroImage = generatedImage || location?.image_views?.[activeView as keyof typeof location.image_views] || location?.image_url;
+    // Use frozen views during retry to prevent any Firestore-driven flash
+    const liveViews = existingData?.image_urls;
+    const displayViews = (retryingAngleKey && frozenViewsRef.current) ? frozenViewsRef.current : liveViews;
+
+    const angleUrl = displayViews?.[activeView as keyof typeof displayViews];
+    const generatedImage = displayViews
+        ? (angleUrl || existingData?.image_url)
+        : existingData?.image_url;
+
+    const heroImage = generatedImage
+        || location?.image_views?.[activeView as keyof typeof location.image_views]
+        || location?.image_url;
     
     let availableViews: [string, string][] = [];
-    if (generatedViews && Object.keys(generatedViews).length > 0) {
-        availableViews = Object.entries(generatedViews).filter(([, url]) => url) as [string, string][];
+    if (displayViews && Object.keys(displayViews).length > 0) {
+        availableViews = Object.entries(displayViews).filter(([, url]) => url) as [string, string][];
     } else if (location?.image_views) {
         availableViews = Object.entries(location.image_views).filter(([, url]) => url) as [string, string][];
     }
 
     const hasData = !!(existingData?.extras?.length || existingData?.set_dressing?.length || existingData?.atmosphere || existingData?.image_prompt);
     const isGeneratingImage = existingData?.image_status === "generating";
+
+    // Per-angle retry vs full overhaul distinction
+    const isRetryingSingleAngle = !!retryingAngleKey;
+    const showGlobalRenderOverlay = isGeneratingImage && !isRetryingSingleAngle;
+    const showAngleRenderOverlay = isRetryingSingleAngle && activeView === retryingAngleKey;
 
     // --- SIBLING SET DETECTION ---
     const availableSiblingSets = useMemo(() => {
@@ -169,6 +187,18 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
             setExtrasText(""); setDressingText(""); setAtmosphere(""); setArchNotes("");
         }
     }, [existingData]);
+
+    // Clear per-angle retry tracking when Firestore delivers the new URL
+    useEffect(() => {
+        if (retryingAngleKey && existingData?.image_urls) {
+            const url = (existingData.image_urls as any)[retryingAngleKey];
+            // Unfreeze: the new URL arrived and generation is done
+            if (url && existingData.image_status !== "generating") {
+                setRetryingAngleKey(null);
+                frozenViewsRef.current = null;
+            }
+        }
+    }, [existingData?.image_urls, existingData?.image_status, retryingAngleKey]);
 
     useEffect(() => {
         if (isOpen) requestAnimationFrame(() => setIsVisible(true));
@@ -217,13 +247,28 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
 
     const handleRetryAngle = async () => {
         if (isRetryingAngle) return;
+        const targetAngle = activeView;
+
+        // Freeze all current view URLs so the UI is completely stable during retry
+        if (liveViews) {
+            const snapshot: Record<string, string> = {};
+            for (const [k, v] of Object.entries(liveViews)) {
+                if (v) snapshot[k] = v as string;
+            }
+            frozenViewsRef.current = snapshot;
+        }
+
         setIsRetryingAngle(true);
+        setRetryingAngleKey(targetAngle);
         try {
-            const res = await retrySetAngle(projectId, episodeId, sceneId, activeView);
-            const data = res.set_design || res;
-            if (onUpdate) onUpdate(data);
-            toastSuccess(`${(ANGLE_LABELS[activeView] || activeView).toUpperCase()} angle regeneration queued`);
+            await retrySetAngle(projectId, episodeId, sceneId, targetAngle);
+            // Don't call onUpdate — let the Firestore onSnapshot listener
+            // deliver the updated data naturally. The frozenViewsRef keeps
+            // the UI completely stable until the new URL arrives.
+            toastSuccess(`${(ANGLE_LABELS[targetAngle] || targetAngle).toUpperCase()} angle regeneration queued`);
         } catch (e: any) {
+            setRetryingAngleKey(null);
+            frozenViewsRef.current = null;
             if (e?.response?.status === 402) {
                 toastError("Insufficient credits. You need 0.5 credits to retry an angle.");
             } else {
@@ -347,7 +392,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
             <div className="absolute inset-0">
                 {heroImage ? (
                     <>
-                        <img src={heroImage} alt="Set" className={`absolute inset-0 w-full h-full object-cover ${isGeneratingImage ? "opacity-30 mix-blend-luminosity blur-md" : "opacity-100"}`}
+                        <img src={heroImage} alt="Set" className={`absolute inset-0 w-full h-full object-cover ${showGlobalRenderOverlay ? "opacity-30 mix-blend-luminosity blur-md" : "opacity-100"}`}
                             style={{ transform: isVisible ? "scale(1)" : "scale(1.05)", transition: "transform 0.8s ease-out, opacity 1s ease, filter 1s ease" }} />
                         <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/40" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60" />
@@ -386,10 +431,10 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                             <span>PRJ {projectId?.slice(0, 6) || "XXX"}</span>
                         </div>
                         
-                        {isGeneratingImage && (
+                        {(showGlobalRenderOverlay || showAngleRenderOverlay) && (
                             <div className="mt-4 inline-flex items-center gap-2 text-[10px] font-mono text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-3 py-1.5 rounded uppercase tracking-widest">
                                 <Loader2 size={12} className="animate-spin" />
-                                Rendering View
+                                {isRetryingSingleAngle ? `Rendering ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toUpperCase()}` : "Rendering View"}
                             </div>
                         )}
                     </div>
@@ -446,7 +491,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                             <img src={heroImage} alt="Angle Preview" className="absolute inset-0 w-full h-full object-contain opacity-100" />
                             
                             {/* Chevron Navigation */}
-                            {availableViews.length > 1 && !isGeneratingImage && (
+                            {availableViews.length > 1 && !showGlobalRenderOverlay && (
                                 <>
                                     <button
                                         onClick={handlePrevView}
@@ -494,17 +539,25 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                 </div>
                             )}
                             
-                            {isGeneratingImage && (
-                                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md pointer-events-none font-mono">
+                            {(showGlobalRenderOverlay || showAngleRenderOverlay) && (
+                                <>
+                                <style>{`@keyframes setOverlayFadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
+                                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md pointer-events-none font-mono"
+                                    style={{ animation: 'setOverlayFadeIn 300ms ease-out' }}>
                                     <div className="w-16 h-16 rounded-full border border-red-500/50 flex items-center justify-center relative overflow-hidden mb-6">
                                         <div className="absolute inset-0 bg-red-500/20 animate-ping" />
                                         <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                                     </div>
-                                    <div className="text-[14px] font-bold text-red-400 uppercase tracking-[6px] mb-3">Rendering</div>
+                                    <div className="text-[14px] font-bold text-red-400 uppercase tracking-[6px] mb-3">
+                                        {isRetryingSingleAngle ? `Rendering ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toUpperCase()}` : "Rendering"}
+                                    </div>
                                     <div className="text-[11px] text-white/50 max-w-[320px] text-center leading-relaxed">
-                                        {existingData?.image_prompt || "Compositing location, extras, and props into preview frame..."}
+                                        {isRetryingSingleAngle
+                                            ? `Regenerating the ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toLowerCase()} angle. Other angles remain available.`
+                                            : (existingData?.image_prompt || "Compositing location, extras, and props into preview frame...")}
                                     </div>
                                 </div>
+                                </>
                             )}
 
                             <div className="absolute bottom-12 left-12 z-30 flex items-center gap-3 pointer-events-auto">
@@ -551,7 +604,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                         </button>
                                     </div>
                                 ) : (
-                                    generatedImage && !isGeneratingImage && (
+                                    generatedImage && !showGlobalRenderOverlay && !showAngleRenderOverlay && (
                                         <div className="inline-flex items-center gap-3 bg-black/70 border border-red-500/40 text-red-400 px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[3px]">
                                             <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
                                             CONCEPT FRAME
@@ -560,7 +613,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                 )}
 
                                 {/* Edit frame — only when generated image exists */}
-                                {generatedImage && !isGeneratingImage && (
+                                {generatedImage && !showGlobalRenderOverlay && !showAngleRenderOverlay && (
                                     <button
                                         onClick={() => setShowInpaint(true)}
                                         className="inline-flex items-center gap-2 bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer"
@@ -571,7 +624,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                 )}
 
                                 {/* Retry single angle — only when set data exists and multi-angle */}
-                                {hasData && !isGeneratingImage && (
+                                {hasData && !showGlobalRenderOverlay && !showAngleRenderOverlay && (
                                     <button
                                         onClick={handleRetryAngle}
                                         disabled={isRetryingAngle || isGenerating}
@@ -583,7 +636,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                 )}
 
                                 {/* Generate / Overhaul button — hidden during rendering */}
-                                {!isGeneratingImage && !isRetryingAngle && (
+                                {!showGlobalRenderOverlay && !showAngleRenderOverlay && !isRetryingAngle && (
                                 <button
                                     onClick={() => {
                                         if (hasData) {
