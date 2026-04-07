@@ -794,7 +794,16 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     try {
                                         const result = await uploadBreakdown(projectId, file, episodeId || undefined);
                                         setBreakdownResult(result);
-                                        toastSuccess(`Imported ${result.scenes_created || result.summary?.scenes || 0} scenes`);
+                                        const sceneCount = result.scenes_created || result.summary?.scenes || 0;
+                                        const charCount = result.characters_created || result.summary?.characters || 0;
+                                        const locCount = result.locations_created || result.summary?.locations || 0;
+                                        toastSuccess(`Imported ${sceneCount} scenes, ${charCount} characters, ${locCount} locations`);
+                                        // Auto-redirect using backend's recommended URL
+                                        const redirectUrl = result.redirect_url
+                                            || `/project/${projectId}/moodboard?onboarding=true${episodeId ? `&episode_id=${episodeId}` : ''}`;
+                                        setTimeout(() => {
+                                            onSuccess(redirectUrl);
+                                        }, 1500);
                                     } catch (err: any) {
                                         toastError(err?.response?.data?.detail || "Import failed");
                                         setBreakdownFile(null);

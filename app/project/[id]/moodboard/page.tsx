@@ -180,6 +180,23 @@ export default function MoodboardPage() {
         }
     }, [projectId, episodeId]);
 
+    // --- AUTO-TRIGGER: When arriving from breakdown import, skip manual step ---
+    const autoTriggeredRef = useRef(false);
+    useEffect(() => {
+        // Only auto-trigger once, only during onboarding, only when Firestore has loaded
+        // and confirmed no moods exist yet
+        if (
+            isOnboarding &&
+            firestoreLoaded &&
+            moods.length === 0 &&
+            !autoTriggeredRef.current &&
+            !isRegenerating
+        ) {
+            autoTriggeredRef.current = true;
+            generateMoods();
+        }
+    }, [isOnboarding, firestoreLoaded, moods.length, isRegenerating, generateMoods]);
+
     // --- Generate variations ("More Like This") ---
     const isViewingVariations = moods.length > 0 && moods.some(m => m.is_variation);
 

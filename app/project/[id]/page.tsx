@@ -130,20 +130,7 @@ export default function ProjectHub() {
             progress: 0,
             quickStats: [],
         },
-        {
-            id: "workflow",
-            title: "Workflow Lab",
-            subtitle: "Import & Run",
-            pipeline: ["ComfyUI", "Excel", "Pipeline", "Execute"],
-            icon: Workflow,
-            href: `/project/${projectId}/workflow`,
-            accent: "#06B6D4",
-            accentDark: "rgba(6, 182, 212, 0.08)",
-            accentMid: "rgba(6, 182, 212, 0.25)",
-            available: true,
-            progress: 0,
-            quickStats: [],
-        },
+
     ];
 
     const formatLabel = project.type === 'micro_drama' ? 'Series' : project.type === 'ad' ? 'Commercial' : 'Feature Film';
