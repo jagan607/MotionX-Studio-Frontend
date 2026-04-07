@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
-    Sparkles, X, Loader2, Save, Users, Package, CloudFog, Building2,
+    Sparkles, X, Loader2, Save, CloudFog, Building2,
     ChevronLeft, ChevronRight, Eye, ImagePlus, Paintbrush, Download, AlertTriangle, Coins
 } from "lucide-react";
 import { generateSetDesign, updateSetDesign, inpaintSetDesign, cloneSetDesign, retrySetAngle } from "@/lib/api";
@@ -10,12 +10,8 @@ import { toastError, toastSuccess } from "@/lib/toast";
 import { InpaintEditor } from "./InpaintEditor";
 
 /* ── Backend schema ─────────────────────────────────────────────── */
-interface ExtraItem { role: string; count?: number; placement?: string; }
-interface SetDressingItem { item: string; placement?: string; }
 
 interface SetDesignData {
-    extras?: ExtraItem[];
-    set_dressing?: SetDressingItem[];
     atmosphere?: string;
     architecture_notes?: string;
     image_prompt?: string;
@@ -60,61 +56,13 @@ interface SetDesignPanelProps {
 
 const ANGLE_LABELS: Record<string, string> = { wide: "ESTABLISHING", front: "FRONT", left: "LEFT", right: "RIGHT", back: "BACK" };
 
-/* ── Helpers: convert arrays to editable text and back ────────── */
-const extrasToText = (arr?: ExtraItem[]): string =>
-    arr?.map(e => `${e.count || 1}x ${e.role}${e.placement ? ` — ${e.placement}` : ""}`).join("\n") || "";
 
-const textToExtras = (text: string): ExtraItem[] =>
-    text.split("\n").filter(l => l.trim()).map(line => {
-        const m = line.match(/^(\d+)x?\s+(.+?)(?:\s*[—–-]\s*(.+))?$/i);
-        return m ? { role: m[2].trim(), count: parseInt(m[1]) || 1, placement: m[3]?.trim() }
-            : { role: line.trim(), count: 1 };
-    });
-
-const dressingToText = (arr?: SetDressingItem[]): string =>
-    arr?.map(d => d.placement ? `${d.item} — ${d.placement}` : d.item).join("\n") || "";
-
-const textToDressing = (text: string): SetDressingItem[] =>
-    text.split("\n").filter(l => l.trim()).map(line => {
-        const [item, placement] = line.split(/\s*[—–-]\s*/);
-        return { item: item.trim(), ...(placement && { placement: placement.trim() }) };
-    });
-
-/* ── Angle-based filtering ───────────────────────────────────── */
-const ANGLE_KEYWORDS: Record<string, RegExp> = {
-    front: /\b(front|far\s*end|entrance|doorway)\b/i,
-    back:  /\b(back|rear|near\s*end|behind)\b/i,
-    left:  /\b(left)\b/i,
-    right: /\b(right)\b/i,
-};
-
-/** Returns true if the line's placement matches the given angle, or has no directional keyword (neutral). */
-const lineMatchesAngle = (line: string, angle: string): boolean => {
-    // Extract placement after the dash
-    const dashMatch = line.match(/\s*[—–-]\s*(.+)$/);
-    const placement = dashMatch ? dashMatch[1] : "";
-    if (!placement) return true; // No placement → show everywhere
-
-    const angleRegex = ANGLE_KEYWORDS[angle];
-    if (!angleRegex) return true; // Unknown angle (wide/establishing) → show all
-
-    // Check if placement has ANY directional keyword
-    const hasAnyDirection = Object.values(ANGLE_KEYWORDS).some(rx => rx.test(placement));
-    if (!hasAnyDirection) return true; // Neutral placement ("center of room") → show everywhere
-
-    return angleRegex.test(placement);
-};
-
-const filterTextByAngle = (text: string, angle: string): string =>
-    text.split("\n").filter(line => !line.trim() || lineMatchesAngle(line, angle)).join("\n");
 
 export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     isOpen, onClose, projectId, episodeId, sceneId,
     existingData, onUpdate, locationName, locations = [], sceneAction, onOpenAssets,
     sceneList = [], currentSceneNumber,
 }) => {
-    const [extrasText, setExtrasText] = useState("");
-    const [dressingText, setDressingText] = useState("");
     const [atmosphere, setAtmosphere] = useState("");
     const [archNotes, setArchNotes] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
@@ -142,7 +90,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
         availableViews = Object.entries(location.image_views).filter(([, url]) => url) as [string, string][];
     }
 
-    const hasData = !!(existingData?.extras?.length || existingData?.set_dressing?.length || existingData?.atmosphere || existingData?.image_prompt);
+    const hasData = !!(existingData?.atmosphere || existingData?.image_prompt);
     const isGeneratingImage = existingData?.image_status === "generating";
 
     // --- SIBLING SET DETECTION ---
@@ -153,7 +101,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
         return sceneList.filter(s => {
             if (s.id === sceneId) return false; // Skip self
             const sLoc = (s.location || s.location_name || s.location_id || "").toLowerCase().trim();
-            return sLoc === normalizedLoc && s.set_design && (s.set_design.extras?.length || s.set_design.set_dressing?.length || s.set_design.atmosphere);
+            return sLoc === normalizedLoc && s.set_design && (s.set_design.atmosphere);
         });
     }, [locationName, sceneList, sceneId]);
 
@@ -161,12 +109,10 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     // Sync
     useEffect(() => {
         if (existingData) {
-            setExtrasText(extrasToText(existingData.extras));
-            setDressingText(dressingToText(existingData.set_dressing));
             setAtmosphere(existingData.atmosphere || "");
             setArchNotes(existingData.architecture_notes || "");
         } else {
-            setExtrasText(""); setDressingText(""); setAtmosphere(""); setArchNotes("");
+            setAtmosphere(""); setArchNotes("");
         }
     }, [existingData]);
 
@@ -176,8 +122,6 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     }, [isOpen]);
 
     const isDirty =
-        extrasText !== extrasToText(existingData?.extras) ||
-        dressingText !== dressingToText(existingData?.set_dressing) ||
         atmosphere !== (existingData?.atmosphere || "") ||
         archNotes !== (existingData?.architecture_notes || "");
 
@@ -197,8 +141,6 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
             const overrideLock = true;
             const res = await generateSetDesign(projectId, episodeId, sceneId, sceneAction, locationName, overrideLock);
             const data = res.set_design || res;
-            setExtrasText(extrasToText(data.extras));
-            setDressingText(dressingToText(data.set_dressing));
             setAtmosphere(data.atmosphere || "");
             setArchNotes(data.architecture_notes || "");
             if (onUpdate) onUpdate(data);
@@ -239,8 +181,6 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
         try {
             const payload: SetDesignData = {
                 ...existingData, // Preserve image fields
-                extras: textToExtras(extrasText),
-                set_dressing: textToDressing(dressingText),
                 atmosphere,
                 architecture_notes: archNotes,
                 is_locked: true,
@@ -328,17 +268,11 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
         setActiveView(availableViews[nextIndex][0]);
     };
 
-    // Compute angle-filtered display values (only when multi-angle views exist)
-    const isMultiAngle = availableViews.length > 1;
-    const displayExtras = isMultiAngle ? filterTextByAngle(extrasText, activeView) : extrasText;
-    const displayDressing = isMultiAngle ? filterTextByAngle(dressingText, activeView) : dressingText;
-    const angleLabel = isMultiAngle ? (ANGLE_LABELS[activeView] || activeView).toUpperCase() : null;
+
 
     const sections = [
-        { key: "extras", label: "Scene Extras", sublabel: "Background characters that populate this world", icon: Users, value: extrasText, displayValue: displayExtras, setter: setExtrasText, placeholder: "3x Pedestrian — walking in background\n1x Bartender — behind the counter\n2x Couple — seated at corner table", filterable: true },
-        { key: "dressing", label: "Set Dressing & Props", sublabel: "Physical objects that define the space", icon: Package, value: dressingText, displayValue: displayDressing, setter: setDressingText, placeholder: "Wooden bookshelf — against back wall, half-full\nDesk lamp — warm amber glow, stage left\nVintage radio — on side table, non-functional\nFramed photographs — clustered on mantelpiece", filterable: true },
-        { key: "atmosphere", label: "Atmosphere & Lighting", sublabel: "The invisible character of the space", icon: CloudFog, value: atmosphere, displayValue: atmosphere, setter: setAtmosphere, placeholder: "Soft golden-hour light filtering through sheer curtains, casting warm rectangles across the floor. A faint haze of dust particles drifting in the air...", filterable: false },
-        { key: "notes", label: "Architecture Notes", sublabel: "Structural and spatial context", icon: Building2, value: archNotes, displayValue: archNotes, setter: setArchNotes, placeholder: "Open-plan layout with exposed brick walls and concrete floors. Ceiling height approximately 12 feet. Large industrial windows along the east wall.", filterable: false },
+        { key: "atmosphere", label: "Atmosphere & Lighting", sublabel: "The invisible character of the space", icon: CloudFog, value: atmosphere, setter: setAtmosphere, placeholder: "Soft golden-hour light filtering through sheer curtains, casting warm rectangles across the floor. A faint haze of dust particles drifting in the air..." },
+        { key: "notes", label: "Architecture Notes", sublabel: "Structural and spatial context", icon: Building2, value: archNotes, setter: setArchNotes, placeholder: "Open-plan layout with exposed brick walls and concrete floors. Ceiling height approximately 12 feet. Large industrial windows along the east wall." },
     ];
 
     return (
@@ -398,22 +332,15 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
 
                         {/* Fields */}
                         <div className="space-y-4">
-                            {sections.map(({ key, label, sublabel, icon: Icon, value, displayValue, setter, placeholder, filterable }) => (
+                            {sections.map(({ key, label, sublabel, icon: Icon, value, setter, placeholder }) => (
                                 <div key={key} className="relative group bg-white/[0.01] rounded-2xl p-4 border border-white/[0.03] hover:border-white/[0.08] transition-colors">
                                     <div className="flex items-baseline gap-3 mb-2">
                                         <span className="text-[11px] font-bold text-red-300 uppercase tracking-widest">{label}</span>
-                                        {filterable && angleLabel && displayValue !== value ? (
-                                            <span className="text-[8px] font-mono text-red-400/60 bg-red-500/10 px-2 py-0.5 rounded uppercase tracking-widest border border-red-500/10">
-                                                {angleLabel} VIEW
-                                            </span>
-                                        ) : (
-                                            <span className="text-[10px] font-mono text-white/25 uppercase">{sublabel}</span>
-                                        )}
+                                        <span className="text-[10px] font-mono text-white/25 uppercase">{sublabel}</span>
                                     </div>
-                                    <textarea value={displayValue} onChange={(e) => setter(e.target.value)} placeholder={placeholder}
-                                        readOnly={filterable && isMultiAngle && displayValue !== value}
-                                        rows={key === "extras" || key === "dressing" ? 3 : 2}
-                                        className={`w-full bg-transparent text-[13px] text-white/80 focus:outline-none resize-none placeholder:text-white/10 leading-relaxed font-sans ${filterable && isMultiAngle && displayValue !== value ? "cursor-default" : ""}`} />
+                                    <textarea value={value} onChange={(e) => setter(e.target.value)} placeholder={placeholder}
+                                        rows={2}
+                                        className="w-full bg-transparent text-[13px] text-white/80 focus:outline-none resize-none placeholder:text-white/10 leading-relaxed font-sans" />
                                 </div>
                             ))}
                         </div>
