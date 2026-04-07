@@ -506,7 +506,7 @@ const HeroSection = () => {
           {[...heroVideos, ...heroVideos].map((src, i) => (
             <div
               key={i}
-              className="flex-shrink-0 w-[280px] md:w-[360px] rounded-xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/50"
+              className="flex-shrink-0 w-[280px] md:w-[360px] rounded-xl overflow-hidden border border-white/[0.08] red-glow"
             >
               <video
                 src={src}
@@ -551,7 +551,7 @@ const ShowcaseVideo = ({ src, index }: { src: string; index: number }) => {
       ref={containerRef}
       variants={fadeUp}
       custom={index}
-      className="group relative rounded-2xl overflow-hidden border border-white/[0.06] hover:border-white/[0.12] transition-all bg-black"
+      className="group relative rounded-2xl overflow-hidden border border-white/[0.06] hover:border-white/[0.12] transition-all bg-black red-glow"
     >
       <video
         ref={videoRef}
@@ -735,6 +735,14 @@ export default function LandingPage() {
         @keyframes border-pulse {
           0%, 100% { border-color: rgba(229,9,20,0.1); }
           50% { border-color: rgba(229,9,20,0.25); }
+        }
+
+        /* ── Red glow shadow for screenshots ── */
+        .red-glow {
+          box-shadow: 0 8px 40px rgba(229, 9, 20, 0.12), 0 0 80px rgba(229, 9, 20, 0.06);
+        }
+        .red-glow:hover {
+          box-shadow: 0 12px 50px rgba(229, 9, 20, 0.2), 0 0 100px rgba(229, 9, 20, 0.1);
         }
       `}</style>
 
@@ -1097,7 +1105,7 @@ export default function LandingPage() {
               >
                 {/* Screenshot */}
                 <div className="flex-1 w-full">
-                  <div className="screenshot-reveal rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl shadow-black/40">
+                  <div className="screenshot-reveal rounded-2xl overflow-hidden border border-white/[0.08] red-glow">
                     <img
                       src={item.img}
                       alt={item.title}
@@ -1192,7 +1200,7 @@ export default function LandingPage() {
                 key={i}
                 variants={scaleUp}
                 custom={i}
-                className="card-tilt group relative rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#E50914]/20 hover:bg-white/[0.03] transition-all duration-500 overflow-hidden"
+                className="card-tilt red-glow group relative rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#E50914]/20 hover:bg-white/[0.03] transition-all duration-500 overflow-hidden"
               >
                 {/* Screenshot */}
                 <div className="relative h-48 overflow-hidden">
@@ -1269,7 +1277,7 @@ export default function LandingPage() {
                 key={i}
                 variants={blurIn}
                 custom={i}
-                className="group relative rounded-2xl overflow-hidden border border-white/[0.06] hover:border-white/[0.12] transition-all"
+                className="group relative rounded-2xl overflow-hidden border border-white/[0.06] hover:border-white/[0.12] transition-all red-glow"
               >
                 <img
                   src={item.img}

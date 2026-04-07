@@ -8,11 +8,11 @@ import Image from "next/image";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
-import { api, invalidateDashboardCache } from "@/lib/api";
+import { api, invalidateDashboardCache, uploadBreakdown } from "@/lib/api";
 import {
     Film, Tv,
     Megaphone, BrainCircuit, Send,
-    Upload, FileText, X,
+    Upload, FileText, X, Table2,
     Check, Sparkles, Loader2, AlertTriangle
 } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -317,6 +317,8 @@ export default function NewProjectPage() {
     const [scriptFile, setScriptFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const breakdownInputRef = useRef<HTMLInputElement>(null);
+    const [breakdownFile, setBreakdownFile] = useState<File | null>(null);
     const [runtime, setRuntime] = useState<number>(30);
     const [runtimeUnit, setRuntimeUnit] = useState<'sec' | 'min'>('sec');
     const [validationErrors, setValidationErrors] = useState<{ title?: boolean; genre?: boolean; vision?: boolean }>({});
@@ -401,6 +403,19 @@ export default function NewProjectPage() {
         if (!f.name.endsWith(".pdf") && !f.type.includes("pdf")) return toast.error("Please upload a PDF script");
         if (f.size > 50 * 1024 * 1024) return toast.error("Script file too large (max 50MB)");
         setScriptFile(f);
+    };
+
+    // ══════ BREAKDOWN FILE HANDLERS ══════
+    const BREAKDOWN_EXTS = [".xlsx", ".csv", ".tsv", ".xls"];
+    const isBreakdownFile = (f: File) => BREAKDOWN_EXTS.some(ext => f.name.toLowerCase().endsWith(ext));
+
+    const handleBreakdownSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        if (!isBreakdownFile(f)) return toast.error("Please upload an Excel or CSV file");
+        if (f.size > 20 * 1024 * 1024) return toast.error("File too large (max 20MB)");
+        setBreakdownFile(f);
+        setScriptFile(null); // Can't have both
     };
 
     // ══════ SETUP REAL-TIME LISTENERS ══════
@@ -506,7 +521,7 @@ export default function NewProjectPage() {
         const errors: { title?: boolean; genre?: boolean; vision?: boolean } = {};
         if (!title.trim()) errors.title = true;
         if (!genre.trim()) errors.genre = true;
-        if (!vision.trim() && !scriptFile) errors.vision = true;
+        if (!vision.trim() && !scriptFile && !breakdownFile) errors.vision = true;
         if (errors.title || errors.genre || errors.vision) {
             setValidationErrors(errors);
             const missing = [errors.title && 'Project Name', errors.genre && 'Genre', errors.vision && 'Synopsis or Script'].filter(Boolean).join(', ');
@@ -544,21 +559,39 @@ export default function NewProjectPage() {
             if (scriptFile) {
                 setProcessingStatus("Uploading script...");
                 formData.append("file", scriptFile);
-            } else {
+            } else if (!breakdownFile) {
                 setProcessingStatus("Loading script into AI memory...");
                 const blob = new Blob([vision], { type: "text/plain" });
                 formData.append("file", new File([blob], "script.txt"));
             }
 
-            const uploadRes = await api.post("/api/v1/script/upload-script", formData, {
-                headers: { "Content-Type": "multipart/form-data" }
-            });
-            const jobId = uploadRes.data.job_id;
-            setProcessingStatus("Loading script into AI memory...");
+            if (!breakdownFile) {
+                // ── SCRIPT UPLOAD PATH ──
+                const uploadRes = await api.post("/api/v1/script/upload-script", formData, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                });
+                const jobId = uploadRes.data.job_id;
+                setProcessingStatus("Loading script into AI memory...");
 
-            // Set up real-time Firestore listeners instead of polling
-            setupListeners(jobId, projectId);
-
+                // Set up real-time Firestore listeners instead of polling
+                setupListeners(jobId, projectId);
+            } else {
+                // ── BREAKDOWN IMPORT PATH (Gemini-powered) ──
+                setProcessingStatus("Analyzing spreadsheet with AI...");
+                const result = await uploadBreakdown(projectId, breakdownFile);
+                const summary = result.summary || {};
+                const sceneCount = summary.scenes || 0;
+                const charCount = summary.characters || 0;
+                const genre = summary.detected_genre || "";
+                setProcessingStatus(
+                    `Imported ${sceneCount} scenes, ${charCount} characters${genre ? ` (${genre})` : ""} — preparing workspace...`
+                );
+                setIsTransitioning(true);
+                const redirectUrl = result.redirect_url || `/project/${projectId}/preproduction`;
+                setTimeout(() => {
+                    router.push(redirectUrl);
+                }, 1500);
+            }
         } catch (e: any) {
             const errorMsg = e.response?.data?.detail || "Something went wrong.";
             toast.error(errorMsg);
@@ -579,7 +612,7 @@ export default function NewProjectPage() {
     };
 
     // ══════ COMPUTED ══════
-    const projectTitle = title.trim() || (vision ? vision.split(/[.\n]/)[0].slice(0, 60).trim() : (scriptFile ? scriptFile.name.replace(".pdf", "") : ""));
+    const projectTitle = title.trim() || (vision ? vision.split(/[.\n]/)[0].slice(0, 60).trim() : (scriptFile ? scriptFile.name.replace(".pdf", "") : (breakdownFile ? breakdownFile.name.replace(/\.(xlsx|csv|tsv|xls)$/i, "") : "")));
 
     // ══════ RENDER ══════
     return (
@@ -688,6 +721,16 @@ export default function NewProjectPage() {
                                 </div>
                             )}
 
+                            {/* Breakdown file attachment */}
+                            {breakdownFile && (
+                                <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-emerald-500/[0.04] border border-emerald-500/[0.12]">
+                                    <Table2 size={14} className="text-emerald-400 shrink-0" />
+                                    <span className="text-[11px] text-emerald-300 truncate flex-1">{breakdownFile.name}</span>
+                                    <span className="text-[9px] text-emerald-600">{(breakdownFile.size / 1024).toFixed(0)} KB</span>
+                                    <button onClick={() => setBreakdownFile(null)} className="text-emerald-600 hover:text-white transition-colors cursor-pointer"><X size={12} /></button>
+                                </div>
+                            )}
+
                             {/* Action bar */}
                             <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.04]">
                                 <div className="flex items-center gap-3">
@@ -698,6 +741,14 @@ export default function NewProjectPage() {
                                         <Upload size={11} />{scriptFile ? 'Replace' : 'Upload script'}
                                     </button>
                                     <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleFileSelect} />
+
+                                    <span className="text-neutral-800 text-[9px]">|</span>
+
+                                    <button onClick={() => breakdownInputRef.current?.click()}
+                                        className={`flex items-center gap-1.5 text-[9px] tracking-wider uppercase cursor-pointer transition-all ${breakdownFile ? 'text-emerald-400' : 'text-neutral-600 hover:text-emerald-400/70'}`}>
+                                        <Table2 size={11} />{breakdownFile ? 'Replace sheet' : 'Import sheet'}
+                                    </button>
+                                    <input ref={breakdownInputRef} type="file" accept=".xlsx,.csv,.tsv,.xls" className="hidden" onChange={handleBreakdownSelect} />
                                 </div>
 
                                 <div className="flex items-center gap-2">
@@ -714,7 +765,7 @@ export default function NewProjectPage() {
                                     )}
 
                                     {/* Create Project CTA — visible when text/file present, hidden during AI review */}
-                                    {(vision.trim().length > 0 || scriptFile) && !expandedScript && (
+                                    {(vision.trim().length > 0 || scriptFile || breakdownFile) && !expandedScript && (
                                         <button onClick={handleCreate}
                                             disabled={isSubmitting || phase !== 'prompt'}
                                             className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-semibold tracking-[1px] transition-all duration-300 cursor-pointer

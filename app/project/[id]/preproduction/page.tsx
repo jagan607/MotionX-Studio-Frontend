@@ -313,8 +313,8 @@ export default function PreProductionCanvas() {
                     setActiveEpisodeId(targetEpId);
                 }
 
-                // Only fetch assets if script processing is already complete
-                if (targetEpId && pDocData?.script_status === "ready") {
+                // Fetch assets (always try — they may exist even if script_status isn't "ready" yet)
+                if (targetEpId) {
                     await fetchAssets(targetEpId);
                 }
             } catch (e) {
@@ -508,10 +508,10 @@ export default function PreProductionCanvas() {
     useEffect(() => {
         if (!project) return;
         const hasMood = (project as any).moodboard_image_url || (project as any).style_ref_url;
-        if (hasMood || characters.length > 0 || (isCommercial && products.length > 0)) {
+        if (hasMood || characters.length > 0 || scenes.length > 0 || (isCommercial && products.length > 0)) {
             setIsDraftApproved(true);
         }
-    }, [project, characters.length, products.length, isCommercial]);
+    }, [project, characters.length, scenes.length, products.length, isCommercial]);
 
     // Redirect to moodboard page if no visual direction is set
     const moodRedirected = useRef(false);
@@ -566,7 +566,11 @@ export default function PreProductionCanvas() {
                             onApproveDraft={() => setIsDraftApproved(true)}
                         />
                     </div>
-                ) : (project?.script_status === "extracting" || project?.script_status !== "ready") ? (
+                ) : (
+                    project?.script_status === "extracting"
+                    && characters.length === 0
+                    && scenes.length === 0
+                ) ? (
                     <Phase3Skeleton project={project} />
                 ) : (
                     <>

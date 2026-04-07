@@ -4,12 +4,12 @@ import React, { useState, useRef, useEffect } from "react";
 import {
     Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2, Lock,
     ChevronDown, ChevronRight, Database, FastForward, ArrowRight, Clock,
-    FileText, Clipboard, AlertCircle, CheckCircle2, Check, Plus
+    FileText, Clipboard, AlertCircle, CheckCircle2, Check, Plus, Table2
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess, toastInfo } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiErrors";
-import { api, checkJobStatus, uploadScriptToStorage, fetchEpisodeScript } from "@/lib/api";
+import { api, checkJobStatus, uploadScriptToStorage, uploadBreakdown, fetchEpisodeScript } from "@/lib/api";
 import { MotionButton } from "@/components/ui/MotionButton";
 import ScriptProcessingLoader from "@/components/script/ScriptProcessingLoader";
 import { ContextReference } from "@/app/components/script/ContextSelectorModal";
@@ -46,7 +46,7 @@ interface InputDeckProps {
     onSwitchEpisode?: (id: string) => void;
 }
 
-type InputMethod = 'ai' | 'upload' | 'paste' | 'current';
+type InputMethod = 'ai' | 'upload' | 'paste' | 'current' | 'breakdown';
 
 export const InputDeck: React.FC<InputDeckProps> = ({
     projectId,
@@ -77,6 +77,12 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     const [synopsisText, setSynopsisText] = useState("");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [pastedScript, setPastedScript] = useState("");
+
+    // Breakdown Import State
+    const [breakdownFile, setBreakdownFile] = useState<File | null>(null);
+    const [breakdownResult, setBreakdownResult] = useState<any>(null);
+    const [isImporting, setIsImporting] = useState(false);
+    const breakdownInputRef = useRef<HTMLInputElement>(null);
 
     // Validation & Processing State
     const [isUploading, setIsUploading] = useState(false);
@@ -180,7 +186,8 @@ export const InputDeck: React.FC<InputDeckProps> = ({
     const hasNewContent =
         (activeTab === 'ai' && !!synopsisText.trim()) ||
         (activeTab === 'upload' && !!selectedFile) ||
-        (activeTab === 'paste' && !!pastedScript.trim());
+        (activeTab === 'paste' && !!pastedScript.trim()) ||
+        (activeTab === 'breakdown' && !!breakdownFile);
 
     const isModified =
         (title || "") !== (initialTitle || "") ||
@@ -316,6 +323,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
         if (activeTab === 'ai') return "Generate Script";
         if (activeTab === 'upload') return "Upload & Process";
         if (activeTab === 'paste') return "Process Script";
+        if (activeTab === 'breakdown') return breakdownResult ? "Use This Breakdown" : "Import Breakdown";
         return "Initialize";
     };
 
@@ -370,6 +378,15 @@ export const InputDeck: React.FC<InputDeckProps> = ({
             >
                 <Clipboard size={12} />
                 Paste Script
+            </button>
+            <button
+                onClick={() => handleTabChange('breakdown')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-bold uppercase tracking-wider rounded transition-all
+                    ${activeTab === 'breakdown' ? 'bg-white/10 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5'}
+                `}
+            >
+                <Table2 size={12} className={activeTab === 'breakdown' ? "text-emerald-400" : ""} />
+                Import Sheet
             </button>
         </div>
     );
@@ -749,6 +766,96 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                 onChange={(e) => setPastedScript(e.target.value)}
                                 disabled={isUploading}
                             />
+                        </div>
+                    )
+                }
+
+                {/* E. BREAKDOWN IMPORT TAB */}
+                {
+                    activeTab === 'breakdown' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] text-neutral-400">
+                                    Import a scene breakdown spreadsheet. We&apos;ll auto-detect columns and create your project structure.
+                                </span>
+                            </div>
+
+                            <input
+                                ref={breakdownInputRef}
+                                type="file"
+                                accept=".xlsx,.csv,.tsv,.xls"
+                                className="hidden"
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    setBreakdownFile(file);
+                                    setBreakdownResult(null);
+                                    setIsImporting(true);
+                                    try {
+                                        const result = await uploadBreakdown(projectId, file, episodeId || undefined);
+                                        setBreakdownResult(result);
+                                        toastSuccess(`Imported ${result.scenes_created || result.summary?.scenes || 0} scenes`);
+                                    } catch (err: any) {
+                                        toastError(err?.response?.data?.detail || "Import failed");
+                                        setBreakdownFile(null);
+                                    } finally {
+                                        setIsImporting(false);
+                                    }
+                                    e.target.value = "";
+                                }}
+                            />
+
+                            {isImporting ? (
+                                <div className="h-[240px] border-2 border-dashed border-emerald-900/50 bg-emerald-900/5 rounded-xl flex flex-col items-center justify-center gap-3">
+                                    <Loader2 size={28} className="animate-spin text-emerald-400" />
+                                    <span className="text-[10px] font-mono text-emerald-400 tracking-widest uppercase">Analyzing Spreadsheet...</span>
+                                    <span className="text-[9px] text-neutral-600">Auto-detecting columns and extracting scenes</span>
+                                </div>
+                            ) : breakdownResult ? (
+                                <div className="h-[240px] border border-emerald-900/40 bg-emerald-950/10 rounded-xl p-4 flex flex-col gap-3 overflow-y-auto">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <CheckCircle2 size={14} className="text-emerald-400" />
+                                        <span className="text-xs font-bold text-emerald-300 uppercase tracking-wide">Import Successful</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            { label: "Scenes", count: breakdownResult.scenes_created || breakdownResult.summary?.scenes || 0, color: "text-emerald-400" },
+                                            { label: "Characters", count: breakdownResult.characters_created || breakdownResult.summary?.characters || 0, color: "text-blue-400" },
+                                            { label: "Locations", count: breakdownResult.locations_created || breakdownResult.summary?.locations || 0, color: "text-amber-400" },
+                                        ].map(s => (
+                                            <div key={s.label} className="bg-black/30 border border-white/[0.06] rounded-lg p-3 text-center">
+                                                <div className={`text-2xl font-['Anton'] ${s.color}`}>{s.count}</div>
+                                                <div className="text-[8px] font-bold text-neutral-500 uppercase tracking-widest">{s.label}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-auto">
+                                        <span className="text-[9px] text-neutral-500">{breakdownFile?.name}</span>
+                                        <button
+                                            onClick={() => { setBreakdownFile(null); setBreakdownResult(null); }}
+                                            className="ml-auto text-[9px] text-red-400 hover:text-white transition-colors"
+                                        >
+                                            Clear & Retry
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div
+                                    onClick={() => !isUploading && breakdownInputRef.current?.click()}
+                                    className="h-[240px] border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-4 transition-all cursor-pointer relative overflow-hidden border-neutral-800 bg-black/20 hover:border-emerald-800/60 hover:bg-emerald-950/5"
+                                >
+                                    <div className="w-16 h-16 rounded-full bg-emerald-900/10 flex items-center justify-center text-emerald-600">
+                                        <Table2 size={28} />
+                                    </div>
+                                    <div className="text-center">
+                                        <h3 className="text-sm font-bold text-white mb-1">Import Scene Breakdown</h3>
+                                        <p className="text-[10px] text-neutral-500 font-mono uppercase tracking-widest">XLSX • CSV • TSV</p>
+                                    </div>
+                                    <p className="text-[9px] text-neutral-600 max-w-[300px] text-center leading-relaxed">
+                                        Auto-detects columns: Scene, Location, Characters, Action, Duration, Props
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )
                 }

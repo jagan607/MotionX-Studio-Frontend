@@ -870,3 +870,65 @@ export const generateBgm = async (
     });
     return res.data;
 };
+
+// ═══════════════════════════════════════════════════════════
+//   UNIVERSAL IMPORT — Excel/CSV + ComfyUI Workflow
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Upload an Excel/CSV scene breakdown file.
+ * Creates a draft in the existing script ingestion pipeline.
+ */
+export const uploadBreakdown = async (
+    projectId: string,
+    file: File,
+    episodeId?: string,
+) => {
+    const fd = new FormData();
+    fd.append("project_id", projectId);
+    fd.append("file", file);
+    if (episodeId) fd.append("episode_id", episodeId);
+    const res = await api.post("/api/v1/script/upload-breakdown", fd);
+    return res.data;
+};
+
+/**
+ * Upload a ComfyUI workflow JSON for analysis.
+ * Returns translated pipeline operations + credit estimate.
+ */
+export const analyzeWorkflow = async (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await api.post("/api/v1/workflow/analyze", fd);
+    return res.data;
+};
+
+/**
+ * Execute a previously analyzed workflow pipeline.
+ */
+export const executeWorkflow = async (params: {
+    workflow_id: string;
+    project_id?: string;
+    user_inputs: Record<string, string>;
+    prompt_overrides?: Record<string, string>;
+    provider_overrides?: Record<string, string>;
+}) => {
+    const res = await api.post("/api/v1/workflow/execute", params);
+    return res.data;
+};
+
+/**
+ * Poll the status of a running workflow execution.
+ */
+export const getWorkflowStatus = async (executionId: string) => {
+    const res = await api.get(`/api/v1/workflow/${executionId}/status`);
+    return res.data;
+};
+
+/**
+ * Get the user's workflow execution history.
+ */
+export const getWorkflowHistory = async (limit: number = 20) => {
+    const res = await api.get(`/api/v1/workflow/history?limit=${limit}`);
+    return res.data;
+};
