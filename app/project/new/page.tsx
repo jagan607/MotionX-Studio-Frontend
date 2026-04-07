@@ -3,8 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-import Image from "next/image";
-
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -13,18 +11,21 @@ import {
     Film, Tv,
     Megaphone, BrainCircuit, Send,
     Upload, FileText, X, Table2,
-    Check, Sparkles, Loader2, AlertTriangle
+    Check, Sparkles, Loader2, AlertTriangle,
+    Clapperboard, Clock, RectangleHorizontal
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 type ProjectType = "movie" | "micro_drama" | "adaptation" | "ad";
 type Phase = "prompt" | "processing" | "complete";
 
-const FORMAT_BG: Record<string, string> = {
-    film: "/img/formats/film.png",
-    series: "/img/formats/series.png",
-    ad: "/img/formats/commercial.png",
-};
+const AMBIENT_VIDEO = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
+
+const FORMAT_CARDS = [
+    { icon: Film, text: 'Feature Film', key: 'film', seed: 'A feature film about ', subtitle: 'Full cinematic narrative', accent: '#E50914' },
+    { icon: Tv, text: 'Series', key: 'series', seed: 'A micro drama series about ', subtitle: 'Episodic storytelling', accent: '#3B82F6' },
+    { icon: Megaphone, text: 'Commercial', key: 'ad', seed: 'A commercial for ', subtitle: 'Brand films & ads', accent: '#D4A843' },
+];
 
 const PLACEHOLDERS = [
     "A cyberpunk thriller set in Neo-Tokyo 2089. Rain-soaked neon streets, a detective chasing an AI gone rogue...",
@@ -389,25 +390,46 @@ export default function NewProjectPage() {
 
 
     // ══════ FILE HANDLERS ══════
-    const handleFileDrop = (e: React.DragEvent) => {
-        e.preventDefault(); setIsDragging(false);
+    const BREAKDOWN_EXTS = [".xlsx", ".csv", ".tsv", ".xls"];
+    const isBreakdownFile = (f: File) => BREAKDOWN_EXTS.some(ext => f.name.toLowerCase().endsWith(ext));
+    const isPdfFile = (f: File) => f.name.toLowerCase().endsWith('.pdf') || f.type.includes('pdf');
+
+    const handleUniversalDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
         const f = e.dataTransfer.files?.[0];
         if (!f) return;
-        if (!f.name.endsWith(".pdf") && !f.type.includes("pdf")) return toast.error("Please upload a PDF script");
-        if (f.size > 50 * 1024 * 1024) return toast.error("Script file too large (max 50MB)");
-        setScriptFile(f);
+
+        if (isPdfFile(f)) {
+            if (f.size > 50 * 1024 * 1024) return toast.error("Script file too large (max 50MB)");
+            setScriptFile(f);
+            setBreakdownFile(null);
+            toast.success(`Script "${f.name}" attached`);
+        } else if (isBreakdownFile(f)) {
+            if (f.size > 20 * 1024 * 1024) return toast.error("Breakdown file too large (max 20MB)");
+            setBreakdownFile(f);
+            setScriptFile(null);
+            toast.success(`Sheet "${f.name}" attached`);
+        } else {
+            toast.error("Drop a PDF script or Excel/CSV breakdown sheet");
+        }
     };
+
+    const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+    const handleDragLeave = (e: React.DragEvent) => {
+        // Only leave if we're exiting the card, not entering a child
+        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+        setIsDragging(false);
+    };
+
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
         if (!f) return;
-        if (!f.name.endsWith(".pdf") && !f.type.includes("pdf")) return toast.error("Please upload a PDF script");
+        if (!isPdfFile(f)) return toast.error("Please upload a PDF script");
         if (f.size > 50 * 1024 * 1024) return toast.error("Script file too large (max 50MB)");
         setScriptFile(f);
     };
 
-    // ══════ BREAKDOWN FILE HANDLERS ══════
-    const BREAKDOWN_EXTS = [".xlsx", ".csv", ".tsv", ".xls"];
-    const isBreakdownFile = (f: File) => BREAKDOWN_EXTS.some(ext => f.name.toLowerCase().endsWith(ext));
 
     const handleBreakdownSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
@@ -620,35 +642,53 @@ export default function NewProjectPage() {
             <style jsx global>{`
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-                @keyframes grain { 0%,100% { transform: translate(0,0); } 10% { transform: translate(-2%,-2%); } 20% { transform: translate(1%,3%); } 30% { transform: translate(-3%,1%); } 40% { transform: translate(3%,-1%); } 50% { transform: translate(-1%,2%); } 60% { transform: translate(2%,-3%); } 70% { transform: translate(-2%,1%); } 80% { transform: translate(1%,-2%); } 90% { transform: translate(-1%,3%); } }
                 @keyframes breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
                 @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 20px rgba(229,9,20,0.08); } 50% { box-shadow: 0 0 40px rgba(229,9,20,0.15); } }
                 @keyframes scan { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
                 @keyframes scaleIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+                @keyframes cardGlow { 0%,100% { box-shadow: 0 0 15px rgba(229,9,20,0.06); } 50% { box-shadow: 0 0 30px rgba(229,9,20,0.12); } }
                 .fade-in { animation: fadeIn 0.6s ease both; }
                 .fade-in-1 { animation: fadeIn 0.6s ease 0.1s both; }
                 .fade-in-2 { animation: fadeIn 0.6s ease 0.25s both; }
                 .fade-in-3 { animation: fadeIn 0.6s ease 0.4s both; }
+                .fade-in-4 { animation: fadeIn 0.6s ease 0.55s both; }
             `}</style>
 
-            {/* ══════ BACKGROUND (always visible) ══════ */}
+            {/* ══════ AMBIENT VIDEO BACKGROUND ══════ */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-[#080808]/70 to-[#080808]/80" />
-                {Object.entries(FORMAT_BG).map(([key, src]) => (
-                    <div key={key} className="absolute inset-0 transition-opacity duration-[2000ms]"
-                        style={{ opacity: key === selectedFormat ? 0.15 : 0 }}>
-                        <Image src={src} alt="" fill className="object-cover" priority={key === "film"} />
-                    </div>
-                ))}
-                <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 30%, rgba(8,8,8,0.85) 100%)" }} />
+                {/* Video layer */}
+                <video
+                    autoPlay muted loop playsInline
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ opacity: 0.18 }}
+                    src={AMBIENT_VIDEO}
+                />
+
+                {/* Heavy vignette + gradient overlay */}
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #080808 0%, rgba(8,8,8,0.85) 25%, rgba(8,8,8,0.5) 50%, rgba(8,8,8,0.7) 75%, #080808 100%)' }} />
+                <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 20%, rgba(8,8,8,0.92) 75%)' }} />
+
+                {/* Cinematic color wash based on selected format */}
+                <div className="absolute inset-0 transition-all duration-[2000ms]"
+                    style={{
+                        background: selectedFormat === 'film'
+                            ? 'radial-gradient(ellipse at 40% 40%, rgba(229,9,20,0.06) 0%, transparent 60%)'
+                            : selectedFormat === 'series'
+                                ? 'radial-gradient(ellipse at 40% 40%, rgba(59,130,246,0.05) 0%, transparent 60%)'
+                                : 'radial-gradient(ellipse at 40% 40%, rgba(212,168,67,0.05) 0%, transparent 60%)',
+                    }} />
+
+                {/* Static film grain texture (no animation) */}
                 <div className="absolute inset-0 opacity-[0.03]"
                     style={{
                         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
-                        backgroundSize: "200px 200px",
+                        backgroundSize: '200px 200px',
                     }}
                 />
-                <div className="absolute top-[30%] left-[35%] w-[700px] h-[500px] rounded-full blur-[200px]"
-                    style={{ background: "radial-gradient(circle, rgba(229,9,20,0.03) 0%, transparent 70%)", animation: "breathe 10s ease-in-out infinite" }} />
+
+                {/* Ambient glow orb */}
+                <div className="absolute top-[25%] left-[30%] w-[800px] h-[600px] rounded-full blur-[200px]"
+                    style={{ background: 'radial-gradient(circle, rgba(229,9,20,0.04) 0%, transparent 70%)', animation: 'breathe 10s ease-in-out infinite' }} />
             </div>
 
 
@@ -667,28 +707,54 @@ export default function NewProjectPage() {
                     />
 
                     {/* ── Hero Text ── */}
-                    <div className="text-center mb-6 fade-in">
-                        <p className="text-white font-anton uppercase tracking-wide text-[28px]">
-                            What do you want to make?
+                    <div className="text-center mb-8 fade-in">
+                        <p className="text-[9px] font-mono text-white/20 uppercase tracking-[6px] mb-3">MotionX Studio</p>
+                        <p className="text-white font-anton uppercase tracking-[3px] text-[32px] leading-tight">
+                            Create Your Vision
                         </p>
+                        <p className="text-[11px] text-white/25 mt-2 tracking-wide">Describe your project and let AI handle the rest</p>
                     </div>
 
-                    {/* ── Title Input ── */}
-                    <div className="mb-5">
-                        <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); if (validationErrors.title) setValidationErrors(v => ({ ...v, title: false })); }}
-                            className={`w-full bg-transparent text-[16px] text-white placeholder-neutral-600 focus:outline-none tracking-[1px] caret-[#E50914] border-b pb-2 transition-all duration-300 ${validationErrors.title ? 'border-[#E50914]/60 placeholder-[#E50914]/40' : 'border-white/[0.06] focus:border-white/[0.12]'}`}
-                            placeholder="Project Name *" autoComplete="off" />
-                    </div>
+                    {/* ══════ GLASSMORPHISM CARD (drop zone) ══════ */}
+                    <div
+                        className={`relative rounded-2xl border backdrop-blur-xl p-6 fade-in-1 transition-all duration-300 ${
+                            isDragging
+                                ? 'border-[#E50914]/40 bg-[#E50914]/[0.04] shadow-[0_0_40px_rgba(229,9,20,0.1)]'
+                                : 'border-white/[0.06] bg-white/[0.02]'
+                        }`}
+                        style={{ boxShadow: isDragging ? undefined : '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)' }}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleUniversalDrop}
+                    >
 
-                    {/* ── Genre Input ── */}
-                    <div className="mb-5">
-                        <input type="text" value={genre} onChange={(e) => { setGenre(e.target.value); if (validationErrors.genre) setValidationErrors(v => ({ ...v, genre: false })); }}
-                            className={`w-full bg-transparent text-[16px] text-white placeholder-neutral-600 focus:outline-none tracking-[1px] caret-[#E50914] border-b pb-2 transition-all duration-300 ${validationErrors.genre ? 'border-[#E50914]/60 placeholder-[#E50914]/40' : 'border-white/[0.06] focus:border-white/[0.12]'}`}
-                            placeholder="Genre (e.g. Thriller, Comedy, Horror) *" autoComplete="off" />
+                    {/* Drop zone overlay */}
+                    {isDragging && (
+                        <div className="absolute inset-0 z-50 rounded-2xl border-2 border-dashed border-[#E50914]/50 bg-[#E50914]/[0.03] flex flex-col items-center justify-center gap-3 pointer-events-none">
+                            <Upload size={32} className="text-[#E50914]/60" />
+                            <p className="text-[12px] font-semibold text-white/60 tracking-wide">Drop your file here</p>
+                            <p className="text-[9px] text-white/30 tracking-[2px] uppercase">PDF Script · Excel · CSV</p>
+                        </div>
+                    )}
+
+                    {/* ── Title & Genre Row ── */}
+                    <div className="grid grid-cols-2 gap-4 mb-5">
+                        <div>
+                            <label className="text-[8px] font-mono text-white/20 uppercase tracking-[3px] mb-1.5 block">Project Name</label>
+                            <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); if (validationErrors.title) setValidationErrors(v => ({ ...v, title: false })); }}
+                                className={`w-full bg-white/[0.03] rounded-lg px-3.5 py-2.5 text-[14px] text-white placeholder-neutral-600 focus:outline-none tracking-[0.5px] caret-[#E50914] border transition-all duration-300 ${validationErrors.title ? 'border-[#E50914]/60 placeholder-[#E50914]/40' : 'border-white/[0.06] focus:border-[#E50914]/30 focus:bg-white/[0.04]'}`}
+                                placeholder="e.g. The Last Frontier" autoComplete="off" />
+                        </div>
+                        <div>
+                            <label className="text-[8px] font-mono text-white/20 uppercase tracking-[3px] mb-1.5 block">Genre</label>
+                            <input type="text" value={genre} onChange={(e) => { setGenre(e.target.value); if (validationErrors.genre) setValidationErrors(v => ({ ...v, genre: false })); }}
+                                className={`w-full bg-white/[0.03] rounded-lg px-3.5 py-2.5 text-[14px] text-white placeholder-neutral-600 focus:outline-none tracking-[0.5px] caret-[#E50914] border transition-all duration-300 ${validationErrors.genre ? 'border-[#E50914]/60 placeholder-[#E50914]/40' : 'border-white/[0.06] focus:border-[#E50914]/30 focus:bg-white/[0.04]'}`}
+                                placeholder="Thriller, Sci-Fi, Drama..." autoComplete="off" />
+                        </div>
                     </div>
 
                     {/* ── Prompt Box ── */}
-                    <div className="relative fade-in-1">
+                    <div className="relative">
                         <div className={`rounded-2xl border bg-black/40 backdrop-blur-sm p-5 transition-all duration-300 ${validationErrors.vision ? 'border-[#E50914]/60 shadow-[0_0_30px_rgba(229,9,20,0.08)]' : 'border-white/[0.06] focus-within:border-[#E50914]/20 focus-within:bg-black/50 focus-within:shadow-[0_0_60px_rgba(229,9,20,0.04)]'}`}>
 
                             {/* Editable textarea with expansion overlay */}
@@ -735,10 +801,8 @@ export default function NewProjectPage() {
                             <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.04]">
                                 <div className="flex items-center gap-3">
                                     <button onClick={() => fileInputRef.current?.click()}
-                                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                                        onDragLeave={() => setIsDragging(false)} onDrop={handleFileDrop}
-                                        className={`flex items-center gap-1.5 text-[9px] tracking-wider uppercase cursor-pointer transition-all ${isDragging ? 'text-[#E50914]' : 'text-neutral-600 hover:text-neutral-400'}`}>
-                                        <Upload size={11} />{scriptFile ? 'Replace' : 'Upload script'}
+                                        className={`flex items-center gap-1.5 text-[9px] tracking-wider uppercase cursor-pointer transition-all text-neutral-600 hover:text-neutral-400`}>
+                                        <Upload size={11} />{scriptFile ? 'Replace script' : 'Upload script'}
                                     </button>
                                     <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handleFileSelect} />
 
@@ -752,26 +816,30 @@ export default function NewProjectPage() {
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                    {/* Generate Script CTA — only for raw text, no file, no active expansion */}
-                                    {vision.trim().length > 0 && !scriptFile && !expandedScript && (
+                                    {/* Generate Script CTA — RED when text-only (no file), ghost otherwise */}
+                                    {vision.trim().length > 0 && !scriptFile && !breakdownFile && !expandedScript && (
                                         <button onClick={handleExpandSynopsis}
                                             disabled={isExpanding || !vision.trim()}
-                                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[9px] font-semibold tracking-[1px] transition-all duration-300 border
+                                            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[9px] font-semibold tracking-[1px] transition-all duration-300
                                                 ${isExpanding
-                                                    ? 'border-white/[0.1] text-neutral-500 bg-white/[0.04] cursor-not-allowed'
-                                                    : 'border-white/[0.1] text-neutral-300 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/[0.2] hover:text-white cursor-pointer'}`}>
+                                                    ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                                                    : 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25] cursor-pointer'}`}>
+                                            {isExpanding ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
                                             Generate Script
                                         </button>
                                     )}
 
-                                    {/* Create Project CTA — visible when text/file present, hidden during AI review */}
+                                    {/* Create Project CTA — RED when file attached, ghost when text-only */}
                                     {(vision.trim().length > 0 || scriptFile || breakdownFile) && !expandedScript && (
                                         <button onClick={handleCreate}
                                             disabled={isSubmitting || phase !== 'prompt'}
                                             className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-semibold tracking-[1px] transition-all duration-300 cursor-pointer
                                                 ${isSubmitting || phase !== 'prompt'
                                                     ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-                                                    : 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25]'}`}>
+                                                    : (scriptFile || breakdownFile)
+                                                        ? 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25]'
+                                                        : 'border border-white/[0.1] text-neutral-400 bg-white/[0.03] hover:bg-white/[0.06] hover:text-white hover:border-white/[0.15]'
+                                                }`}>
                                             {isSubmitting ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
                                             {isSubmitting ? 'Creating...' : 'Create Project'}
                                         </button>
@@ -784,10 +852,11 @@ export default function NewProjectPage() {
                     {/* ── Suggested Script ── */}
                     {expandedScript && (
                         <div className="mt-4 fade-in-1">
-                            <div className="rounded-2xl border border-white/[0.08] bg-black/40 backdrop-blur-sm overflow-hidden">
+                            <div className="rounded-xl border border-white/[0.08] bg-black/30 backdrop-blur-sm overflow-hidden">
                                 {/* Header */}
                                 <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
                                     <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-[2px] flex items-center gap-1.5">
+                                        <Clapperboard size={10} className="text-[#E50914]/50" />
                                         Suggested Script
                                     </span>
                                     <div className="flex items-center gap-1.5">
@@ -797,12 +866,12 @@ export default function NewProjectPage() {
                                                 setExpandedScript(null);
                                                 setScriptApplied(true);
                                             }}
-                                            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[9px] font-bold bg-white text-[#111] hover:bg-neutral-200 transition-all cursor-pointer">
+                                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[9px] font-bold bg-[#E50914] text-white hover:bg-[#ff1a25] transition-all cursor-pointer">
                                             <Check size={10} /> Apply
                                         </button>
                                         <button
                                             onClick={() => setExpandedScript(null)}
-                                            className="p-1.5 rounded-full text-neutral-600 hover:text-neutral-300 hover:bg-white/[0.06] transition-all cursor-pointer">
+                                            className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-300 hover:bg-white/[0.06] transition-all cursor-pointer">
                                             <X size={12} />
                                         </button>
                                     </div>
@@ -820,67 +889,116 @@ export default function NewProjectPage() {
                         </div>
                     )}
 
-                    {/* ── Format / Engine / Aspect / Runtime pills (hidden during AI review) ── */}
+                    {/* ── Format Cards — Cinematic Selector ── */}
                     <div style={{ display: expandedScript ? 'none' : undefined }}>
-                        <div className="mt-6 flex items-center justify-center gap-2 fade-in-2">
-                            {[
-                                { icon: Film, text: 'Film', key: 'film', seed: 'A feature film about ' },
-                                { icon: Tv, text: 'Series', key: 'series', seed: 'A micro drama series about ' },
-                                { icon: Megaphone, text: 'Ad', key: 'ad', seed: 'A commercial for ' },
-                            ].map((h) => (
-                                <button key={h.text}
-                                    onClick={() => { setSelectedFormat(h.key); if (!vision) setVision(h.seed); textareaRef.current?.focus(); }}
-                                    className={`px-3.5 py-1.5 rounded-full border text-[9px] tracking-[2px] uppercase transition-all cursor-pointer flex items-center gap-1.5
-                                        ${selectedFormat === h.key ? 'border-white/[0.15] text-white bg-white/[0.06]' : 'border-white/[0.06] text-neutral-500 hover:text-neutral-300 hover:border-white/[0.12] hover:bg-white/[0.03]'}`}>
-                                    <h.icon size={10} />{h.text}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="mt-3 flex items-center justify-center gap-2 fade-in-2">
-                            {([
-                                { text: 'Live-Action', key: 'realistic' as const },
-                                { text: 'Animation (2D)', key: 'animation_2d' as const },
-                                { text: 'Animation (3D)', key: 'animation_3d' as const },
-                            ] as const).map((s) => (
-                                <button key={s.key}
-                                    onClick={() => setSelectedStyle(s.key)}
-                                    className={`px-3.5 py-1.5 rounded-full border text-[9px] tracking-[2px] uppercase transition-all cursor-pointer
-                                        ${selectedStyle === s.key ? 'border-white/[0.15] text-white bg-white/[0.06]' : 'border-white/[0.06] text-neutral-500 hover:text-neutral-300 hover:border-white/[0.12] hover:bg-white/[0.03]'}`}>
-                                    {s.text}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="mt-3 flex items-center justify-center gap-2 fade-in-3">
-                            {(['16:9', '9:16', '21:9', '4:5', '1:1'] as const).map((r) => (
-                                <button key={r} onClick={() => setAspectRatio(r)}
-                                    className={`px-3 py-1.5 rounded-full text-[11px] font-mono tracking-wider transition-all cursor-pointer ${aspectRatio === r ? 'text-white bg-white/[0.08]' : 'text-neutral-600 hover:text-neutral-400'}`}>
-                                    {r}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="mt-3 flex items-center justify-center gap-2 fade-in-3">
-                            {[{ label: '15s', value: 15 }, { label: '30s', value: 30 }, { label: '60s', value: 60 }, { label: '2m', value: 120 }, { label: '5m', value: 300 }, { label: '10m', value: 600 }].map((r) => (
-                                <button key={r.value} onClick={() => { setRuntime(r.value); setRuntimeUnit('sec'); }}
-                                    className={`px-3 py-1.5 rounded-full text-[11px] font-mono tracking-wider transition-all cursor-pointer ${runtime === r.value ? 'text-white bg-white/[0.08]' : 'text-neutral-600 hover:text-neutral-400'}`}>
-                                    {r.label}
-                                </button>
-                            ))}
-                            <span className="text-neutral-700 text-[11px] mx-1">or</span>
-                            <div className="flex items-center gap-1.5">
-                                <input type="number" min={1}
-                                    value={runtimeUnit === 'min' ? (runtime ? Math.round(runtime / 60 * 10) / 10 : '') : (runtime || '')}
-                                    onChange={(e) => {
-                                        const val = parseFloat(e.target.value) || 0;
-                                        setRuntime(runtimeUnit === 'min' ? Math.round(val * 60) : Math.round(val));
-                                    }}
-                                    onBlur={() => { if (runtime < 1) setRuntime(30); }}
-                                    className="w-14 bg-white/[0.04] rounded px-2 py-1.5 text-[11px] font-mono text-white text-center focus:outline-none focus:bg-white/[0.08] border border-white/[0.06] caret-[#E50914]" />
-                                <button onClick={() => setRuntimeUnit(u => u === 'sec' ? 'min' : 'sec')}
-                                    className="text-[11px] text-neutral-500 hover:text-white font-mono uppercase tracking-wider cursor-pointer transition-colors px-1.5 py-0.5 rounded hover:bg-white/[0.06]">
-                                    {runtimeUnit}
-                                </button>
+                        <div className="mt-6 mb-5 fade-in-2">
+                            <p className="text-[8px] font-mono text-white/15 uppercase tracking-[3px] text-center mb-3">Format</p>
+                            <div className="grid grid-cols-3 gap-3">
+                                {FORMAT_CARDS.map((card, idx) => {
+                                    const isActive = selectedFormat === card.key;
+                                    return (
+                                        <button key={card.key}
+                                            onClick={() => { setSelectedFormat(card.key); if (!vision) setVision(card.seed); textareaRef.current?.focus(); }}
+                                            className={`group relative rounded-xl border p-4 text-left transition-all duration-500 cursor-pointer overflow-hidden
+                                                ${isActive
+                                                    ? 'border-[#E50914]/40 bg-[#E50914]/[0.06]'
+                                                    : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]'
+                                                }`}
+                                            style={{
+                                                animation: `fadeIn 0.5s ease ${0.3 + idx * 0.1}s both`,
+                                                ...(isActive ? { boxShadow: '0 0 25px rgba(229,9,20,0.08), inset 0 1px 0 rgba(229,9,20,0.1)' } : {}),
+                                            }}>
+                                            {/* Active glow scanline */}
+                                            {isActive && (
+                                                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                                                    <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#E50914]/[0.06] to-transparent animate-[scan_3s_ease-in-out_infinite]" />
+                                                </div>
+                                            )}
+                                            <div className="relative flex flex-col items-center gap-2">
+                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-500 ${isActive ? 'bg-[#E50914]/15 border border-[#E50914]/25' : 'bg-white/[0.04] border border-white/[0.06] group-hover:bg-white/[0.06]'}`}>
+                                                    <card.icon size={18} className={`transition-colors duration-300 ${isActive ? 'text-[#E50914]' : 'text-white/30 group-hover:text-white/50'}`} />
+                                                </div>
+                                                <span className={`text-[11px] font-semibold tracking-wide transition-colors duration-300 ${isActive ? 'text-white' : 'text-white/40 group-hover:text-white/60'}`}>{card.text}</span>
+                                                <span className={`text-[8px] tracking-[1px] uppercase transition-colors duration-300 ${isActive ? 'text-[#E50914]/60' : 'text-white/15'}`}>{card.subtitle}</span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
+
+                        {/* ── Visual Engine ── */}
+                        <div className="mb-4 fade-in-3">
+                            <p className="text-[8px] font-mono text-white/15 uppercase tracking-[3px] text-center mb-2.5">Visual Engine</p>
+                            <div className="flex items-center justify-center gap-2">
+                                {([
+                                    { text: 'Live-Action', key: 'realistic' as const, icon: '🎬' },
+                                    { text: '2D Animation', key: 'animation_2d' as const, icon: '✏️' },
+                                    { text: '3D Animation', key: 'animation_3d' as const, icon: '🧊' },
+                                ] as const).map((s) => (
+                                    <button key={s.key}
+                                        onClick={() => setSelectedStyle(s.key)}
+                                        className={`px-4 py-2 rounded-lg border text-[10px] tracking-[1px] uppercase transition-all duration-300 cursor-pointer flex items-center gap-2
+                                            ${selectedStyle === s.key
+                                                ? 'border-white/[0.15] text-white bg-white/[0.06]'
+                                                : 'border-white/[0.04] text-neutral-600 hover:text-neutral-300 hover:border-white/[0.1] hover:bg-white/[0.03]'
+                                            }`}>
+                                        <span className="text-[12px]">{s.icon}</span>{s.text}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* ── Aspect Ratio & Runtime ── */}
+                        <div className="flex items-center justify-between gap-6 fade-in-4">
+                            <div className="flex-1">
+                                <p className="text-[8px] font-mono text-white/15 uppercase tracking-[3px] mb-2">Aspect</p>
+                                <div className="flex items-center gap-1.5">
+                                    {(['16:9', '9:16', '21:9', '4:5', '1:1'] as const).map((r) => (
+                                        <button key={r} onClick={() => setAspectRatio(r)}
+                                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-mono tracking-wider transition-all duration-300 cursor-pointer border
+                                                ${aspectRatio === r
+                                                    ? 'text-white bg-white/[0.08] border-white/[0.12]'
+                                                    : 'text-neutral-600 hover:text-neutral-400 border-transparent hover:border-white/[0.06]'
+                                                }`}>
+                                            <RectangleHorizontal size={9} className={aspectRatio === r ? 'text-[#E50914]' : 'text-neutral-700'}
+                                                style={r === '9:16' ? { transform: 'rotate(90deg)' } : r === '1:1' ? { borderRadius: '1px' } : {}} />
+                                            {r}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[8px] font-mono text-white/15 uppercase tracking-[3px] mb-2">Duration</p>
+                                <div className="flex items-center gap-1.5">
+                                    {[{ label: '15s', value: 15 }, { label: '30s', value: 30 }, { label: '60s', value: 60 }, { label: '2m', value: 120 }, { label: '5m', value: 300 }, { label: '10m', value: 600 }].map((r) => (
+                                        <button key={r.value} onClick={() => { setRuntime(r.value); setRuntimeUnit('sec'); }}
+                                            className={`px-2.5 py-1.5 rounded-lg text-[10px] font-mono tracking-wider transition-all duration-300 cursor-pointer border
+                                                ${runtime === r.value
+                                                    ? 'text-white bg-white/[0.08] border-white/[0.12]'
+                                                    : 'text-neutral-600 hover:text-neutral-400 border-transparent hover:border-white/[0.06]'
+                                                }`}>
+                                            {r.label}
+                                        </button>
+                                    ))}
+                                    <div className="flex items-center gap-1 ml-1">
+                                        <input type="number" min={1}
+                                            value={runtimeUnit === 'min' ? (runtime ? Math.round(runtime / 60 * 10) / 10 : '') : (runtime || '')}
+                                            onChange={(e) => {
+                                                const val = parseFloat(e.target.value) || 0;
+                                                setRuntime(runtimeUnit === 'min' ? Math.round(val * 60) : Math.round(val));
+                                            }}
+                                            onBlur={() => { if (runtime < 1) setRuntime(30); }}
+                                            className="w-12 bg-white/[0.03] rounded-lg px-2 py-1.5 text-[10px] font-mono text-white text-center focus:outline-none focus:bg-white/[0.06] border border-white/[0.06] caret-[#E50914]" />
+                                        <button onClick={() => setRuntimeUnit(u => u === 'sec' ? 'min' : 'sec')}
+                                            className="text-[9px] text-neutral-500 hover:text-white font-mono uppercase tracking-wider cursor-pointer transition-colors px-1.5 py-1 rounded-md hover:bg-white/[0.06]">
+                                            {runtimeUnit}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {currentUser?.email?.endsWith('@motionx.in') && (
                             <div className="mt-5 text-center">
                                 <button onClick={() => router.push('/project/new?mode=adaptation')}
@@ -889,6 +1007,9 @@ export default function NewProjectPage() {
                                 </button>
                             </div>
                         )}
+                    </div>
+
+                    {/* Close glassmorphism card */}
                     </div>
 
 
