@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import {
     Trash2, Loader2, Wand2, Play, Sparkles, Settings,
     Plus, Video, ShoppingBag
 } from "lucide-react";
-import { Asset, CharacterProfile, ProductProfile, LocationProfile } from "@/lib/types";
+import { Asset, CharacterProfile, ProductProfile } from "@/lib/types";
 
 interface AssetCardProps {
     variant?: 'default' | 'create';
@@ -55,19 +55,10 @@ export const AssetCard: React.FC<AssetCardProps> = ({
     // --- VARIANT: STANDARD ASSET CARD ---
     if (!asset) return null;
 
-    // --- LOCATION ANGLE STATE ---
     const isLocation = asset.type === 'location';
-    const locViews = isLocation ? (asset as LocationProfile).image_views : undefined;
-    const hasMultipleViews = !!(locViews?.wide || locViews?.front);
-    const [locationAngle, setLocationAngle] = useState<'wide' | 'front'>('front');
 
-    // Resolve the displayed image: prefer the selected angle view, fallback to image_url
-    const displayImageUrl = (() => {
-        if (isLocation && hasMultipleViews && locViews) {
-            return locViews[locationAngle] || asset.image_url;
-        }
-        return asset.image_url;
-    })();
+    // Resolve the displayed image
+    const displayImageUrl = asset.image_url;
 
     // Status
     const isReady = !!asset.image_url;
@@ -159,20 +150,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                     </div>
                 )}
 
-                {/* LOCATION ANGLE DROPDOWN */}
-                {isLocation && hasMultipleViews && (
-                    <div className="absolute top-2 right-2 z-20">
-                        <select
-                            value={locationAngle}
-                            onChange={(e) => { e.stopPropagation(); setLocationAngle(e.target.value as 'wide' | 'front'); }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-black/70 backdrop-blur-sm border border-white/20 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded cursor-pointer focus:outline-none hover:border-white/40 transition-colors"
-                        >
-                            <option value="front">Front</option>
-                            <option value="wide">Wide</option>
-                        </select>
-                    </div>
-                )}
+
             </div>
 
             {/* ── BOTTOM OVERLAY ── */}

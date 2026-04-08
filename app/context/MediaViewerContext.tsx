@@ -9,7 +9,6 @@ export interface MediaItem {
     imageUrl?: string;
     videoUrl?: string;
     lipsyncUrl?: string; // <--- NEW FIELD
-    imageViews?: { wide?: string; front?: string }; // Location angle views
     title?: string;
     description?: string;
 }
