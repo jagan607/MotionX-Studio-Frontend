@@ -497,6 +497,19 @@ export const cloneSetDesign = async (
     return res.data;
 };
 
+export const resetSetDesign = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string
+) => {
+    const res = await api.post("/api/v1/shot/reset_set_design", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+    });
+    return res.data;
+};
+
 export const inpaintSetDesign = async (
     projectId: string,
     episodeId: string,

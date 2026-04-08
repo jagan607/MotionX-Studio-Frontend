@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     Sparkles, X, Loader2, Save, CloudFog, Building2,
-    ChevronLeft, ChevronRight, Eye, ImagePlus, Paintbrush, Download, AlertTriangle, Coins
+    ChevronLeft, ChevronRight, Eye, ImagePlus, Paintbrush, Download, AlertTriangle, Coins, Trash2
 } from "lucide-react";
-import { generateSetDesign, updateSetDesign, inpaintSetDesign, cloneSetDesign, retrySetAngle } from "@/lib/api";
+import { generateSetDesign, updateSetDesign, inpaintSetDesign, cloneSetDesign, retrySetAngle, resetSetDesign } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { InpaintEditor } from "./InpaintEditor";
 
@@ -78,11 +78,12 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     // Frozen snapshot of image_urls taken at retry-start — UI renders from this
     // during a single-angle retry so no Firestore intermediate state can flash.
     const frozenViewsRef = useRef<Record<string, string> | null>(null);
+    const [isResetting, setIsResetting] = useState(false);
 
     const location = locations.find(
         l => l.name === locationName || l.id === locationName?.replace(/[\s.]+/g, '_').toUpperCase()
     );
-    
+
     // Use frozen views during retry to prevent any Firestore-driven flash
     const liveViews = existingData?.image_urls;
     const displayViews = (retryingAngleKey && frozenViewsRef.current) ? frozenViewsRef.current : liveViews;
@@ -95,7 +96,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const heroImage = generatedImage
         || location?.image_views?.[activeView as keyof typeof location.image_views]
         || location?.image_url;
-    
+
     let availableViews: [string, string][] = [];
     if (displayViews && Object.keys(displayViews).length > 0) {
         availableViews = Object.entries(displayViews).filter(([, url]) => url) as [string, string][];
@@ -201,7 +202,6 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
         }
 
         setIsRetryingAngle(true);
-        setRetryingAngleKey(targetAngle);
         try {
             await retrySetAngle(projectId, episodeId, sceneId, activeView);
 
@@ -271,14 +271,14 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const handleInpaintApply = async (newUrl: string) => {
         // 1. Update local state immediately for snappy UI
         const updatedUrls = { ...existingData?.image_urls, [activeView]: newUrl };
-        
+
         // If we are editing the 'front' view, we should also update the master thumbnail
-        const updatedData: SetDesignData = { 
-            ...existingData, 
+        const updatedData: SetDesignData = {
+            ...existingData,
             image_urls: updatedUrls,
             ...(activeView === "front" ? { image_url: newUrl } : {})
         };
-        
+
         if (onUpdate) onUpdate(updatedData);
 
         // 2. Persist to backend explicitly
@@ -374,7 +374,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                             <div className="w-1 h-1 rounded-full bg-white/20" />
                             <span>PRJ {projectId?.slice(0, 6) || "XXX"}</span>
                         </div>
-                        
+
                         {(showGlobalRenderOverlay || showAngleRenderOverlay) && (
                             <div className="mt-4 inline-flex items-center gap-2 text-[10px] font-mono text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-3 py-1.5 rounded uppercase tracking-widest">
                                 <Loader2 size={12} className="animate-spin" />
@@ -399,13 +399,59 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                 </div>
                             ))}
                         </div>
+
+                        {/* --- ACTION BUTTONS --- */}
+                        <div className="flex items-center gap-3 pt-2">
+                            {/* Save */}
+                            {isDirty && (
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isSaving}
+                                    className="flex-1 inline-flex items-center justify-center gap-2 py-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] text-white/70 hover:text-white rounded-xl text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                    {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                                    {isSaving ? "SAVING..." : "SAVE NOTES"}
+                                </button>
+                            )}
+
+                            {/* Reset — only show when set design exists */}
+                            {hasData && (
+                                <button
+                                    onClick={() => {
+                                        setConfirmAction({
+                                            title: "Reset Set Design?",
+                                            message: "This will completely clear the set design for this scene — atmosphere, notes, and all generated images will be removed. This cannot be undone.",
+                                            onConfirm: async () => {
+                                                setIsResetting(true);
+                                                try {
+                                                    await resetSetDesign(projectId, episodeId, sceneId);
+                                                    setAtmosphere("");
+                                                    setArchNotes("");
+                                                    if (onUpdate) onUpdate(null as any);
+                                                    toastSuccess("Set design reset");
+                                                } catch (e: any) {
+                                                    toastError(e?.response?.data?.detail || "Failed to reset set design");
+                                                } finally {
+                                                    setIsResetting(false);
+                                                }
+                                            },
+                                        });
+                                    }}
+                                    disabled={isResetting || isGenerating}
+                                    className="inline-flex items-center justify-center gap-2 py-3 px-4 bg-red-500/5 hover:bg-red-500/15 border border-red-500/15 hover:border-red-500/30 text-red-400/70 hover:text-red-400 rounded-xl text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                    {isResetting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                                    RESET
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* RIGHT: Floating Visual Previews */}
                 <div className="flex-1 h-full min-h-[50vh] flex flex-col items-center justify-center relative bg-transparent pointer-events-none"
                     style={{ transform: isVisible ? "translateX(0)" : "translateX(40px)", opacity: isVisible ? 1 : 0, transition: "all 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s" }}>
-                    
+
                     <button onClick={handleClose}
                         className="absolute top-0 right-0 z-30 w-12 h-12 flex items-center justify-center text-white/40 hover:text-white transition-all cursor-pointer bg-black/40 backdrop-blur-xl rounded-full border border-white/10 pointer-events-auto hover:bg-white/10 hover:scale-105">
                         <X size={18} />
@@ -426,7 +472,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                         <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-r-3xl bg-black">
                             {/* Viewport Image */}
                             <img src={heroImage} alt="Angle Preview" className="absolute inset-0 w-full h-full object-contain opacity-100" />
-                            
+
                             {/* Chevron Navigation */}
                             {availableViews.length > 1 && !showGlobalRenderOverlay && (
                                 <>
@@ -452,16 +498,16 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                 <div className="absolute -top-[1px] -right-[1px] w-4 h-4 border-t-2 border-r-2 border-red-500/70" />
                                 <div className="absolute -bottom-[1px] -left-[1px] w-4 h-4 border-b-2 border-l-2 border-red-500/70" />
                                 <div className="absolute -bottom-[1px] -right-[1px] w-4 h-4 border-b-2 border-r-2 border-red-500/70" />
-                                
+
                                 {/* Center Crosshair */}
                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                                     <div className="w-8 h-[1px] bg-white/30 absolute top-1/2 -translate-y-1/2 -left-4" />
                                     <div className="w-[1px] h-8 bg-white/30 absolute left-1/2 -translate-x-1/2 -top-4" />
                                 </div>
-                                
+
                                 {/* Safe Margins */}
                                 <div className="absolute inset-[15%] border border-dashed border-white/15 rounded-3xl" />
-                                
+
                                 {/* Top and Bottom Letterbox Bars (Fake Anamorphic) */}
                                 <div className="absolute top-0 inset-x-0 h-[10%] bg-black/40 backdrop-blur-[2px]" />
                                 <div className="absolute bottom-0 inset-x-0 h-[10%] bg-black/40 backdrop-blur-[2px]" />
@@ -475,25 +521,25 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                     </div>
                                 </div>
                             )}
-                            
+
                             {(showGlobalRenderOverlay || showAngleRenderOverlay) && (
                                 <>
-                                <style>{`@keyframes setOverlayFadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
-                                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md pointer-events-none font-mono"
-                                    style={{ animation: 'setOverlayFadeIn 300ms ease-out' }}>
-                                    <div className="w-16 h-16 rounded-full border border-red-500/50 flex items-center justify-center relative overflow-hidden mb-6">
-                                        <div className="absolute inset-0 bg-red-500/20 animate-ping" />
-                                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                                    <style>{`@keyframes setOverlayFadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
+                                    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md pointer-events-none font-mono"
+                                        style={{ animation: 'setOverlayFadeIn 300ms ease-out' }}>
+                                        <div className="w-16 h-16 rounded-full border border-red-500/50 flex items-center justify-center relative overflow-hidden mb-6">
+                                            <div className="absolute inset-0 bg-red-500/20 animate-ping" />
+                                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                                        </div>
+                                        <div className="text-[14px] font-bold text-red-400 uppercase tracking-[6px] mb-3">
+                                            {isRetryingSingleAngle ? `Rendering ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toUpperCase()}` : "Rendering"}
+                                        </div>
+                                        <div className="text-[11px] text-white/50 max-w-[320px] text-center leading-relaxed">
+                                            {isRetryingSingleAngle
+                                                ? `Regenerating the ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toLowerCase()} angle. Other angles remain available.`
+                                                : (existingData?.image_prompt || "Compositing location, extras, and props into preview frame...")}
+                                        </div>
                                     </div>
-                                    <div className="text-[14px] font-bold text-red-400 uppercase tracking-[6px] mb-3">
-                                        {isRetryingSingleAngle ? `Rendering ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toUpperCase()}` : "Rendering"}
-                                    </div>
-                                    <div className="text-[11px] text-white/50 max-w-[320px] text-center leading-relaxed">
-                                        {isRetryingSingleAngle
-                                            ? `Regenerating the ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toLowerCase()} angle. Other angles remain available.`
-                                            : (existingData?.image_prompt || "Compositing location, extras, and props into preview frame...")}
-                                    </div>
-                                </div>
                                 </>
                             )}
 
@@ -574,24 +620,24 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
 
                                 {/* Generate / Overhaul button — hidden during rendering */}
                                 {!showGlobalRenderOverlay && !showAngleRenderOverlay && !isRetryingAngle && (
-                                <button
-                                    onClick={() => {
-                                        if (hasData) {
-                                            setConfirmAction({
-                                                title: "Overhaul Set Design?",
-                                                message: "This will completely overwrite your current set dressing, props, and lighting for this scene and cost 2 credits. This action cannot be undone.",
-                                                onConfirm: () => handleGenerate(),
-                                            });
-                                        } else {
-                                            handleGenerate();
-                                        }
-                                    }}
-                                    disabled={isGenerating}
-                                    className="inline-flex items-center gap-2 justify-center bg-red-600/80 hover:bg-red-600 border border-red-500/60 hover:border-red-400 text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(229,9,20,0.15)]"
-                                >
-                                    {isGenerating ? "GENERATING..." : (hasData ? "OVERHAUL DESIGN" : "GENERATE SET")}
-                                    {!isGenerating && <span className="inline-flex items-center gap-1 ml-1 text-white/50"><Coins size={10} />2</span>}
-                                </button>
+                                    <button
+                                        onClick={() => {
+                                            if (hasData) {
+                                                setConfirmAction({
+                                                    title: "Overhaul Set Design?",
+                                                    message: "This will completely overwrite your current set dressing, props, and lighting for this scene and cost 2 credits. This action cannot be undone.",
+                                                    onConfirm: () => handleGenerate(),
+                                                });
+                                            } else {
+                                                handleGenerate();
+                                            }
+                                        }}
+                                        disabled={isGenerating}
+                                        className="inline-flex items-center gap-2 justify-center bg-red-600/80 hover:bg-red-600 border border-red-500/60 hover:border-red-400 text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(229,9,20,0.15)]"
+                                    >
+                                        {isGenerating ? "GENERATING..." : (hasData ? "OVERHAUL DESIGN" : "GENERATE SET")}
+                                        {!isGenerating && <span className="inline-flex items-center gap-1 ml-1 text-white/50"><Coins size={10} />2</span>}
+                                    </button>
                                 )}
                             </div>
                         </div>

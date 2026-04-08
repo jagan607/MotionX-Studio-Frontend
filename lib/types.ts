@@ -5,6 +5,8 @@ export interface CharacterVisualTraits {
     hair: string;
     clothing: string;
     vibe: string;
+    build?: string;
+    distinguishing_features?: string;
 }
 
 export interface LocationVisualTraits {
@@ -40,7 +42,7 @@ export interface CharacterProfile {
     id: string;
     name: string;
     type: "character";
-    character_type?: "human" | "animal" | "creature" | "robot" | "primary"; // "primary" is legacy, treat as "human"
+    character_type?: "human" | "animal" | "creature" | "robot" | "deity" | "mythological" | "primary"; // "primary" is legacy, treat as "human"
     project_id: string;
 
     image_url?: string;

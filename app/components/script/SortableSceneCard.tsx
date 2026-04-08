@@ -51,8 +51,8 @@ export const SortableSceneCard: React.FC<SortableSceneCardProps> = ({
             onClick={onEdit}
             className={`group relative flex w-full transition-all duration-200 cursor-pointer rounded-lg overflow-hidden
                 ${isActive
-                    ? 'bg-[#141414] border border-[#2A2A2A] border-l-[2px] border-l-red-500 shadow-lg shadow-black/20 z-10'
-                    : 'bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#2A2A2A] hover:bg-[#0E0E0E]'}`}
+                    ? 'bg-[#1A0A0A] border border-red-500/30 border-l-[3px] border-l-red-500 shadow-[0_0_20px_rgba(229,9,20,0.08)] z-10'
+                    : 'bg-[#0C0C0C] border border-[#1E1E1E] hover:border-[#333] hover:bg-[#111]'}`}
         >
             {/* 1. DRAG HANDLE */}
             <div
@@ -82,34 +82,34 @@ export const SortableSceneCard: React.FC<SortableSceneCardProps> = ({
                         {String(index + 1).padStart(2, '0')}
                     </span>
 
-                    <span className="text-[11px] text-[#888] font-medium truncate uppercase tracking-wide">
+                    <span className="text-[11px] text-white/90 font-semibold truncate uppercase tracking-wide">
                         {formattedHeader}
                     </span>
 
                     {scene.time && (
                         <div className="ml-auto flex items-center gap-1.5 shrink-0">
-                            <Clock size={9} className="text-[#3A3A3A]" />
-                            <span className="text-[9px] text-[#3A3A3A] uppercase font-medium">{scene.time}</span>
+                            <Clock size={9} className="text-[#555]" />
+                            <span className="text-[9px] text-[#666] uppercase font-medium">{scene.time}</span>
                         </div>
                     )}
                 </div>
 
                 {/* B. SCRIPT CONTENT (3-line clamp) */}
                 <div className="mb-3">
-                    <p className="text-[13px] text-[#999] leading-relaxed whitespace-pre-wrap" style={{
+                    <p className="text-[13px] text-[#ccc] leading-relaxed whitespace-pre-wrap" style={{
                         display: '-webkit-box',
                         WebkitLineClamp: 3,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
                     }}>
-                        {scene.summary || <span className="text-[#333] italic">No visual description available.</span>}
+                        {scene.summary || <span className="text-[#444] italic">No visual description available.</span>}
                     </p>
                 </div>
 
                 {/* C. METADATA TAGS (Dimmed outlines) */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                     {/* Location Tag */}
-                    <div className="flex items-center gap-1 px-2 py-0.5 border border-[#1A1A1A] rounded-md text-[#444]">
+                    <div className="flex items-center gap-1 px-2 py-0.5 border border-red-500/20 rounded-md text-red-400/70 bg-red-500/[0.04]">
                         <MapPin size={9} />
                         <span className="text-[8px] font-medium uppercase tracking-wider max-w-[120px] truncate">
                             {cleanLocation || "LOC"}
@@ -119,7 +119,7 @@ export const SortableSceneCard: React.FC<SortableSceneCardProps> = ({
                     {/* Cast Tags */}
                     {castList.length > 0 ? (
                         castList.map((cast: string, i: number) => (
-                            <div key={i} className="flex items-center gap-1 px-2 py-0.5 border border-[#1A1A1A] rounded-md text-[#444]">
+                            <div key={i} className="flex items-center gap-1 px-2 py-0.5 border border-amber-500/20 rounded-md text-amber-400/70 bg-amber-500/[0.04]">
                                 <Users size={9} />
                                 <span className="text-[8px] font-medium uppercase tracking-wider max-w-[100px] truncate">
                                     {cast.replace(/_/g, " ")}
@@ -132,7 +132,7 @@ export const SortableSceneCard: React.FC<SortableSceneCardProps> = ({
 
                     {/* Mood Chip */}
                     {hasMood && (
-                        <div className="flex items-center gap-1 px-2 py-0.5 border border-[#1A1A1A] rounded-md text-[#444]">
+                        <div className="flex items-center gap-1 px-2 py-0.5 border border-violet-500/20 rounded-md text-violet-400/70 bg-violet-500/[0.04]">
                             <Palette size={9} />
                             <span className="text-[8px] font-medium uppercase tracking-wider max-w-[120px] truncate">
                                 {mood.atmosphere || mood.color_palette || "Mood"}

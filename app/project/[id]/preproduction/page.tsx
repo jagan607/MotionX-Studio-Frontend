@@ -641,9 +641,29 @@ export default function PreProductionCanvas() {
                                     onGenerate={
                                         node.nodeType !== "scene" && node.nodeType !== "moodboard"
                                             ? () => {
+                                                // Build a rich prompt from visual traits instead of generic "portrait of Name"
                                                 const raw = node.raw;
                                                 const type = node.nodeType;
-                                                const prompt = `Cinematic ${type === "character" ? "portrait" : type === "location" ? "establishing shot" : "product photo"} of ${node.title}. High quality, 8k, photorealistic.`;
+                                                let prompt = '';
+                                                if (type === 'character') {
+                                                    const traits = raw.visual_traits || {};
+                                                    const charType = raw.type || 'human';
+                                                    const parts: string[] = [];
+                                                    if (charType !== 'human') parts.push(`${charType} character`);
+                                                    if (traits.age) parts.push(traits.age);
+                                                    if (traits.ethnicity) parts.push(traits.ethnicity);
+                                                    if (traits.build) parts.push(traits.build);
+                                                    if (traits.hair) parts.push(traits.hair);
+                                                    if (traits.clothing) parts.push(`wearing ${traits.clothing}`);
+                                                    if (traits.distinguishing_features) parts.push(traits.distinguishing_features);
+                                                    if (traits.vibe) parts.push(traits.vibe);
+                                                    const traitStr = parts.filter(Boolean).join(', ');
+                                                    prompt = `Cinematic portrait of ${node.title}${traitStr ? `, ${traitStr}` : ''}. Dramatic lighting, sharp focus, high quality, 8k, photorealistic.`;
+                                                } else if (type === 'location') {
+                                                    prompt = `Cinematic establishing shot of ${node.title}. High quality, 8k, photorealistic.`;
+                                                } else {
+                                                    prompt = `Product photography of ${node.title}. High quality, 8k, photorealistic.`;
+                                                }
                                                 handleGenerateAsset(type, raw.id, prompt);
                                             }
                                             : undefined

@@ -149,19 +149,35 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 features: Array.isArray(mkt.key_features) ? mkt.key_features.join(', ') : ""
             };
         } else {
-            // Character
-            const charTraits = (vt && !Array.isArray(vt)) ? vt : {};
-            initialData = {
-                age: charTraits.age || "",
-                ethnicity: charTraits.ethnicity || "",
-                hair: charTraits.hair || "",
-                clothing: charTraits.clothing || "",
-                vibe: charTraits.vibe || "",
-                visual_traits: charTraits
+            // Character — resolve traits from multiple possible locations
+            // Priority: visual_traits object > root-level fields > character_traits
+            const vtObj = (vt && typeof vt === 'object' && !Array.isArray(vt)) ? vt : {};
+            const ct = rawData.character_traits || {};
+            
+            // Build resolved traits with fallback chain
+            const resolvedTraits = {
+                age: vtObj.age || rawData.age || ct.age || "",
+                ethnicity: vtObj.ethnicity || rawData.ethnicity || ct.ethnicity || "",
+                build: vtObj.build || rawData.build || ct.build || "",
+                hair: vtObj.hair || rawData.hair || ct.hair || "",
+                clothing: vtObj.clothing || rawData.clothing || ct.clothing || "",
+                distinguishing_features: vtObj.distinguishing_features || rawData.distinguishing_features || ct.distinguishing_features || "",
+                vibe: vtObj.vibe || rawData.vibe || ct.vibe || "",
             };
-            if (rawData.type === 'character') {
-                setSelectedVoiceId(rawData.voice_config?.voice_id || null);
-            }
+
+            console.log("🎭 Character Init Debug:", {
+                name: rawData.name,
+                rawVisualTraits: vt,
+                resolvedTraits,
+                rawDataKeys: Object.keys(rawData),
+            });
+
+            initialData = {
+                ...resolvedTraits,
+                visual_traits: resolvedTraits,
+            };
+            // Set voice for any character type
+            setSelectedVoiceId(rawData.voice_config?.voice_id || null);
         }
 
         setEditableTraits(initialData);
@@ -315,8 +331,10 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 visual_traits: {
                     age: editableTraits.age,
                     ethnicity: editableTraits.ethnicity,
+                    build: editableTraits.build,
                     hair: editableTraits.hair,
                     clothing: editableTraits.clothing,
+                    distinguishing_features: editableTraits.distinguishing_features,
                     vibe: editableTraits.vibe
                 },
                 prompt: genPrompt

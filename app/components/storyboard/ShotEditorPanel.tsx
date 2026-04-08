@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2, Check, Film, RefreshCw, Link2, Plus } from 'lucide-react';
+import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2, Film, RefreshCw, Link2, Plus } from 'lucide-react';
 import { VideoHistoryStrip } from './VideoHistoryStrip';
 import { VideoSettingsPanel, RefMediaItem, getMediaTag } from './VideoSettingsPanel';
 import { MentionDropdown } from './MentionDropdown';
@@ -28,7 +28,8 @@ interface ShotEditorPanelProps {
     isGenerating?: boolean;
     sceneCharacters?: { name: string; image_url: string }[];
     locationImage?: string;
-    sceneContext?: { genre?: string; location?: string; scene_action?: string };
+    sceneContext?: { genre?: string; location?: string; scene_action?: string; dialogues?: { speaker: string; line: string }[] };
+    sceneShots?: { id: string; image_url?: string; video_url?: string; visual_action?: string }[];
 }
 
 export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
@@ -45,7 +46,8 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     isGenerating = false,
     sceneCharacters = [],
     locationImage,
-    sceneContext
+    sceneContext,
+    sceneShots = [],
 }) => {
     // ── Stable callbacks for VideoSettingsPanel (breaks Firestore write loops) ──
     const handleSettingsChange = useCallback((newSettings: any) => {
@@ -73,6 +75,17 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     const handleDisplayMediaChange = useCallback((items: RefMediaItem[]) => {
         setDisplayMedia(items);
     }, []);
+
+    /** Build reference_media manifest for the enhance_prompt API */
+    const buildRefMediaPayload = useCallback(() => {
+        if (displayMedia.length === 0) return undefined;
+        return displayMedia.map((item, i) => ({
+            tag: getMediaTag(displayMedia, i),
+            type: item.type,
+            name: item.name,
+            locked: !!item.locked,
+        }));
+    }, [displayMedia]);
 
     // ── Trigger @mention from banner click ──
     const handleTriggerMention = useCallback(() => {
@@ -121,8 +134,6 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
 
     const handlePromptChange = useCallback((value: string) => {
         setLocalPrompt(value);
-        userEditedRef.current = true;
-        setSuggestion(null);
 
         // Debounce the Firestore write
         if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -149,8 +160,6 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         }
 
         setLocalPrompt(newPrompt);
-        userEditedRef.current = true;
-        setSuggestion(null);
 
         // Debounce Firestore write
         if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -188,7 +197,6 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     });
 
 
-    const [isEnhancing, setIsEnhancing] = useState(false);
     const {
         elements: allElements,
         fetchElements,
@@ -203,14 +211,8 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     const [elementList, setElementList] = useState<string[]>([]);
     const [manualElements, setManualElements] = useState<KlingElement[]>([]);
 
-    // ── AI Prompt Suggestion State ──
-    const suggestionCacheRef = useRef<Map<string, string>>(new Map());
-    const dismissedRef = useRef<Set<string>>(new Set());
-    const userEditedRef = useRef(false);
-    const [suggestion, setSuggestion] = useState<string | null>(null);
-    const [isFetchingSuggestion, setIsFetchingSuggestion] = useState(false);
-
-    // ── Video History Preview State ──
+    // ── AI Prompt Enhancement State ──
+    const [isEnhancing, setIsEnhancing] = useState(false);
     const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
     // Reset preview when shot changes
     useEffect(() => {
@@ -246,75 +248,6 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shot?.id, elementListKey]);
 
-    // ── Background AI Suggestion Fetch ──
-    useEffect(() => {
-        if (!isOpen || !shot) {
-            setSuggestion(null);
-            return;
-        }
-
-        const shotId = shot.id;
-        userEditedRef.current = false;
-
-        // Already dismissed for this shot
-        if (dismissedRef.current.has(shotId)) {
-            setSuggestion(null);
-            return;
-        }
-
-        // Already cached
-        if (suggestionCacheRef.current.has(shotId)) {
-            setSuggestion(suggestionCacheRef.current.get(shotId)!);
-            return;
-        }
-
-        const prompt = shot.video_prompt || shot.visual_action || '';
-        if (!prompt.trim()) {
-            setSuggestion(null);
-            return;
-        }
-
-        const controller = new AbortController();
-        setIsFetchingSuggestion(true);
-
-        (async () => {
-            try {
-                const res = await api.post('/api/v1/shot/enhance_prompt', {
-                    prompt,
-                    provider: shot.video_settings?.provider || 'seedance-2',
-                    duration: shot.video_settings?.duration || '5',
-                    aspect_ratio: shot.video_settings?.aspect_ratio || '16:9',
-                    shot_type: shot.shot_type || shot.camera_shot_type,
-                    characters: sceneCharacters?.map(c => c.name).join(', ') || undefined,
-                    location: sceneContext?.location || undefined,
-                    genre: sceneContext?.genre || undefined,
-                    scene_action: sceneContext?.scene_action || shot.visual_action || undefined,
-                }, { signal: controller.signal });
-
-                if (controller.signal.aborted) return;
-
-                const enhanced = res.data?.enhanced_prompt;
-                if (enhanced && enhanced !== prompt) {
-                    suggestionCacheRef.current.set(shotId, enhanced);
-                    // Only show if user hasn't edited since we started
-                    if (!userEditedRef.current) {
-                        setSuggestion(enhanced);
-                    }
-                }
-            } catch {
-                // Fail silently — no toast, no error UI
-            } finally {
-                if (!controller.signal.aborted) {
-                    setIsFetchingSuggestion(false);
-                }
-            }
-        })();
-
-        return () => {
-            controller.abort();
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen, shot?.id]);
 
     // Derive full element objects (merge fresh fetch + manual cache)
     const combinedElements = [...allElements, ...manualElements];
@@ -463,7 +396,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                     <label className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Prompt</label>
                                     <button
                                         type="button"
-                                        disabled={isEnhancing || isFetchingSuggestion || !(shot.video_prompt || shot.visual_action)}
+                                        disabled={isEnhancing || !(shot.video_prompt || shot.visual_action)}
                                         onClick={async () => {
                                             const prompt = shot.video_prompt || shot.visual_action || '';
                                             if (!prompt.trim()) return;
@@ -479,6 +412,8 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                                     location: sceneContext?.location || undefined,
                                                     genre: sceneContext?.genre || undefined,
                                                     scene_action: sceneContext?.scene_action || shot.visual_action || undefined,
+                                                    reference_media: buildRefMediaPayload(),
+                                                    dialogues: sceneContext?.dialogues || undefined,
                                                 });
                                                 if (res.data?.enhanced_prompt) {
                                                     setLocalPrompt(res.data.enhanced_prompt);
@@ -490,14 +425,22 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                                 setIsEnhancing(false);
                                             }
                                         }}
-                                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-bold transition-all
-                                            ${(isEnhancing || isFetchingSuggestion)
-                                                ? 'bg-white/[0.08] text-neutral-300 border border-white/[0.15] cursor-wait'
-                                                : 'bg-white/[0.05] text-neutral-400 border border-white/[0.1] hover:bg-white/[0.1] hover:border-white/[0.2] hover:text-white cursor-pointer'}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all
+                                            ${isEnhancing
+                                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 cursor-wait shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                                                : displayMedia.length > 0
+                                                    ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 hover:border-amber-400/60 hover:shadow-[0_0_16px_rgba(245,158,11,0.25)] cursor-pointer'
+                                                    : 'bg-white/[0.05] text-neutral-400 border border-white/[0.1] hover:bg-white/[0.1] hover:border-white/[0.2] hover:text-white cursor-pointer'}
                                             disabled:opacity-30 disabled:cursor-not-allowed`}
                                     >
-                                        {(isEnhancing || isFetchingSuggestion) ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                                        {isEnhancing ? 'Enhancing...' : isFetchingSuggestion ? 'Analyzing...' : 'Enhance'}
+                                        {isEnhancing ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                                        {isEnhancing ? 'Enhancing...' : 'Enhance'}
+                                        {displayMedia.length > 0 && !isEnhancing && (
+                                            <span className="relative flex h-2 w-2">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                                            </span>
+                                        )}
                                     </button>
                                 </div>
                                 <div className="relative">
@@ -563,43 +506,6 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                     </div>
                                 )}
                             </div>
-
-                            {/* AI Suggestion Banner */}
-                            {suggestion && !isEnhancing && (
-                                <div className="px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.1]">
-                                    <div className="flex items-center justify-between mb-1.5">
-                                        <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
-                                            <Sparkles size={10} className="text-neutral-500" /> AI Suggestion
-                                        </span>
-                                        <div className="flex items-center gap-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setLocalPrompt(suggestion);
-                                                    onUpdateShot(shot.id, 'video_prompt', suggestion);
-                                                    setSuggestion(null);
-                                                }}
-                                                className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-bold bg-white/[0.06] text-neutral-300 border border-white/[0.1] hover:bg-white/[0.1] hover:border-white/[0.2] hover:text-white transition-all cursor-pointer"
-                                            >
-                                                <Check size={10} /> Apply
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    dismissedRef.current.add(shot.id);
-                                                    setSuggestion(null);
-                                                }}
-                                                className="p-1 rounded-md text-neutral-600 hover:text-neutral-300 hover:bg-white/[0.05] transition-all cursor-pointer"
-                                            >
-                                                <X size={12} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <p className="text-[11px] text-neutral-400 leading-relaxed">
-                                        {suggestion}
-                                    </p>
-                                </div>
-                            )}
                         </div>
 
                         {/* ═══════ RIGHT COLUMN — Settings & Execution (5 cols) ═══════ */}
@@ -639,6 +545,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                         onTriggerMention={handleTriggerMention}
                                         preflightWarnings={preflightWarnings}
                                         onClearPreflightWarnings={() => { setPreflightWarnings([]); preflightSeenRef.current = false; }}
+                                        sceneShots={sceneShots}
                                     />
                                 ) : (
                                     <div className="p-6 rounded-xl border border-dashed border-white/[0.1] bg-white/[0.02] text-center mt-4">
