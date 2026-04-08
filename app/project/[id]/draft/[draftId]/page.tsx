@@ -473,8 +473,8 @@ export default function DraftPage() {
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3 text-[#EEE]">
                     <div>
-                        <div className="text-[15px] font-semibold tracking-tight leading-none">Review Scene Sequence</div>
-                        <div className="text-[11px] text-[#555] mt-1.5 font-normal">Review, reorder, and edit the AI-generated scenes before locking in your draft.</div>
+                        <div className="text-[15px] font-semibold tracking-tight leading-none text-white">Review Scene Sequence</div>
+                        <div className="text-[11px] text-white/40 mt-1.5 font-normal">Review, reorder, and edit the AI-generated scenes before locking in your draft.</div>
                     </div>
                 </div>
             </div>

@@ -64,7 +64,6 @@ export const constructLocationPrompt = (
 };
 
 
-// --- CHARACTER PROMPT BUILDER ---
 export const constructCharacterPrompt = (
     charName: string,
     traits: any,
@@ -77,6 +76,7 @@ export const constructCharacterPrompt = (
     const demographics = [];
     if (traits.age) demographics.push(traits.age);
     if (traits.ethnicity) demographics.push(traits.ethnicity);
+    if (traits.build) demographics.push(`${traits.build} build`);
 
     if (demographics.length > 0) {
         prompt += `, ${demographics.join(', ')}.`;
@@ -86,6 +86,9 @@ export const constructCharacterPrompt = (
 
     if (traits.clothing) prompt += ` Wearing ${traits.clothing}.`;
     if (traits.hair) prompt += ` Hair: ${traits.hair}.`;
+    if (traits.distinguishing_features && traits.distinguishing_features.toLowerCase() !== 'none') {
+        prompt += ` Features: ${traits.distinguishing_features}.`;
+    }
     if (traits.vibe) prompt += ` Vibe: ${traits.vibe}.`;
 
     if (allTraits.physical_description) {

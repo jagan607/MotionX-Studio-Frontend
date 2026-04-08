@@ -87,12 +87,22 @@ export function CharacterSection({ project, characters, onRefresh }: CharacterSe
     const handleGenerate = async (char: CharacterProfile) => {
         setGeneratingMap(prev => ({ ...prev, [char.id]: true }));
         try {
-            const age = char.visual_traits?.age || '';
-            const eth = char.visual_traits?.ethnicity || '';
-            const hair = char.visual_traits?.hair || '';
-            const clothing = char.visual_traits?.clothing || '';
-            const vibe = char.visual_traits?.vibe || '';
-            const promptStr = `(1girl, 1boy, 1man, 1woman, photography) RAW photo, cinematic portrait of ${char.name}, ${age}, ${eth}, ${hair}, wearing ${clothing}, ${vibe}. High quality, 8k resolution, highly detailed, photorealistic, dramatic lighting, sharp focus.`;
+            const traits = char.visual_traits || {};
+            const charType = (char as any).type || 'human';
+            
+            // Build trait parts, filtering out empty values
+            const parts: string[] = [];
+            if (charType !== 'human') parts.push(`${charType} character`);
+            if (traits.age) parts.push(traits.age);
+            if (traits.ethnicity) parts.push(traits.ethnicity);
+            if (traits.build) parts.push(`${traits.build} build`);
+            if (traits.hair) parts.push(traits.hair);
+            if (traits.clothing) parts.push(`wearing ${traits.clothing}`);
+            if (traits.distinguishing_features) parts.push(traits.distinguishing_features);
+            if (traits.vibe) parts.push(traits.vibe);
+            
+            const traitStr = parts.filter(Boolean).join(', ');
+            const promptStr = `Cinematic portrait of ${char.name}${traitStr ? `, ${traitStr}` : ''}. Dramatic lighting, sharp focus, photorealistic, 8k resolution, highly detailed.`;
 
             await api.post("/api/v1/asset/generate", {
                 project_id: project.id,
@@ -110,6 +120,7 @@ export function CharacterSection({ project, characters, onRefresh }: CharacterSe
             setGeneratingMap(prev => ({ ...prev, [char.id]: false }));
         }
     };
+
 
     return (
         <div className="w-full h-full p-8 flex flex-col gap-8">

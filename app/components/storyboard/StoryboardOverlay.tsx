@@ -499,6 +499,10 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const foundLoc = locations.find(l => l.id === rawLoc || l.name === rawLoc);
     const sceneLoc = foundLoc ? foundLoc.name : (rawLoc || "UNKNOWN");
 
+    // Detect exterior scenes — set design (4 angles) doesn't apply to open-air locations
+    const sluglineRaw = (currentScene?.slugline || currentScene?.header || "").toUpperCase().trim();
+    const isExterior = sluglineRaw.startsWith("EXT.") || sluglineRaw.startsWith("EXT ");
+
     let charDisplay = "NO CAST";
     if (Array.isArray(currentScene?.characters) && currentScene.characters.length > 0) {
         charDisplay = currentScene.characters.map((charKey: string) => {
@@ -659,7 +663,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             )}
                         </div>
 
-                        {/* BUILD SET */}
+                        {/* BUILD SET — hidden for EXT. scenes */}
+                        {!isExterior && (
                         <button
                             onClick={() => setShowSetDesign(true)}
                             style={{
@@ -673,6 +678,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         >
                             <Palette size={14} /> {sceneSetDesign ? 'EDIT SET' : 'BUILD SET'}
                         </button>
+                        )}
 
                         {/* GENERATE ALL — hidden for now
                         {shotMgr.shots.length > 0 && (
@@ -904,9 +910,11 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 <Film size={48} style={{ opacity: 0.2, color: '#FFF', marginBottom: '20px' }} />
                                 <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '24px', color: '#333' }}>EMPTY SEQUENCE</h3>
                                 <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
+                                    {!isExterior && (
                                     <button onClick={() => setShowSetDesign(true)} style={{ padding: '12px 24px', backgroundColor: '#111', color: 'white', border: '1px solid #333', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <Palette size={16} /> {sceneSetDesign ? 'EDIT SET' : 'BUILD SET'}
                                     </button>
+                                    )}
                                     <button onClick={() => handleSafeAutoDirect()} disabled={shotMgr.isAutoDirecting} style={{ padding: '12px 24px', backgroundColor: '#111', color: 'white', border: '1px solid #333', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <Wand2 size={16} /> AUTO-DIRECT SCENE
                                     </button>
@@ -1189,7 +1197,14 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         genre: currentScene?.genre,
                         location: sceneLoc,
                         scene_action: currentScene?.summary || currentScene?.visual_prompt,
+                        dialogues: currentScene?.dialogues,
                     }}
+                    sceneShots={shotMgr.shots.map((s: any) => ({
+                        id: s.id,
+                        image_url: s.image_url,
+                        video_url: s.video_url,
+                        visual_action: s.visual_action,
+                    }))}
                 />
 
                 <TourOverlay step={tourStep} steps={tourSteps} onNext={onTourNext} onComplete={onTourComplete} />

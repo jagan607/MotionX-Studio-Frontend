@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     Sparkles, X, Loader2, Save, CloudFog, Building2,
-    ChevronLeft, ChevronRight, Eye, ImagePlus, Paintbrush, Download, AlertTriangle, Coins
+    ChevronLeft, ChevronRight, Eye, ImagePlus, Paintbrush, Download, AlertTriangle, Coins, Trash2
 } from "lucide-react";
-import { generateSetDesign, updateSetDesign, inpaintSetDesign, cloneSetDesign, retrySetAngle } from "@/lib/api";
+import { generateSetDesign, updateSetDesign, inpaintSetDesign, cloneSetDesign, retrySetAngle, resetSetDesign } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { InpaintEditor } from "./InpaintEditor";
 
@@ -74,6 +74,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const [showImportMenu, setShowImportMenu] = useState(false);
     const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
     const [isRetryingAngle, setIsRetryingAngle] = useState(false);
+    const [isResetting, setIsResetting] = useState(false);
 
     const location = locations.find(
         l => l.name === locationName || l.id === locationName?.replace(/[\s.]+/g, '_').toUpperCase()
@@ -354,6 +355,52 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                         className="w-full bg-transparent text-[13px] text-white/80 focus:outline-none resize-none placeholder:text-white/10 leading-relaxed font-sans" />
                                 </div>
                             ))}
+                        </div>
+
+                        {/* --- ACTION BUTTONS --- */}
+                        <div className="flex items-center gap-3 pt-2">
+                            {/* Save */}
+                            {isDirty && (
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isSaving}
+                                    className="flex-1 inline-flex items-center justify-center gap-2 py-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] text-white/70 hover:text-white rounded-xl text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                    {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                                    {isSaving ? "SAVING..." : "SAVE NOTES"}
+                                </button>
+                            )}
+
+                            {/* Reset — only show when set design exists */}
+                            {hasData && (
+                                <button
+                                    onClick={() => {
+                                        setConfirmAction({
+                                            title: "Reset Set Design?",
+                                            message: "This will completely clear the set design for this scene — atmosphere, notes, and all generated images will be removed. This cannot be undone.",
+                                            onConfirm: async () => {
+                                                setIsResetting(true);
+                                                try {
+                                                    await resetSetDesign(projectId, episodeId, sceneId);
+                                                    setAtmosphere("");
+                                                    setArchNotes("");
+                                                    if (onUpdate) onUpdate(null as any);
+                                                    toastSuccess("Set design reset");
+                                                } catch (e: any) {
+                                                    toastError(e?.response?.data?.detail || "Failed to reset set design");
+                                                } finally {
+                                                    setIsResetting(false);
+                                                }
+                                            },
+                                        });
+                                    }}
+                                    disabled={isResetting || isGenerating}
+                                    className="inline-flex items-center justify-center gap-2 py-3 px-4 bg-red-500/5 hover:bg-red-500/15 border border-red-500/15 hover:border-red-500/30 text-red-400/70 hover:text-red-400 rounded-xl text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                    {isResetting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                                    RESET
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

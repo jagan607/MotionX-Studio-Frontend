@@ -3,7 +3,7 @@ import {
     Film, RefreshCw, Link2, Mic2, Video, Pencil,
     ChevronDown, ChevronUp, Sliders, Plus, Trash2, AlertCircle, Loader2,
     RectangleHorizontal, RectangleVertical, Square, Volume2, FastForward,
-    ImagePlus, X, AlertTriangle, Lock, Scissors, Music, Eye, Play
+    ImagePlus, X, AlertTriangle, Lock, Scissors, Music, Eye, Play, Sparkles
 } from 'lucide-react';
 import type { VideoProvider, AnimateOptions, PromptSegment } from '@/app/hooks/shot-manager/useShotVideoGen';
 import type { KlingElement } from '@/app/hooks/shot-manager/useElementLibrary';
@@ -126,6 +126,9 @@ interface VideoSettingsPanelProps {
         icon: 'animate' | 're-animate' | 'morph' | 'busy';
         extendAction?: { handleExtend: () => void; cost: number };
     }) => void;
+
+    // Scene shots for reference picker
+    sceneShots?: { id: string; image_url?: string; video_url?: string; visual_action?: string }[];
 }
 
 export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
@@ -154,7 +157,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     onTriggerMention,
     preflightWarnings = [],
     onClearPreflightWarnings,
-    onAnimateInfoChange
+    onAnimateInfoChange,
+    sceneShots = [],
 }) => {
     // --- State ---
     const [provider, setProvider] = useState<VideoProvider>(initialSettings?.provider || 'seedance-2');
@@ -1017,6 +1021,168 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             )}
                         </div>
 
+                        {/* ── Scene Shots Picker ── */}
+                        {sceneShots.length > 1 && (() => {
+                            // Filter out shots without media (keep all others including current)
+                            const pickableShots = sceneShots.filter(s => s.image_url || s.video_url);
+                            if (pickableShots.length === 0) return null;
+
+                            // Check which shot URLs are already in refMedia
+                            const refUrls = new Set(refMedia.map(r => r.url));
+
+                            return (
+                                <div className="mt-2">
+                                    <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Scene Shots</label>
+                                    <p className="text-[7px] text-neutral-600 mb-1.5 leading-relaxed">
+                                        Click a shot to use it as a style/motion reference.
+                                    </p>
+                                    <div className="flex gap-1.5 overflow-x-auto pb-1">
+                                        {pickableShots.map((s, i) => {
+                                            const isImageAdded = !!(s.image_url && refUrls.has(s.image_url));
+                                            const isVideoAdded = !!(s.video_url && refUrls.has(s.video_url));
+                                            const isAdded = isImageAdded || isVideoAdded;
+                                            const isCurrentShot = s.image_url === shotData?.image_url;
+
+                                            return (
+                                                <div key={s.id} className="flex flex-col gap-0.5 flex-shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        disabled={(!isAdded && refMedia.length >= MAX_REF_MEDIA) || isCurrentShot}
+                                                        onClick={() => {
+                                                            if (isAdded) {
+                                                                // Remove it
+                                                                setRefMedia(prev => prev.filter(r =>
+                                                                    r.url !== s.image_url && r.url !== s.video_url
+                                                                ));
+                                                            } else if (s.image_url) {
+                                                                // Add as image reference
+                                                                setRefMedia(prev => [...prev, {
+                                                                    url: s.image_url!,
+                                                                    type: 'image' as const,
+                                                                    name: `Shot ${i + 1}`,
+                                                                }].slice(0, MAX_REF_MEDIA));
+                                                            }
+                                                        }}
+                                                        className={`relative w-12 h-12 rounded-lg overflow-hidden border flex-shrink-0 transition-all
+                                                            ${isCurrentShot
+                                                                ? 'border-white/[0.06] opacity-30 cursor-not-allowed'
+                                                                : isAdded
+                                                                    ? 'border-emerald-500/50 ring-1 ring-emerald-500/30 cursor-pointer'
+                                                                    : 'border-white/[0.1] hover:border-amber-500/40 cursor-pointer'}
+                                                            disabled:opacity-30 disabled:cursor-not-allowed`}
+                                                        title={isCurrentShot ? 'Current shot' : (s.visual_action || `Shot ${i + 1}`)}
+                                                    >
+                                                        {s.image_url ? (
+                                                            <img src={s.image_url} alt="" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-purple-950/40 flex items-center justify-center">
+                                                                <Video size={12} className="text-purple-400" />
+                                                            </div>
+                                                        )}
+                                                        {/* Shot number */}
+                                                        <span className="absolute top-0 left-0 px-0.5 bg-black/70 rounded-br text-[6px] text-neutral-300 font-mono">
+                                                            {String(i + 1).padStart(2, '0')}
+                                                        </span>
+                                                        {/* Added checkmark */}
+                                                        {isAdded && (
+                                                            <div className="absolute inset-0 bg-emerald-900/40 flex items-center justify-center">
+                                                                <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
+                                                                    <svg width="8" height="6" viewBox="0 0 10 8" fill="none">
+                                                                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                    </svg>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {/* Video badge — small icon to add video instead of image */}
+                                                        {s.video_url && !isAdded && !isCurrentShot && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (refMedia.length >= MAX_REF_MEDIA) return;
+                                                                    setRefMedia(prev => [...prev, {
+                                                                        url: s.video_url!,
+                                                                        type: 'video' as const,
+                                                                        name: `Shot ${i + 1} video`,
+                                                                    }].slice(0, MAX_REF_MEDIA));
+                                                                }}
+                                                                className="absolute bottom-0 right-0 p-0.5 bg-purple-900/80 rounded-tl text-purple-300 hover:bg-purple-700/80 transition-colors"
+                                                                title="Add video as reference"
+                                                            >
+                                                                <Video size={7} />
+                                                            </button>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* ── Scene Characters Picker ── */}
+                        {sceneCharacters.length > 0 && (() => {
+                            const charsWithImages = sceneCharacters.filter(c => c.image_url);
+                            if (charsWithImages.length === 0) return null;
+
+                            const refUrls = new Set(refMedia.map(r => r.url));
+
+                            return (
+                                <div className="mt-2">
+                                    <label className="text-[9px] font-semibold text-neutral-500 mb-1 block">Scene Characters</label>
+                                    <p className="text-[7px] text-neutral-600 mb-1.5 leading-relaxed">
+                                        Click a character to use their look as a reference.
+                                    </p>
+                                    <div className="flex gap-1.5 overflow-x-auto pb-1">
+                                        {charsWithImages.map((c) => {
+                                            const isAdded = refUrls.has(c.image_url);
+
+                                            return (
+                                                <div key={c.name} className="flex flex-col items-center gap-0.5 flex-shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        disabled={!isAdded && refMedia.length >= MAX_REF_MEDIA}
+                                                        onClick={() => {
+                                                            if (isAdded) {
+                                                                setRefMedia(prev => prev.filter(r => r.url !== c.image_url));
+                                                            } else {
+                                                                setRefMedia(prev => [...prev, {
+                                                                    url: c.image_url,
+                                                                    type: 'image' as const,
+                                                                    name: c.name,
+                                                                }].slice(0, MAX_REF_MEDIA));
+                                                            }
+                                                        }}
+                                                        className={`relative w-12 h-12 rounded-full overflow-hidden border-2 flex-shrink-0 transition-all
+                                                            ${isAdded
+                                                                ? 'border-emerald-500/60 ring-2 ring-emerald-500/30 cursor-pointer'
+                                                                : 'border-white/[0.12] hover:border-amber-500/40 cursor-pointer'}
+                                                            disabled:opacity-30 disabled:cursor-not-allowed`}
+                                                        title={c.name}
+                                                    >
+                                                        <img src={c.image_url} alt={c.name} className="w-full h-full object-cover" />
+                                                        {isAdded && (
+                                                            <div className="absolute inset-0 bg-emerald-900/40 flex items-center justify-center">
+                                                                <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
+                                                                    <svg width="8" height="6" viewBox="0 0 10 8" fill="none">
+                                                                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                    </svg>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                    <span className="text-[7px] text-neutral-500 max-w-[48px] truncate text-center">
+                                                        {c.name}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         {/* ── Audio-Only Guardrail Warning ── */}
                         {hasOnlyAudio && (
                             <div className="flex items-start gap-1.5 mt-1.5 px-2 py-1.5 rounded-md bg-amber-500/10 border border-amber-500/25">
@@ -1041,6 +1207,21 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     {' '}<span className="font-mono font-bold group-hover:underline">Use @ to tag them</span> for better results.
                                 </p>
                             </button>
+                        )}
+
+                        {/* ── Enhance Prompt Nudge ── */}
+                        {refMedia.length > 0 && (
+                            <div className="flex items-start gap-2 mt-2 px-2.5 py-2 rounded-lg bg-gradient-to-r from-amber-500/[0.08] to-orange-500/[0.06] border border-amber-500/25">
+                                <Sparkles size={12} className="text-amber-400 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="text-[9px] font-bold text-amber-300 leading-snug">
+                                        {refMedia.length} reference{refMedia.length > 1 ? 's' : ''} selected
+                                    </p>
+                                    <p className="text-[8px] text-amber-400/70 leading-relaxed mt-0.5">
+                                        Click <span className="font-bold text-amber-300">✨ Enhance</span> on the prompt to generate a cinematic Seedance 2.0 prompt with @tags for your references.
+                                    </p>
+                                </div>
+                            </div>
                         )}
                     </div>}
 

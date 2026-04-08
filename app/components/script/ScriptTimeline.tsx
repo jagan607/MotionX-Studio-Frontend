@@ -143,12 +143,12 @@ export const ScriptTimeline: React.FC<ScriptTimelineProps> = ({
                             </div>
                         </div>
                     ) : (
-                        <div className="text-[11px] font-medium text-[#555] tracking-wide flex items-center gap-2">
+                        <div className="text-[11px] font-medium text-white/40 tracking-wide flex items-center gap-2">
                             <Scissors size={12} /> Timeline
                         </div>
                     )}
                     <div className="flex items-center gap-2">
-                        <div className="text-[9px] font-mono text-[#444] flex items-center gap-2 bg-[#111] px-3 py-1 rounded-sm border border-[#222]">
+                        <div className="text-[9px] font-mono text-white/30 flex items-center gap-2 bg-[#111] px-3 py-1 rounded-sm border border-[#222]">
                             <Clock size={10} /> EST. {estDuration}M
                         </div>
                     </div>
@@ -183,7 +183,7 @@ export const ScriptTimeline: React.FC<ScriptTimelineProps> = ({
                     {/* Optional: 'End of Sequence' marker can stay inside the scroll area */}
                     {scenes.length > 0 && (
                         <div className="h-8 flex items-center justify-center mt-4 opacity-20">
-                            <span className="text-[9px] font-mono text-[#333]">--- END OF SEQUENCE ---</span>
+                            <span className="text-[9px] font-mono text-white/15">--- END OF SEQUENCE ---</span>
                         </div>
                     )}
                 </div>

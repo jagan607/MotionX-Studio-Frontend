@@ -216,7 +216,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
 
                 {/* 1. SCENE DETAILS (Slugline) */}
                 <div className="space-y-3">
-                    <label className="text-[10px] font-medium text-[#666] uppercase tracking-[0.15em] block">Location</label>
+                    <label className="text-[10px] font-semibold text-white/50 uppercase tracking-[0.15em] block">Location</label>
 
                     <div className="grid grid-cols-[2fr_1fr] gap-3">
                         {/* Location Select */}
@@ -275,7 +275,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                 {/* 2. DESCRIPTION */}
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-medium text-[#666] uppercase tracking-[0.15em] block">Action</label>
+                        <label className="text-[10px] font-semibold text-white/50 uppercase tracking-[0.15em] block">Action</label>
                         {isProcessing && (
                             <div className="flex items-center gap-1.5">
                                 <Loader2 size={10} className="animate-spin text-red-400" />
@@ -289,7 +289,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                             onChange={(e) => { setSummary(e.target.value); setIsDirty(true); }}
                             placeholder="Describe the visual action..."
                             disabled={isProcessing}
-                            className={`w-full h-28 bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#2A2A2A] text-sm text-[#CCC] p-3 rounded-lg focus:outline-none focus:border-[#444] focus:bg-[#111] focus:shadow-[inset_0_1px_4px_rgba(0,0,0,0.4)] resize-none leading-relaxed placeholder:text-[#2A2A2A] transition-all shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)] ${isProcessing ? 'opacity-40' : ''}`}
+                            className={`w-full h-28 bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#333] text-sm text-white p-3 rounded-lg focus:outline-none focus:border-red-500/30 focus:bg-[#111] focus:shadow-[inset_0_1px_4px_rgba(0,0,0,0.4)] resize-none leading-relaxed placeholder:text-[#333] transition-all shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)] ${isProcessing ? 'opacity-40' : ''}`}
                         />
                         {isProcessing && (
                             <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 backdrop-blur-[2px]">
@@ -303,10 +303,10 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                 {activeScene.dialogues && activeScene.dialogues.length > 0 && (
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-medium text-[#666] uppercase tracking-[0.15em] flex items-center gap-1.5">
-                                <MessageSquareQuote size={12} className="text-[#444]" /> Dialogue
+                            <label className="text-[10px] font-semibold text-white/50 uppercase tracking-[0.15em] flex items-center gap-1.5">
+                                <MessageSquareQuote size={12} className="text-white/30" /> Dialogue
                             </label>
-                            <span className="text-[9px] font-mono text-[#444]">{activeScene.dialogues.length} Lines</span>
+                            <span className="text-[9px] font-mono text-white/30">{activeScene.dialogues.length} Lines</span>
                         </div>
                         <div className="space-y-1.5 bg-[#0A0A0A] border border-[#1A1A1A] rounded-lg p-3 max-h-40 overflow-y-auto shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]">
                             {activeScene.dialogues.map((d: any, idx: number) => (
@@ -322,8 +322,8 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                 {/* 3. CAST */}
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-medium text-[#666] uppercase tracking-[0.15em] block">Characters</label>
-                        <span className="text-[9px] font-mono text-[#444]">{activeCastList.length} Active</span>
+                        <label className="text-[10px] font-semibold text-white/50 uppercase tracking-[0.15em] block">Characters</label>
+                        <span className="text-[9px] font-mono text-white/30">{activeCastList.length} Active</span>
                     </div>
 
                     <div className="flex flex-wrap gap-2 min-h-[40px] items-start">
@@ -359,8 +359,8 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                 {availableProducts.length > 0 && (
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-medium text-[#666] uppercase tracking-[0.15em] block">Products</label>
-                            <span className="text-[9px] font-mono text-[#444]">{activeProductList.length} Active</span>
+                            <label className="text-[10px] font-semibold text-white/50 uppercase tracking-[0.15em] block">Products</label>
+                            <span className="text-[9px] font-mono text-white/30">{activeProductList.length} Active</span>
                         </div>
 
                         <div className="flex flex-wrap gap-2 min-h-[40px] items-start">
@@ -399,8 +399,8 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                         onClick={() => setMoodExpanded(!moodExpanded)}
                         className="flex items-center justify-between w-full group"
                     >
-                        <label className="text-[10px] font-medium text-[#666] uppercase tracking-[0.15em] flex items-center gap-2 cursor-pointer group-hover:text-[#888] transition-colors">
-                            <Palette size={12} className="text-[#555]" /> Scene Mood
+                        <label className="text-[10px] font-semibold text-white/50 uppercase tracking-[0.15em] flex items-center gap-2 cursor-pointer group-hover:text-white/70 transition-colors">
+                            <Palette size={12} className="text-violet-400/60" /> Scene Mood
                         </label>
                         <div className="flex items-center gap-2">
                             {hasMoodData && !moodExpanded && (
@@ -410,66 +410,66 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                             )}
                             <ChevronDown
                                 size={12}
-                                className={`text-[#444] transition-transform duration-200 ${moodExpanded ? 'rotate-180' : ''}`}
+                                className={`text-white/30 transition-transform duration-200 ${moodExpanded ? 'rotate-180' : ''}`}
                             />
                         </div>
                     </button>
 
                     {moodExpanded && (
-                        <div className="space-y-3 bg-[#0A0A0A] border border-[#1A1A1A] rounded-lg p-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]">
+                        <div className="space-y-3 bg-[#0A0A0A] border border-[#1E1E1E] rounded-lg p-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)]">
                             {/* Color Palette */}
                             <div className="space-y-1">
-                                <label className="text-[9px] font-medium text-[#555] uppercase tracking-[0.12em] flex items-center gap-1.5">
-                                    <Palette size={10} className="text-[#444]" /> Color Palette
+                                <label className="text-[9px] font-medium text-white/40 uppercase tracking-[0.12em] flex items-center gap-1.5">
+                                    <Palette size={10} className="text-white/25" /> Color Palette
                                 </label>
                                 <input
                                     type="text"
                                     value={moodColorPalette}
                                     onChange={(e) => { setMoodColorPalette(e.target.value); setIsDirty(true); }}
                                     placeholder="e.g. Warm amber and deep gold..."
-                                    className="w-full bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#2A2A2A] text-[11px] text-[#CCC] px-3 py-2 rounded-md focus:outline-none focus:border-[#444] focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all placeholder:text-[#2A2A2A]"
+                                    className="w-full bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#333] text-[11px] text-white/80 px-3 py-2 rounded-md focus:outline-none focus:border-red-500/30 focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all placeholder:text-[#333]"
                                 />
                             </div>
 
                             {/* Lighting */}
                             <div className="space-y-1">
-                                <label className="text-[9px] font-medium text-[#555] uppercase tracking-[0.12em] flex items-center gap-1.5">
-                                    <Sun size={10} className="text-[#444]" /> Lighting
+                                <label className="text-[9px] font-medium text-white/40 uppercase tracking-[0.12em] flex items-center gap-1.5">
+                                    <Sun size={10} className="text-white/25" /> Lighting
                                 </label>
                                 <input
                                     type="text"
                                     value={moodLighting}
                                     onChange={(e) => { setMoodLighting(e.target.value); setIsDirty(true); }}
                                     placeholder="e.g. Chiaroscuro, single source golden..."
-                                    className="w-full bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#2A2A2A] text-[11px] text-[#CCC] px-3 py-2 rounded-md focus:outline-none focus:border-[#444] focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all placeholder:text-[#2A2A2A]"
+                                    className="w-full bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#333] text-[11px] text-white/80 px-3 py-2 rounded-md focus:outline-none focus:border-red-500/30 focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all placeholder:text-[#333]"
                                 />
                             </div>
 
                             {/* Texture */}
                             <div className="space-y-1">
-                                <label className="text-[9px] font-medium text-[#555] uppercase tracking-[0.12em] flex items-center gap-1.5">
-                                    <Layers size={10} className="text-[#444]" /> Texture
+                                <label className="text-[9px] font-medium text-white/40 uppercase tracking-[0.12em] flex items-center gap-1.5">
+                                    <Layers size={10} className="text-white/25" /> Texture
                                 </label>
                                 <input
                                     type="text"
                                     value={moodTexture}
                                     onChange={(e) => { setMoodTexture(e.target.value); setIsDirty(true); }}
                                     placeholder="e.g. Clean digital with lens flare..."
-                                    className="w-full bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#2A2A2A] text-[11px] text-[#CCC] px-3 py-2 rounded-md focus:outline-none focus:border-[#444] focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all placeholder:text-[#2A2A2A]"
+                                    className="w-full bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#333] text-[11px] text-white/80 px-3 py-2 rounded-md focus:outline-none focus:border-red-500/30 focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all placeholder:text-[#333]"
                                 />
                             </div>
 
                             {/* Atmosphere */}
                             <div className="space-y-1">
-                                <label className="text-[9px] font-medium text-[#555] uppercase tracking-[0.12em] flex items-center gap-1.5">
-                                    <CloudFog size={10} className="text-[#444]" /> Atmosphere
+                                <label className="text-[9px] font-medium text-white/40 uppercase tracking-[0.12em] flex items-center gap-1.5">
+                                    <CloudFog size={10} className="text-white/25" /> Atmosphere
                                 </label>
                                 <input
                                     type="text"
                                     value={moodAtmosphere}
                                     onChange={(e) => { setMoodAtmosphere(e.target.value); setIsDirty(true); }}
                                     placeholder="e.g. Reverent, intimate, sacred..."
-                                    className="w-full bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#2A2A2A] text-[11px] text-[#CCC] px-3 py-2 rounded-md focus:outline-none focus:border-[#444] focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all placeholder:text-[#2A2A2A]"
+                                    className="w-full bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#333] text-[11px] text-white/80 px-3 py-2 rounded-md focus:outline-none focus:border-red-500/30 focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all placeholder:text-[#333]"
                                 />
                             </div>
                         </div>
@@ -479,8 +479,8 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                 {/* 6. AI ASSISTANT */}
                 <div className="pt-6 border-t border-[#111] space-y-4">
                     <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-medium text-[#666] uppercase tracking-[0.15em] flex items-center gap-2">
-                            Assistant
+                        <label className="text-[10px] font-semibold text-white/50 uppercase tracking-[0.15em] flex items-center gap-2">
+                            <Sparkles size={12} className="text-red-400/60" /> Assistant
                         </label>
                     </div>
 
@@ -500,7 +500,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                             value={instruction}
                             onChange={(e) => setInstruction(e.target.value)}
                             placeholder="Ask AI to rewrite, expand, or adjust tone..."
-                            className="w-full p-3 pr-12 text-xs rounded-lg bg-[#0A0A0A] border border-[#1A1A1A] hover:border-[#2A2A2A] text-[#CCC] font-mono focus:outline-none focus:border-[#444] focus:bg-[#111] focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all resize-none h-20 placeholder:text-[#2A2A2A]"
+                            className="w-full p-3 pr-12 text-xs rounded-lg bg-[#0A0A0A] border border-[#1E1E1E] hover:border-[#333] text-white font-mono focus:outline-none focus:border-red-500/30 focus:bg-[#111] focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all resize-none h-20 placeholder:text-[#333]"
                         />
                         <button
                             onClick={() => onExecuteAi(instruction)}

@@ -21,8 +21,10 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
     ] : [
         { k: 'age', l: 'AGE / ERA', p: 'e.g. 30s, Ancient' },
         { k: 'ethnicity', l: 'ETHNICITY', p: 'e.g. South Asian' },
+        { k: 'build', l: 'BUILD', p: 'e.g. Athletic, Slim' },
         { k: 'hair', l: 'HAIR', p: 'e.g. Long, messy' },
         { k: 'clothing', l: 'CLOTHING', p: 'e.g. Dark cloak' },
+        { k: 'distinguishing_features', l: 'DISTINGUISHING FEATURES', p: 'e.g. Scar across left eye' },
         { k: 'vibe', l: 'VIBE', p: 'e.g. Mysterious' },
     ];
 
@@ -54,7 +56,7 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
                 {fields.map((field: any) => (
                     <div
                         key={field.k}
-                        className={field.k === 'visual_traits' || field.k === 'vibe' ? 'col-span-2' : ''}
+                        className={['visual_traits', 'vibe', 'distinguishing_features'].includes(field.k) ? 'col-span-2' : ''}
                     >
                         <label className="block text-[10px] text-[#666] font-bold mb-1.5 tracking-wider uppercase">
                             {field.l}
