@@ -6,7 +6,7 @@ import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
 import { api, uploadAssetReference, uploadAssetMain } from '@/lib/api';
 import { constructLocationPrompt, constructCharacterPrompt, constructProductPrompt } from '@/lib/promptUtils';
 import { toast } from 'react-hot-toast';
-import { Asset, LocationProfile } from '@/lib/types';
+import { Asset } from '@/lib/types';
 import { InpaintEditor } from '@/app/components/storyboard/InpaintEditor';
 
 // --- SUB-COMPONENTS ---
@@ -67,18 +67,9 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     // As soon as the local generation is complete (hasReceivedFreshImage), dismiss the loader immediately.
     const isProcessing = isGenerating || (parentIsProcessing && !hasReceivedFreshImage);
 
-    // Location state
-    const isLocation = assetType === 'location';
-    const locViews = isLocation ? (currentData as LocationProfile).image_views : undefined;
-
     // Visuals State
     const [refImage, setRefImage] = useState<string | null>(null);
-    const [localDisplayImage, setLocalDisplayImage] = useState<string | undefined>(() => {
-        if (isLocation && locViews?.wide) {
-            return locViews.wide;
-        }
-        return currentData.image_url;
-    });
+    const [localDisplayImage, setLocalDisplayImage] = useState<string | undefined>(currentData.image_url);
     const [useRefForGen, setUseRefForGen] = useState(true);
 
     // Voice State
@@ -109,12 +100,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
 
     useEffect(() => {
-        if (isLocation && locViews?.wide) {
-            setLocalDisplayImage(locViews.wide);
-        } else {
-            setLocalDisplayImage(currentData.image_url);
-        }
-    }, [currentData.image_url, locViews?.wide, isLocation]);
+        setLocalDisplayImage(currentData.image_url);
+    }, [currentData.image_url]);
 
     useEffect(() => {
         if (isVoiceMode && allVoices.length === 0) loadVoices();
