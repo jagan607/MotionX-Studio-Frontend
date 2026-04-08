@@ -6,6 +6,8 @@
  * raw provider/backend errors are never shown verbatim to users.
  */
 
+import { getErrorUIConfig } from './errorDictionary';
+
 /**
  * Extracts the most meaningful human-readable error message from
  * any API error shape (Axios, fetch, plain Error, or raw string).
@@ -59,8 +61,21 @@ const VIDEO_ERROR_MAP: Array<{ pattern: RegExp; message: string }> = [
 /**
  * Translates raw provider error strings into user-friendly messages.
  * Used for video animation and lip sync Firestore error fields.
+ *
+ * NEW: When an error_code is provided, it takes priority over regex matching
+ * by looking up the structured ERROR_UI_DICTIONARY.
  */
-export const inferVideoErrorMessage = (raw: string | null | undefined): string => {
+export const inferVideoErrorMessage = (
+    raw: string | null | undefined,
+    errorCode?: string | null
+): string => {
+    // New structured path: use error_code dictionary lookup first
+    if (errorCode) {
+        const config = getErrorUIConfig(errorCode, raw);
+        return `${config.title} — ${config.message}`;
+    }
+
+    // Legacy fallback: regex pattern matching on raw error strings
     if (!raw) return "Video generation failed. Please try again.";
 
     for (const { pattern, message } of VIDEO_ERROR_MAP) {
@@ -74,3 +89,4 @@ export const inferVideoErrorMessage = (raw: string | null | undefined): string =
 
     return "Video generation failed. Please try again.";
 };
+

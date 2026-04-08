@@ -949,6 +949,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                     onLipSync={() => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url || '', audioUrl: shot.audio_url || undefined })}
                                                     tourId={index === 0 ? "tour-sb-shot-card" : undefined}
                                                     onOpenGizmo={shot.image_url ? () => setActiveGizmoShotId(shot.id) : undefined}
+                                                    onTopUp={() => setShowTopUp(true)}
+                                                    onRetryAnimate={() => setEditingShotId(shot.id)}
+                                                    onFocusPrompt={() => setEditingShotId(shot.id)}
                                                 >
                                                     <div style={styles.shotImageContainer}>
                                                         <ShotImage
