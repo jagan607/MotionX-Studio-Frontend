@@ -161,9 +161,20 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
         if (isRetryingAngle) return;
         setIsRetryingAngle(true);
         try {
-            const res = await retrySetAngle(projectId, episodeId, sceneId, activeView);
-            const data = res.set_design || res;
-            if (onUpdate) onUpdate(data);
+            await retrySetAngle(projectId, episodeId, sceneId, activeView);
+
+            // Optimistically update UI: mark as generating and clear the retried angle's URL
+            if (onUpdate && existingData) {
+                const updatedUrls = { ...existingData.image_urls };
+                if (updatedUrls && activeView in updatedUrls) {
+                    delete (updatedUrls as any)[activeView];
+                }
+                onUpdate({
+                    ...existingData,
+                    image_urls: updatedUrls,
+                    image_status: "generating",
+                });
+            }
             toastSuccess(`${(ANGLE_LABELS[activeView] || activeView).toUpperCase()} angle regeneration queued`);
         } catch (e: any) {
             if (e?.response?.status === 402) {

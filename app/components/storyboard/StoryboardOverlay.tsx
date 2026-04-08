@@ -885,6 +885,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             episodeTitle={realEpisodeTitle}
                             sceneNumber={currentScene.scene_number}
                             summary={currentScene.summary || currentScene.description || currentScene.synopsis}
+                            dialogues={currentScene.dialogues}
                             locationName={sceneLoc}
                             timeOfDay={currentScene.time_of_day || "DAY"}
                             castList={charDisplay}
