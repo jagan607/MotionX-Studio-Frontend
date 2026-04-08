@@ -225,7 +225,13 @@ export interface Shot {
     camera_shot_type?: string;
 
     video_status?: 'queued' | 'processing' | 'completed' | 'failed' | 'error' | null;
-    status?: 'draft' | 'rendered' | 'animating' | 'completed' | 'finalized';
+    video_error?: string;
+
+    // Structured error fields (set by backend on failure, auto-cleared on retry)
+    error_code?: string;
+    error_message?: string;
+
+    status?: 'draft' | 'rendered' | 'animating' | 'completed' | 'finalized' | 'generating' | 'failed' | 'error' | 'upscaling';
 
     morph_to_next?: boolean; // Added for UI logic
 

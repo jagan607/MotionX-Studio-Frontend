@@ -6,12 +6,12 @@ import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film,
     ImagePlus, Link2, Plus, CheckCircle2,
-    Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin, Volume2, AlertTriangle
+    Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin, Volume2, AlertTriangle, X
 } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 import type { VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
 import { usePricing } from '@/app/hooks/usePricing';
-import { inferVideoErrorMessage } from '@/lib/apiErrors';
+import { getErrorUIConfig, executeErrorAction } from '@/lib/errorDictionary';
 
 interface CastMember { id: string; name: string; }
 interface Location { id: string; name: string; }
@@ -31,6 +31,7 @@ interface Shot {
     video_status?: string;
     video_error?: string;
     error_message?: string;
+    error_code?: string;
     status?: string;
     morph_to_next?: boolean;
     prompt: string;
@@ -77,6 +78,9 @@ interface SortableShotCardProps {
     continuityRefId?: string | null;
     onSetContinuityRef?: (id: string | null) => void;
     onOpenGizmo?: () => void;
+    onTopUp?: () => void;
+    onRetryAnimate?: () => void;
+    onFocusPrompt?: () => void;
 }
 
 const normalize = (str: string) => str ? str.toLowerCase().trim() : "";
@@ -104,6 +108,9 @@ export const SortableShotCard = ({
     continuityRefId,
     onSetContinuityRef,
     onOpenGizmo,
+    onTopUp,
+    onRetryAnimate,
+    onFocusPrompt,
 }: SortableShotCardProps) => {
 
     const isPinned = continuityRefId === shot.id;
@@ -121,9 +128,19 @@ export const SortableShotCard = ({
     const isGenerating = isRendering || shot.status === 'generating';
     const isAnimating = ['animating', 'processing', 'queued', 'pending'].includes(shot.video_status || '');
     const isVideoError = (shot.video_status === 'error' || shot.video_status === 'failed') && !isMorphedByPrev;
+    const isImageError = (shot.status === 'failed' || shot.status === 'error') && !isMorphedByPrev;
+    const hasError = (isVideoError || isImageError) && !!(shot.error_code || shot.video_error || shot.error_message);
     const isUpscaled = shot.is_upscaled === true;
     const isUpscaling = !isUpscaled && (shot.status === 'upscaling' || shot.upscale_status === 'processing');
     const isBusy = isGenerating || isAnimating || isUpscaling;
+
+    // Error dismissal state — resets when a new error arrives
+    const [errorDismissed, setErrorDismissed] = useState(false);
+    const errorFingerprint = `${shot.error_code || ''}:${shot.video_error || ''}:${shot.video_status || ''}:${shot.status || ''}`;
+    useEffect(() => { setErrorDismissed(false); }, [errorFingerprint]);
+
+    // Resolve error UI config from dictionary
+    const errorConfig = hasError ? getErrorUIConfig(shot.error_code, shot.error_message || shot.video_error) : null;
 
     let overlayText = "Generating...";
     if (isAnimating) overlayText = "Animating...";
@@ -298,9 +315,12 @@ export const SortableShotCard = ({
                     <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-neutral-600 hover:text-neutral-400 transition-colors p-0.5">
                         <GripVertical size={16} />
                     </div>
-                    <span className="text-[11px] font-bold tracking-wide text-[#E50914]">
+                    <span className="text-[11px] font-bold tracking-wide text-[#E50914] flex items-center gap-1.5">
                         Shot {String(index + 1).padStart(2, '0')}
                         {isUpscaled && <span className="ml-1.5 text-[10px] font-bold text-cyan-400">4K</span>}
+                        {hasError && errorDismissed && (
+                            <span className="text-amber-400 text-xs" title={errorConfig?.title || 'Last generation failed'}>⚠️</span>
+                        )}
                     </span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -390,14 +410,52 @@ export const SortableShotCard = ({
                 {children}
             </div>
 
-            {/* ── Video Error Indicator ── */}
-            {isVideoError && (
-                <div className="flex items-start gap-1.5 mb-2 px-2.5 py-2 rounded-lg bg-red-500/10 border border-red-500/30">
-                    <AlertTriangle size={12} className="text-red-400 shrink-0 mt-0.5" />
-                    <div className="text-[10px] text-red-300 leading-tight">
-                        <span className="font-semibold">{inferVideoErrorMessage(shot.video_error || shot.error_message)}</span>
-                        <span className="block text-red-400/70 mt-0.5">Credits refunded. Tap Animate to retry.</span>
+            {/* ── Error Overlay (Video + Image) ── */}
+            {hasError && !errorDismissed && errorConfig && (
+                <div className="relative mb-2 rounded-lg border border-red-500/30 bg-gradient-to-b from-red-500/[0.08] to-red-900/[0.04] overflow-hidden">
+                    {/* Dismiss Button */}
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setErrorDismissed(true); }}
+                        className="absolute top-1.5 right-1.5 z-10 w-5 h-5 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.15] text-neutral-500 hover:text-white transition-all cursor-pointer"
+                        title="Dismiss error"
+                    >
+                        <X size={10} />
+                    </button>
+
+                    <div className="flex items-start gap-2.5 px-3 py-2.5 pr-8">
+                        {/* Icon */}
+                        <span className="text-lg leading-none mt-0.5 shrink-0">{errorConfig.icon}</span>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                            <span className="text-[11px] font-bold text-red-300 block">{errorConfig.title}</span>
+                            <span className="text-[10px] text-red-400/80 leading-snug block mt-0.5">{errorConfig.message}</span>
+                            <span className="text-[9px] text-red-400/50 block mt-1">Credits refunded.</span>
+                        </div>
                     </div>
+
+                    {/* Action Button */}
+                    {errorConfig.actionType !== 'wait' && (
+                        <div className="px-3 pb-2.5">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    executeErrorAction(errorConfig.actionType, {
+                                        onRetry: onRetryAnimate,
+                                        onEdit: onFocusPrompt,
+                                        onTopUp: onTopUp,
+                                        onReupload: onFocusPrompt,
+                                    });
+                                }}
+                                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[10px] font-bold
+                                    bg-red-500/15 text-red-300 border border-red-500/30
+                                    hover:bg-red-500/25 hover:border-red-500/50 hover:text-red-200
+                                    transition-all cursor-pointer"
+                            >
+                                {errorConfig.actionText}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 
