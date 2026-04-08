@@ -203,11 +203,21 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
         setIsRetryingAngle(true);
         setRetryingAngleKey(targetAngle);
         try {
-            await retrySetAngle(projectId, episodeId, sceneId, targetAngle);
-            // Don't call onUpdate — let the Firestore onSnapshot listener
-            // deliver the updated data naturally. The frozenViewsRef keeps
-            // the UI completely stable until the new URL arrives.
-            toastSuccess(`${(ANGLE_LABELS[targetAngle] || targetAngle).toUpperCase()} angle regeneration queued`);
+            await retrySetAngle(projectId, episodeId, sceneId, activeView);
+
+            // Optimistically update UI: mark as generating and clear the retried angle's URL
+            if (onUpdate && existingData) {
+                const updatedUrls = { ...existingData.image_urls };
+                if (updatedUrls && activeView in updatedUrls) {
+                    delete (updatedUrls as any)[activeView];
+                }
+                onUpdate({
+                    ...existingData,
+                    image_urls: updatedUrls,
+                    image_status: "generating",
+                });
+            }
+            toastSuccess(`${(ANGLE_LABELS[activeView] || activeView).toUpperCase()} angle regeneration queued`);
         } catch (e: any) {
             setRetryingAngleKey(null);
             frozenViewsRef.current = null;
