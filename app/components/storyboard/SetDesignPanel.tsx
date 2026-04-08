@@ -74,7 +74,6 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const [showImportMenu, setShowImportMenu] = useState(false);
     const [confirmAction, setConfirmAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
     const [isRetryingAngle, setIsRetryingAngle] = useState(false);
-    const [isResetting, setIsResetting] = useState(false);
     const [retryingAngleKey, setRetryingAngleKey] = useState<string | null>(null);
     // Frozen snapshot of image_urls taken at retry-start — UI renders from this
     // during a single-angle retry so no Firestore intermediate state can flash.
