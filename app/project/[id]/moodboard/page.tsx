@@ -66,6 +66,7 @@ export default function MoodboardPage() {
 
     // --- State ---
     const [phase, setPhase] = useState<"select" | "confirming" | "extracting" | "error">("select");
+    const [extractionStep, setExtractionStep] = useState(0);
     const [moods, setMoods] = useState<MoodOption[]>([]);
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
     const [isRegenerating, setIsRegenerating] = useState(false);
@@ -344,6 +345,18 @@ export default function MoodboardPage() {
             unsub();
         };
     }, [phase, projectId, episodeId, router]);
+
+    // --- Extraction Step Timer: Fake progress through 4 steps ---
+    useEffect(() => {
+        if (phase !== "extracting") {
+            setExtractionStep(0);
+            return;
+        }
+        const interval = setInterval(() => {
+            setExtractionStep(prev => (prev < 3 ? prev + 1 : prev));
+        }, 4000);
+        return () => clearInterval(interval);
+    }, [phase]);
 
     // Keyboard navigation
     useEffect(() => {
@@ -762,19 +775,37 @@ export default function MoodboardPage() {
             {/* ══════════════════════ EXTRACTING (Phase 3) ══════════════════════ */}
             {phase === "extracting" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
+                    {/* Scoped keyframes */}
+                    <style>{`
+                        @keyframes extractGlow {
+                            0%, 100% { opacity: 0.4; transform: scale(1); }
+                            50% { opacity: 1; transform: scale(1.05); }
+                        }
+                        @keyframes extractScan {
+                            0% { transform: translateX(-100%); }
+                            100% { transform: translateX(300%); }
+                        }
+                        @keyframes extractFloat {
+                            0%, 100% { transform: translateY(0); }
+                            50% { transform: translateY(-6px); }
+                        }
+                    `}</style>
+
                     <div className="absolute inset-0 bg-[#030303]" />
 
                     {/* Ambient glow */}
                     <div className="absolute top-[20%] left-[30%] w-[500px] h-[400px] rounded-full blur-[150px] pointer-events-none"
-                        style={{ background: "radial-gradient(circle, rgba(229,9,20,0.06) 0%, transparent 70%)", animation: "heroFade 8s ease-in-out infinite" }} />
+                        style={{ background: "radial-gradient(circle, rgba(229,9,20,0.06) 0%, transparent 70%)", animation: "extractGlow 8s ease-in-out infinite" }} />
+                    <div className="absolute bottom-[10%] right-[20%] w-[300px] h-[300px] rounded-full blur-[120px] pointer-events-none"
+                        style={{ background: "radial-gradient(circle, rgba(229,9,20,0.04) 0%, transparent 70%)", animation: "extractGlow 6s ease-in-out infinite 2s" }} />
 
                     <div className="relative z-10 flex flex-col items-center max-w-md px-8">
                         {/* Pulsing brain icon */}
-                        <div className="relative w-20 h-20 mb-8 flex items-center justify-center">
+                        <div className="relative w-20 h-20 mb-8 flex items-center justify-center" style={{ animation: "extractFloat 4s ease-in-out infinite" }}>
                             <div className="absolute inset-0 rounded-full border border-white/[0.04]" />
                             <div className="absolute inset-0 rounded-full border border-[#E50914]/30 border-t-transparent animate-spin" style={{ animationDuration: "2s" }} />
                             <div className="absolute inset-2 rounded-full border border-[#E50914]/15 border-b-transparent animate-spin" style={{ animationDuration: "3s", animationDirection: "reverse" }} />
-                            <BrainCircuit size={22} className="text-[#E50914]" style={{ animation: "heroFade 3s ease-in-out infinite" }} />
+                            <BrainCircuit size={22} className="text-[#E50914]" style={{ animation: "extractGlow 3s ease-in-out infinite" }} />
                         </div>
 
                         <h3 className="text-xl uppercase tracking-[3px] font-display mb-2 text-white">Setting Up Your Project</h3>
@@ -782,43 +813,53 @@ export default function MoodboardPage() {
                             Extracting characters, locations & visual traits...
                         </p>
 
-                        {/* Step indicators */}
+                        {/* Step indicators — timer-driven progression */}
                         <div className="w-full space-y-2 mb-8">
                             {[
-                                { label: "Visual direction locked", done: true },
-                                { label: "Extracting characters", done: false, active: true },
-                                { label: "Extracting locations", done: false },
-                                { label: "Applying visual aesthetic", done: false },
-                            ].map((step, i) => (
-                                <div key={step.label} className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-700 ${step.active ? "bg-white/[0.03]" : ""}`}>
-                                    <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 border transition-all ${
-                                        step.done ? "border-emerald-500/40 bg-emerald-500/10" : step.active ? "border-[#E50914]/40 bg-[#E50914]/10" : "border-white/[0.06]"
-                                    }`}>
-                                        {step.done ? (
-                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                        ) : step.active ? (
-                                            <div className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
-                                        ) : (
-                                            <div className="w-1 h-1 rounded-full bg-white/10" />
+                                { label: "Visual direction locked" },
+                                { label: "Extracting characters" },
+                                { label: "Extracting locations" },
+                                { label: "Applying visual aesthetic" },
+                            ].map((step, i) => {
+                                const isDone = i < extractionStep + 1;
+                                const isActive = i === extractionStep + 1;
+                                // Step 0 ("Visual direction locked") is always done
+                                const done = i === 0 || isDone;
+                                const active = !done && isActive;
+
+                                return (
+                                    <div key={step.label}
+                                        className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-700 ${active ? "bg-white/[0.03]" : ""}`}
+                                        style={{ opacity: done || active ? 1 : 0.4, transition: "all 0.7s ease" }}>
+                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 border transition-all duration-700 ${
+                                            done ? "border-emerald-500/40 bg-emerald-500/10" : active ? "border-[#E50914]/40 bg-[#E50914]/10" : "border-white/[0.06]"
+                                        }`}>
+                                            {done ? (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                            ) : active ? (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
+                                            ) : (
+                                                <div className="w-1 h-1 rounded-full bg-white/10" />
+                                            )}
+                                        </div>
+                                        <span className={`text-[10px] tracking-[1.5px] uppercase font-mono transition-colors duration-700 ${
+                                            done ? "text-emerald-400/50" : active ? "text-white/80" : "text-neutral-700"
+                                        }`}>{step.label}</span>
+                                        {active && (
+                                            <div className="ml-auto w-16 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
+                                                <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent"
+                                                    style={{ animation: "extractScan 1.5s ease-in-out infinite" }} />
+                                            </div>
                                         )}
                                     </div>
-                                    <span className={`text-[10px] tracking-[1.5px] uppercase font-mono ${
-                                        step.done ? "text-emerald-400/50" : step.active ? "text-white/80" : "text-neutral-700"
-                                    }`}>{step.label}</span>
-                                    {step.active && (
-                                        <div className="ml-auto w-16 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
-                                            <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent"
-                                                style={{ animation: "scanDrift 1.5s ease-in-out infinite" }} />
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         {/* Bottom progress bar */}
                         <div className="w-full h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
                             <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent"
-                                style={{ animation: "scanDrift 2s ease-in-out infinite" }} />
+                                style={{ animation: "extractScan 2s ease-in-out infinite" }} />
                         </div>
                     </div>
                 </div>
