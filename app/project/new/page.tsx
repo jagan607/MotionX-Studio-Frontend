@@ -341,6 +341,7 @@ export default function NewProjectPage() {
     const unsubJobRef = useRef<(() => void) | null>(null);
     const unsubProjectRef = useRef<(() => void) | null>(null);
     const projectDataRef = useRef<any>(null);
+    const hasNavigatedRef = useRef(false);
 
     // ══════ AUTH ══════
     useEffect(() => {
@@ -445,6 +446,20 @@ export default function NewProjectPage() {
         // Clean up any existing listeners
         unsubJobRef.current?.();
         unsubProjectRef.current?.();
+        hasNavigatedRef.current = false;
+
+        const navigateAway = (url: string) => {
+            if (hasNavigatedRef.current) return; // Prevent double-navigation
+            hasNavigatedRef.current = true;
+            setIsTransitioning(true);
+            setTimeout(() => {
+                unsubJobRef.current?.();
+                unsubJobRef.current = null;
+                unsubProjectRef.current?.();
+                unsubProjectRef.current = null;
+                router.push(url);
+            }, 1500);
+        };
 
         // ── Listener 1: Job progress (jobs/{jobId}) ──
         const jobRef = doc(db, "jobs", jobId);
@@ -457,26 +472,18 @@ export default function NewProjectPage() {
                 setProcessingStatus(data.progress);
             }
 
-            // Handle completion
-            if (data.status === "completed") {
-                unsubJobRef.current?.();
-                unsubJobRef.current = null;
+            // EARLY EXIT: Navigate to Draft Review as soon as draft_id appears.
+            // Don't wait for moodboards — they'll continue generating in the background.
+            if (data.draft_id && !hasNavigatedRef.current) {
+                navigateAway(`/project/${projectId}/draft/${data.draft_id}`);
+                return;
+            }
 
-                // Graceful handoff — show success state, then route to Draft Review
-                setIsTransitioning(true);
-                setTimeout(() => {
-                    unsubProjectRef.current?.();
-                    unsubProjectRef.current = null;
-                    const epId = projectDataRef.current?.default_episode_id || 'main';
-
-                    // Route to Draft Review page if draft_id is available (new flow)
-                    // Fall back to moodboard for legacy jobs without draft_id
-                    if (data.draft_id) {
-                        router.push(`/project/${projectId}/draft/${data.draft_id}`);
-                    } else {
-                        router.push(`/project/${projectId}/moodboard?episode_id=${epId}`);
-                    }
-                }, 1500);
+            // FALLBACK: If job completes without producing a draft_id (legacy path),
+            // route to moodboard selection.
+            if (data.status === "completed" && !hasNavigatedRef.current) {
+                const epId = projectDataRef.current?.default_episode_id || 'main';
+                navigateAway(`/project/${projectId}/moodboard?episode_id=${epId}`);
             }
 
             // Handle failure

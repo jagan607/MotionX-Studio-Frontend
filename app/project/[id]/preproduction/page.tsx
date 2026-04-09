@@ -269,6 +269,8 @@ export default function PreProductionCanvas() {
     // Scene Draft State
     const [isDraftApproved, setIsDraftApproved] = useState(false);
 
+    // Extraction Error — show toast once per session
+    const extractionErrorToastedRef = useRef(false);
 
 
     // ─── LOCK BODY SCROLL ───
@@ -336,6 +338,19 @@ export default function PreProductionCanvas() {
         }
         prevScriptStatus.current = currentStatus;
     }, [project?.script_status, activeEpisodeId]);
+
+    // ─── EXTRACTION ERROR NOTIFICATION ───
+    useEffect(() => {
+        if (!project) return;
+        const extractionError = (project as any).extraction_error;
+        if (extractionError && !extractionErrorToastedRef.current) {
+            extractionErrorToastedRef.current = true;
+            toast("Character details couldn't be auto-extracted. You can fill them in manually in the Asset Manager.", {
+                icon: "⚠️",
+                duration: 8000,
+            });
+        }
+    }, [project]);
 
     const fetchAssets = async (epId?: string | null) => {
         const targetEpId = epId || activeEpisodeId;

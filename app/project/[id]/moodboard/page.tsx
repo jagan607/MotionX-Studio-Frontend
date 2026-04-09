@@ -8,7 +8,8 @@ import { api } from "@/lib/api";
 import {
     Loader2, Check, Palette, Sun, Layers, CloudFog,
     ChevronRight, ChevronLeft, RefreshCw, AlertCircle,
-    ArrowLeft, Sparkles, Undo2, X, Trash2
+    ArrowLeft, Sparkles, Undo2, X, Trash2,
+    BrainCircuit
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -64,7 +65,7 @@ export default function MoodboardPage() {
     const isOnboarding = searchParams.get("onboarding") === "true";
 
     // --- State ---
-    const [phase, setPhase] = useState<"select" | "confirming" | "error">("select");
+    const [phase, setPhase] = useState<"select" | "confirming" | "extracting" | "error">("select");
     const [moods, setMoods] = useState<MoodOption[]>([]);
     const [selectedIdx, setSelectedIdx] = useState<number>(0);
     const [isRegenerating, setIsRegenerating] = useState(false);
@@ -284,18 +285,65 @@ export default function MoodboardPage() {
                 setAppliedMoodId(selectedMood.id);
                 toastSuccess(`Mood "${res.data.selected_mood?.name || "selected"}" applied`);
 
-                // Dual-gate check: if both scenes + moodboard are locked, extraction starts
-                if (res.data.asset_extraction_triggered) {
-                    toastSuccess("Assets extracting — finalizing your project...");
-                }
-
-                router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
+                // Backend always enqueues deep asset extraction after moodboard lock-in.
+                // Stay on this page and poll script_status until "ready".
+                setPhase("extracting");
             } else { toastError("Failed to apply mood"); setPhase("select"); }
         } catch (e: any) {
             toastError(e.response?.data?.detail || "Selection failed");
             setPhase("select");
         }
     };
+
+    // --- Extraction Polling: Watch script_status until "ready" ---
+    const extractionToastedRef = useRef(false);
+    useEffect(() => {
+        if (phase !== "extracting") return;
+
+        // Safety timeout — if extraction takes > 5 minutes, navigate anyway
+        const timeout = setTimeout(() => {
+            toastError("Extraction is taking longer than expected. You can check back later.");
+            router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
+        }, 5 * 60 * 1000);
+
+        // Listen to project document for script_status changes
+        const unsub = onSnapshot(doc(db, "projects", projectId), (snap) => {
+            const data = snap.data();
+            if (!data) return;
+
+            // Check for extraction error (backend writes this on Phase 3 failure)
+            if (data.extraction_error && !extractionToastedRef.current) {
+                extractionToastedRef.current = true;
+                toast("Character details couldn't be auto-extracted. You can fill them in manually.", {
+                    icon: "⚠️",
+                    duration: 6000,
+                });
+                // Don't wait for "ready" — navigate immediately on failure
+                clearTimeout(timeout);
+                router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
+                return;
+            }
+
+            // Navigate when extraction completes successfully
+            if (data.script_status === "ready") {
+                clearTimeout(timeout);
+                toastSuccess("Project setup complete!");
+                router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
+            }
+
+            // Navigate on explicit failure status as well
+            if (data.script_status === "failed") {
+                clearTimeout(timeout);
+                toastError("Extraction failed. You can manually configure assets.");
+                router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
+            }
+        });
+
+        return () => {
+            clearTimeout(timeout);
+            unsub();
+        };
+    }, [phase, projectId, episodeId, router]);
 
     // Keyboard navigation
     useEffect(() => {
@@ -707,6 +755,71 @@ export default function MoodboardPage() {
                         <p className="text-[10px] text-white/30 uppercase tracking-[3px] font-mono">
                             Setting visual direction for {projectTitle || "your project"}...
                         </p>
+                    </div>
+                </div>
+            )}
+
+            {/* ══════════════════════ EXTRACTING (Phase 3) ══════════════════════ */}
+            {phase === "extracting" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
+                    <div className="absolute inset-0 bg-[#030303]" />
+
+                    {/* Ambient glow */}
+                    <div className="absolute top-[20%] left-[30%] w-[500px] h-[400px] rounded-full blur-[150px] pointer-events-none"
+                        style={{ background: "radial-gradient(circle, rgba(229,9,20,0.06) 0%, transparent 70%)", animation: "heroFade 8s ease-in-out infinite" }} />
+
+                    <div className="relative z-10 flex flex-col items-center max-w-md px-8">
+                        {/* Pulsing brain icon */}
+                        <div className="relative w-20 h-20 mb-8 flex items-center justify-center">
+                            <div className="absolute inset-0 rounded-full border border-white/[0.04]" />
+                            <div className="absolute inset-0 rounded-full border border-[#E50914]/30 border-t-transparent animate-spin" style={{ animationDuration: "2s" }} />
+                            <div className="absolute inset-2 rounded-full border border-[#E50914]/15 border-b-transparent animate-spin" style={{ animationDuration: "3s", animationDirection: "reverse" }} />
+                            <BrainCircuit size={22} className="text-[#E50914]" style={{ animation: "heroFade 3s ease-in-out infinite" }} />
+                        </div>
+
+                        <h3 className="text-xl uppercase tracking-[3px] font-display mb-2 text-white">Setting Up Your Project</h3>
+                        <p className="text-[10px] text-white/30 uppercase tracking-[3px] font-mono text-center mb-8">
+                            Extracting characters, locations & visual traits...
+                        </p>
+
+                        {/* Step indicators */}
+                        <div className="w-full space-y-2 mb-8">
+                            {[
+                                { label: "Visual direction locked", done: true },
+                                { label: "Extracting characters", done: false, active: true },
+                                { label: "Extracting locations", done: false },
+                                { label: "Applying visual aesthetic", done: false },
+                            ].map((step, i) => (
+                                <div key={step.label} className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-700 ${step.active ? "bg-white/[0.03]" : ""}`}>
+                                    <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 border transition-all ${
+                                        step.done ? "border-emerald-500/40 bg-emerald-500/10" : step.active ? "border-[#E50914]/40 bg-[#E50914]/10" : "border-white/[0.06]"
+                                    }`}>
+                                        {step.done ? (
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                        ) : step.active ? (
+                                            <div className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
+                                        ) : (
+                                            <div className="w-1 h-1 rounded-full bg-white/10" />
+                                        )}
+                                    </div>
+                                    <span className={`text-[10px] tracking-[1.5px] uppercase font-mono ${
+                                        step.done ? "text-emerald-400/50" : step.active ? "text-white/80" : "text-neutral-700"
+                                    }`}>{step.label}</span>
+                                    {step.active && (
+                                        <div className="ml-auto w-16 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
+                                            <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent"
+                                                style={{ animation: "scanDrift 1.5s ease-in-out infinite" }} />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Bottom progress bar */}
+                        <div className="w-full h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
+                            <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent"
+                                style={{ animation: "scanDrift 2s ease-in-out infinite" }} />
+                        </div>
                     </div>
                 </div>
             )}
