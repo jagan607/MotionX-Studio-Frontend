@@ -5,7 +5,7 @@ import { Download } from 'lucide-react';
 export function ExportButton({ data }: { data: any[] }) {
     const handleExport = () => {
         // 1. Define Headers
-        const headers = ["Date", "Transaction ID", "Type", "Amount", "Status"];
+        const headers = ["Date", "Transaction ID", "Type", "Amount", "Currency", "Status"];
 
         // 2. Format Rows
         const rows = data.map(tx => [
@@ -13,6 +13,7 @@ export function ExportButton({ data }: { data: any[] }) {
             tx.id,
             tx.type,
             tx.amount,
+            tx.currency || 'USD',
             tx.status
         ]);
 

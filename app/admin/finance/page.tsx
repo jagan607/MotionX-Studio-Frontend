@@ -1,6 +1,27 @@
 import { adminDb } from '@/lib/firebase-admin';
 import { ExportButton } from './export-button';
-import { FinanceChart } from '@/components/admin/FinanceChart'; // Import the new chart
+import { FinanceChart } from '@/components/admin/FinanceChart';
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+    USD: '$',
+    INR: '₹',
+    EUR: '€',
+    GBP: '£',
+    JPY: '¥',
+    AUD: 'A$',
+    CAD: 'C$',
+    SGD: 'S$',
+    AED: 'د.إ',
+};
+
+function getCurrencySymbol(code: string): string {
+    return CURRENCY_SYMBOLS[code?.toUpperCase()] || code || '$';
+}
+
+function formatAmount(amount: number, currency: string): string {
+    const symbol = getCurrencySymbol(currency);
+    return `${symbol}${amount.toLocaleString()}`;
+}
 
 async function getFinanceData() {
     // Fetch ALL transactions to ensure graph is accurate (limit 50 might cut off history)
@@ -15,22 +36,34 @@ async function getFinanceData() {
         return {
             id: doc.id,
             amount: data.amount || 0,
+            currency: data.currency || 'USD',
             type: data.type || 'unknown',
-            status: data.status || 'completed', // Default to completed if missing
-            // Handle Timestamp or standard Date
+            status: data.status || 'completed',
             date: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : new Date().toISOString()
         };
     });
 
-    const totalVolume = transactions.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-    const count = transactions.length;
-    const avgTransaction = count > 0 ? (totalVolume / count) : 0;
+    // Group totals by currency
+    const volumeByCurrency: Record<string, number> = {};
+    transactions.forEach(tx => {
+        const cur = tx.currency?.toUpperCase() || 'USD';
+        volumeByCurrency[cur] = (volumeByCurrency[cur] || 0) + (tx.amount || 0);
+    });
 
-    return { transactions, totalVolume, avgTransaction };
+    const count = transactions.length;
+
+    // Compute average per currency as well
+    const countByCurrency: Record<string, number> = {};
+    transactions.forEach(tx => {
+        const cur = tx.currency?.toUpperCase() || 'USD';
+        countByCurrency[cur] = (countByCurrency[cur] || 0) + 1;
+    });
+
+    return { transactions, volumeByCurrency, countByCurrency, count };
 }
 
 export default async function FinancePage() {
-    const { transactions, totalVolume, avgTransaction } = await getFinanceData();
+    const { transactions, volumeByCurrency, countByCurrency, count } = await getFinanceData();
 
     // Format date for display in table
     const tableData = transactions.map(t => ({
@@ -57,11 +90,25 @@ export default async function FinancePage() {
             <div className="grid grid-cols-3 gap-6">
                 <div className="bg-[#080808] border border-[#222] p-6">
                     <div className="text-[10px] text-[#555] uppercase tracking-widest mb-1">Gross Volume</div>
-                    <div className="font-anton text-4xl text-white">${totalVolume.toLocaleString()}</div>
+                    <div className="space-y-1">
+                        {Object.entries(volumeByCurrency).map(([cur, total]) => (
+                            <div key={cur} className="font-anton text-4xl text-white flex items-baseline gap-2">
+                                {getCurrencySymbol(cur)}{total.toLocaleString()}
+                                <span className="text-[10px] text-[#555] font-mono">{cur}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
                 <div className="bg-[#080808] border border-[#222] p-6">
                     <div className="text-[10px] text-[#555] uppercase tracking-widest mb-1">Avg. Transaction</div>
-                    <div className="font-anton text-4xl text-white">${avgTransaction.toFixed(2)}</div>
+                    <div className="space-y-1">
+                        {Object.entries(volumeByCurrency).map(([cur, total]) => (
+                            <div key={cur} className="font-anton text-4xl text-white flex items-baseline gap-2">
+                                {getCurrencySymbol(cur)}{(total / (countByCurrency[cur] || 1)).toFixed(2)}
+                                <span className="text-[10px] text-[#555] font-mono">{cur}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
                 <div className="bg-[#080808] border border-[#222] p-6">
                     <div className="text-[10px] text-[#555] uppercase tracking-widest mb-1">Success Rate</div>
@@ -92,7 +139,7 @@ export default async function FinancePage() {
                                         {tx.type}
                                     </span>
                                 </td>
-                                <td className="p-4 border-r border-[#222] text-white font-bold">${tx.amount}</td>
+                                <td className="p-4 border-r border-[#222] text-white font-bold">{formatAmount(tx.amount, tx.currency)}</td>
                                 <td className="p-4">
                                     <span className="flex items-center gap-2 text-green-500 uppercase font-bold text-[10px]">
                                         <div className="w-1 h-1 bg-green-500 rounded-full" /> {tx.status}
