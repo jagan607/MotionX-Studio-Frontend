@@ -591,7 +591,7 @@ export default function MoodboardPage() {
                                 )}
                                 {isApplied && (
                                     <span className="flex items-center gap-1 text-[8px] font-bold text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
-                                        <Check size={9} /> Applied
+                                        <Check size={9} /> Custom
                                     </span>
                                 )}
                             </div>
@@ -682,7 +682,7 @@ export default function MoodboardPage() {
                                                 <div className="absolute bottom-0 inset-x-0 h-[2px] bg-emerald-400/40" />
                                                 <div className="absolute top-2 right-2 flex items-center gap-1 bg-emerald-500/30 border border-emerald-400/50 rounded-full px-2 py-0.5 backdrop-blur-sm">
                                                     <Check size={8} className="text-emerald-300" />
-                                                    <span className="text-[7px] font-bold text-emerald-300 uppercase tracking-wider">Applied</span>
+                                                    <span className="text-[7px] font-bold text-emerald-300 uppercase tracking-wider">Custom</span>
                                                 </div>
                                             </>
                                         )}
