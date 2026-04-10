@@ -14,7 +14,7 @@ import {
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
 import { api, fetchEpisodes } from "@/lib/api";
-import { CheckCircle2, RefreshCw, Loader2 } from "lucide-react";
+import { CheckCircle2, RefreshCw, Loader2, Palette } from "lucide-react";
 import { v4 as uuidv4 } from 'uuid';
 
 // --- COMPONENTS ---
@@ -43,6 +43,11 @@ export default function DraftPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isCommitting, setIsCommitting] = useState(false);
     const [isExtending, setIsExtending] = useState(false);
+
+    // Background moodboard readiness (ambient, non-blocking)
+    const [moodboardReadiness, setMoodboardReadiness] = useState<
+        "unknown" | "generating" | "partial" | "ready"
+    >("unknown");
     const [isRegenerating, setIsRegenerating] = useState(false);
 
     // Refs for safety
@@ -138,6 +143,30 @@ export default function DraftPage() {
         });
         return () => unsub();
     }, [draftId, projectId, router, isProcessing, isCommitting]);
+
+    // 1b. BACKGROUND MOODBOARD READINESS LISTENER
+    // Proactively tracks whether the parallel moodboard pipeline has finished
+    // generating mood options. This is purely ambient — it does NOT gate any UI.
+    useEffect(() => {
+        if (!projectId) return;
+        const colRef = collection(db, "projects", projectId, "moodboard_options");
+        const unsub = onSnapshot(colRef, (snapshot) => {
+            const docs = snapshot.docs.map(d => d.data());
+            if (docs.length === 0) {
+                setMoodboardReadiness("unknown"); // Not yet created
+                return;
+            }
+            const readyCount = docs.filter(d => d.status === "ready").length;
+            if (readyCount === docs.length) {
+                setMoodboardReadiness("ready");       // All images rendered
+            } else if (readyCount > 0) {
+                setMoodboardReadiness("partial");     // Some ready, some generating
+            } else {
+                setMoodboardReadiness("generating");  // Text metadata exists, images pending
+            }
+        });
+        return () => unsub();
+    }, [projectId]);
 
     // 2. FETCH EPISODES & LOCATIONS
     useEffect(() => {
@@ -479,6 +508,19 @@ export default function DraftPage() {
                 </div>
             </div>
             <div className="flex items-center gap-3">
+                {/* Ambient moodboard readiness indicator (passive, non-clickable) */}
+                {moodboardReadiness === "ready" && (
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/[0.06] border border-emerald-500/15" style={{ animation: 'fadeIn 0.5s ease both' }}>
+                        <Palette size={11} className="text-emerald-400/60" />
+                        <span className="text-[9px] text-emerald-400/60 tracking-wider font-mono uppercase">Visual Direction Ready</span>
+                    </div>
+                )}
+                {(moodboardReadiness === "generating" || moodboardReadiness === "partial") && (
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.02] border border-white/[0.06]">
+                        <Loader2 size={9} className="animate-spin text-white/20" />
+                        <span className="text-[9px] text-white/15 tracking-wider font-mono uppercase">Generating Moods</span>
+                    </div>
+                )}
                 <button
                     onClick={handleRegenerate}
                     disabled={isRegenerating || isCommitting || isProcessing}

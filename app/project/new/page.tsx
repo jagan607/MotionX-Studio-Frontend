@@ -47,9 +47,9 @@ function parseEngineStates(status: string): { story: EnginePhase; art: EnginePha
     const lower = status.toLowerCase();
 
     const storyDonePatterns = ["draft", "scene draft", "preparing draft", "workspace", "blueprint"];
-    const storyActivePatterns = ["loading", "uploading", "creating project", "downloading", "cinematic dna", "analyzing", "structural scene", "extracting"];
+    const storyActivePatterns = ["loading", "uploading", "creating project", "downloading", "cinematic dna", "analyzing", "structural scene", "extracting", "finalizing scenes", "finalizing"];
     const artDonePatterns = ["moodboard ready", "moodboard complete"];
-    const artActivePatterns = ["moodboard", "visual moodboards", "generating visual", "rendering", "visual archetypes"];
+    const artActivePatterns = ["moodboard", "visual moodboards", "generating visual", "rendering", "visual archetypes", "visual directions"];
 
     let story: EnginePhase = "idle";
     let art: EnginePhase = "idle";

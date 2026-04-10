@@ -182,21 +182,36 @@ export default function MoodboardPage() {
         }
     }, [projectId, episodeId]);
 
-    // --- AUTO-TRIGGER: When arriving from breakdown import, skip manual step ---
+    // --- AUTO-TRIGGER: Only for non-onboarding visits ---
+    // During onboarding, the script worker is GUARANTEED to be generating moodboards
+    // in the parallel pipeline. The onSnapshot listener will populate moods as they
+    // arrive — never fire a redundant generateMoods() call.
+    // For non-onboarding visits (manual navigation, legacy projects), auto-trigger
+    // generation if Firestore confirms zero moods exist.
     const autoTriggeredRef = useRef(false);
     useEffect(() => {
-        // Only auto-trigger once, only during onboarding, only when Firestore has loaded
-        // and confirmed no moods exist yet
-        if (
-            isOnboarding &&
-            firestoreLoaded &&
-            moods.length === 0 &&
-            !autoTriggeredRef.current &&
-            !isRegenerating
-        ) {
+        // During onboarding: trust the worker pipeline entirely.
+        // The onSnapshot listener handles everything — do nothing here.
+        if (isOnboarding) return;
+
+        if (!firestoreLoaded || autoTriggeredRef.current || isRegenerating) return;
+
+        // Moods already exist — nothing to do
+        if (moods.length > 0) {
             autoTriggeredRef.current = true;
-            generateMoods();
+            return;
         }
+
+        // Non-onboarding with zero moods: auto-trigger after a short delay
+        // to give Firestore a moment to sync (in case of page refresh)
+        const timer = setTimeout(() => {
+            if (moods.length === 0 && !autoTriggeredRef.current) {
+                autoTriggeredRef.current = true;
+                generateMoods();
+            }
+        }, 2000);
+
+        return () => clearTimeout(timer);
     }, [isOnboarding, firestoreLoaded, moods.length, isRegenerating, generateMoods]);
 
     // --- Generate variations ("More Like This") ---
@@ -494,10 +509,12 @@ export default function MoodboardPage() {
                                 <Loader2 size={24} className="text-[#E50914]/40 animate-spin mb-4" />
                                 <span className="text-[10px] text-white/20 tracking-[4px] uppercase">Loading moodboard...</span>
                             </>
-                        ) : isRegenerating ? (
+                        ) : isRegenerating || (isOnboarding && moods.length === 0) ? (
                             <>
                                 <Loader2 size={24} className="text-[#E50914] animate-spin mb-4" />
-                                <span className="text-[10px] text-white/40 tracking-[4px] uppercase">Generating moods...</span>
+                                <span className="text-[10px] text-white/40 tracking-[4px] uppercase">
+                                    {isOnboarding ? "AI is composing visual directions..." : "Generating moods..."}
+                                </span>
                             </>
                         ) : (
                             <>
