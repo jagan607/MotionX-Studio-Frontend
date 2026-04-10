@@ -78,7 +78,7 @@ export const FinanceChart = ({ transactions }: { transactions: any[] }) => {
                         itemStyle={{ color: '#fff', fontFamily: 'monospace', fontSize: '12px' }}
                         labelStyle={{ color: '#666', fontFamily: 'monospace', fontSize: '10px', marginBottom: '5px' }}
                         // ⬇️ FIX: Change type from 'number' to 'any' or 'number | string'
-                        formatter={(value: any, _name: string, props: any) => {
+                        formatter={(value: any, _name: string | undefined, props: any) => {
                             // Try to show per-currency breakdown in tooltip
                             const entry = props?.payload;
                             if (entry) {
