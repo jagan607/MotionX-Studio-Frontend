@@ -757,13 +757,13 @@ export default function MoodboardPage() {
                                     </button>
                                 )}
                                 <button onClick={handleConfirm}
-                                    disabled={isApplied}
+                                    disabled={isApplied && !isOnboarding}
                                     className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
-                                        ${isApplied
+                                        ${isApplied && !isOnboarding
                                             ? 'bg-emerald-900/30 text-emerald-400/60 border border-emerald-500/20 cursor-default'
                                             : 'bg-[#E50914] hover:bg-[#ff1a25] text-white shadow-[0_0_20px_rgba(229,9,20,0.2)] hover:shadow-[0_0_30px_rgba(229,9,20,0.4)]'}`}
-                                    style={!isApplied ? { animation: "pulseGlow 2.5s ease-in-out infinite" } : undefined}>
-                                    {isApplied ? (
+                                    style={!(isApplied && !isOnboarding) ? { animation: "pulseGlow 2.5s ease-in-out infinite" } : undefined}>
+                                    {isApplied && !isOnboarding ? (
                                         <><Check size={13} /> Applied</>
                                     ) : (
                                         <>Apply This Mood <ChevronRight size={13} /></>
