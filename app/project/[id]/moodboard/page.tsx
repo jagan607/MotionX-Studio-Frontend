@@ -286,9 +286,15 @@ export default function MoodboardPage() {
                 setAppliedMoodId(selectedMood.id);
                 toastSuccess(`Mood "${res.data.selected_mood?.name || "selected"}" applied`);
 
-                // Backend always enqueues deep asset extraction after moodboard lock-in.
-                // Stay on this page and poll script_status until "ready".
-                setPhase("extracting");
+                if (isOnboarding) {
+                    // During onboarding, backend enqueues deep asset extraction after moodboard lock-in.
+                    // Stay on this page and poll script_status until "ready".
+                    setPhase("extracting");
+                } else {
+                    // Non-onboarding: mood applied, navigate back to pre-production
+                    setPhase("select");
+                    router.push(preproductionUrl);
+                }
             } else { toastError("Failed to apply mood"); setPhase("select"); }
         } catch (e: any) {
             toastError(e.response?.data?.detail || "Selection failed");
