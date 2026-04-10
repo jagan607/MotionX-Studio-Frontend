@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, User, Building, ChevronDown, Check } from "lucide-react";
+import { Plus, User, Building, ChevronDown, Check, Zap } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import { useWorkspace } from "@/app/context/WorkspaceContext";
 import CreditModal from "@/app/components/modals/CreditModal";
@@ -207,6 +207,20 @@ export default function GlobalHeader() {
                             <span className="hidden sm:inline">TOP UP</span>
                         </button>
                     </div>
+
+                    {/* Playground — B2C workspace */}
+                    <Link href="/playground" className="hidden md:block no-underline">
+                        <button
+                            className={`flex items-center gap-2 text-[10px] sm:text-xs font-bold tracking-[2px] uppercase transition-all rounded-md px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 cursor-pointer border ${
+                                pathname === '/playground'
+                                    ? 'bg-[#E50914]/15 border-[#E50914]/40 text-[#E50914] shadow-[0_0_20px_rgba(229,9,20,0.15)]'
+                                    : 'bg-transparent border-white/[0.08] text-[#888] hover:text-white hover:border-white/20 hover:bg-white/[0.03]'
+                            }`}
+                        >
+                            <Zap className="w-3 h-3" strokeWidth={2.5} />
+                            Playground
+                        </button>
+                    </Link>
 
                     {/* New Project — hidden on small mobile, disabled when on /project/new */}
                     <Link href="/project/new" className={`hidden md:block ${isOnNewProject ? 'pointer-events-none' : ''}`}>
