@@ -1327,6 +1327,8 @@ export default function LandingPage() {
               { src: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/WhatsApp%20Video%202026-03-11%20at%2013.54.06.mp4?alt=media&token=836bc61d-3024-45aa-83d6-c0829b2c7462" },
               { src: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/WhatsApp%20Video%202026-03-11%20at%2013.55.37.mp4?alt=media&token=4909ea2a-e8e9-4e64-a49a-7e4ec617e1ea" },
               { src: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/WhatsApp%20Video%202026-03-11%20at%2013.57.52.mp4?alt=media&token=2709a580-0525-4e96-a6df-162677717df9" },
+              { src: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Post%20Production%20Feature.mp4?alt=media&token=e3111f07-39c4-4aff-8533-7dde369eba2c" },
+              { src: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/Sync%203%20Ad.mp4?alt=media&token=1bc0def4-2b93-4f83-8389-d5d6c67e421e" },
             ].map((vid, i) => (
               <ShowcaseVideo key={i} src={vid.src} index={i} />
             ))}
