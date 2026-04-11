@@ -5,12 +5,11 @@ import { toastError, toastSuccess } from "@/lib/toast";
 
 // --- IMPORTS ---
 import { StoryboardOverlay } from "../storyboard/StoryboardOverlay";
-import { SceneMoodEditor } from "../storyboard/SceneMoodEditor";
 import { useShotManager } from "@/app/hooks/useShotManager";
 import { VideoProvider, AnimateOptions } from "@/app/hooks/shot-manager/useShotVideoGen";
 import { SceneData } from "@/components/studio/SceneCard";
 import { Asset, SceneMood } from "@/lib/types";
-import { getSceneMood, updateSceneMood } from "@/lib/api";
+import { getSceneMood } from "@/lib/api";
 import { useTour } from "@/hooks/useTour";
 
 // --- FIREBASE IMPORTS ---
@@ -67,10 +66,9 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     );
     const [realRuntime, setRealRuntime] = useState<string | number>(""); // [NEW]
 
-    // Mood State
+    // Mood State (used for initial load; real-time updates happen in StoryboardOverlay)
     const [sceneMood, setSceneMood] = useState<SceneMood>({});
     const [moodSource, setMoodSource] = useState<"scene" | "project" | "none">("none");
-    const [showMoodEditor, setShowMoodEditor] = useState(false);
 
     // Sync state if the prop changes
     useEffect(() => {
@@ -129,37 +127,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
         fetchMood();
     }, [projectId, episodeId, activeSceneData?.id]);
 
-    // Mood Handlers
-    const handleSaveMood = async (newMood: SceneMood) => {
-        try {
-            await updateSceneMood(projectId, episodeId, activeSceneData.id, newMood);
-            setSceneMood(newMood);
-            setMoodSource("scene");
-            setShowMoodEditor(false);
-            toastSuccess("Scene mood updated");
-        } catch (e) {
-            toastError("Failed to update scene mood");
-            console.error("Failed to save mood:", e);
-        }
-    };
 
-    const handleResetMood = async () => {
-        try {
-            await updateSceneMood(projectId, episodeId, activeSceneData.id, {
-                color_palette: "",
-                lighting: "",
-                texture: "",
-                atmosphere: "",
-            });
-            setSceneMood({});
-            setMoodSource("project");
-            setShowMoodEditor(false);
-            toastSuccess("Scene mood reset to project default");
-        } catch (e) {
-            toastError("Failed to reset mood");
-            console.error("Failed to reset mood:", e);
-        }
-    };
 
 
     // 2. Initialize the Hook with the ACTIVE scene ID
@@ -251,16 +219,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     return (
         <div className="relative z-[100]">
 
-            {/* Scene Mood Editor Modal */}
-            {showMoodEditor && (
-                <SceneMoodEditor
-                    mood={sceneMood}
-                    moodSource={moodSource}
-                    onSave={handleSaveMood}
-                    onReset={handleResetMood}
-                    onClose={() => setShowMoodEditor(false)}
-                />
-            )}
+            {/* Scene Mood is now managed by CinematographyPanel inside StoryboardOverlay */}
 
             <StoryboardOverlay
                 activeSceneId={activeSceneData.id}
@@ -279,10 +238,9 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 episodeTitle={realEpisodeTitle}
                 initialRuntime={realRuntime} // [NEW] Pass runtime
 
-                // Mood Props
+                // Mood Props (initial values — StoryboardOverlay takes over via Firestore)
                 mood={sceneMood}
                 moodSource={moodSource}
-                onEditMood={() => setShowMoodEditor(true)}
 
                 shotMgr={safeShotMgr}
                 onClose={onClose}

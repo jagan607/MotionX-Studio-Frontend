@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download, MoreVertical, Upload, Palette } from 'lucide-react';
+import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download, MoreVertical, Upload, Palette, Camera } from 'lucide-react';
 import JSZip from 'jszip';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
@@ -24,6 +24,7 @@ import { ShotEditorPanel } from "./ShotEditorPanel";
 import { ShotDivisionModal } from "./ShotDivisionModal";
 import { SetDesignPanel } from "./SetDesignPanel";
 import { WardrobePanel } from "./WardrobePanel";
+import { CinematographyPanel } from "./CinematographyPanel";
 import dynamic from 'next/dynamic';
 const ParticleField = dynamic(() => import('./ParticleField'), { ssr: false });
 import { styles } from "./BoardStyles";
@@ -77,8 +78,8 @@ interface StoryboardOverlayProps {
     initialScript?: string;
     initialRuntime?: string | number; // [NEW] Runtime
 
-    // Mood Props
-    mood?: { color_palette?: string; lighting?: string; texture?: string; atmosphere?: string };
+    // Mood Props (now driven by Firestore snapshot internally, kept for backward compat)
+    mood?: { color_palette?: string; lighting?: string; texture?: string; atmosphere?: string; style_reference_url?: string; style_reference_status?: string | null };
     moodSource?: "scene" | "project" | "none";
     onEditMood?: () => void;
 
@@ -185,8 +186,10 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     const [showShotDivision, setShowShotDivision] = useState(false);
     const [showSetDesign, setShowSetDesign] = useState(false);
     const [showWardrobe, setShowWardrobe] = useState(false);
+    const [showCinematography, setShowCinematography] = useState(false);
     const [sceneSetDesign, setSceneSetDesign] = useState<any>(null);
     const [sceneWardrobe, setSceneWardrobe] = useState<any>(null);
+    const [sceneMoodLocal, setSceneMoodLocal] = useState<any>(mood || {});
     const [showExportDropdown, setShowExportDropdown] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const exportDropdownRef = useRef<HTMLDivElement>(null);
@@ -264,7 +267,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
         fetchProjectSettings();
     }, [seriesId]);
 
-    // --- 3b. REAL-TIME SCENE DATA (set_design, wardrobe) ---
+    // --- 3b. REAL-TIME SCENE DATA (set_design, wardrobe, mood) ---
     useEffect(() => {
         if (!seriesId || !episodeId || !activeSceneId) return;
         const sceneRef = doc(db, "projects", seriesId, "episodes", episodeId, "scenes", activeSceneId);
@@ -273,6 +276,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 const data = snap.data();
                 setSceneSetDesign(data?.set_design || null);
                 setSceneWardrobe(data?.wardrobe || null);
+                if (data?.mood) setSceneMoodLocal(data.mood);
             }
         });
         return () => unsub();
@@ -584,6 +588,18 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     />
                 )}
 
+                {activeSceneId && (
+                    <CinematographyPanel
+                        isOpen={showCinematography}
+                        onClose={() => setShowCinematography(false)}
+                        projectId={seriesId}
+                        episodeId={episodeId}
+                        sceneId={activeSceneId}
+                        mood={sceneMoodLocal}
+                        onMoodUpdate={(newMood) => setSceneMoodLocal(newMood)}
+                    />
+                )}
+
                 {/* --- HEADER --- */}
                 <div style={styles.sbHeader}>
                     {/* LEFT */}
@@ -679,6 +695,29 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             <Palette size={14} /> {sceneSetDesign ? 'EDIT SET' : 'BUILD SET'}
                         </button>
                         )}
+
+                        {/* CINEMATOGRAPHY */}
+                        <button
+                            onClick={() => setShowCinematography(true)}
+                            style={{
+                                height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
+                                border: sceneMoodLocal?.style_reference_status === 'stale' ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid #333',
+                                borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                                transition: 'border-color 0.2s'
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.borderColor = sceneMoodLocal?.style_reference_status === 'stale' ? 'rgba(251, 191, 36, 0.4)' : '#333'; }}
+                        >
+                            <Camera size={14} />
+                            {sceneMoodLocal?.style_reference_url ? 'CINEMATOGRAPHY' : 'CINEMATOGRAPHY'}
+                            {sceneMoodLocal?.style_reference_status === 'stale' && (
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'rgb(251, 191, 36)', boxShadow: '0 0 8px rgba(251, 191, 36, 0.6)' }} />
+                            )}
+                            {sceneMoodLocal?.style_reference_status === 'ready' && (
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'rgb(34, 197, 94)', boxShadow: '0 0 8px rgba(34, 197, 94, 0.6)' }} />
+                            )}
+                        </button>
 
                         {/* GENERATE ALL — hidden for now
                         {shotMgr.shots.length > 0 && (
@@ -896,9 +935,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             timeOfDay={currentScene.time_of_day || "DAY"}
                             castList={charDisplay}
                             aspectRatio={shotMgr.aspectRatio || "16:9"}
-                            mood={mood}
-                            moodSource={moodSource}
-                            onEditMood={onEditMood}
+                            mood={sceneMoodLocal}
+                            moodSource={sceneMoodLocal?.color_palette || sceneMoodLocal?.atmosphere ? "scene" : (moodSource || "none")}
+                            onEditMood={() => setShowCinematography(true)}
                             onAutoDirect={(newSummary) => handleSafeAutoDirect(newSummary)}
                             isAutoDirecting={shotMgr.isAutoDirecting}
                         />

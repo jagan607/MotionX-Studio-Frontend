@@ -30,6 +30,8 @@ export interface SceneMood {
     lighting?: string;
     texture?: string;
     atmosphere?: string;
+    style_reference_url?: string;
+    style_reference_status?: "generating" | "ready" | "stale" | "failed" | null;
 }
 
 // --- 3. MOODBOARD ---

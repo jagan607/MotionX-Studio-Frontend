@@ -184,8 +184,37 @@ export const SceneContextStrip: React.FC<SceneContextStripProps> = ({
                 </div>
 
                 {/* Mood (inline) */}
-                {(hasMood || onEditMood) && (
+                {(hasMood || onEditMood || mood?.style_reference_url) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        {/* Style reference thumbnail */}
+                        {mood?.style_reference_url && mood?.style_reference_status === 'ready' && (
+                            <div
+                                style={{
+                                    width: 26, height: 26, borderRadius: '4px', overflow: 'hidden',
+                                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                                    flexShrink: 0, cursor: onEditMood ? 'pointer' : 'default',
+                                }}
+                                onClick={onEditMood}
+                            >
+                                <img src={mood.style_reference_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
+                        )}
+                        {mood?.style_reference_url && mood?.style_reference_status === 'stale' && (
+                            <div
+                                style={{
+                                    width: 26, height: 26, borderRadius: '4px', overflow: 'hidden',
+                                    border: '1px solid rgba(251, 191, 36, 0.4)',
+                                    flexShrink: 0, cursor: onEditMood ? 'pointer' : 'default',
+                                    position: 'relative',
+                                }}
+                                onClick={onEditMood}
+                            >
+                                <img src={mood.style_reference_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(2px) grayscale(0.4)' }} />
+                                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'rgb(251, 191, 36)' }} />
+                                </div>
+                            </div>
+                        )}
                         <Palette size={10} style={{ color: '#b45309', opacity: 0.7 }} />
                         {moodSource === "project" && (
                             <span style={{

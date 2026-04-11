@@ -547,7 +547,7 @@ export const generateWardrobe = async (
         episode_id: episodeId,
         scene_id: sceneId,
         scene_action: sceneAction || "",
-        characters: characters || [],
+        characters: characters ? characters.join(", ") : "",
     });
     return res.data;
 };
@@ -567,7 +567,22 @@ export const updateWardrobe = async (
     return res.data;
 };
 
-// --- 13. SCENE MOOD ---
+export const generateWardrobePortrait = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    characterName: string
+) => {
+    const res = await api.post("/api/v1/shot/generate_wardrobe_portrait", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        character_name: characterName,
+    });
+    return res.data;
+};
+
+// --- 13. SCENE MOOD / CINEMATOGRAPHY ---
 
 export const getSceneMood = async (projectId: string, episodeId: string, sceneId: string) => {
     const res = await api.get(`/api/v1/shot/project/${projectId}/episode/${episodeId}/scene/${sceneId}/mood`);
@@ -578,10 +593,52 @@ export const updateSceneMood = async (
     projectId: string,
     episodeId: string,
     sceneId: string,
-    mood: { color_palette?: string; lighting?: string; texture?: string; atmosphere?: string }
+    mood: {
+        color_palette?: string;
+        lighting?: string;
+        texture?: string;
+        atmosphere?: string;
+        style_reference_url?: string;
+        style_reference_status?: string;
+    }
 ) => {
     const res = await api.put(`/api/v1/shot/project/${projectId}/episode/${episodeId}/scene/${sceneId}/mood`, mood);
     return res.data;
+};
+
+export const generateStyleReference = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string
+) => {
+    const res = await api.post("/api/v1/shot/generate_style_reference", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+    });
+    return res.data;
+};
+
+export const uploadStyleReference = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    file: File
+) => {
+    const storageRef = ref(
+        storage,
+        `projects/${projectId}/cinematography/${Date.now()}_${file.name}`
+    );
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+
+    // Persist to scene mood via API (backend stores at scene.mood.style_reference_url)
+    await updateSceneMood(projectId, episodeId, sceneId, {
+        style_reference_url: downloadURL,
+        style_reference_status: "ready",
+    });
+
+    return downloadURL;
 };
 
 // --- 13. TAXONOMY / CINEMATIC ARCHETYPE ---
