@@ -12,9 +12,11 @@
  */
 
 import { useState, useRef } from "react";
-import { Loader2, Film, Play, Download, RotateCcw, AlertTriangle } from "lucide-react";
+import { Loader2, Film, Play, Download, RotateCcw, AlertTriangle, RefreshCw } from "lucide-react";
 import type { PlaygroundGeneration } from "@/lib/playgroundApi";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
+import { usePlayground } from "@/app/context/PlaygroundContext";
+import toast from "react-hot-toast";
 
 interface PlaygroundGenerationCardProps {
     generation: PlaygroundGeneration;
@@ -24,12 +26,29 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const [videoHovered, setVideoHovered] = useState(false);
     const { openViewer } = useMediaViewer();
+    const { setPendingPrompt } = usePlayground();
 
     const isGenerating = gen.status === "generating";
     const isFailed = gen.status === "failed" || gen.status === "error";
     const isAnimating = gen.video_status === "animating";
     const hasVideo = !!gen.video_url;
     const hasImage = !!gen.image_url;
+
+    // Reuse this generation's prompt in the prompt bar
+    const handleReusePrompt = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!gen.prompt) return;
+        setPendingPrompt(gen.prompt);
+        toast.success("Prompt loaded into input");
+    };
+
+    // Drag image for reference drop
+    const handleDragStart = (e: React.DragEvent) => {
+        if (!gen.image_url) return;
+        e.dataTransfer.setData("text/plain", gen.image_url);
+        e.dataTransfer.setData("application/x-playground-image", gen.image_url);
+        e.dataTransfer.effectAllowed = "copy";
+    };
 
     // Open fullscreen media viewer on click
     const handleMediaClick = () => {
@@ -112,6 +131,8 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                             alt={gen.prompt || "Generated image"}
                             className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300"
                             loading="lazy"
+                            draggable
+                            onDragStart={handleDragStart}
                         />
 
                         {/* Video hover-preview overlay */}
@@ -156,6 +177,16 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
 
                         {/* Action bar (appears on hover) */}
                         <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1.5">
+                            {/* Reuse prompt */}
+                            {gen.prompt && (
+                                <button
+                                    onClick={handleReusePrompt}
+                                    className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer"
+                                    title="Reuse Prompt"
+                                >
+                                    <RefreshCw size={12} />
+                                </button>
+                            )}
                             <button
                                 onClick={handleDownload}
                                 className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer"

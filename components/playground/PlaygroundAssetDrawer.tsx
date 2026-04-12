@@ -5,14 +5,16 @@
  *
  * Features:
  *   1. Tabbed navigation (Characters | Locations | Products)
- *   2. Asset list with PlaygroundAssetCard
- *   3. "+ New" button that opens PlaygroundAssetForm inline
- *   4. Loading/empty states per tab
+ *   2. Asset list with PlaygroundAssetCard (hover Edit/Delete)
+ *   3. "+ New" button that opens PlaygroundAssetForm inline (create mode)
+ *   4. Edit flow: clicking Edit on a card opens the form in edit mode
+ *   5. Loading/empty states per tab
  */
 
 import { useState, useMemo } from "react";
 import { Layers, Plus, Loader2, User, MapPin, Package } from "lucide-react";
 import { usePlayground } from "@/app/context/PlaygroundContext";
+import type { PlaygroundAsset } from "@/lib/playgroundApi";
 import PlaygroundAssetCard from "@/components/playground/PlaygroundAssetCard";
 import PlaygroundAssetForm from "@/components/playground/PlaygroundAssetForm";
 
@@ -34,6 +36,7 @@ export default function PlaygroundAssetDrawer() {
 
     const [activeTab, setActiveTab] = useState<AssetTab>("characters");
     const [showForm, setShowForm] = useState(false);
+    const [editingAsset, setEditingAsset] = useState<PlaygroundAsset | null>(null);
 
     // Get assets for the active tab
     const activeAssets = useMemo(() => {
@@ -47,12 +50,31 @@ export default function PlaygroundAssetDrawer() {
     const totalAssets = characters.length + locations.length + products.length;
     const activeTabConfig = TABS.find(t => t.key === activeTab)!;
 
+    // --- Open create form ---
+    const openCreateForm = () => {
+        setEditingAsset(null);
+        setShowForm(true);
+    };
+
+    // --- Open edit form ---
+    const openEditForm = (asset: PlaygroundAsset) => {
+        setEditingAsset(asset);
+        setShowForm(true);
+    };
+
+    // --- Close form ---
+    const closeForm = () => {
+        setShowForm(false);
+        setEditingAsset(null);
+    };
+
     // If the form is open, render it full-height
     if (showForm) {
         return (
             <PlaygroundAssetForm
                 assetType={activeTab}
-                onClose={() => setShowForm(false)}
+                editingAsset={editingAsset}
+                onClose={closeForm}
             />
         );
     }
@@ -88,7 +110,7 @@ export default function PlaygroundAssetDrawer() {
                     return (
                         <button
                             key={tab.key}
-                            onClick={() => { setActiveTab(tab.key); setShowForm(false); }}
+                            onClick={() => { setActiveTab(tab.key); closeForm(); }}
                             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all cursor-pointer border-b-2 ${
                                 isActive
                                     ? "text-white border-current"
@@ -110,6 +132,17 @@ export default function PlaygroundAssetDrawer() {
                         </button>
                     );
                 })}
+            </div>
+
+            {/* ── ADD BUTTON (top, always visible) ── */}
+            <div className="px-3 py-2 border-b border-white/[0.06] shrink-0">
+                <button
+                    onClick={openCreateForm}
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-white/[0.1] text-[9px] font-bold uppercase tracking-[2px] text-[#666] hover:text-white hover:border-white/25 hover:bg-white/[0.03] transition-all cursor-pointer"
+                >
+                    <Plus size={12} />
+                    New {activeTabConfig.label.slice(0, -1)}
+                </button>
             </div>
 
             {/* ── ASSET LIST ── */}
@@ -142,19 +175,9 @@ export default function PlaygroundAssetDrawer() {
                     <PlaygroundAssetCard
                         key={asset.id}
                         asset={asset}
+                        onEdit={openEditForm}
                     />
                 ))}
-            </div>
-
-            {/* ── ADD BUTTON ── */}
-            <div className="px-3 py-3 border-t border-white/[0.06] shrink-0">
-                <button
-                    onClick={() => setShowForm(true)}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-white/[0.1] text-[9px] font-bold uppercase tracking-[2px] text-[#666] hover:text-white hover:border-white/25 hover:bg-white/[0.03] transition-all cursor-pointer"
-                >
-                    <Plus size={12} />
-                    New {activeTabConfig.label.slice(0, -1)}
-                </button>
             </div>
         </div>
     );

@@ -32,11 +32,13 @@ import {
     onSnapshot,
 } from "firebase/firestore";
 import {
-    listPlaygroundAssets,
-    createPlaygroundAsset,
     type PlaygroundAsset,
     type PlaygroundGeneration,
     type PlaygroundAssetCreateParams,
+    listPlaygroundAssets,
+    createPlaygroundAsset,
+    updatePlaygroundAsset as updatePlaygroundAssetApi,
+    deletePlaygroundAsset as deletePlaygroundAssetApi,
 } from "@/lib/playgroundApi";
 
 
@@ -63,6 +65,8 @@ interface PlaygroundContextType {
     assetsLoading: boolean;
     refreshAssets: () => Promise<void>;
     addAsset: (data: PlaygroundAssetCreateParams) => Promise<string>;
+    updateAsset: (assetType: "characters" | "locations" | "products", assetId: string, data: Partial<Omit<PlaygroundAssetCreateParams, "asset_type">>) => Promise<void>;
+    deleteAssetById: (assetType: "characters" | "locations" | "products", assetId: string) => Promise<void>;
 
     // === Generations (real-time via Firestore) ===
     generations: PlaygroundGeneration[];
@@ -77,6 +81,10 @@ interface PlaygroundContextType {
 
     // === Mention items (derived from assets, for usePromptMention) ===
     mentionItems: PlaygroundMentionItem[];
+
+    // === Prompt Reuse (one-shot signal from GenerationCard → PromptBar) ===
+    pendingPrompt: string | null;
+    setPendingPrompt: (text: string | null) => void;
 
     // === Auth ===
     uid: string | null;
@@ -116,11 +124,15 @@ const DEFAULT_CONTEXT: PlaygroundContextType = {
     assetsLoading: true,
     refreshAssets: async () => {},
     addAsset: async () => "",
+    updateAsset: async () => {},
+    deleteAssetById: async () => {},
     generations: [],
     generationsLoading: true,
     stylePrefs: DEFAULT_STYLE_PREFS,
     setStylePref: () => {},
     mentionItems: [],
+    pendingPrompt: null,
+    setPendingPrompt: () => {},
     uid: null,
 };
 
@@ -152,6 +164,9 @@ export function PlaygroundProvider({ children }: { children: ReactNode }) {
     // --- Generations ---
     const [generations, setGenerations] = useState<PlaygroundGeneration[]>([]);
     const [generationsLoading, setGenerationsLoading] = useState(true);
+
+    // --- Prompt reuse (one-shot signal) ---
+    const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
 
     // --- Style Preferences ---
     const [stylePrefs, setStylePrefs] = useState<PlaygroundStylePrefs>(() => {
@@ -207,6 +222,27 @@ export function PlaygroundProvider({ children }: { children: ReactNode }) {
         // Refresh the specific asset type that was just created
         await refreshAssets();
         return result.asset_id;
+    }, [refreshAssets]);
+
+
+    // ── Update asset (delegates to API, then refreshes) ──
+    const updateAsset = useCallback(async (
+        assetType: "characters" | "locations" | "products",
+        assetId: string,
+        data: Partial<Omit<PlaygroundAssetCreateParams, "asset_type">>
+    ): Promise<void> => {
+        await updatePlaygroundAssetApi(assetType, assetId, data);
+        await refreshAssets();
+    }, [refreshAssets]);
+
+
+    // ── Delete asset (delegates to API, then refreshes) ──
+    const deleteAssetById = useCallback(async (
+        assetType: "characters" | "locations" | "products",
+        assetId: string
+    ): Promise<void> => {
+        await deletePlaygroundAssetApi(assetType, assetId);
+        await refreshAssets();
     }, [refreshAssets]);
 
 
@@ -312,16 +348,22 @@ export function PlaygroundProvider({ children }: { children: ReactNode }) {
             assetsLoading,
             refreshAssets,
             addAsset,
+            updateAsset,
+            deleteAssetById,
             generations,
             generationsLoading,
             stylePrefs,
             setStylePref,
             mentionItems,
+            pendingPrompt,
+            setPendingPrompt,
             uid,
         }),
         [
             characters, locations, products, assetsLoading, refreshAssets, addAsset,
-            generations, generationsLoading, stylePrefs, setStylePref, mentionItems, uid,
+            updateAsset, deleteAssetById,
+            generations, generationsLoading, stylePrefs, setStylePref, mentionItems,
+            pendingPrompt, setPendingPrompt, uid,
         ]
     );
 

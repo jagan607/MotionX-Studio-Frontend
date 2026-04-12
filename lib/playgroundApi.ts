@@ -74,6 +74,7 @@ export interface PlaygroundGenerateParams {
     style_lighting?: string;
     style_mood?: string;
     reference_image?: File | null;
+    ref_image_urls?: string[];        // pre-existing GCS URLs (drag-and-drop)
 }
 
 export interface PlaygroundAnimateParams {
@@ -131,6 +132,7 @@ export const playgroundGenerate = async (params: PlaygroundGenerateParams) => {
     if (params.style_lighting) formData.append("style_lighting", params.style_lighting);
     if (params.style_mood) formData.append("style_mood", params.style_mood);
     if (params.reference_image) formData.append("reference_image", params.reference_image);
+    if (params.ref_image_urls?.length) formData.append("ref_image_urls", params.ref_image_urls.join(","));
 
     const res = await api.post("/api/v1/playground/generate", formData);
     return res.data;
@@ -194,6 +196,49 @@ export const uploadPlaygroundAssetImage = async (
     return res.data;
 };
 
+/**
+ * Update an existing Playground asset.
+ */
+export const updatePlaygroundAsset = async (
+    assetType: "characters" | "locations" | "products",
+    assetId: string,
+    data: Partial<Omit<PlaygroundAssetCreateParams, "asset_type">>
+): Promise<{ status: string }> => {
+    const res = await api.put(
+        `/api/v1/playground/assets/${assetType}/${assetId}`,
+        data
+    );
+    return res.data;
+};
+
+/**
+ * Delete a Playground asset.
+ */
+export const deletePlaygroundAsset = async (
+    assetType: "characters" | "locations" | "products",
+    assetId: string
+): Promise<{ status: string }> => {
+    const res = await api.delete(
+        `/api/v1/playground/assets/${assetType}/${assetId}`
+    );
+    return res.data;
+};
+
+/**
+ * Generate an AI visual for a Playground asset based on its traits.
+ * The backend builds a type-appropriate prompt and uses Gemini to render the image.
+ */
+export const generatePlaygroundAssetVisual = async (
+    assetType: "characters" | "locations" | "products",
+    assetId: string,
+    params?: { prompt?: string; style?: string; aspect_ratio?: string }
+): Promise<{ status: string; image_url: string }> => {
+    const res = await api.post(
+        `/api/v1/playground/assets/${assetType}/${assetId}/generate`,
+        params || {}
+    );
+    return res.data;
+};
 
 // ═══════════════════════════════════════════════════════════════
 //  GENERATIONS FEED

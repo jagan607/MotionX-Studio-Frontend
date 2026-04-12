@@ -15,7 +15,7 @@
  * wired to PlaygroundContext's mentionItems (characters, locations, products).
  */
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import {
     Sparkles,
     ChevronDown,
@@ -26,6 +26,7 @@ import {
     X,
     Loader2,
     Upload,
+    Link2,
 } from "lucide-react";
 import { usePromptMention } from "@/app/hooks/usePromptMention";
 import { usePlayground, type PlaygroundMentionItem } from "@/app/context/PlaygroundContext";
@@ -129,6 +130,8 @@ export default function PlaygroundPromptBar() {
         mentionItems,
         stylePrefs,
         setStylePref,
+        pendingPrompt,
+        setPendingPrompt,
     } = usePlayground();
 
     // --- Local state ---
@@ -136,6 +139,8 @@ export default function PlaygroundPromptBar() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [referenceImage, setReferenceImage] = useState<File | null>(null);
     const [referencePreview, setReferencePreview] = useState<string | null>(null);
+    const [referenceUrls, setReferenceUrls] = useState<string[]>([]); // URLs from drag-and-drop
+    const [isDragOver, setIsDragOver] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -169,16 +174,111 @@ export default function PlaygroundPromptBar() {
         setReferenceImage(null);
         if (referencePreview) URL.revokeObjectURL(referencePreview);
         setReferencePreview(null);
+        setReferenceUrls([]);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    // --- Auto-resize textarea ---
+    const removeReferenceUrl = (idx: number) => {
+        setReferenceUrls(prev => prev.filter((_, i) => i !== idx));
+    };
+
+
+
+    // --- Drag-and-drop handlers ---
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        setIsDragOver(true);
+    }, []);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        // Only leave when actually exiting the container (not entering a child)
+        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+        setIsDragOver(false);
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(false);
+
+        // Check for playground image URL
+        const pgUrl = e.dataTransfer.getData("application/x-playground-image")
+            || e.dataTransfer.getData("text/plain");
+
+        if (pgUrl && pgUrl.startsWith("http")) {
+            // Append to list (dedup)
+            setReferenceUrls(prev => {
+                if (prev.includes(pgUrl)) return prev;
+                return [...prev, pgUrl];
+            });
+            toast.success("Reference image added");
+        }
+    }, []);
+
+    // --- Auto-resize textarea + sync backdrop ---
+    const backdropRef = useRef<HTMLDivElement | null>(null);
+
     const autoResize = useCallback(() => {
         const el = textareaRef.current;
         if (!el) return;
         el.style.height = "auto";
         el.style.height = Math.min(el.scrollHeight, 120) + "px";
+        // Sync backdrop height
+        if (backdropRef.current) {
+            backdropRef.current.style.height = el.style.height;
+        }
     }, []);
+
+    // --- Watch pendingPrompt from context (one-shot reuse) ---
+    useEffect(() => {
+        if (pendingPrompt) {
+            setPrompt(pendingPrompt);
+            setPendingPrompt(null);
+            // Trigger auto-resize on next tick after state updates
+            setTimeout(() => {
+                autoResize();
+                textareaRef.current?.focus();
+            }, 0);
+        }
+    }, [pendingPrompt, setPendingPrompt, autoResize]);
+
+    // Sync scroll between textarea and backdrop
+    const handleScroll = useCallback(() => {
+        if (textareaRef.current && backdropRef.current) {
+            backdropRef.current.scrollTop = textareaRef.current.scrollTop;
+        }
+    }, []);
+
+    // Build known-tags lookup from mentionItems
+    const knownTagMap = useMemo(() => {
+        const map = new Map<string, string>(); // lowercase tag -> assetType
+        for (const item of mentionItems) {
+            map.set(item.tag.toLowerCase(), item.assetType);
+        }
+        return map;
+    }, [mentionItems]);
+
+    // Render highlighted text for the backdrop div
+    const renderHighlightedText = useCallback((text: string) => {
+        if (!text) return <>&nbsp;</>;
+
+        // Split on @word boundaries, keeping the delimiters
+        const parts = text.split(/(@\w+)/g);
+
+        return parts.map((part, idx) => {
+            if (part.startsWith("@")) {
+                const assetType = knownTagMap.get(part.toLowerCase());
+                if (assetType) {
+                    return (
+                        <span key={idx} style={{ color: "#60A5FA" }}>
+                            {part}
+                        </span>
+                    );
+                }
+            }
+            return <span key={idx} style={{ color: 'rgba(255,255,255,0.9)' }}>{part}</span>;
+        });
+    }, [knownTagMap]);
 
     // ═══ GENERATE HANDLER ═══
     const handleGenerate = useCallback(async () => {
@@ -205,6 +305,7 @@ export default function PlaygroundPromptBar() {
                 style_lighting: stylePrefs.style_lighting || undefined,
                 style_mood: stylePrefs.style_mood || undefined,
                 reference_image: referenceImage,
+                ref_image_urls: referenceUrls.length ? referenceUrls : undefined,
             });
 
             toast.success("Generation started");
@@ -252,41 +353,100 @@ export default function PlaygroundPromptBar() {
             <div className="bg-[#030303] px-4 pb-4 pt-1 pointer-events-auto">
                 <div className="max-w-3xl mx-auto">
 
-                    {/* ── REFERENCE IMAGE PREVIEW ── */}
-                    {referencePreview && (
-                        <div className="flex items-center gap-3 mb-2 px-1">
-                            <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-[#333] shrink-0">
-                                <img src={referencePreview} className="w-full h-full object-cover" alt="Reference" />
-                                <button
-                                    onClick={clearReference}
-                                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors cursor-pointer"
-                                >
-                                    <X size={10} />
-                                </button>
-                            </div>
-                            <span className="text-[9px] font-mono text-[#555] uppercase tracking-[1px]">Reference Image</span>
+                    {/* ── REFERENCE IMAGE PREVIEWS (file + dropped URLs) ── */}
+                    {(referencePreview || referenceUrls.length > 0) && (
+                        <div className="flex items-center gap-2 mb-2 px-1 overflow-x-auto">
+                            {/* File-uploaded reference */}
+                            {referencePreview && (
+                                <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-[#333] shrink-0">
+                                    <img src={referencePreview} className="w-full h-full object-cover" alt="Reference" />
+                                    <button
+                                        onClick={() => { setReferenceImage(null); if (referencePreview) URL.revokeObjectURL(referencePreview); setReferencePreview(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors cursor-pointer"
+                                    >
+                                        <X size={8} />
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Dropped URL references */}
+                            {referenceUrls.map((url, idx) => (
+                                <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-[#333] shrink-0">
+                                    <img src={url} className="w-full h-full object-cover" alt={`Ref ${idx + 1}`} />
+                                    <button
+                                        onClick={() => removeReferenceUrl(idx)}
+                                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors cursor-pointer"
+                                    >
+                                        <X size={8} />
+                                    </button>
+                                    <div className="absolute bottom-0.5 left-0.5 bg-black/70 p-0.5 rounded">
+                                        <Link2 size={7} className="text-blue-400" />
+                                    </div>
+                                </div>
+                            ))}
+
+                            <span className="text-[9px] font-mono text-[#555] uppercase tracking-[1px] shrink-0 ml-1">
+                                {referenceUrls.length + (referencePreview ? 1 : 0)} ref{referenceUrls.length + (referencePreview ? 1 : 0) !== 1 ? "s" : ""}
+                            </span>
                         </div>
                     )}
 
                     {/* ── MAIN PROMPT CONTAINER ── */}
-                    <div className="relative bg-[#0a0a0a] border border-[#222] rounded-xl hover:border-[#333] focus-within:border-[#E50914]/40 transition-colors">
+                    <div
+                        className={`relative bg-[#0a0a0a] border rounded-xl transition-all duration-200 ${
+                            isDragOver
+                                ? "border-blue-500/60 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+                                : "border-[#222] hover:border-[#333] focus-within:border-[#E50914]/40"
+                        }`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                    >
+                        {/* Drop zone overlay */}
+                        {isDragOver && (
+                            <div className="absolute inset-0 z-40 rounded-xl bg-blue-500/5 border-2 border-dashed border-blue-500/40 flex items-center justify-center pointer-events-none">
+                                <div className="flex items-center gap-2 bg-black/70 px-4 py-2 rounded-lg border border-blue-500/30 backdrop-blur-sm">
+                                    <ImageIcon size={14} className="text-blue-400" />
+                                    <span className="text-[10px] font-mono text-blue-300 uppercase tracking-[2px]">Drop as Reference</span>
+                                </div>
+                            </div>
+                        )}
 
-                        {/* Textarea + mention dropdown wrapper */}
+                        {/* Textarea + backdrop highlight + mention dropdown wrapper */}
                         <div className="relative px-4 pt-3 pb-2">
-                            <textarea
-                                ref={textareaRef}
-                                value={prompt}
-                                onChange={(e) => {
-                                    handlePromptChange(e);
-                                    autoResize();
-                                }}
-                                onKeyDown={handleKeyDown}
-                                onBlur={mention.handleBlur}
-                                placeholder="Describe your scene… Use @ to tag characters, locations, and products"
-                                className="w-full bg-transparent text-[13px] text-white/90 placeholder:text-[#444] outline-none font-sans resize-none leading-relaxed min-h-[24px] max-h-[120px]"
-                                rows={1}
-                                disabled={isGenerating}
-                            />
+                            {/* Grid stack: backdrop + textarea share the same cell */}
+                            <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
+                                {/* Backdrop: highlighted text layer behind the textarea */}
+                                <div
+                                    ref={backdropRef}
+                                    aria-hidden="true"
+                                    className="pointer-events-none whitespace-pre-wrap break-words font-sans text-[13px] leading-relaxed min-h-[24px]"
+                                    style={{
+                                        gridArea: '1 / 1',
+                                        wordWrap: 'break-word',
+                                        overflowWrap: 'break-word',
+                                    }}
+                                >
+                                    {renderHighlightedText(prompt)}
+                                </div>
+
+                                <textarea
+                                    ref={textareaRef}
+                                    value={prompt}
+                                    onChange={(e) => {
+                                        handlePromptChange(e);
+                                        autoResize();
+                                    }}
+                                    onKeyDown={handleKeyDown}
+                                    onBlur={mention.handleBlur}
+                                    onScroll={handleScroll}
+                                    placeholder="Describe your scene… Use @ to tag characters, locations, and products"
+                                    className="w-full text-[13px] placeholder:text-[#444] outline-none font-sans resize-none leading-relaxed min-h-[24px] max-h-[120px]"
+                                    style={{ gridArea: '1 / 1', background: 'transparent', color: 'transparent', caretColor: '#E50914' }}
+                                    rows={1}
+                                    disabled={isGenerating}
+                                />
+                            </div>
 
                             {/* ── MENTION DROPDOWN ── */}
                             {mention.isOpen && mention.filteredItems.length > 0 && (
