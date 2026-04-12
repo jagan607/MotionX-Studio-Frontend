@@ -175,6 +175,25 @@ export const listPlaygroundAssets = async (
     return res.data;
 };
 
+/**
+ * Upload a reference/main image for a Playground asset via backend proxy.
+ * The backend handles GCS upload and updates Firestore with the resulting URL.
+ */
+export const uploadPlaygroundAssetImage = async (
+    assetType: "characters" | "locations" | "products",
+    assetId: string,
+    file: File
+): Promise<{ status: string; image_url: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await api.post(
+        `/api/v1/playground/assets/${assetType}/${assetId}/upload-image`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return res.data;
+};
+
 
 // ═══════════════════════════════════════════════════════════════
 //  GENERATIONS FEED
