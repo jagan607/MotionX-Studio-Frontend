@@ -17,7 +17,7 @@
 
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import {
-    Sparkles,
+    Send,
     ChevronDown,
     Image as ImageIcon,
     User,
@@ -103,6 +103,17 @@ const SHOT_TYPES = [
 const MODEL_TIERS = [
     { value: "flash", label: "Flash ⚡" },
     { value: "pro", label: "Pro ✦" },
+];
+
+const VISUAL_STYLES = [
+    { value: "realistic", label: "Realistic" },
+    { value: "cinematic", label: "Cinematic" },
+    { value: "anime", label: "Anime" },
+    { value: "3d-render", label: "3D Render" },
+    { value: "oil-painting", label: "Oil Painting" },
+    { value: "watercolor", label: "Watercolor" },
+    { value: "comic", label: "Comic" },
+    { value: "noir", label: "Noir" },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -584,7 +595,7 @@ export default function PlaygroundPromptBar() {
                                 {isGenerating ? (
                                     <Loader2 className="animate-spin" size={12} />
                                 ) : (
-                                    <Sparkles size={12} />
+                                    <Send size={12} />
                                 )}
                                 {isGenerating ? "Generating…" : "Generate"}
                             </button>
@@ -619,6 +630,30 @@ export default function PlaygroundPromptBar() {
                                     value={stylePrefs.model_tier}
                                     options={MODEL_TIERS}
                                     onChange={(v) => setStylePref("model_tier", v)}
+                                />
+                                <SettingsField
+                                    label="Visual Style"
+                                    value={stylePrefs.style}
+                                    options={VISUAL_STYLES}
+                                    onChange={(v) => setStylePref("style", v)}
+                                />
+                                <SettingsTextInput
+                                    label="Color Palette"
+                                    value={stylePrefs.style_palette}
+                                    placeholder="e.g. warm amber, teal"
+                                    onChange={(v) => setStylePref("style_palette", v)}
+                                />
+                                <SettingsTextInput
+                                    label="Lighting"
+                                    value={stylePrefs.style_lighting}
+                                    placeholder="e.g. golden hour, neon"
+                                    onChange={(v) => setStylePref("style_lighting", v)}
+                                />
+                                <SettingsTextInput
+                                    label="Mood"
+                                    value={stylePrefs.style_mood}
+                                    placeholder="e.g. tense, dreamy"
+                                    onChange={(v) => setStylePref("style_mood", v)}
                                 />
                             </div>
                         )}
@@ -702,6 +737,34 @@ function SettingsField({
                     </option>
                 ))}
             </select>
+        </div>
+    );
+}
+
+/**
+ * Settings text input — free-text field for style preferences.
+ */
+function SettingsTextInput({
+    label,
+    value,
+    placeholder,
+    onChange,
+}: {
+    label: string;
+    value: string;
+    placeholder?: string;
+    onChange: (value: string) => void;
+}) {
+    return (
+        <div>
+            <label className="text-[7px] font-mono text-[#555] uppercase tracking-[2px] block mb-1">{label}</label>
+            <input
+                type="text"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder}
+                className="w-full bg-[#111] border border-[#222] rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-white/80 outline-none hover:border-[#444] focus:border-[#E50914]/40 transition-colors placeholder:text-[#444]"
+            />
         </div>
     );
 }

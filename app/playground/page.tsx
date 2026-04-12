@@ -12,11 +12,13 @@
  *   Right:  Style panel (placeholder — Phase 4)
  */
 
+import { useState } from "react";
 import { PlaygroundProvider, usePlayground } from "@/app/context/PlaygroundContext";
-import { Loader2, Sparkles, Palette } from "lucide-react";
+import { Loader2, PanelLeftOpen, PanelLeftClose } from "lucide-react";
 import PlaygroundGenerationGrid from "@/components/playground/PlaygroundGenerationGrid";
 import PlaygroundPromptBar from "@/components/playground/PlaygroundPromptBar";
 import PlaygroundAssetDrawer from "@/components/playground/PlaygroundAssetDrawer";
+import PlaygroundAnimateModal from "@/components/playground/PlaygroundAnimateModal";
 
 export default function PlaygroundPage() {
     return (
@@ -30,9 +32,12 @@ function PlaygroundWorkspace() {
     const {
         generations,
         generationsLoading,
-        stylePrefs,
         uid,
+        animateTarget,
+        setAnimateTarget,
     } = usePlayground();
+
+    const [drawerOpen, setDrawerOpen] = useState(true);
 
     if (!uid) {
         return (
@@ -46,20 +51,41 @@ function PlaygroundWorkspace() {
     return (
         <div className="fixed inset-0 bg-[#030303] text-[#EDEDED] font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#E50914] selection:text-white">
 
-            {/* ═══ MAIN LAYOUT: 3-COLUMN ═══ */}
-            <div className="flex-1 flex min-h-0 overflow-hidden">
+            {/* ═══ MAIN LAYOUT ═══ */}
+            <div className="flex-1 flex min-h-0 overflow-hidden relative">
 
-                {/* ── LEFT: ASSET DRAWER ── */}
-                <aside className="hidden lg:flex w-[260px] border-r border-white/[0.06] flex-col bg-[#050505] shrink-0">
+                {/* ── LEFT: COLLAPSIBLE ASSET DRAWER ── */}
+                <aside
+                    className="flex flex-col bg-[#050505] border-r border-white/[0.06] shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
+                    style={{ width: drawerOpen ? 280 : 0, minWidth: drawerOpen ? 280 : 0 }}
+                >
                     <PlaygroundAssetDrawer />
                 </aside>
 
                 {/* ── CENTER: GENERATION FEED + PROMPT BAR ── */}
                 <main className="flex-1 flex flex-col min-w-0 relative">
                     {/* Feed header */}
-                    <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between shrink-0">
-                        <div className="flex items-center gap-2">
-                            <Sparkles size={14} className="text-[#E50914]" />
+                    <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between shrink-0">
+                        <div className="flex items-center gap-3">
+                            {/* Drawer toggle — prominent when collapsed, subtle when open */}
+                            {drawerOpen ? (
+                                <button
+                                    onClick={() => setDrawerOpen(false)}
+                                    className="p-1.5 rounded-md text-[#555] hover:text-white hover:bg-white/[0.06] transition-all cursor-pointer"
+                                    title="Hide assets"
+                                >
+                                    <PanelLeftClose size={16} />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => setDrawerOpen(true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E50914]/30 bg-[#E50914]/10 text-[#E50914] text-[9px] font-bold uppercase tracking-[2px] hover:bg-[#E50914]/20 hover:border-[#E50914]/50 transition-all cursor-pointer"
+                                    title="Show assets"
+                                >
+                                    <PanelLeftOpen size={14} />
+                                    Assets ›
+                                </button>
+                            )}
                             <span className="text-[10px] font-mono text-white/60 uppercase tracking-[3px] font-bold">Generations</span>
                         </div>
                         <span className="text-[9px] font-mono text-[#444] uppercase tracking-[1px]">
@@ -78,38 +104,14 @@ function PlaygroundWorkspace() {
                     {/* ── BOTTOM: FUNCTIONAL PROMPT BAR ── */}
                     <PlaygroundPromptBar />
                 </main>
-
-                {/* ── RIGHT: STYLE PANEL (placeholder — Phase 4) ── */}
-                <aside className="hidden xl:flex w-[240px] border-l border-white/[0.06] flex-col bg-[#050505] shrink-0">
-                    <div className="px-4 py-4 border-b border-white/[0.06]">
-                        <div className="flex items-center gap-2 mb-1">
-                            <Palette size={14} className="text-[#E50914]" />
-                            <span className="text-[10px] font-mono text-[#E50914] uppercase tracking-[3px] font-bold">Style</span>
-                        </div>
-                        <p className="text-[9px] text-[#555] font-mono uppercase tracking-[1px]">Quick Preferences</p>
-                    </div>
-
-                    <div className="flex-1 p-4 space-y-4 overflow-y-auto no-scrollbar">
-                        {([
-                            { label: "Aspect Ratio", key: "aspect_ratio" as const },
-                            { label: "Shot Type", key: "shot_type" as const },
-                            { label: "Provider", key: "image_provider" as const },
-                            { label: "Model Tier", key: "model_tier" as const },
-                            { label: "Visual Style", key: "style" as const },
-                            { label: "Color Palette", key: "style_palette" as const },
-                            { label: "Lighting", key: "style_lighting" as const },
-                            { label: "Mood", key: "style_mood" as const },
-                        ]).map(({ label, key }) => (
-                            <div key={key}>
-                                <label className="text-[8px] font-mono text-[#555] uppercase tracking-[2px] block mb-1.5">{label}</label>
-                                <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2 text-[11px] text-white/60 font-mono">
-                                    {stylePrefs[key] || "—"}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </aside>
             </div>
+
+            {/* ═══ ANIMATE MODAL (adapter around ShotEditorPanel) ═══ */}
+            <PlaygroundAnimateModal
+                generation={animateTarget}
+                isOpen={!!animateTarget}
+                onClose={() => setAnimateTarget(null)}
+            />
         </div>
     );
 }

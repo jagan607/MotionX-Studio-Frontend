@@ -22,7 +22,7 @@ import {
     User,
     MapPin,
     Package,
-    Sparkles,
+    Save,
     Wand2,
     ZoomIn,
 } from "lucide-react";
@@ -528,7 +528,7 @@ export default function PlaygroundAssetForm({
                     {isSubmitting ? (
                         <Loader2 className="animate-spin" size={12} />
                     ) : (
-                        <Sparkles size={12} />
+                        <Save size={12} />
                     )}
                     {isSubmitting
                         ? (isEditMode ? "Saving…" : "Creating…")

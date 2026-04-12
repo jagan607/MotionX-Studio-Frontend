@@ -86,6 +86,10 @@ interface PlaygroundContextType {
     pendingPrompt: string | null;
     setPendingPrompt: (text: string | null) => void;
 
+    // === Animate Modal (generation to animate) ===
+    animateTarget: PlaygroundGeneration | null;
+    setAnimateTarget: (gen: PlaygroundGeneration | null) => void;
+
     // === Auth ===
     uid: string | null;
 }
@@ -133,6 +137,8 @@ const DEFAULT_CONTEXT: PlaygroundContextType = {
     mentionItems: [],
     pendingPrompt: null,
     setPendingPrompt: () => {},
+    animateTarget: null,
+    setAnimateTarget: () => {},
     uid: null,
 };
 
@@ -167,6 +173,9 @@ export function PlaygroundProvider({ children }: { children: ReactNode }) {
 
     // --- Prompt reuse (one-shot signal) ---
     const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+
+    // --- Animate modal target ---
+    const [animateTarget, setAnimateTarget] = useState<PlaygroundGeneration | null>(null);
 
     // --- Style Preferences ---
     const [stylePrefs, setStylePrefs] = useState<PlaygroundStylePrefs>(() => {
@@ -357,13 +366,17 @@ export function PlaygroundProvider({ children }: { children: ReactNode }) {
             mentionItems,
             pendingPrompt,
             setPendingPrompt,
+            animateTarget,
+            setAnimateTarget,
             uid,
         }),
         [
             characters, locations, products, assetsLoading, refreshAssets, addAsset,
             updateAsset, deleteAssetById,
             generations, generationsLoading, stylePrefs, setStylePref, mentionItems,
-            pendingPrompt, setPendingPrompt, uid,
+            pendingPrompt, setPendingPrompt,
+            animateTarget, setAnimateTarget,
+            uid,
         ]
     );
 

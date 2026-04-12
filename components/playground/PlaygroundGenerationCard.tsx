@@ -26,7 +26,7 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const [videoHovered, setVideoHovered] = useState(false);
     const { openViewer } = useMediaViewer();
-    const { setPendingPrompt } = usePlayground();
+    const { setPendingPrompt, setAnimateTarget } = usePlayground();
 
     const isGenerating = gen.status === "generating";
     const isFailed = gen.status === "failed" || gen.status === "error";
@@ -175,7 +175,6 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                             </div>
                         )}
 
-                        {/* Action bar (appears on hover) */}
                         <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1.5">
                             {/* Reuse prompt */}
                             {gen.prompt && (
@@ -220,6 +219,18 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                     <div className="absolute inset-0 skeleton-shimmer" />
                 )}
             </div>
+
+            {/* ═══ PRIMARY ANIMATE CTA (image-only state) ═══ */}
+            {hasImage && !hasVideo && !isAnimating && !isFailed && (
+                <button
+                    onClick={() => setAnimateTarget(gen)}
+                    aria-label={`Animate generation ${gen.id}`}
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-white/[0.04] text-[#999] text-[9px] font-bold uppercase tracking-[2px] border-t border-white/[0.06] hover:bg-[#E50914]/15 hover:text-[#E50914] active:bg-[#E50914]/10 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#E50914]/30"
+                >
+                    <Film size={13} />
+                    Animate
+                </button>
+            )}
 
             {/* ═══ METADATA FOOTER ═══ */}
             <div className="p-3 border-t border-[#111]">

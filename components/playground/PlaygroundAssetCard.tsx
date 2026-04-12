@@ -91,7 +91,7 @@ export default function PlaygroundAssetCard({ asset, isActive, onEdit }: Playgro
             <button
                 onClick={handleThumbnailClick}
                 disabled={!asset.image_url}
-                className={`w-10 h-10 rounded-lg bg-[#111] border border-[#222] overflow-hidden shrink-0 flex items-center justify-center relative ${
+                className={`w-14 h-14 rounded-lg bg-[#111] border border-[#222] overflow-hidden shrink-0 flex items-center justify-center relative ${
                     asset.image_url
                         ? "cursor-zoom-in hover:ring-1 hover:ring-white/20 transition-all"
                         : "cursor-default"
