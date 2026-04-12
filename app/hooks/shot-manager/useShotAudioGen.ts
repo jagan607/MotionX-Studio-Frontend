@@ -89,13 +89,14 @@ export const useShotAudioGen = (
                 shot_id: shot.id,
                 video_url: shot.video_url,
                 audio_url: finalAudioUrl, // Now we always have a URL string
-                video_duration: shot.video_duration || parseInt(shot.video_settings?.duration) || 5
+                video_duration: shot.video_duration || parseInt(shot.video_settings?.duration) || 5,
+                model: "sync-3"
             };
 
             console.log("🔊 [LipSync] FINAL payload audio_url:", finalAudioUrl);
             await api.post("/api/v1/shot/lipsync_shot", payload);
 
-            toastSuccess("Lip Sync Queued");
+            toastSuccess("Lip Sync Queued (sync-3)");
         } catch (e: any) {
             console.error("🔊 [LipSync] ERROR:", e);
             toastError(getApiErrorMessage(e, "Lip Sync failed"));

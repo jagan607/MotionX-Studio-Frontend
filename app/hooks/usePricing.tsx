@@ -133,7 +133,7 @@ const DEFAULT_PRICING: Pricing = {
     finalize: 1,
     voiceover: 1,
     sfx: 2,
-    lipsync: { per_second: 1, minimum: 3 }
+    lipsync: { per_second: 2, minimum: 5 }
 };
 
 // --- Context ---

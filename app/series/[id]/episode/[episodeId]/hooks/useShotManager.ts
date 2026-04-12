@@ -455,7 +455,7 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
     };
 
-    // --- NEW: LIP SYNC (Sync Labs) ---
+    // --- NEW: LIP SYNC (Sync Labs — sync-3) ---
     const handleLipSyncShot = async (shot: any, audioUrl: string | null, audioFile: File | null) => {
         if (!shot.video_url) return toastError("No video available to sync");
 
@@ -475,9 +475,11 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
             if (audioUrl) formData.append("audio_url", audioUrl);
             if (audioFile) formData.append("audio_file", audioFile);
 
+            formData.append("model", "sync-3");
+
             await api.post("/api/v1/shot/lipsync_shot", formData);
 
-            toastSuccess("Lip Sync Queued (Approx 2-5 mins)");
+            toastSuccess("Lip Sync Queued — sync-3");
 
         } catch (e: any) {
             console.error(e);
