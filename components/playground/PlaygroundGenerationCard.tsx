@@ -12,7 +12,7 @@
  */
 
 import { useState, useRef } from "react";
-import { Loader2, Film, Play, Download, RotateCcw, AlertTriangle, RefreshCw } from "lucide-react";
+import { Loader2, Film, Play, Download, RotateCcw, AlertTriangle, RefreshCw, Image as ImageIcon } from "lucide-react";
 import type { PlaygroundGeneration } from "@/lib/playgroundApi";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
 import { usePlayground } from "@/app/context/PlaygroundContext";
@@ -100,21 +100,27 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
         }], 0);
     };
 
-    // Download the generated image
-    const handleDownload = async (e: React.MouseEvent) => {
+    // Download a specific media type
+    const [downloadingType, setDownloadingType] = useState<'image' | 'video' | null>(null);
+
+    const handleDownload = async (e: React.MouseEvent, mediaType: 'image' | 'video') => {
         e.stopPropagation();
-        const url = gen.video_url || gen.image_url;
+        if (downloadingType) return;
+        const url = mediaType === 'video' ? gen.video_url : gen.image_url;
         if (!url) return;
+        setDownloadingType(mediaType);
         try {
             const res = await fetch(url);
             const blob = await res.blob();
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
-            a.download = `playground_${gen.id}.${gen.video_url ? "mp4" : "jpg"}`;
+            a.download = `playground_${gen.id}.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
             a.click();
             URL.revokeObjectURL(a.href);
         } catch (err) {
             console.error("Download failed:", err);
+        } finally {
+            setDownloadingType(null);
         }
     };
 
@@ -222,13 +228,28 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                                     <RefreshCw size={12} />
                                 </button>
                             )}
-                            <button
-                                onClick={handleDownload}
-                                className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer"
-                                title="Download"
-                            >
-                                <Download size={12} />
-                            </button>
+                            {/* Download image */}
+                            {hasImage && (
+                                <button
+                                    onClick={(e) => handleDownload(e, 'image')}
+                                    disabled={!!downloadingType}
+                                    className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                                    title={downloadingType === 'image' ? 'Downloading…' : 'Download Image'}
+                                >
+                                    {downloadingType === 'image' ? <Loader2 size={12} className="animate-spin" /> : <ImageIcon size={12} />}
+                                </button>
+                            )}
+                            {/* Download video */}
+                            {hasVideo && (
+                                <button
+                                    onClick={(e) => handleDownload(e, 'video')}
+                                    disabled={!!downloadingType}
+                                    className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                                    title={downloadingType === 'video' ? 'Downloading…' : 'Download Video'}
+                                >
+                                    {downloadingType === 'video' ? <Loader2 size={12} className="animate-spin" /> : <Film size={12} />}
+                                </button>
+                            )}
                         </div>
                     </>
                 )}
