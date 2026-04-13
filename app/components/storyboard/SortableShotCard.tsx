@@ -153,7 +153,7 @@ export const SortableShotCard = ({
 
     // --- Pricing ---
     const { getImageCost, getUpscaleCost } = usePricing();
-    const imageCost = getImageCost(imageProvider, modelTier);
+    const imageCost = getImageCost(imageProvider, modelTier, 'shot');
     const upscaleCost = getUpscaleCost(modelTier);
 
     // --- Cast Toggle Logic ---

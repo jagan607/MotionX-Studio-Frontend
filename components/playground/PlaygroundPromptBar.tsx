@@ -212,7 +212,7 @@ export default function PlaygroundPromptBar() {
     // --- Dynamic pricing ---
     const { getImageCost } = usePricing();
     const { credits } = useCredits();
-    const imageCost = getImageCost(stylePrefs.image_provider, stylePrefs.model_tier as 'flash' | 'pro');
+    const imageCost = getImageCost(stylePrefs.image_provider, stylePrefs.model_tier as 'flash' | 'pro', 'playground');
     const hasInsufficientBalance = credits !== null && credits < imageCost;
 
     // --- usePromptMention wiring ---

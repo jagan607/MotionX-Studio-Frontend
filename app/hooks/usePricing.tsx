@@ -29,7 +29,7 @@ interface VideoEditRates {
 export interface Pricing {
     video: { [provider: string]: ProviderPricing };
     video_edit: { [provider: string]: VideoEditRates };
-    image: { [provider: string]: { flash: number; pro: number } } | { flash: number; pro: number };
+    image: Record<string, any>;
     upscale: { flash: number; pro: number };
     edit: number;
     finalize: number;
@@ -52,7 +52,7 @@ interface PricingContextValue {
     getVideoCost: (provider: string, mode: string, duration: string, options?: VideoCostOptions) => number;
     getVideoEditRate: (provider: string, mode: 'std' | 'pro') => number;
     getLipSyncCost: (durationSeconds: number) => number;
-    getImageCost: (provider?: string, tier?: 'flash' | 'pro') => number;
+    getImageCost: (provider?: string, tier?: 'flash' | 'pro', context?: 'playground' | 'shot') => number;
     getUpscaleCost: (tier?: 'flash' | 'pro') => number;
     getVoiceoverCost: () => number;
     getFinalizeCost: () => number;
@@ -105,8 +105,14 @@ const DEFAULT_PRICING: Pricing = {
         "seedance":   { standard: 0.8, pro: 1.2 },
     },
     image: {
-        gemini: { flash: 0.3, pro: 0.6 },
-        seedream: { flash: 0.3, pro: 0.6 },
+        playground: {
+            gemini: { flash: 0.3, pro: 0.6 },
+            seedream: { flash: 0.3, pro: 0.6 },
+        },
+        shot: {
+            gemini: { flash: 0.5, pro: 1.0 },
+            seedream: { flash: 0.5, pro: 1.0 },
+        },
     },
     upscale: { flash: 3, pro: 3 },
     edit: 1,
@@ -231,19 +237,26 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return Math.max(pricing.lipsync.minimum, durationSeconds * pricing.lipsync.per_second);
     };
 
-    const getImageCost = (provider: string = 'gemini', tier: 'flash' | 'pro' = 'flash') => {
-        const img = pricing.image;
-        // New format: { gemini: { flash: 0.3, pro: 0.6 }, seedream: { ... } }
-        if (img && typeof img === 'object' && !('flash' in img)) {
-            const providerData = (img as any)[provider];
+    const getImageCost = (provider: string = 'gemini', tier: 'flash' | 'pro' = 'flash', context: 'playground' | 'shot' = 'playground') => {
+        const img = pricing.image as any;
+        // Context-aware format: { playground: { gemini: { flash: 0.3 } }, shot: { gemini: { flash: 0.5 } } }
+        if (img?.playground || img?.shot) {
+            const contextData = img[context] ?? img.playground;
+            const providerData = contextData?.[provider];
             if (providerData) return providerData[tier] ?? (tier === 'pro' ? 0.6 : 0.3);
-            // Fallback to first provider
+            // Fallback to first provider in context
+            const firstProvider = Object.values(contextData || {})[0] as any;
+            return firstProvider?.[tier] ?? (tier === 'pro' ? 0.6 : 0.3);
+        }
+        // Legacy flat format: { gemini: { flash: 0.3 } } or { flash: 1, pro: 2 }
+        if (img && typeof img === 'object' && !('flash' in img)) {
+            const providerData = img[provider];
+            if (providerData) return providerData[tier] ?? (tier === 'pro' ? 0.6 : 0.3);
             const firstProvider = Object.values(img)[0] as any;
             return firstProvider?.[tier] ?? (tier === 'pro' ? 0.6 : 0.3);
         }
-        // Legacy flat format: { flash: 1, pro: 2 }
         if (typeof img === 'number') return tier === 'pro' ? img * 2 : img;
-        return (img as any)?.[tier] ?? (tier === 'pro' ? 0.6 : 0.3);
+        return img?.[tier] ?? (tier === 'pro' ? 0.6 : 0.3);
     };
     const getUpscaleCost = (tier: 'flash' | 'pro' = 'pro') => {
         const up = pricing.upscale;

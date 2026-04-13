@@ -217,7 +217,6 @@ export default function GlobalHeader() {
                                     : 'bg-transparent border-white/[0.08] text-[#888] hover:text-white hover:border-white/20 hover:bg-white/[0.03]'
                             }`}
                         >
-                            <Zap className="w-3 h-3" strokeWidth={2.5} />
                             Playground
                         </button>
                     </Link>
