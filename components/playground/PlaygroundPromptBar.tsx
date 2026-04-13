@@ -20,6 +20,7 @@ import {
     Send,
     ChevronDown,
     Image as ImageIcon,
+    ImagePlus,
     User,
     MapPin,
     Package,
@@ -169,10 +170,11 @@ export default function PlaygroundPromptBar() {
     const [prompt, setPrompt] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
     const [isEnhancing, setIsEnhancing] = useState(false);
-    const [referenceImage, setReferenceImage] = useState<File | null>(null);
-    const [referencePreview, setReferencePreview] = useState<string | null>(null);
+    const [referenceImages, setReferenceImages] = useState<File[]>([]);
+    const [referencePreviews, setReferencePreviews] = useState<string[]>([]);
     const [referenceUrls, setReferenceUrls] = useState<string[]>([]); // URLs from drag-and-drop
     const [isDragOver, setIsDragOver] = useState(false);
+    const dragCounterRef = useRef(0); // Counter to prevent child-element flickering
     const [showSettings, setShowSettings] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -250,18 +252,34 @@ export default function PlaygroundPromptBar() {
         [mention]
     );
 
-    // --- Handle reference image ---
+    // --- Handle reference image(s) ---
+    const MAX_REFS = 10;
+    const totalRefs = referenceImages.length + referenceUrls.length;
+
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setReferenceImage(file);
-        setReferencePreview(URL.createObjectURL(file));
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+        const remaining = MAX_REFS - totalRefs;
+        const toAdd = files.slice(0, Math.max(0, remaining));
+        if (toAdd.length < files.length) {
+            toast.error(`Max ${MAX_REFS} reference images`);
+        }
+        setReferenceImages(prev => [...prev, ...toAdd]);
+        setReferencePreviews(prev => [...prev, ...toAdd.map(f => URL.createObjectURL(f))]);
+    };
+
+    const removeReferenceFile = (idx: number) => {
+        setReferencePreviews(prev => {
+            URL.revokeObjectURL(prev[idx]);
+            return prev.filter((_, i) => i !== idx);
+        });
+        setReferenceImages(prev => prev.filter((_, i) => i !== idx));
     };
 
     const clearReference = () => {
-        setReferenceImage(null);
-        if (referencePreview) URL.revokeObjectURL(referencePreview);
-        setReferencePreview(null);
+        referencePreviews.forEach(u => URL.revokeObjectURL(u));
+        setReferenceImages([]);
+        setReferencePreviews([]);
         setReferenceUrls([]);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
@@ -272,21 +290,32 @@ export default function PlaygroundPromptBar() {
 
 
 
-    // --- Drag-and-drop handlers ---
+    // --- Drag-and-drop handlers (using counter for flicker-free child traversal) ---
+    const handleDragEnter = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        dragCounterRef.current += 1;
+        if (dragCounterRef.current === 1) {
+            setIsDragOver(true);
+        }
+    }, []);
+
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
-        setIsDragOver(true);
     }, []);
 
     const handleDragLeave = useCallback((e: React.DragEvent) => {
-        // Only leave when actually exiting the container (not entering a child)
-        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-        setIsDragOver(false);
+        e.preventDefault();
+        dragCounterRef.current -= 1;
+        if (dragCounterRef.current <= 0) {
+            dragCounterRef.current = 0;
+            setIsDragOver(false);
+        }
     }, []);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
+        dragCounterRef.current = 0;
         setIsDragOver(false);
 
         // Check for playground image URL
@@ -392,7 +421,7 @@ export default function PlaygroundPromptBar() {
                 style_palette: stylePrefs.style_palette || undefined,
                 style_lighting: stylePrefs.style_lighting || undefined,
                 style_mood: stylePrefs.style_mood || undefined,
-                reference_image: referenceImage,
+                reference_image: referenceImages[0] || null,
                 ref_image_urls: referenceUrls.length ? referenceUrls : undefined,
                 image_resolution: stylePrefs.image_resolution || '1k',
             });
@@ -410,7 +439,7 @@ export default function PlaygroundPromptBar() {
         } finally {
             setIsGenerating(false);
         }
-    }, [prompt, isGenerating, mentionItems, stylePrefs, referenceImage]);
+    }, [prompt, isGenerating, mentionItems, stylePrefs, referenceImages]);
 
     // --- Keyboard: Enter to submit (Shift+Enter for newline) ---
     const handleKeyDown = useCallback(
@@ -442,25 +471,25 @@ export default function PlaygroundPromptBar() {
             <div className="bg-[#030303] px-4 pb-4 pt-1 pointer-events-auto">
                 <div className="max-w-3xl mx-auto">
 
-                    {/* ── REFERENCE IMAGE PREVIEWS (file + dropped URLs) ── */}
-                    {(referencePreview || referenceUrls.length > 0) && (
+                    {/* ── REFERENCE IMAGE PREVIEWS (files + dropped URLs) ── */}
+                    {(referencePreviews.length > 0 || referenceUrls.length > 0) && (
                         <div className="flex items-center gap-2 mb-2 px-1 overflow-x-auto">
-                            {/* File-uploaded reference */}
-                            {referencePreview && (
-                                <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-[#333] shrink-0">
-                                    <img src={referencePreview} className="w-full h-full object-cover" alt="Reference" />
+                            {/* File-uploaded references */}
+                            {referencePreviews.map((preview, idx) => (
+                                <div key={`file-${idx}`} className="relative w-12 h-12 rounded-lg overflow-hidden border border-[#333] shrink-0">
+                                    <img src={preview} className="w-full h-full object-cover" alt={`Reference ${idx + 1}`} />
                                     <button
-                                        onClick={() => { setReferenceImage(null); if (referencePreview) URL.revokeObjectURL(referencePreview); setReferencePreview(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                                        onClick={() => removeReferenceFile(idx)}
                                         className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors cursor-pointer"
                                     >
                                         <X size={8} />
                                     </button>
                                 </div>
-                            )}
+                            ))}
 
                             {/* Dropped URL references */}
                             {referenceUrls.map((url, idx) => (
-                                <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-[#333] shrink-0">
+                                <div key={`url-${idx}`} className="relative w-12 h-12 rounded-lg overflow-hidden border border-[#333] shrink-0">
                                     <img src={url} className="w-full h-full object-cover" alt={`Ref ${idx + 1}`} />
                                     <button
                                         onClick={() => removeReferenceUrl(idx)}
@@ -475,7 +504,7 @@ export default function PlaygroundPromptBar() {
                             ))}
 
                             <span className="text-[9px] font-mono text-[#555] uppercase tracking-[1px] shrink-0 ml-1">
-                                {referenceUrls.length + (referencePreview ? 1 : 0)} ref{referenceUrls.length + (referencePreview ? 1 : 0) !== 1 ? "s" : ""}
+                                {referencePreviews.length + referenceUrls.length} ref{referencePreviews.length + referenceUrls.length !== 1 ? "s" : ""}
                             </span>
                         </div>
                     )}
@@ -484,19 +513,23 @@ export default function PlaygroundPromptBar() {
                     <div
                         className={`relative bg-[#0a0a0a] border rounded-xl transition-all duration-200 ${
                             isDragOver
-                                ? "border-blue-500/60 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+                                ? "border-[#E50914]/50 shadow-[0_0_30px_rgba(229,9,20,0.15)]"
                                 : "border-[#222] hover:border-[#333] focus-within:border-[#E50914]/40"
                         }`}
+                        onDragEnter={handleDragEnter}
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                     >
-                        {/* Drop zone overlay */}
+                        {/* Drop zone overlay — prominent, full-coverage */}
                         {isDragOver && (
-                            <div className="absolute inset-0 z-40 rounded-xl bg-blue-500/5 border-2 border-dashed border-blue-500/40 flex items-center justify-center pointer-events-none">
-                                <div className="flex items-center gap-2 bg-black/70 px-4 py-2 rounded-lg border border-blue-500/30 backdrop-blur-sm">
-                                    <ImageIcon size={14} className="text-blue-400" />
-                                    <span className="text-[10px] font-mono text-blue-300 uppercase tracking-[2px]">Drop as Reference</span>
+                            <div className="absolute inset-0 z-40 rounded-xl bg-black/80 backdrop-blur-sm border-2 border-dashed border-white/30 flex flex-col items-center justify-center gap-3 pointer-events-none" style={{ animation: 'fadeIn 0.15s ease-out' }}>
+                                <div className="w-14 h-14 rounded-2xl bg-[#E50914]/15 border border-[#E50914]/30 flex items-center justify-center animate-pulse">
+                                    <ImagePlus size={24} className="text-[#E50914]" />
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-[11px] font-bold text-white/90 uppercase tracking-[2px]">Drop image to use as reference</p>
+                                    <p className="text-[9px] text-white/40 font-mono mt-1">PNG, JPG, WEBP supported</p>
                                 </div>
                             </div>
                         )}
@@ -671,13 +704,14 @@ export default function PlaygroundPromptBar() {
                                     ref={fileInputRef}
                                     type="file"
                                     accept="image/*"
+                                    multiple
                                     onChange={handleFileSelect}
                                     className="hidden"
                                 />
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
                                     className={`flex items-center gap-1 px-2 py-1 rounded-md text-[8px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border ${
-                                        referenceImage
+                                        referenceImages.length > 0
                                             ? "border-[#E50914]/30 bg-[#E50914]/10 text-[#E50914]"
                                             : "border-white/[0.08] bg-transparent text-[#555] hover:text-white hover:border-white/20"
                                     }`}

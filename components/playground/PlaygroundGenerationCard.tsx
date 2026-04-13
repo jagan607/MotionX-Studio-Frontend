@@ -42,12 +42,48 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
         toast.success("Prompt loaded into input");
     };
 
-    // Drag image for reference drop
+    // Drag image for reference drop — custom large ghost
     const handleDragStart = (e: React.DragEvent) => {
         if (!gen.image_url) return;
         e.dataTransfer.setData("text/plain", gen.image_url);
         e.dataTransfer.setData("application/x-playground-image", gen.image_url);
         e.dataTransfer.effectAllowed = "copy";
+
+        // Build a styled drag preview (120×120 thumbnail + badge)
+        const ghost = document.createElement("div");
+        ghost.style.cssText = `
+            width: 120px; height: 120px; border-radius: 14px; overflow: hidden;
+            border: 2px solid rgba(229,9,20,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            position: fixed; top: -9999px; left: -9999px;
+            display: flex; align-items: center; justify-content: center;
+            background: #111;
+        `;
+
+        // Thumbnail
+        const img = document.createElement("img");
+        img.src = gen.image_url;
+        img.style.cssText = "width:100%;height:100%;object-fit:cover;opacity:0.9;";
+        ghost.appendChild(img);
+
+        // Badge overlay
+        const badge = document.createElement("div");
+        badge.style.cssText = `
+            position:absolute; bottom:6px; right:6px;
+            width:28px; height:28px; border-radius:8px;
+            background:rgba(229,9,20,0.85); backdrop-filter:blur(4px);
+            display:flex; align-items:center; justify-content:center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        `;
+        badge.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/><line x1="15" y1="6" x2="15" y2="12"/><line x1="12" y1="9" x2="18" y2="9"/></svg>`;
+        ghost.appendChild(badge);
+
+        document.body.appendChild(ghost);
+        e.dataTransfer.setDragImage(ghost, 60, 60);
+
+        // Clean up after the browser captures the ghost frame
+        requestAnimationFrame(() => {
+            setTimeout(() => ghost.remove(), 0);
+        });
     };
 
     // Open fullscreen media viewer on click

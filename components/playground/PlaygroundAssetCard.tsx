@@ -79,13 +79,66 @@ export default function PlaygroundAssetCard({ asset, isActive, onEdit }: Playgro
         onEdit?.(asset);
     };
 
+    // Drag asset image into prompt bar as a reference
+    const handleDragStart = (e: React.DragEvent) => {
+        if (!asset.image_url) return;
+        e.dataTransfer.setData("text/plain", asset.image_url);
+        e.dataTransfer.setData("application/x-playground-image", asset.image_url);
+        e.dataTransfer.effectAllowed = "copy";
+
+        // Custom drag ghost (100×100 thumbnail + badge)
+        const ghost = document.createElement("div");
+        ghost.style.cssText = `
+            width:100px; height:100px; border-radius:12px; overflow:hidden;
+            border:2px solid ${config.color}80; box-shadow:0 8px 24px rgba(0,0,0,0.6);
+            position:fixed; top:-9999px; left:-9999px;
+            display:flex; align-items:center; justify-content:center;
+            background:#111;
+        `;
+        const img = document.createElement("img");
+        img.src = asset.image_url;
+        img.style.cssText = "width:100%;height:100%;object-fit:cover;opacity:0.9;";
+        ghost.appendChild(img);
+
+        // Badge with + icon
+        const badge = document.createElement("div");
+        badge.style.cssText = `
+            position:absolute; bottom:5px; right:5px;
+            width:24px; height:24px; border-radius:7px;
+            background:rgba(229,9,20,0.85); backdrop-filter:blur(4px);
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 2px 8px rgba(0,0,0,0.4);
+        `;
+        badge.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/><line x1="15" y1="6" x2="15" y2="12"/><line x1="12" y1="9" x2="18" y2="9"/></svg>`;
+        ghost.appendChild(badge);
+
+        // Name label
+        const label = document.createElement("div");
+        label.style.cssText = `
+            position:absolute; top:5px; left:5px; right:5px;
+            background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
+            border-radius:5px; padding:2px 6px;
+            font-size:9px; font-weight:700; color:white;
+            text-transform:uppercase; letter-spacing:1px;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+        `;
+        label.textContent = asset.name;
+        ghost.appendChild(label);
+
+        document.body.appendChild(ghost);
+        e.dataTransfer.setDragImage(ghost, 50, 50);
+        requestAnimationFrame(() => setTimeout(() => ghost.remove(), 0));
+    };
+
     return (
         <div
-            className={`w-full flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-150 text-left cursor-default group relative ${
+            draggable={!!asset.image_url}
+            onDragStart={handleDragStart}
+            className={`w-full flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-150 text-left group relative ${
                 isActive
                     ? "border-white/20 bg-white/[0.06]"
                     : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1]"
-            }`}
+            } ${asset.image_url ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
         >
             {/* Thumbnail — clickable for full-screen view */}
             <button
@@ -104,6 +157,7 @@ export default function PlaygroundAssetCard({ asset, isActive, onEdit }: Playgro
                             alt={asset.name}
                             className="w-full h-full object-cover"
                             loading="lazy"
+                            draggable={false}
                         />
                         {/* Magnifying glass overlay on hover */}
                         <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
