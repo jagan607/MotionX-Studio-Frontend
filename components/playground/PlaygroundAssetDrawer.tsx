@@ -11,7 +11,7 @@
  *   5. Loading/empty states per tab
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Layers, Plus, Loader2, User, MapPin, Package } from "lucide-react";
 import { usePlayground } from "@/app/context/PlaygroundContext";
 import type { PlaygroundAsset } from "@/lib/playgroundApi";
@@ -32,11 +32,22 @@ export default function PlaygroundAssetDrawer() {
         locations,
         products,
         assetsLoading,
+        assetDrawerIntent,
+        setAssetDrawerIntent,
     } = usePlayground();
 
     const [activeTab, setActiveTab] = useState<AssetTab>("characters");
     const [showForm, setShowForm] = useState(false);
     const [editingAsset, setEditingAsset] = useState<PlaygroundAsset | null>(null);
+
+    // Listen for external "create" intent (e.g. from PromptBar's + Asset button)
+    useEffect(() => {
+        if (assetDrawerIntent === 'create') {
+            setEditingAsset(null);
+            setShowForm(true);
+            setAssetDrawerIntent(null); // consume the one-shot signal
+        }
+    }, [assetDrawerIntent, setAssetDrawerIntent]);
 
     // Get assets for the active tab
     const activeAssets = useMemo(() => {

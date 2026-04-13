@@ -55,6 +55,7 @@ export interface PlaygroundStylePrefs {
     image_provider: string;
     model_tier: string;
     style: string;
+    image_resolution: string;
 }
 
 interface PlaygroundContextType {
@@ -90,6 +91,12 @@ interface PlaygroundContextType {
     animateTarget: PlaygroundGeneration | null;
     setAnimateTarget: (gen: PlaygroundGeneration | null) => void;
 
+    // === Asset Drawer (cross-component control) ===
+    assetDrawerOpen: boolean;
+    setAssetDrawerOpen: (open: boolean) => void;
+    assetDrawerIntent: 'list' | 'create' | null;
+    setAssetDrawerIntent: (intent: 'list' | 'create' | null) => void;
+
     // === Auth ===
     uid: string | null;
 }
@@ -119,6 +126,7 @@ const DEFAULT_STYLE_PREFS: PlaygroundStylePrefs = {
     image_provider: "gemini",
     model_tier: "flash",
     style: "realistic",
+    image_resolution: "1k",
 };
 
 const DEFAULT_CONTEXT: PlaygroundContextType = {
@@ -139,6 +147,10 @@ const DEFAULT_CONTEXT: PlaygroundContextType = {
     setPendingPrompt: () => {},
     animateTarget: null,
     setAnimateTarget: () => {},
+    assetDrawerOpen: true,
+    setAssetDrawerOpen: () => {},
+    assetDrawerIntent: null,
+    setAssetDrawerIntent: () => {},
     uid: null,
 };
 
@@ -176,6 +188,10 @@ export function PlaygroundProvider({ children }: { children: ReactNode }) {
 
     // --- Animate modal target ---
     const [animateTarget, setAnimateTarget] = useState<PlaygroundGeneration | null>(null);
+
+    // --- Asset Drawer state (lifted for cross-component control) ---
+    const [assetDrawerOpen, setAssetDrawerOpen] = useState(true);
+    const [assetDrawerIntent, setAssetDrawerIntent] = useState<'list' | 'create' | null>(null);
 
     // --- Style Preferences ---
     const [stylePrefs, setStylePrefs] = useState<PlaygroundStylePrefs>(() => {
@@ -368,6 +384,10 @@ export function PlaygroundProvider({ children }: { children: ReactNode }) {
             setPendingPrompt,
             animateTarget,
             setAnimateTarget,
+            assetDrawerOpen,
+            setAssetDrawerOpen,
+            assetDrawerIntent,
+            setAssetDrawerIntent,
             uid,
         }),
         [
@@ -376,6 +396,8 @@ export function PlaygroundProvider({ children }: { children: ReactNode }) {
             generations, generationsLoading, stylePrefs, setStylePref, mentionItems,
             pendingPrompt, setPendingPrompt,
             animateTarget, setAnimateTarget,
+            assetDrawerOpen, setAssetDrawerOpen,
+            assetDrawerIntent, setAssetDrawerIntent,
             uid,
         ]
     );

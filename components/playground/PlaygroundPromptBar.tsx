@@ -29,6 +29,7 @@ import {
     Link2,
     Search,
     Wand2,
+    Plus,
 } from "lucide-react";
 import { usePromptMention } from "@/app/hooks/usePromptMention";
 import { usePlayground, type PlaygroundMentionItem } from "@/app/context/PlaygroundContext";
@@ -109,6 +110,18 @@ const MODEL_TIERS = [
     { value: "pro", label: "Pro ✦" },
 ];
 
+const RESOLUTIONS = [
+    { value: "1k", label: "1K" },
+    { value: "2k", label: "2K" },
+    { value: "4k", label: "4K" },
+];
+
+const RESOLUTION_MULTIPLIER: Record<string, number> = {
+    '1k': 1.0,
+    '2k': 1.5,
+    '4k': 2.0,
+};
+
 const VISUAL_STYLES = [
     { value: "realistic", label: "Realistic" },
     { value: "cinematic", label: "Cinematic" },
@@ -147,6 +160,9 @@ export default function PlaygroundPromptBar() {
         setStylePref,
         pendingPrompt,
         setPendingPrompt,
+        assetDrawerOpen,
+        setAssetDrawerOpen,
+        setAssetDrawerIntent,
     } = usePlayground();
 
     // --- Local state ---
@@ -213,7 +229,9 @@ export default function PlaygroundPromptBar() {
     const { getImageCost } = usePricing();
     const { credits } = useCredits();
     const imageCost = getImageCost(stylePrefs.image_provider, stylePrefs.model_tier as 'flash' | 'pro', 'playground');
-    const hasInsufficientBalance = credits !== null && credits < imageCost;
+    const resolution = stylePrefs.image_resolution || '1k';
+    const finalCost = Math.round(imageCost * (RESOLUTION_MULTIPLIER[resolution] || 1) * 100) / 100;
+    const hasInsufficientBalance = credits !== null && credits < finalCost;
 
     // --- usePromptMention wiring ---
     const mention = usePromptMention({
@@ -376,6 +394,7 @@ export default function PlaygroundPromptBar() {
                 style_mood: stylePrefs.style_mood || undefined,
                 reference_image: referenceImage,
                 ref_image_urls: referenceUrls.length ? referenceUrls : undefined,
+                image_resolution: stylePrefs.image_resolution || '1k',
             });
 
             toast.success("Generation started");
@@ -634,6 +653,19 @@ export default function PlaygroundPromptBar() {
 
                             {/* Left: Quick controls */}
                             <div className="flex items-center gap-1.5">
+                                {/* + Asset shortcut */}
+                                <button
+                                    onClick={() => {
+                                        setAssetDrawerOpen(true);
+                                        setAssetDrawerIntent('create');
+                                    }}
+                                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[8px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border border-white/[0.08] bg-transparent text-[#555] hover:text-white hover:border-white/20"
+                                    title="Create a new asset"
+                                >
+                                    <Plus size={10} strokeWidth={3} />
+                                    <span className="hidden sm:inline">Asset</span>
+                                </button>
+
                                 {/* Reference image upload */}
                                 <input
                                     ref={fileInputRef}
@@ -687,6 +719,11 @@ export default function PlaygroundPromptBar() {
                                     options={MODEL_TIERS}
                                     onChange={(v) => setStylePref("model_tier", v)}
                                 />
+                                <QuickSelect
+                                    value={stylePrefs.image_resolution || '1k'}
+                                    options={RESOLUTIONS}
+                                    onChange={(v) => setStylePref("image_resolution", v)}
+                                />
 
                                 {/* Tagged asset count */}
                                 {taggedCount > 0 && (
@@ -713,7 +750,7 @@ export default function PlaygroundPromptBar() {
                                 )}
                                 {isGenerating ? "Generating…" : hasInsufficientBalance ? "Low Balance" : "Generate"}
                                 {!isGenerating && (
-                                    <span className="opacity-50 text-[8px] font-normal">• {formatCredits(imageCost)} cr</span>
+                                    <span className="opacity-50 text-[8px] font-normal">• {formatCredits(finalCost)} cr</span>
                                 )}
                             </button>
                         </div>

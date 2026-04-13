@@ -75,6 +75,7 @@ export interface PlaygroundGenerateParams {
     style_mood?: string;
     reference_image?: File | null;
     ref_image_urls?: string[];        // pre-existing GCS URLs (drag-and-drop)
+    image_resolution?: string;        // "1k" | "2k" | "4k"
 }
 
 export interface PlaygroundAnimateParams {
@@ -133,6 +134,7 @@ export const playgroundGenerate = async (params: PlaygroundGenerateParams) => {
     if (params.style_mood) formData.append("style_mood", params.style_mood);
     if (params.reference_image) formData.append("reference_image", params.reference_image);
     if (params.ref_image_urls?.length) formData.append("ref_image_urls", params.ref_image_urls.join(","));
+    if (params.image_resolution) formData.append("image_resolution", params.image_resolution);
 
     const res = await api.post("/api/v1/playground/generate", formData);
     return res.data;

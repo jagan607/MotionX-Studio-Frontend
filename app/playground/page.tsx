@@ -12,7 +12,6 @@
  *   Right:  Style panel (placeholder — Phase 4)
  */
 
-import { useState } from "react";
 import { PlaygroundProvider, usePlayground } from "@/app/context/PlaygroundContext";
 import { PricingProvider } from "@/app/hooks/usePricing";
 import { Loader2, PanelLeftOpen, PanelLeftClose } from "lucide-react";
@@ -38,9 +37,9 @@ function PlaygroundWorkspace() {
         uid,
         animateTarget,
         setAnimateTarget,
+        assetDrawerOpen: drawerOpen,
+        setAssetDrawerOpen: setDrawerOpen,
     } = usePlayground();
-
-    const [drawerOpen, setDrawerOpen] = useState(true);
 
     if (!uid) {
         return (
