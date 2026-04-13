@@ -214,7 +214,7 @@ export default function GlobalHeader() {
                             className={`flex items-center gap-2 text-[10px] sm:text-xs font-bold tracking-[2px] uppercase transition-all rounded-md px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 cursor-pointer border ${
                                 pathname === '/playground'
                                     ? 'bg-[#E50914]/15 border-[#E50914]/40 text-[#E50914] shadow-[0_0_20px_rgba(229,9,20,0.15)]'
-                                    : 'bg-transparent border-white/[0.08] text-[#888] hover:text-white hover:border-white/20 hover:bg-white/[0.03]'
+                                    : 'bg-[#1A1A1A] border-[#222] text-white hover:bg-[#222]'
                             }`}
                         >
                             Playground
