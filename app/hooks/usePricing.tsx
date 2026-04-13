@@ -29,7 +29,7 @@ interface VideoEditRates {
 export interface Pricing {
     video: { [provider: string]: ProviderPricing };
     video_edit: { [provider: string]: VideoEditRates };
-    image: { flash: number; pro: number };
+    image: { [provider: string]: { flash: number; pro: number } } | { flash: number; pro: number };
     upscale: { flash: number; pro: number };
     edit: number;
     finalize: number;
@@ -52,7 +52,7 @@ interface PricingContextValue {
     getVideoCost: (provider: string, mode: string, duration: string, options?: VideoCostOptions) => number;
     getVideoEditRate: (provider: string, mode: 'std' | 'pro') => number;
     getLipSyncCost: (durationSeconds: number) => number;
-    getImageCost: (tier?: 'flash' | 'pro') => number;
+    getImageCost: (provider?: string, tier?: 'flash' | 'pro') => number;
     getUpscaleCost: (tier?: 'flash' | 'pro') => number;
     getVoiceoverCost: () => number;
     getFinalizeCost: () => number;
@@ -104,7 +104,10 @@ const DEFAULT_PRICING: Pricing = {
         "seedance-2": { standard: 0.8, pro: 1.2 },
         "seedance":   { standard: 0.8, pro: 1.2 },
     },
-    image: { flash: 1, pro: 2 },
+    image: {
+        gemini: { flash: 0.3, pro: 0.6 },
+        seedream: { flash: 0.3, pro: 0.6 },
+    },
     upscale: { flash: 3, pro: 3 },
     edit: 1,
     finalize: 1,
@@ -136,9 +139,9 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     useEffect(() => {
         const fetchPricing = async () => {
             try {
-                const res = await api.get("/api/v1/shot/pricing");
+                const res = await api.get("/api/v1/production/pricing");
                 if (res.data?.pricing) {
-                    setPricing(res.data.pricing);
+                    setPricing(prev => ({ ...prev, ...res.data.pricing }));
                 }
             } catch (e) {
                 console.warn("[usePricing] Failed to fetch pricing, using defaults", e);
@@ -228,11 +231,19 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return Math.max(pricing.lipsync.minimum, durationSeconds * pricing.lipsync.per_second);
     };
 
-    const getImageCost = (tier: 'flash' | 'pro' = 'flash') => {
+    const getImageCost = (provider: string = 'gemini', tier: 'flash' | 'pro' = 'flash') => {
         const img = pricing.image;
-        // Handle both old API format (flat number) and new format ({ flash, pro })
+        // New format: { gemini: { flash: 0.3, pro: 0.6 }, seedream: { ... } }
+        if (img && typeof img === 'object' && !('flash' in img)) {
+            const providerData = (img as any)[provider];
+            if (providerData) return providerData[tier] ?? (tier === 'pro' ? 0.6 : 0.3);
+            // Fallback to first provider
+            const firstProvider = Object.values(img)[0] as any;
+            return firstProvider?.[tier] ?? (tier === 'pro' ? 0.6 : 0.3);
+        }
+        // Legacy flat format: { flash: 1, pro: 2 }
         if (typeof img === 'number') return tier === 'pro' ? img * 2 : img;
-        return img?.[tier] ?? (tier === 'pro' ? 2 : 1);
+        return (img as any)?.[tier] ?? (tier === 'pro' ? 0.6 : 0.3);
     };
     const getUpscaleCost = (tier: 'flash' | 'pro' = 'pro') => {
         const up = pricing.upscale;

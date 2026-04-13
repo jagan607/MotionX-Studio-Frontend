@@ -258,3 +258,22 @@ export const listPlaygroundGenerations = async (
     });
     return res.data;
 };
+
+// ═══════════════════════════════════════════════════════════════
+//  PROMPT ENHANCEMENT (Magic Enhance)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Call the Studio's enhance_prompt endpoint to expand a simple
+ * user prompt into a cinematic, descriptive prompt.
+ * Reuses POST /api/v1/shot/enhance_prompt — no credit charge.
+ */
+export const playgroundEnhancePrompt = async (params: {
+    prompt: string;
+    provider?: string;
+    aspect_ratio?: string;
+    shot_type?: string;
+}): Promise<string> => {
+    const res = await api.post('/api/v1/shot/enhance_prompt', params);
+    return res.data?.enhanced_prompt || params.prompt;
+};

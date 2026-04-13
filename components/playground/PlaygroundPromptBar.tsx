@@ -27,10 +27,14 @@ import {
     Loader2,
     Upload,
     Link2,
+    Search,
+    Wand2,
 } from "lucide-react";
 import { usePromptMention } from "@/app/hooks/usePromptMention";
 import { usePlayground, type PlaygroundMentionItem } from "@/app/context/PlaygroundContext";
-import { playgroundGenerate } from "@/lib/playgroundApi";
+import { usePricing, formatCredits } from "@/app/hooks/usePricing";
+import { useCredits } from "@/hooks/useCredits";
+import { playgroundGenerate, playgroundEnhancePrompt } from "@/lib/playgroundApi";
 import toast from "react-hot-toast";
 
 // ═══════════════════════════════════════════════════════════════
@@ -148,6 +152,7 @@ export default function PlaygroundPromptBar() {
     // --- Local state ---
     const [prompt, setPrompt] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isEnhancing, setIsEnhancing] = useState(false);
     const [referenceImage, setReferenceImage] = useState<File | null>(null);
     const [referencePreview, setReferencePreview] = useState<string | null>(null);
     const [referenceUrls, setReferenceUrls] = useState<string[]>([]); // URLs from drag-and-drop
@@ -155,6 +160,60 @@ export default function PlaygroundPromptBar() {
     const [showSettings, setShowSettings] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    // --- Magic Enhance handler ---
+    const handleEnhance = useCallback(async () => {
+        if (!prompt.trim() || isEnhancing || isGenerating) return;
+
+        // 1. Extract all @tags before sending
+        const originalTags = (prompt.match(/@\w+/g) || []).map(t => t.toLowerCase());
+
+        setIsEnhancing(true);
+        try {
+            const enhanced = await playgroundEnhancePrompt({
+                prompt,
+                provider: stylePrefs.image_provider || 'gemini',
+                aspect_ratio: stylePrefs.aspect_ratio || '16:9',
+            });
+
+            // 2. @Tag safety net: verify all original tags are still present
+            let safePrompt = enhanced;
+            const enhancedLower = enhanced.toLowerCase();
+            const missingTags = originalTags.filter(tag => !enhancedLower.includes(tag));
+            if (missingTags.length > 0) {
+                // Re-append missing tags (deduplicated, original casing from prompt)
+                const origCasing = (prompt.match(/@\w+/g) || []);
+                const toAppend = origCasing.filter(t => missingTags.includes(t.toLowerCase()));
+                safePrompt = `${enhanced} ${toAppend.join(' ')}`;
+            }
+
+            setPrompt(safePrompt);
+
+            // Sync the native textarea value for React controlled input
+            if (textareaRef.current) {
+                const nativeSetter = Object.getOwnPropertyDescriptor(
+                    window.HTMLTextAreaElement.prototype, 'value'
+                )?.set;
+                if (nativeSetter) {
+                    nativeSetter.call(textareaRef.current, safePrompt);
+                    textareaRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+
+            toast.success('Prompt enhanced!');
+        } catch (e: any) {
+            console.error('[Enhance] Failed:', e);
+            toast.error('Enhancement failed — try again');
+        } finally {
+            setIsEnhancing(false);
+        }
+    }, [prompt, isEnhancing, isGenerating, stylePrefs]);
+
+    // --- Dynamic pricing ---
+    const { getImageCost } = usePricing();
+    const { credits } = useCredits();
+    const imageCost = getImageCost(stylePrefs.image_provider, stylePrefs.model_tier as 'flash' | 'pro');
+    const hasInsufficientBalance = credits !== null && credits < imageCost;
 
     // --- usePromptMention wiring ---
     const mention = usePromptMention({
@@ -425,94 +484,149 @@ export default function PlaygroundPromptBar() {
 
                         {/* Textarea + backdrop highlight + mention dropdown wrapper */}
                         <div className="relative px-4 pt-3 pb-2">
-                            {/* Grid stack: backdrop + textarea share the same cell */}
-                            <div className="grid" style={{ gridTemplateColumns: '1fr' }}>
-                                {/* Backdrop: highlighted text layer behind the textarea */}
-                                <div
-                                    ref={backdropRef}
-                                    aria-hidden="true"
-                                    className="pointer-events-none whitespace-pre-wrap break-words font-sans text-[13px] leading-relaxed min-h-[24px]"
-                                    style={{
-                                        gridArea: '1 / 1',
-                                        wordWrap: 'break-word',
-                                        overflowWrap: 'break-word',
-                                    }}
+                            <div className="flex items-start gap-2">
+                                {/* ── Magic Enhance Button ── */}
+                                <button
+                                    onClick={handleEnhance}
+                                    disabled={!prompt.trim() || isEnhancing || isGenerating}
+                                    title={isEnhancing ? 'Enhancing…' : 'Magic Enhance — expand your prompt with AI'}
+                                    className={`mt-0.5 p-1.5 rounded-lg transition-all shrink-0 cursor-pointer disabled:cursor-not-allowed ${
+                                        isEnhancing
+                                            ? 'text-amber-400 bg-amber-500/15 border border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                                            : !prompt.trim()
+                                                ? 'text-[#333] border border-transparent'
+                                                : 'text-[#555] hover:text-amber-400 hover:bg-amber-500/10 border border-transparent hover:border-amber-500/20'
+                                    }`}
                                 >
-                                    {renderHighlightedText(prompt)}
-                                </div>
+                                    {isEnhancing ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                                </button>
 
-                                <textarea
-                                    ref={textareaRef}
-                                    value={prompt}
-                                    onChange={(e) => {
-                                        handlePromptChange(e);
-                                        autoResize();
-                                    }}
-                                    onKeyDown={handleKeyDown}
-                                    onBlur={mention.handleBlur}
-                                    onScroll={handleScroll}
-                                    placeholder="Describe your scene… Use @ to tag characters, locations, and products"
-                                    className="w-full text-[13px] placeholder:text-[#444] outline-none font-sans resize-none leading-relaxed min-h-[24px] max-h-[120px]"
-                                    style={{ gridArea: '1 / 1', background: 'transparent', color: 'transparent', caretColor: '#E50914' }}
-                                    rows={1}
-                                    disabled={isGenerating}
-                                />
+                                {/* Grid stack: backdrop + textarea share the same cell */}
+                                <div className="flex-1 grid min-w-0 max-h-[120px] overflow-y-auto no-scrollbar" style={{ gridTemplateColumns: '1fr' }}>
+                                    {/* Backdrop: highlighted text layer behind the textarea */}
+                                    <div
+                                        ref={backdropRef}
+                                        aria-hidden="true"
+                                        className="pointer-events-none whitespace-pre-wrap break-words font-sans text-[13px] leading-relaxed min-h-[24px]"
+                                        style={{
+                                            gridArea: '1 / 1',
+                                            wordWrap: 'break-word',
+                                            overflowWrap: 'break-word',
+                                        }}
+                                    >
+                                        {renderHighlightedText(prompt)}
+                                    </div>
+
+                                    <textarea
+                                        ref={textareaRef}
+                                        value={prompt}
+                                        onChange={(e) => {
+                                            handlePromptChange(e);
+                                            autoResize();
+                                        }}
+                                        onKeyDown={handleKeyDown}
+                                        onBlur={mention.handleBlur}
+                                        onScroll={handleScroll}
+                                        placeholder="Describe your scene… Use @ to tag characters, locations, and products"
+                                        className="w-full text-[13px] placeholder:text-[#444] outline-none font-sans resize-none leading-relaxed min-h-[24px]"
+                                        style={{ gridArea: '1 / 1', background: 'transparent', color: 'transparent', caretColor: '#E50914' }}
+                                        rows={1}
+                                        disabled={isGenerating || isEnhancing}
+                                    />
+                                </div>
                             </div>
 
                             {/* ── MENTION DROPDOWN ── */}
-                            {mention.isOpen && mention.filteredItems.length > 0 && (
-                                <div
-                                    className="absolute z-50 w-[280px] rounded-xl border border-[#222] bg-[#0d0d0d]/98 backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.7)] overflow-hidden"
-                                    style={{
-                                        bottom: "100%",
-                                        left: Math.min(mention.menuPosition.left, 300),
-                                        marginBottom: 8,
-                                    }}
-                                    onMouseDown={(e) => e.preventDefault()} // prevent blur
-                                >
-                                    <div className="px-3 py-2 border-b border-white/[0.06]">
-                                        <span className="text-[8px] font-mono text-[#555] uppercase tracking-[2px]">Tag an asset</span>
-                                    </div>
-                                    <div className="max-h-[240px] overflow-y-auto no-scrollbar py-1">
-                                        {mention.filteredItems.map((item, idx) => {
-                                            const pgItem = item as PlaygroundMentionItem;
-                                            const TypeIcon = ASSET_TYPE_ICON[pgItem.assetType] || Package;
-                                            const typeColor = ASSET_TYPE_COLOR[pgItem.assetType] || "#888";
-                                            const isActive = idx === mention.activeIndex;
+                            {mention.isOpen && mention.filteredItems.length > 0 && (() => {
+                                // Group items by asset type for visual separation
+                                const grouped: Record<string, typeof mention.filteredItems> = {};
+                                let globalIdx = 0;
+                                const indexMap: number[] = []; // maps global flat index → original index
+                                for (const item of mention.filteredItems) {
+                                    const pgItem = item as PlaygroundMentionItem;
+                                    const type = pgItem.assetType || "other";
+                                    if (!grouped[type]) grouped[type] = [];
+                                    grouped[type].push(item);
+                                    indexMap.push(globalIdx);
+                                    globalIdx++;
+                                }
 
-                                            return (
-                                                <button
-                                                    key={pgItem.assetId || item.tag}
-                                                    onClick={() => mention.insertTag(item.tag)}
-                                                    className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors cursor-pointer border-none ${
-                                                        isActive
-                                                            ? "bg-[#E50914]/10"
-                                                            : "bg-transparent hover:bg-white/[0.04]"
-                                                    }`}
-                                                >
-                                                    {/* Asset thumbnail */}
-                                                    <div className="w-8 h-8 rounded-md border border-[#222] overflow-hidden shrink-0 flex items-center justify-center bg-[#111]">
-                                                        {pgItem.url ? (
-                                                            <img src={pgItem.url} alt="" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <TypeIcon size={12} style={{ color: typeColor }} />
+                                return (
+                                    <div
+                                        className="absolute z-50 w-[300px] rounded-xl border border-[#222] bg-[#0d0d0d]/98 backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.7)] overflow-hidden"
+                                        style={{
+                                            bottom: "100%",
+                                            left: Math.min(mention.menuPosition.left, 300),
+                                            marginBottom: 8,
+                                        }}
+                                        onMouseDown={(e) => e.preventDefault()}
+                                    >
+                                        {/* Header with search hint */}
+                                        <div className="px-3 py-2 border-b border-white/[0.06] flex items-center gap-2">
+                                            <Search size={10} className="text-[#555]" />
+                                            <span className="text-[8px] font-mono text-[#555] uppercase tracking-[2px]">
+                                                Tag an asset — type to filter
+                                            </span>
+                                            <span className="ml-auto text-[7px] font-mono text-[#333]">
+                                                {mention.filteredItems.length} result{mention.filteredItems.length !== 1 ? "s" : ""}
+                                            </span>
+                                        </div>
+
+                                        {/* Scrollable list */}
+                                        <div className="max-h-[320px] overflow-y-auto no-scrollbar py-1">
+                                            {mention.filteredItems.map((item, idx) => {
+                                                const pgItem = item as PlaygroundMentionItem;
+                                                const TypeIcon = ASSET_TYPE_ICON[pgItem.assetType] || Package;
+                                                const typeColor = ASSET_TYPE_COLOR[pgItem.assetType] || "#888";
+                                                const isActive = idx === mention.activeIndex;
+
+                                                // Show type header before first item of each group
+                                                const prevItem = idx > 0 ? (mention.filteredItems[idx - 1] as PlaygroundMentionItem) : null;
+                                                const showHeader = !prevItem || prevItem.assetType !== pgItem.assetType;
+
+                                                return (
+                                                    <div key={pgItem.assetId || item.tag}>
+                                                        {showHeader && (
+                                                            <div className="px-3 pt-2 pb-1 flex items-center gap-1.5">
+                                                                <TypeIcon size={9} style={{ color: typeColor }} />
+                                                                <span className="text-[7px] font-bold uppercase tracking-[2px]" style={{ color: typeColor }}>
+                                                                    {pgItem.assetType}s
+                                                                </span>
+                                                            </div>
                                                         )}
+                                                        <button
+                                                            onClick={() => mention.insertTag(item.tag)}
+                                                            className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors cursor-pointer border-none ${
+                                                                isActive
+                                                                    ? "bg-[#E50914]/10"
+                                                                    : "bg-transparent hover:bg-white/[0.04]"
+                                                            }`}
+                                                        >
+                                                            {/* Asset thumbnail */}
+                                                            <div className="w-8 h-8 rounded-md border border-[#222] overflow-hidden shrink-0 flex items-center justify-center bg-[#111]">
+                                                                {pgItem.url ? (
+                                                                    <img src={pgItem.url} alt="" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <TypeIcon size={12} style={{ color: typeColor }} />
+                                                                )}
+                                                            </div>
+                                                            {/* Name + type */}
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-[11px] font-semibold text-white/90 truncate">{item.name}</p>
+                                                                <p className="text-[8px] uppercase tracking-[1px] font-mono" style={{ color: typeColor }}>
+                                                                    {pgItem.assetType}
+                                                                </p>
+                                                            </div>
+                                                            {/* Tag preview */}
+                                                            <span className="text-[9px] font-mono text-[#555] shrink-0">{item.tag}</span>
+                                                        </button>
                                                     </div>
-                                                    {/* Name + type */}
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-[11px] font-semibold text-white/90 truncate">{item.name}</p>
-                                                        <p className="text-[8px] uppercase tracking-[1px] font-mono" style={{ color: typeColor }}>
-                                                            {pgItem.assetType}
-                                                        </p>
-                                                    </div>
-                                                    {/* Tag preview */}
-                                                    <span className="text-[9px] font-mono text-[#555] shrink-0">{item.tag}</span>
-                                                </button>
-                                            );
-                                        })}
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                );
+                            })()}
                         </div>
 
                         {/* ── BOTTOM ROW: Settings + Actions ── */}
@@ -585,9 +699,9 @@ export default function PlaygroundPromptBar() {
                             {/* Right: Generate */}
                             <button
                                 onClick={handleGenerate}
-                                disabled={!prompt.trim() || isGenerating}
+                                disabled={!prompt.trim() || isGenerating || hasInsufficientBalance}
                                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-[2px] transition-all border ${
-                                    !prompt.trim() || isGenerating
+                                    !prompt.trim() || isGenerating || hasInsufficientBalance
                                         ? "border-white/[0.06] bg-white/[0.02] text-[#444] cursor-not-allowed"
                                         : "border-[#E50914]/40 bg-[#E50914]/15 text-white hover:bg-[#E50914]/25 hover:border-[#E50914] hover:shadow-[0_0_20px_rgba(229,9,20,0.2)] cursor-pointer"
                                 }`}
@@ -597,7 +711,10 @@ export default function PlaygroundPromptBar() {
                                 ) : (
                                     <Send size={12} />
                                 )}
-                                {isGenerating ? "Generating…" : "Generate"}
+                                {isGenerating ? "Generating…" : hasInsufficientBalance ? "Low Balance" : "Generate"}
+                                {!isGenerating && (
+                                    <span className="opacity-50 text-[8px] font-normal">• {formatCredits(imageCost)} cr</span>
+                                )}
                             </button>
                         </div>
 

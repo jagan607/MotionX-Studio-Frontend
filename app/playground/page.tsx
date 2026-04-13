@@ -14,6 +14,7 @@
 
 import { useState } from "react";
 import { PlaygroundProvider, usePlayground } from "@/app/context/PlaygroundContext";
+import { PricingProvider } from "@/app/hooks/usePricing";
 import { Loader2, PanelLeftOpen, PanelLeftClose } from "lucide-react";
 import PlaygroundGenerationGrid from "@/components/playground/PlaygroundGenerationGrid";
 import PlaygroundPromptBar from "@/components/playground/PlaygroundPromptBar";
@@ -22,9 +23,11 @@ import PlaygroundAnimateModal from "@/components/playground/PlaygroundAnimateMod
 
 export default function PlaygroundPage() {
     return (
-        <PlaygroundProvider>
-            <PlaygroundWorkspace />
-        </PlaygroundProvider>
+        <PricingProvider>
+            <PlaygroundProvider>
+                <PlaygroundWorkspace />
+            </PlaygroundProvider>
+        </PricingProvider>
     );
 }
 

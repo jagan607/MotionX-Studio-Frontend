@@ -225,7 +225,7 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                 <button
                     onClick={() => setAnimateTarget(gen)}
                     aria-label={`Animate generation ${gen.id}`}
-                    className="w-full flex items-center justify-center gap-2 py-2 bg-white/[0.04] text-[#999] text-[9px] font-bold uppercase tracking-[2px] border-t border-white/[0.06] hover:bg-[#E50914]/15 hover:text-[#E50914] active:bg-[#E50914]/10 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#E50914]/30"
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-white/[0.04] text-[#E50914] text-[9px] font-bold uppercase tracking-[2px] border-t border-[#E50914]/30 hover:bg-[#E50914]/15 hover:border-[#E50914]/50 active:bg-[#E50914]/10 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#E50914]/30"
                 >
                     <Film size={13} />
                     Animate
