@@ -905,7 +905,7 @@ export default function NewProjectPage() {
                                     const isActive = selectedFormat === card.key;
                                     return (
                                         <button key={card.key}
-                                            onClick={() => { setSelectedFormat(card.key); if (!vision) setVision(card.seed); textareaRef.current?.focus(); }}
+                                            onClick={() => { setSelectedFormat(card.key); textareaRef.current?.focus(); }}
                                             className={`group relative rounded-xl border p-4 text-left transition-all duration-500 cursor-pointer overflow-hidden
                                                 ${isActive
                                                     ? 'border-[#E50914]/40 bg-[#E50914]/[0.06]'
