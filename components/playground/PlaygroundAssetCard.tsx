@@ -65,7 +65,7 @@ export default function PlaygroundAssetCard({ asset, isActive, onEdit }: Playgro
         setIsDeleting(true);
         try {
             await deleteAssetById(collectionName, asset.id);
-            toast.success(`"${asset.name}" deleted`);
+
         } catch (err: any) {
             console.error("[AssetCard] Delete failed:", err);
             toast.error("Failed to delete asset");

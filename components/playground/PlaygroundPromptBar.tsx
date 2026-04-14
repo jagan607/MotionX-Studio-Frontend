@@ -222,7 +222,7 @@ export default function PlaygroundPromptBar() {
                 }
             }
 
-            toast.success('Prompt enhanced!');
+
         } catch (e: any) {
             console.error('[Enhance] Failed:', e);
             toast.error('Enhancement failed — try again');
@@ -332,7 +332,7 @@ export default function PlaygroundPromptBar() {
                 if (prev.includes(pgUrl)) return prev;
                 return [...prev, pgUrl];
             });
-            toast.success("Reference image added");
+
         }
     }, []);
 
@@ -440,13 +440,7 @@ export default function PlaygroundPromptBar() {
             const failed = results.filter((r) => r.status === "rejected").length;
             const succeeded = batchSize - failed;
 
-            if (succeeded > 0) {
-                toast.success(
-                    batchSize === 1
-                        ? "Generation started"
-                        : `${succeeded} generation${succeeded > 1 ? "s" : ""} started`
-                );
-            }
+
             if (failed > 0) {
                 toast.error(
                     `${failed} generation${failed > 1 ? "s" : ""} failed to queue`

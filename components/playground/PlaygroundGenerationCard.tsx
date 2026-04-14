@@ -41,7 +41,7 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
         e.stopPropagation();
         if (!gen.prompt) return;
         setPendingPrompt(gen.prompt);
-        toast.success("Prompt loaded into input");
+
     };
 
     // Drag image for reference drop — custom large ghost
@@ -135,7 +135,7 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
         setIsDeleting(true);
         try {
             await deleteDoc(doc(db, "playgrounds", uid, "generations", gen.id));
-            toast.success("Generation deleted");
+
         } catch (err) {
             console.error("Delete failed:", err);
             toast.error("Failed to delete generation");

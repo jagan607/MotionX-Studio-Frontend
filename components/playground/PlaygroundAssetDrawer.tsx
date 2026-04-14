@@ -12,7 +12,7 @@
  */
 
 import { useState, useMemo, useEffect } from "react";
-import { Layers, Plus, Loader2, User, MapPin, Package } from "lucide-react";
+import { Layers, Plus, Loader2, User, MapPin, Package, X } from "lucide-react";
 import { usePlayground } from "@/app/context/PlaygroundContext";
 import type { PlaygroundAsset } from "@/lib/playgroundApi";
 import PlaygroundAssetCard from "@/components/playground/PlaygroundAssetCard";
@@ -34,6 +34,7 @@ export default function PlaygroundAssetDrawer() {
         assetsLoading,
         assetDrawerIntent,
         setAssetDrawerIntent,
+        setAssetDrawerOpen,
     } = usePlayground();
 
     const [activeTab, setActiveTab] = useState<AssetTab>("characters");
@@ -100,9 +101,13 @@ export default function PlaygroundAssetDrawer() {
                         <Layers size={14} className="text-[#E50914]" />
                         <span className="text-[10px] font-mono text-[#E50914] uppercase tracking-[3px] font-bold">Assets</span>
                     </div>
-                    <span className="text-[8px] font-mono text-[#444] uppercase tracking-[1px]">
-                        {assetsLoading ? "…" : totalAssets}
-                    </span>
+                    <button
+                        onClick={() => setAssetDrawerOpen(false)}
+                        className="w-6 h-6 rounded-md flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.12] text-white/50 hover:text-white transition-all cursor-pointer"
+                        title="Close panel"
+                    >
+                        <X size={14} />
+                    </button>
                 </div>
                 <p className="text-[9px] text-[#555] font-mono uppercase tracking-[1px] mt-1">
                     {assetsLoading ? "Loading…" : `${totalAssets} asset${totalAssets !== 1 ? "s" : ""} available`}

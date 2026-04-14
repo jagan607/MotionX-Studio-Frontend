@@ -119,7 +119,7 @@ export default function PlaygroundAnimateModal({
                 }
 
                 await playgroundAnimate(params);
-                toast.success("Animation started");
+
                 onClose();
             } catch (err: any) {
                 console.error("[PlaygroundAnimate] Failed:", err);

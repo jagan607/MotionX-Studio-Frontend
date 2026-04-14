@@ -179,7 +179,7 @@ export default function PlaygroundAssetForm({
                 }
 
                 await refreshAssets();
-                toast.success(`${config.singular} "${name.trim()}" updated`);
+
 
             } else {
                 // ── CREATE ──
@@ -204,7 +204,7 @@ export default function PlaygroundAssetForm({
                 }
 
                 await refreshAssets();
-                toast.success(`${config.singular} "${name.trim()}" created`);
+
             }
 
             onCreated?.();
@@ -247,7 +247,7 @@ export default function PlaygroundAssetForm({
                     lighting: traits["lighting"] || undefined,
                 });
                 setSavedAssetId(assetId);
-                toast.success(`${config.singular} saved — generating visual…`);
+
             }
 
             const result = await generatePlaygroundAssetVisual(assetType, assetId, {
@@ -258,7 +258,7 @@ export default function PlaygroundAssetForm({
 
             setCurrentImageUrl(result.image_url);
             await refreshAssets();
-            toast.success("Visual generated!");
+
 
         } catch (err: any) {
             console.error("[AssetForm] Generate visual failed:", err);
