@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download, MoreVertical, Upload, Palette, Camera } from 'lucide-react';
+import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download, MoreVertical, Upload, Palette, Camera, Sparkles } from 'lucide-react';
 import JSZip from 'jszip';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
@@ -696,27 +696,20 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         </button>
                         )}
 
-                        {/* CINEMATOGRAPHY */}
+                        {/* UPLOAD SHOTS */}
                         <button
-                            onClick={() => setShowCinematography(true)}
+                            onClick={() => setShowShotDivision(true)}
                             style={{
                                 height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
-                                border: sceneMoodLocal?.style_reference_status === 'stale' ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid #333',
+                                border: '1px solid #333',
                                 borderRadius: '4px', fontSize: '12px', fontWeight: 600,
                                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
                                 transition: 'border-color 0.2s'
                             }}
                             onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.borderColor = sceneMoodLocal?.style_reference_status === 'stale' ? 'rgba(251, 191, 36, 0.4)' : '#333'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
                         >
-                            <Camera size={14} />
-                            {sceneMoodLocal?.style_reference_url ? 'CINEMATOGRAPHY' : 'CINEMATOGRAPHY'}
-                            {sceneMoodLocal?.style_reference_status === 'stale' && (
-                                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'rgb(251, 191, 36)', boxShadow: '0 0 8px rgba(251, 191, 36, 0.6)' }} />
-                            )}
-                            {sceneMoodLocal?.style_reference_status === 'ready' && (
-                                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'rgb(34, 197, 94)', boxShadow: '0 0 8px rgba(34, 197, 94, 0.6)' }} />
-                            )}
+                            <Upload size={14} /> UPLOAD SHOTS
                         </button>
 
                         {/* GENERATE ALL — hidden for now
@@ -844,12 +837,12 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                         <span className="text-[#666]">👔</span> Wardrobe {sceneWardrobe ? <span className="ml-auto text-[8px] text-violet-500/70 font-bold">●</span> : null}
                                     </button>
 
-                                    {/* UPLOAD SHOTS */}
+                                    {/* SCENE MOOD */}
                                     <button
-                                        onClick={() => { setShowMoreMenu(false); setShowShotDivision(true); }}
+                                        onClick={() => { setShowMoreMenu(false); setShowCinematography(true); }}
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
                                     >
-                                        <Upload size={13} className="text-[#666]" /> Upload Shots
+                                        <Sparkles size={13} className="text-[#666]" /> Scene Mood
                                     </button>
 
                                     {/* EXPORT SUB-SECTION */}
