@@ -12,10 +12,12 @@
  */
 
 import { useState, useRef } from "react";
-import { Loader2, Film, Play, Download, RotateCcw, AlertTriangle, RefreshCw, Image as ImageIcon } from "lucide-react";
+import { Loader2, Film, Play, Download, RotateCcw, AlertTriangle, RefreshCw, Trash2 } from "lucide-react";
 import type { PlaygroundGeneration } from "@/lib/playgroundApi";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
 import { usePlayground } from "@/app/context/PlaygroundContext";
+import { doc, deleteDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import toast from "react-hot-toast";
 
 interface PlaygroundGenerationCardProps {
@@ -121,6 +123,23 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
             console.error("Download failed:", err);
         } finally {
             setDownloadingType(null);
+        }
+    };
+
+    // Delete this generation from Firestore
+    const [isDeleting, setIsDeleting] = useState(false);
+    const handleDelete = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const uid = auth.currentUser?.uid;
+        if (isDeleting || !uid) return;
+        setIsDeleting(true);
+        try {
+            await deleteDoc(doc(db, "playgrounds", uid, "generations", gen.id));
+            toast.success("Generation deleted");
+        } catch (err) {
+            console.error("Delete failed:", err);
+            toast.error("Failed to delete generation");
+            setIsDeleting(false);
         }
     };
 
@@ -236,7 +255,7 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                                     className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                                     title={downloadingType === 'image' ? 'Downloading…' : 'Download Image'}
                                 >
-                                    {downloadingType === 'image' ? <Loader2 size={12} className="animate-spin" /> : <ImageIcon size={12} />}
+                                    {downloadingType === 'image' ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
                                 </button>
                             )}
                             {/* Download video */}
@@ -247,9 +266,18 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                                     className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                                     title={downloadingType === 'video' ? 'Downloading…' : 'Download Video'}
                                 >
-                                    {downloadingType === 'video' ? <Loader2 size={12} className="animate-spin" /> : <Film size={12} />}
+                                    {downloadingType === 'video' ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
                                 </button>
                             )}
+                            {/* Delete generation */}
+                            <button
+                                onClick={handleDelete}
+                                disabled={isDeleting}
+                                className="p-1.5 rounded-md bg-white/10 hover:bg-red-500/30 text-white/70 hover:text-red-400 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                                title="Delete Generation"
+                            >
+                                {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                            </button>
                         </div>
                     </>
                 )}
@@ -257,6 +285,15 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                 {/* === STATE: FAILED / ERROR === */}
                 {isFailed && !hasImage && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#080808]">
+                        {/* Delete button for failed generations */}
+                        <button
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="absolute top-2 right-2 p-1.5 rounded-md bg-white/10 hover:bg-red-500/30 text-white/50 hover:text-red-400 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait z-10"
+                            title="Delete Generation"
+                        >
+                            {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                        </button>
                         <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-3">
                             <AlertTriangle size={20} className="text-red-400" />
                         </div>
