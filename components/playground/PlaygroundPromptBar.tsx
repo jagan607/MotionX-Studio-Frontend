@@ -343,7 +343,7 @@ export default function PlaygroundPromptBar() {
         const el = textareaRef.current;
         if (!el) return;
         el.style.height = "auto";
-        el.style.height = Math.min(el.scrollHeight, 120) + "px";
+        el.style.height = Math.min(el.scrollHeight, 80) + "px";
         // Sync backdrop height
         if (backdropRef.current) {
             backdropRef.current.style.height = el.style.height;
@@ -506,7 +506,7 @@ export default function PlaygroundPromptBar() {
                                     <img src={preview} className="w-full h-full object-cover" alt={`Reference ${idx + 1}`} />
                                     <button
                                         onClick={() => removeReferenceFile(idx)}
-                                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors cursor-pointer"
+                                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/70 rounded-full flex items-center justify-center text-white/80 hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
                                     >
                                         <X size={8} />
                                     </button>
@@ -519,7 +519,7 @@ export default function PlaygroundPromptBar() {
                                     <img src={url} className="w-full h-full object-cover" alt={`Ref ${idx + 1}`} />
                                     <button
                                         onClick={() => removeReferenceUrl(idx)}
-                                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors cursor-pointer"
+                                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/70 rounded-full flex items-center justify-center text-white/80 hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
                                     >
                                         <X size={8} />
                                     </button>
@@ -528,10 +528,6 @@ export default function PlaygroundPromptBar() {
                                     </div>
                                 </div>
                             ))}
-
-                            <span className="text-[9px] font-mono text-[#555] uppercase tracking-[1px] shrink-0 ml-1">
-                                {referencePreviews.length + referenceUrls.length} ref{referencePreviews.length + referenceUrls.length !== 1 ? "s" : ""}
-                            </span>
                         </div>
                     )}
 
