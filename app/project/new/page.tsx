@@ -12,7 +12,8 @@ import {
     Megaphone, BrainCircuit, Send,
     Upload, FileText, X, Table2,
     Check, Sparkles, Loader2, AlertTriangle,
-    Clapperboard, Clock, RectangleHorizontal
+    Clapperboard, Clock, RectangleHorizontal,
+    Video, PenTool, Box
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -747,13 +748,13 @@ export default function NewProjectPage() {
                     {/* ── Title & Genre Row ── */}
                     <div className="grid grid-cols-2 gap-4 mb-5">
                         <div>
-                            <label className="text-[8px] font-mono text-white/20 uppercase tracking-[3px] mb-1.5 block">Project Name</label>
+                            <label className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-1.5 block">Project Name</label>
                             <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); if (validationErrors.title) setValidationErrors(v => ({ ...v, title: false })); }}
                                 className={`w-full bg-white/[0.03] rounded-lg px-3.5 py-2.5 text-[14px] text-white placeholder-neutral-600 focus:outline-none tracking-[0.5px] caret-[#E50914] border transition-all duration-300 ${validationErrors.title ? 'border-[#E50914]/60 placeholder-[#E50914]/40' : 'border-white/[0.06] focus:border-[#E50914]/30 focus:bg-white/[0.04]'}`}
                                 placeholder="e.g. The Last Frontier" autoComplete="off" />
                         </div>
                         <div>
-                            <label className="text-[8px] font-mono text-white/20 uppercase tracking-[3px] mb-1.5 block">Genre</label>
+                            <label className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-1.5 block">Genre</label>
                             <input type="text" value={genre} onChange={(e) => { setGenre(e.target.value); if (validationErrors.genre) setValidationErrors(v => ({ ...v, genre: false })); }}
                                 className={`w-full bg-white/[0.03] rounded-lg px-3.5 py-2.5 text-[14px] text-white placeholder-neutral-600 focus:outline-none tracking-[0.5px] caret-[#E50914] border transition-all duration-300 ${validationErrors.genre ? 'border-[#E50914]/60 placeholder-[#E50914]/40' : 'border-white/[0.06] focus:border-[#E50914]/30 focus:bg-white/[0.04]'}`}
                                 placeholder="Thriller, Sci-Fi, Drama..." autoComplete="off" />
@@ -830,7 +831,7 @@ export default function NewProjectPage() {
                                             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[9px] font-semibold tracking-[1px] transition-all duration-300
                                                 ${isExpanding
                                                     ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-                                                    : 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25] cursor-pointer'}`}>
+                                                    : 'border border-white/[0.1] text-neutral-400 bg-white/[0.03] hover:bg-white/[0.06] hover:text-white hover:border-white/[0.15] cursor-pointer'}`}>
                                             {isExpanding ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
                                             Generate Script
                                         </button>
@@ -843,9 +844,7 @@ export default function NewProjectPage() {
                                             className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-semibold tracking-[1px] transition-all duration-300 cursor-pointer
                                                 ${isSubmitting || phase !== 'prompt'
                                                     ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-                                                    : (scriptFile || breakdownFile)
-                                                        ? 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25]'
-                                                        : 'border border-white/[0.1] text-neutral-400 bg-white/[0.03] hover:bg-white/[0.06] hover:text-white hover:border-white/[0.15]'
+                                                    : 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25]'
                                                 }`}>
                                             {isSubmitting ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
                                             {isSubmitting ? 'Creating...' : 'Create Project'}
@@ -899,7 +898,7 @@ export default function NewProjectPage() {
                     {/* ── Format Cards — Cinematic Selector ── */}
                     <div style={{ display: expandedScript ? 'none' : undefined }}>
                         <div className="mt-6 mb-5 fade-in-2">
-                            <p className="text-[8px] font-mono text-white/15 uppercase tracking-[3px] text-center mb-3">Format</p>
+                            <p className="text-[9px] font-mono text-white uppercase tracking-[3px] text-center mb-3">Format</p>
                             <div className="grid grid-cols-3 gap-3">
                                 {FORMAT_CARDS.map((card, idx) => {
                                     const isActive = selectedFormat === card.key;
@@ -936,12 +935,12 @@ export default function NewProjectPage() {
 
                         {/* ── Visual Engine ── */}
                         <div className="mb-4 fade-in-3">
-                            <p className="text-[8px] font-mono text-white/15 uppercase tracking-[3px] text-center mb-2.5">Visual Engine</p>
+                            <p className="text-[9px] font-mono text-white uppercase tracking-[3px] text-center mb-2.5">Visual Engine</p>
                             <div className="flex items-center justify-center gap-2">
                                 {([
-                                    { text: 'Live-Action', key: 'realistic' as const, icon: '🎬' },
-                                    { text: '2D Animation', key: 'animation_2d' as const, icon: '✏️' },
-                                    { text: '3D Animation', key: 'animation_3d' as const, icon: '🧊' },
+                                    { text: 'Live-Action', key: 'realistic' as const, Icon: Video },
+                                    { text: '2D Animation', key: 'animation_2d' as const, Icon: PenTool },
+                                    { text: '3D Animation', key: 'animation_3d' as const, Icon: Box },
                                 ] as const).map((s) => (
                                     <button key={s.key}
                                         onClick={() => setSelectedStyle(s.key)}
@@ -950,16 +949,16 @@ export default function NewProjectPage() {
                                                 ? 'border-white/[0.15] text-white bg-white/[0.06]'
                                                 : 'border-white/[0.04] text-neutral-600 hover:text-neutral-300 hover:border-white/[0.1] hover:bg-white/[0.03]'
                                             }`}>
-                                        <span className="text-[12px]">{s.icon}</span>{s.text}
+                                        <s.Icon size={12} />{s.text}
                                     </button>
                                 ))}
                             </div>
                         </div>
 
                         {/* ── Aspect Ratio & Runtime ── */}
-                        <div className="flex items-center justify-between gap-6 fade-in-4">
-                            <div className="flex-1">
-                                <p className="text-[8px] font-mono text-white/15 uppercase tracking-[3px] mb-2">Aspect</p>
+                        <div className="flex items-start gap-8 fade-in-4">
+                            <div className="shrink-0">
+                                <p className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-2">Aspect</p>
                                 <div className="flex items-center gap-1.5">
                                     {(['16:9', '9:16', '21:9', '4:5', '1:1'] as const).map((r) => (
                                         <button key={r} onClick={() => setAspectRatio(r)}
@@ -975,10 +974,10 @@ export default function NewProjectPage() {
                                     ))}
                                 </div>
                             </div>
-                            <div className="flex-1">
-                                <p className="text-[8px] font-mono text-white/15 uppercase tracking-[3px] mb-2">Duration</p>
+                            <div className="min-w-0">
+                                <p className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-2">Duration</p>
                                 <div className="flex items-center gap-1.5">
-                                    {[{ label: '15s', value: 15 }, { label: '30s', value: 30 }, { label: '60s', value: 60 }, { label: '2m', value: 120 }, { label: '5m', value: 300 }, { label: '10m', value: 600 }].map((r) => (
+                                    {[{ label: '60s', value: 60 }, { label: '2m', value: 120 }, { label: '5m', value: 300 }, { label: '10m', value: 600 }].map((r) => (
                                         <button key={r.value} onClick={() => { setRuntime(r.value); setRuntimeUnit('sec'); }}
                                             className={`px-2.5 py-1.5 rounded-lg text-[10px] font-mono tracking-wider transition-all duration-300 cursor-pointer border
                                                 ${runtime === r.value
@@ -996,11 +995,16 @@ export default function NewProjectPage() {
                                                 setRuntime(runtimeUnit === 'min' ? Math.round(val * 60) : Math.round(val));
                                             }}
                                             onBlur={() => { if (runtime < 1) setRuntime(30); }}
-                                            className="w-12 bg-white/[0.03] rounded-lg px-2 py-1.5 text-[10px] font-mono text-white text-center focus:outline-none focus:bg-white/[0.06] border border-white/[0.06] caret-[#E50914]" />
-                                        <button onClick={() => setRuntimeUnit(u => u === 'sec' ? 'min' : 'sec')}
-                                            className="text-[9px] text-neutral-500 hover:text-white font-mono uppercase tracking-wider cursor-pointer transition-colors px-1.5 py-1 rounded-md hover:bg-white/[0.06]">
-                                            {runtimeUnit}
-                                        </button>
+                                            className="w-16 bg-white/[0.03] rounded-lg px-2 py-1.5 text-[10px] font-mono text-white text-center focus:outline-none focus:bg-white/[0.06] border border-white/[0.06] caret-[#E50914]" />
+                                        <select
+                                            value={runtimeUnit}
+                                            onChange={(e) => { setRuntimeUnit(e.target.value as 'sec' | 'min'); }}
+                                            className="appearance-none bg-white/[0.03] rounded-lg px-2 py-1.5 text-[10px] font-mono text-white uppercase tracking-wider cursor-pointer border border-white/[0.06] focus:outline-none focus:bg-white/[0.06] hover:bg-white/[0.06] transition-colors"
+                                            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L4 4L7 1' stroke='%23888' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', paddingRight: '20px' }}
+                                        >
+                                            <option value="sec" className="bg-[#1a1a1a] text-white">SEC</option>
+                                            <option value="min" className="bg-[#1a1a1a] text-white">MIN</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
