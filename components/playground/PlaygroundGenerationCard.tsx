@@ -144,9 +144,9 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
     };
 
     return (
-        <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl overflow-hidden group hover:border-[#333] transition-all duration-200">
+        <div className="relative rounded-xl overflow-hidden group border border-[#1a1a1a] hover:border-[#333] transition-all duration-200">
 
-            {/* ═══ MEDIA AREA ═══ */}
+            {/* ═══ MEDIA AREA (full card) ═══ */}
             <div
                 className="aspect-video bg-black relative cursor-pointer overflow-hidden"
                 onClick={handleMediaClick}
@@ -168,7 +168,6 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                 {/* === STATE: GENERATING === */}
                 {isGenerating && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#080808]">
-                        {/* Animated shimmer background */}
                         <div className="absolute inset-0 skeleton-shimmer opacity-30" />
                         <div className="relative z-10 flex flex-col items-center">
                             <div className="w-12 h-12 rounded-xl bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center mb-3">
@@ -190,7 +189,7 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                         <img
                             src={gen.image_url}
                             alt={gen.prompt || "Generated image"}
-                            className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300"
+                            className="w-full h-full object-cover"
                             loading="lazy"
                             draggable
                             onDragStart={handleDragStart}
@@ -209,7 +208,6 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                                         videoHovered ? "opacity-100" : "opacity-0"
                                     }`}
                                 />
-                                {/* Video badge */}
                                 <div className="absolute top-2 right-2 bg-black/70 p-1.5 rounded-md backdrop-blur-sm flex items-center gap-1">
                                     <Film size={9} className="text-[#E50914]" />
                                     <span className="text-[7px] font-mono text-white/70 uppercase">Video</span>
@@ -236,48 +234,63 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                             </div>
                         )}
 
-                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1.5">
-                            {/* Reuse prompt */}
+                        {/* ═══ TOP-LEFT ACTION BUTTONS (hover) ═══ */}
+                        <div className="absolute top-2 left-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                             {gen.prompt && (
                                 <button
                                     onClick={handleReusePrompt}
-                                    className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer"
+                                    className="p-1.5 rounded-md bg-black/60 hover:bg-black/80 text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-sm"
                                     title="Reuse Prompt"
                                 >
                                     <RefreshCw size={12} />
                                 </button>
                             )}
-                            {/* Download image */}
                             {hasImage && (
                                 <button
                                     onClick={(e) => handleDownload(e, 'image')}
                                     disabled={!!downloadingType}
-                                    className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                                    className="p-1.5 rounded-md bg-black/60 hover:bg-black/80 text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-sm disabled:opacity-50 disabled:cursor-wait"
                                     title={downloadingType === 'image' ? 'Downloading…' : 'Download Image'}
                                 >
                                     {downloadingType === 'image' ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
                                 </button>
                             )}
-                            {/* Download video */}
                             {hasVideo && (
                                 <button
                                     onClick={(e) => handleDownload(e, 'video')}
                                     disabled={!!downloadingType}
-                                    className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                                    className="p-1.5 rounded-md bg-black/60 hover:bg-black/80 text-white/70 hover:text-white transition-all cursor-pointer backdrop-blur-sm disabled:opacity-50 disabled:cursor-wait"
                                     title={downloadingType === 'video' ? 'Downloading…' : 'Download Video'}
                                 >
                                     {downloadingType === 'video' ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
                                 </button>
                             )}
-                            {/* Delete generation */}
                             <button
                                 onClick={handleDelete}
                                 disabled={isDeleting}
-                                className="p-1.5 rounded-md bg-white/10 hover:bg-red-500/30 text-white/70 hover:text-red-400 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                                className="p-1.5 rounded-md bg-black/60 hover:bg-red-500/40 text-white/70 hover:text-red-400 transition-all cursor-pointer backdrop-blur-sm disabled:opacity-50 disabled:cursor-wait"
                                 title="Delete Generation"
                             >
                                 {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                             </button>
+                        </div>
+
+                        {/* ═══ SLIDE-UP OVERLAY: Minimal info + Animate ═══ */}
+                        <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
+                            <div className="flex items-center gap-2 px-3 py-2.5 bg-black/85 backdrop-blur-sm">
+                                <p className="text-[10px] text-white/60 truncate flex-1 leading-snug">
+                                    {gen.prompt || "—"}
+                                </p>
+                                {!hasVideo && !isAnimating && !isFailed && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setAnimateTarget(gen); }}
+                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#E50914]/15 text-[#E50914] text-[8px] font-bold uppercase tracking-[1.5px] hover:bg-[#E50914]/25 transition-all cursor-pointer shrink-0 border border-[#E50914]/30"
+                                    >
+                                        <Film size={11} />
+                                        Animate
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </>
                 )}
@@ -285,7 +298,6 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                 {/* === STATE: FAILED / ERROR === */}
                 {isFailed && !hasImage && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#080808]">
-                        {/* Delete button for failed generations */}
                         <button
                             onClick={handleDelete}
                             disabled={isDeleting}
@@ -308,58 +320,9 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                     </div>
                 )}
 
-                {/* === STATE: NO IMAGE YET (not generating, not failed — edge case) === */}
+                {/* === STATE: NO IMAGE YET === */}
                 {!isGenerating && !isFailed && !hasImage && (
                     <div className="absolute inset-0 skeleton-shimmer" />
-                )}
-            </div>
-
-            {/* ═══ PRIMARY ANIMATE CTA (image-only state) ═══ */}
-            {hasImage && !hasVideo && !isAnimating && !isFailed && (
-                <button
-                    onClick={() => setAnimateTarget(gen)}
-                    aria-label={`Animate generation ${gen.id}`}
-                    className="w-full flex items-center justify-center gap-2 py-2 bg-white/[0.04] text-[#E50914] text-[9px] font-bold uppercase tracking-[2px] border-t border-[#E50914]/30 hover:bg-[#E50914]/15 hover:border-[#E50914]/50 active:bg-[#E50914]/10 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#E50914]/30"
-                >
-                    <Film size={13} />
-                    Animate
-                </button>
-            )}
-
-            {/* ═══ METADATA FOOTER ═══ */}
-            <div className="p-3 border-t border-[#111]">
-                <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[8px] font-mono text-[#555] uppercase tracking-[1px]">
-                            {gen.shot_type || "—"}
-                        </span>
-                        {gen.aspect_ratio && (
-                            <span className="text-[7px] font-mono text-[#333] bg-white/[0.03] px-1.5 py-0.5 rounded">
-                                {gen.aspect_ratio}
-                            </span>
-                        )}
-                    </div>
-                    <span className={`text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ${
-                        gen.status === "completed"
-                            ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                            : gen.status === "generating"
-                            ? "bg-[#E50914]/10 text-[#E50914] border border-[#E50914]/20 animate-pulse"
-                            : isFailed
-                            ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                            : "bg-white/5 text-[#555] border border-white/10"
-                    }`}>
-                        {gen.status}
-                    </span>
-                </div>
-                <p className="text-[10px] text-[#777] line-clamp-2 leading-relaxed">
-                    {gen.prompt || "—"}
-                </p>
-                {gen.provider && (
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                        <span className="text-[7px] font-mono text-[#333] uppercase tracking-[1px]">
-                            {gen.provider} • {gen.model_tier || "auto"}
-                        </span>
-                    </div>
                 )}
             </div>
         </div>
