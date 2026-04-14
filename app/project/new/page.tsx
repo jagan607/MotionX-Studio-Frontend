@@ -779,7 +779,7 @@ export default function NewProjectPage() {
                                         </div>
                                         <div className="relative flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/60 border border-white/[0.08]">
                                             <Loader2 size={14} className="animate-spin text-[#E50914]" />
-                                            <span className="text-[11px] font-medium text-white/60">Generating script...</span>
+                                            <span className="text-[11px] font-medium text-white/60">Generating...</span>
                                         </div>
                                     </div>
                                 )}
@@ -825,7 +825,7 @@ export default function NewProjectPage() {
 
                                 <div className="flex items-center gap-2">
                                     {/* Generate Script CTA — RED when text-only (no file), ghost otherwise */}
-                                    {vision.trim().length > 0 && !scriptFile && !breakdownFile && !expandedScript && (
+                                    {vision.trim().length > 0 && !scriptFile && !breakdownFile && !expandedScript && !isExpanding && (
                                         <button onClick={handleExpandSynopsis}
                                             disabled={isExpanding || !vision.trim()}
                                             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[9px] font-semibold tracking-[1px] transition-all duration-300
@@ -838,7 +838,7 @@ export default function NewProjectPage() {
                                     )}
 
                                     {/* Create Project CTA — RED when file attached, ghost when text-only */}
-                                    {(vision.trim().length > 0 || scriptFile || breakdownFile) && !expandedScript && (
+                                    {(vision.trim().length > 0 || scriptFile || breakdownFile) && !expandedScript && !isExpanding && (
                                         <button onClick={handleCreate}
                                             disabled={isSubmitting || phase !== 'prompt'}
                                             className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-semibold tracking-[1px] transition-all duration-300 cursor-pointer
@@ -956,9 +956,9 @@ export default function NewProjectPage() {
                         </div>
 
                         {/* ── Aspect Ratio & Runtime ── */}
-                        <div className="flex items-start gap-8 fade-in-4">
+                        <div className="flex items-start justify-center gap-8 fade-in-4">
                             <div className="shrink-0">
-                                <p className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-2">Aspect</p>
+                                <p className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-2 text-center">Aspect</p>
                                 <div className="flex items-center gap-1.5">
                                     {(['16:9', '9:16', '21:9', '4:5', '1:1'] as const).map((r) => (
                                         <button key={r} onClick={() => setAspectRatio(r)}
@@ -975,7 +975,7 @@ export default function NewProjectPage() {
                                 </div>
                             </div>
                             <div className="min-w-0">
-                                <p className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-2">Duration</p>
+                                <p className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-2 text-center">Duration</p>
                                 <div className="flex items-center gap-1.5">
                                     {[{ label: '60s', value: 60 }, { label: '2m', value: 120 }, { label: '5m', value: 300 }, { label: '10m', value: 600 }].map((r) => (
                                         <button key={r.value} onClick={() => { setRuntime(r.value); setRuntimeUnit('sec'); }}
