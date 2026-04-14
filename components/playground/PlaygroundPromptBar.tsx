@@ -30,7 +30,7 @@ import {
     Link2,
     Search,
     Wand2,
-    Plus,
+    PlusCircle,
 } from "lucide-react";
 import { usePromptMention } from "@/app/hooks/usePromptMention";
 import { usePlayground, type PlaygroundMentionItem } from "@/app/context/PlaygroundContext";
@@ -117,6 +117,9 @@ const RESOLUTIONS = [
     { value: "4k", label: "4K" },
 ];
 
+const BATCH_SIZES = [1, 2, 4] as const;
+type BatchSize = (typeof BATCH_SIZES)[number];
+
 const RESOLUTION_MULTIPLIER: Record<string, number> = {
     '1k': 1.0,
     '2k': 1.5,
@@ -176,6 +179,7 @@ export default function PlaygroundPromptBar() {
     const [isDragOver, setIsDragOver] = useState(false);
     const dragCounterRef = useRef(0); // Counter to prevent child-element flickering
     const [showSettings, setShowSettings] = useState(false);
+    const [batchSize, setBatchSize] = useState<BatchSize>(1);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -232,7 +236,7 @@ export default function PlaygroundPromptBar() {
     const { credits } = useCredits();
     const imageCost = getImageCost(stylePrefs.image_provider, stylePrefs.model_tier as 'flash' | 'pro', 'playground');
     const resolution = stylePrefs.image_resolution || '1k';
-    const finalCost = Math.round(imageCost * (RESOLUTION_MULTIPLIER[resolution] || 1) * 100) / 100;
+    const finalCost = Math.round(imageCost * (RESOLUTION_MULTIPLIER[resolution] || 1) * batchSize * 100) / 100;
     const hasInsufficientBalance = credits !== null && credits < finalCost;
 
     // --- usePromptMention wiring ---
@@ -408,25 +412,47 @@ export default function PlaygroundPromptBar() {
             // Extract asset IDs from @tags
             const { characters, location, products } = extractAssetIds(trimmed, mentionItems);
 
-            await playgroundGenerate({
-                prompt: trimmed,
-                characters: characters || undefined,
-                location: location || undefined,
-                products: products || undefined,
-                aspect_ratio: stylePrefs.aspect_ratio,
-                style: stylePrefs.style,
-                shot_type: stylePrefs.shot_type,
-                image_provider: stylePrefs.image_provider,
-                model_tier: stylePrefs.model_tier,
-                style_palette: stylePrefs.style_palette || undefined,
-                style_lighting: stylePrefs.style_lighting || undefined,
-                style_mood: stylePrefs.style_mood || undefined,
-                reference_image: referenceImages[0] || null,
-                ref_image_urls: referenceUrls.length ? referenceUrls : undefined,
-                image_resolution: stylePrefs.image_resolution || '1k',
-            });
+            // Build a single-generation thunk
+            const generateOne = () =>
+                playgroundGenerate({
+                    prompt: trimmed,
+                    characters: characters || undefined,
+                    location: location || undefined,
+                    products: products || undefined,
+                    aspect_ratio: stylePrefs.aspect_ratio,
+                    style: stylePrefs.style,
+                    shot_type: stylePrefs.shot_type,
+                    image_provider: stylePrefs.image_provider,
+                    model_tier: stylePrefs.model_tier,
+                    style_palette: stylePrefs.style_palette || undefined,
+                    style_lighting: stylePrefs.style_lighting || undefined,
+                    style_mood: stylePrefs.style_mood || undefined,
+                    reference_image: referenceImages[0] || null,
+                    ref_image_urls: referenceUrls.length ? referenceUrls : undefined,
+                    image_resolution: stylePrefs.image_resolution || '1k',
+                });
 
-            toast.success("Generation started");
+            // Fire N parallel requests (batchSize = 1 | 2 | 4)
+            const results = await Promise.allSettled(
+                Array.from({ length: batchSize }, () => generateOne())
+            );
+
+            const failed = results.filter((r) => r.status === "rejected").length;
+            const succeeded = batchSize - failed;
+
+            if (succeeded > 0) {
+                toast.success(
+                    batchSize === 1
+                        ? "Generation started"
+                        : `${succeeded} generation${succeeded > 1 ? "s" : ""} started`
+                );
+            }
+            if (failed > 0) {
+                toast.error(
+                    `${failed} generation${failed > 1 ? "s" : ""} failed to queue`
+                );
+            }
+
             setPrompt("");
             clearReference();
             // Reset textarea height
@@ -439,7 +465,7 @@ export default function PlaygroundPromptBar() {
         } finally {
             setIsGenerating(false);
         }
-    }, [prompt, isGenerating, mentionItems, stylePrefs, referenceImages]);
+    }, [prompt, isGenerating, mentionItems, stylePrefs, referenceImages, batchSize]);
 
     // --- Keyboard: Enter to submit (Shift+Enter for newline) ---
     const handleKeyDown = useCallback(
@@ -469,7 +495,7 @@ export default function PlaygroundPromptBar() {
             <div className="h-8 bg-gradient-to-t from-[#030303] to-transparent" />
 
             <div className="bg-[#030303] px-4 pb-4 pt-1 pointer-events-auto">
-                <div className="max-w-3xl mx-auto">
+                <div className="max-w-4xl mx-auto relative">
 
                     {/* ── REFERENCE IMAGE PREVIEWS (files + dropped URLs) ── */}
                     {(referencePreviews.length > 0 || referenceUrls.length > 0) && (
@@ -511,11 +537,12 @@ export default function PlaygroundPromptBar() {
 
                     {/* ── MAIN PROMPT CONTAINER ── */}
                     <div
-                        className={`relative bg-[#0a0a0a] border rounded-xl transition-all duration-200 ${
+                        className={`relative border rounded-2xl transition-all duration-300 ${
                             isDragOver
                                 ? "border-[#E50914]/50 shadow-[0_0_30px_rgba(229,9,20,0.15)]"
-                                : "border-[#222] hover:border-[#333] focus-within:border-[#E50914]/40"
+                                : "border-white/[0.08] hover:border-white/[0.14] focus-within:border-[#E50914]/30 shadow-[0_4px_30px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.03)] focus-within:shadow-[0_4px_40px_rgba(229,9,20,0.08),0_0_0_1px_rgba(229,9,20,0.12)]"
                         }`}
+                        style={{ background: 'linear-gradient(180deg, #161616 0%, #0e0e0e 100%)' }}
                         onDragEnter={handleDragEnter}
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
@@ -692,10 +719,10 @@ export default function PlaygroundPromptBar() {
                                         setAssetDrawerOpen(true);
                                         setAssetDrawerIntent('create');
                                     }}
-                                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[8px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border border-white/[0.08] bg-transparent text-[#555] hover:text-white hover:border-white/20"
+                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[9px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border border-white/[0.08] bg-transparent text-white/70 hover:text-white hover:border-white/20"
                                     title="Create a new asset"
                                 >
-                                    <Plus size={10} strokeWidth={3} />
+                                    <PlusCircle size={11} />
                                     <span className="hidden sm:inline">Asset</span>
                                 </button>
 
@@ -710,28 +737,28 @@ export default function PlaygroundPromptBar() {
                                 />
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
-                                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-[8px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border ${
+                                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[9px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border ${
                                         referenceImages.length > 0
                                             ? "border-[#E50914]/30 bg-[#E50914]/10 text-[#E50914]"
-                                            : "border-white/[0.08] bg-transparent text-[#555] hover:text-white hover:border-white/20"
+                                            : "border-white/[0.08] bg-transparent text-white/70 hover:text-white hover:border-white/20"
                                     }`}
                                     title="Attach reference image"
                                 >
-                                    <Upload size={10} />
+                                    <Upload size={11} />
                                     <span className="hidden sm:inline">Ref</span>
                                 </button>
 
                                 {/* Toggle settings */}
                                 <button
                                     onClick={() => setShowSettings(!showSettings)}
-                                    className={`flex items-center gap-1 px-2 py-1 rounded-md text-[8px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border ${
+                                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[9px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border ${
                                         showSettings
                                             ? "border-[#E50914]/30 bg-[#E50914]/10 text-[#E50914]"
-                                            : "border-white/[0.08] bg-transparent text-[#555] hover:text-white hover:border-white/20"
+                                            : "border-white/[0.08] bg-transparent text-white/70 hover:text-white hover:border-white/20"
                                     }`}
                                 >
                                     <ChevronDown
-                                        size={10}
+                                        size={11}
                                         className={`transition-transform ${showSettings ? "rotate-180" : ""}`}
                                     />
                                     <span className="hidden sm:inline">Settings</span>
@@ -759,19 +786,14 @@ export default function PlaygroundPromptBar() {
                                     onChange={(v) => setStylePref("image_resolution", v)}
                                 />
 
-                                {/* Tagged asset count */}
-                                {taggedCount > 0 && (
-                                    <span className="text-[8px] font-mono text-[#E50914]/70 ml-1">
-                                        {taggedCount} tagged
-                                    </span>
-                                )}
+                                <BatchSelector value={batchSize} onChange={setBatchSize} />
                             </div>
 
                             {/* Right: Generate */}
                             <button
                                 onClick={handleGenerate}
                                 disabled={!prompt.trim() || isGenerating || hasInsufficientBalance}
-                                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-[2px] transition-all border ${
+                                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-[2px] transition-all border whitespace-nowrap ${
                                     !prompt.trim() || isGenerating || hasInsufficientBalance
                                         ? "border-white/[0.06] bg-white/[0.02] text-[#444] cursor-not-allowed"
                                         : "border-[#E50914]/40 bg-[#E50914]/15 text-white hover:bg-[#E50914]/25 hover:border-[#E50914] hover:shadow-[0_0_20px_rgba(229,9,20,0.2)] cursor-pointer"
@@ -847,8 +869,8 @@ export default function PlaygroundPromptBar() {
                         )}
                     </div>
 
-                    {/* Hint text */}
-                    <div className="flex items-center justify-between mt-1.5 px-1">
+                    {/* Hint text — inside the card */}
+                    <div className="flex items-center justify-between mt-2 px-1">
                         <span className="text-[8px] text-[#333] font-mono">
                             <span className="text-[#555]">@</span> to tag assets • <span className="text-[#555]">Enter</span> to generate • <span className="text-[#555]">Shift+Enter</span> for newline
                         </span>
@@ -885,8 +907,8 @@ function QuickSelect({
         <select
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="bg-transparent border border-white/[0.06] rounded-md px-1.5 py-1 text-[8px] font-mono text-[#777] uppercase tracking-[1px] outline-none cursor-pointer hover:border-white/20 hover:text-white transition-colors appearance-none hidden sm:block"
-            style={{ minWidth: 50 }}
+            className="bg-transparent border border-white/[0.06] rounded-md px-2 py-1.5 text-[9px] font-mono text-white/80 uppercase tracking-[1px] outline-none cursor-pointer hover:border-white/20 hover:text-white transition-colors appearance-none hidden sm:block"
+            style={{ minWidth: 54 }}
         >
             {options.map((opt) => (
                 <option key={opt.value} value={opt.value} className="bg-[#0a0a0a] text-white">
@@ -953,6 +975,35 @@ function SettingsTextInput({
                 placeholder={placeholder}
                 className="w-full bg-[#111] border border-[#222] rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-white/80 outline-none hover:border-[#444] focus:border-[#E50914]/40 transition-colors placeholder:text-[#444]"
             />
+        </div>
+    );
+}
+
+/**
+ * Batch size selector — segmented pill toggle (×1 / ×2 / ×4)
+ */
+function BatchSelector({
+    value,
+    onChange,
+}: {
+    value: BatchSize;
+    onChange: (size: BatchSize) => void;
+}) {
+    return (
+        <div className="flex items-center border border-white/[0.08] rounded-md overflow-hidden">
+            {BATCH_SIZES.map((size) => (
+                <button
+                    key={size}
+                    onClick={() => onChange(size)}
+                    className={`px-2.5 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[1px] transition-all cursor-pointer border-none ${
+                        value === size
+                            ? "bg-[#E50914]/15 text-[#E50914]"
+                            : "bg-transparent text-[#555] hover:text-white"
+                    }`}
+                >
+                    ×{size}
+                </button>
+            ))}
         </div>
     );
 }
