@@ -244,7 +244,7 @@ const HeroSection = () => {
   const [countdownNum, setCountdownNum] = useState(3);
   const { displayText, isComplete } = useTypingEffect(headline, 65, countdownDone ? 400 : 99999);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [heroVideos, setHeroVideos] = useState<string[]>([]);
+  const [heroMedia, setHeroMedia] = useState<{ video_url?: string; image_url?: string }[]>([]);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const [taglineIdx, setTaglineIdx] = useState(0);
   const [taglineFading, setTaglineFading] = useState(false);
@@ -279,14 +279,14 @@ const HeroSection = () => {
     return () => clearInterval(timer);
   }, [isComplete]);
 
-  // Fetch 4 videos from Firebase global feed
+  // Fetch media from Firebase global feed (free users only)
   useEffect(() => {
     fetchGlobalFeed().then((shots: any[]) => {
-      const vids = shots
-        .filter((s: any) => s.video_url)
-        .slice(0, 4)
-        .map((s: any) => s.video_url);
-      setHeroVideos(vids);
+      const media = shots
+        .filter((s: any) => s.video_url || s.image_url)
+        .slice(0, 8)
+        .map((s: any) => ({ video_url: s.video_url, image_url: s.image_url }));
+      setHeroMedia(media);
     }).catch((e) => {
       console.warn("Global Feed fetching error:", e);
     });
@@ -294,12 +294,12 @@ const HeroSection = () => {
 
   // Cross-fade every 6 seconds
   useEffect(() => {
-    if (heroVideos.length < 2) return;
+    if (heroMedia.length < 2) return;
     const timer = setInterval(() => {
-      setActiveIdx(prev => (prev + 1) % heroVideos.length);
+      setActiveIdx(prev => (prev + 1) % heroMedia.length);
     }, 6000);
     return () => clearInterval(timer);
-  }, [heroVideos.length]);
+  }, [heroMedia.length]);
 
   useEffect(() => {
     videoRefs.current.forEach((vid, i) => {
@@ -311,23 +311,33 @@ const HeroSection = () => {
         vid.pause();
       }
     });
-  }, [activeIdx, heroVideos.length]);
+  }, [activeIdx, heroMedia.length]);
 
   return (
     <section className="relative w-full flex flex-col items-center justify-center overflow-hidden" style={{ minHeight: '100vh' }}>
-      {/* Cross-Fade Video Background */}
-      {heroVideos.map((src, i) => (
-        <video
-          key={i}
-          ref={el => { videoRefs.current[i] = el; }}
-          src={src}
-          muted
-          playsInline
-          loop
-          preload={i === 0 ? 'auto' : 'none'}
-          className={`hero-slide ${i === activeIdx ? 'hero-slide-active' : ''}`}
-          style={{ objectFit: 'cover' }}
-        />
+      {/* Cross-Fade Background (Video or Image) */}
+      {heroMedia.map((item, i) => (
+        item.video_url ? (
+          <video
+            key={i}
+            ref={el => { videoRefs.current[i] = el; }}
+            src={item.video_url}
+            muted
+            playsInline
+            loop
+            preload={i === 0 ? 'auto' : 'none'}
+            className={`hero-slide ${i === activeIdx ? 'hero-slide-active' : ''}`}
+            style={{ objectFit: 'cover' }}
+          />
+        ) : (
+          <img
+            key={i}
+            src={item.image_url}
+            alt=""
+            className={`hero-slide ${i === activeIdx ? 'hero-slide-active' : ''}`}
+            style={{ objectFit: 'cover' }}
+          />
+        )
       ))}
 
       {/* Overlays */}
@@ -489,7 +499,7 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* ── Horizontal Video Reel ── */}
+      {/* ── Horizontal Media Reel ── */}
       <div className="relative z-10 w-full mt-12 md:mt-16 overflow-hidden">
         {/* Edge fade masks */}
         <div className="absolute left-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
@@ -503,21 +513,30 @@ const HeroSection = () => {
             width: 'max-content',
           }}
         >
-          {[...heroVideos, ...heroVideos].map((src, i) => (
+          {[...heroMedia, ...heroMedia].map((item, i) => (
             <div
               key={i}
               className="flex-shrink-0 w-[280px] md:w-[360px] rounded-xl overflow-hidden border border-white/[0.08] red-glow"
             >
-              <video
-                src={src}
-                muted
-                playsInline
-                loop
-                autoPlay
-                preload="metadata"
-                className="w-full h-auto object-cover"
-                style={{ aspectRatio: '16/9' }}
-              />
+              {item.video_url ? (
+                <video
+                  src={item.video_url}
+                  muted
+                  playsInline
+                  loop
+                  autoPlay
+                  preload="metadata"
+                  className="w-full h-auto object-cover"
+                  style={{ aspectRatio: '16/9' }}
+                />
+              ) : (
+                <img
+                  src={item.image_url}
+                  alt=""
+                  className="w-full h-auto object-cover"
+                  style={{ aspectRatio: '16/9' }}
+                />
+              )}
             </div>
           ))}
         </div>
