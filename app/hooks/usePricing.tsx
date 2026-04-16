@@ -77,6 +77,13 @@ const DEFAULT_PRICING: Pricing = {
             "multi_shot_surcharge": { "standard": 1.0, "pro": 1.0 },
             "end_frame_surcharge": { "standard": 1.0, "pro": 1.0 }
         },
+        "kling-v3-omni": {
+            "standard": { "3s": 2.0, "5s": 3.0, "10s": 5.0, "15s": 8.0 },
+            "pro": { "3s": 3.0, "5s": 5.0, "10s": 8.0, "15s": 12.0 },
+            "audio_surcharge": { "standard": 1.0, "pro": 1.0 },
+            "multi_shot_surcharge": { "standard": 0.2, "pro": 0.2 },
+            "end_frame_surcharge": { "standard": 0.2, "pro": 0.2 }
+        },
         "kling": {
             "standard": { "5s": 1.0, "10s": 2.0 },
             "pro": { "5s": 2.0, "10s": 4.0 },

@@ -76,16 +76,19 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         setDisplayMedia(items);
     }, []);
 
+    // ── Active provider for tag format ──
+    const activeProvider = shot?.video_settings?.provider;
+
     /** Build reference_media manifest for the enhance_prompt API */
     const buildRefMediaPayload = useCallback(() => {
         if (displayMedia.length === 0) return undefined;
         return displayMedia.map((item, i) => ({
-            tag: getMediaTag(displayMedia, i),
+            tag: getMediaTag(displayMedia, i, activeProvider),
             type: item.type,
             name: item.name,
             locked: !!item.locked,
         }));
-    }, [displayMedia]);
+    }, [displayMedia, activeProvider]);
 
     // ── Trigger @mention from banner click ──
     const handleTriggerMention = useCallback(() => {
@@ -124,6 +127,59 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shot?.id]);
+
+    // ── Auto-translate media tags when provider changes ──
+    const prevProviderRef = useRef<string | undefined>(shot?.video_settings?.provider);
+
+    useEffect(() => {
+        const currentProvider = shot?.video_settings?.provider;
+        const prevProvider = prevProviderRef.current;
+        prevProviderRef.current = currentProvider;
+
+        // Only translate between Seedance ↔ Omni
+        if (!prevProvider || !currentProvider || prevProvider === currentProvider) return;
+
+        const fromSeedanceToOmni =
+            (prevProvider === 'seedance-2' || prevProvider === 'seedance') &&
+            currentProvider === 'kling-v3-omni';
+        const fromOmniToSeedance =
+            prevProvider === 'kling-v3-omni' &&
+            (currentProvider === 'seedance-2' || currentProvider === 'seedance');
+
+        if (!fromSeedanceToOmni && !fromOmniToSeedance) return;
+
+        let updated = localPrompt;
+        if (fromSeedanceToOmni) {
+            // @image1 → @image_1  (add underscore)
+            updated = updated.replace(/@image(\d+)/g, '@image_$1');
+            // @video1 → @video  (flatten to single un-numbered tag)
+            updated = updated.replace(/@video\d+/g, '@video');
+            // Deduplicate @video if multiple existed
+            const videoCount = (updated.match(/@video/g) || []).length;
+            if (videoCount > 1) {
+                let seen = false;
+                updated = updated.replace(/@video/g, () => {
+                    if (!seen) { seen = true; return '@video'; }
+                    return '';
+                });
+            }
+            // Remove @audio tags (Omni doesn't support audio refs)
+            updated = updated.replace(/@audio\d+\s*/g, '');
+        } else {
+            // @image_1 → @image1  (remove underscore)
+            updated = updated.replace(/@image_(\d+)/g, '@image$1');
+            // @video → @video1  (add number)
+            updated = updated.replace(/@video(?!\d)/g, '@video1');
+        }
+
+        updated = updated.replace(/\s{2,}/g, ' ').trim();
+
+        if (updated !== localPrompt) {
+            setLocalPrompt(updated);
+            if (shot) onUpdateShot(shot.id, 'video_prompt', updated);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [shot?.video_settings?.provider]);
 
     // Cleanup debounce timer on unmount
     useEffect(() => {
@@ -179,21 +235,22 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
 
     // ── @Mention Autocomplete Hook (must be after handleInsertPromptTag) ──
     const isSeedance2 = shot?.video_settings?.provider === 'seedance-2' || shot?.video_settings?.provider === 'seedance';
+    const isOmniProvider = shot?.video_settings?.provider === 'kling-v3-omni';
     const mentionItems: MentionItem[] = React.useMemo(() =>
         displayMedia.map((item, i) => ({
-            tag: getMediaTag(displayMedia, i),
+            tag: getMediaTag(displayMedia, i, activeProvider),
             type: item.type,
             url: item.url,
             name: item.name,
             locked: item.locked,
         })),
-        [displayMedia]
+        [displayMedia, activeProvider]
     );
 
     const mention = usePromptMention({
         textareaRef: promptTextareaRef,
         items: mentionItems,
-        enabled: !!isSeedance2,
+        enabled: !!(isSeedance2 || isOmniProvider),
     });
 
 
@@ -484,7 +541,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                 </div>
 
                                 {/* Camera Direction Hints */}
-                                {(shot.video_settings?.provider === 'seedance-2' || shot.video_settings?.provider === 'seedance') && (
+                                {(shot.video_settings?.provider === 'seedance-2' || shot.video_settings?.provider === 'seedance' || shot.video_settings?.provider === 'kling-v3-omni') && (
                                     <div className="flex flex-wrap gap-1 mt-1">
                                         {['slow dolly in', 'tracking shot', 'pan left', 'zoom out', 'static close-up', 'crane up'].map(hint => (
                                             <button

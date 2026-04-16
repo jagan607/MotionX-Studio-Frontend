@@ -15,6 +15,7 @@ interface VideoHistoryStripProps {
 const providerLabel = (provider: string): string => {
     const map: Record<string, string> = {
         'kling-v3': 'K v3',
+        'kling-v3-omni': 'K Omni',
         'kling': 'K',
         'seedance-2': 'S 2.0',
         'seedance': 'S',

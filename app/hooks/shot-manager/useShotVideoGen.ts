@@ -2,7 +2,7 @@ import { api, preflightSeedance2 } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 
-export type VideoProvider = 'kling' | 'kling-v3' | 'seedance' | 'seedance-2' | 'seedance-1.5';
+export type VideoProvider = 'kling' | 'kling-v3' | 'kling-v3-omni' | 'seedance' | 'seedance-2' | 'seedance-1.5';
 
 export interface PromptSegment {
     index: number;
@@ -44,6 +44,9 @@ export interface AnimateOptions {
     source_video_duration?: number;          // Duration in seconds of source video
     trim_start?: number;                     // Trim start time (seconds)
     trim_end?: number;                       // Trim end time (seconds)
+
+    // Kling v3 Omni
+    keep_original_audio?: boolean;            // Preserve ref video's original audio
 
     // Preflight bypass
     skipPreflight?: boolean;                 // Skip preflight warnings check
@@ -123,6 +126,9 @@ export const useShotVideoGen = (
                 if (options.source_video_duration) payload.source_video_duration = options.source_video_duration;
                 if (options.trim_start !== undefined) payload.trim_start = options.trim_start;
                 if (options.trim_end !== undefined) payload.trim_end = options.trim_end;
+
+                // Kling v3 Omni
+                if (options.keep_original_audio) payload.keep_original_audio = options.keep_original_audio;
 
                 // Multi-shot
                 if (options.multi_shot) {

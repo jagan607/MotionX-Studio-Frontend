@@ -23,10 +23,23 @@ const MAX_REF_MEDIA = 12;
 const MAX_FILE_SIZE_MB = 50;
 const MAX_AUDIO_DURATION_S = 15;
 
-/** Compute the PiAPI @tag for a media item based on its position and type */
-export const getMediaTag = (items: RefMediaItem[], index: number): string => {
+/** Compute the PiAPI @tag for a media item based on its position, type, and provider */
+export const getMediaTag = (
+    items: RefMediaItem[],
+    index: number,
+    provider?: string,
+): string => {
     const item = items[index];
+    const isOmni = provider === 'kling-v3-omni';
     const sameTypeBefore = items.slice(0, index).filter(r => r.type === item.type).length;
+
+    if (isOmni) {
+        // Omni: @image_1, @image_2 (underscore) and flat @video (no number)
+        if (item.type === 'video') return '@video';
+        return `@image_${sameTypeBefore + 1}`;
+    }
+
+    // Seedance / default: @image1, @video1, @audio1 (no underscore)
     const prefix = item.type === 'image' ? 'image' : item.type === 'video' ? 'video' : 'audio';
     return `@${prefix}${sameTypeBefore + 1}`;
 };
@@ -166,10 +179,19 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const [mode, setMode] = useState<'std' | 'pro'>(initialSettings?.mode || 'pro');
     // --- Provider Flags ---
     const isV3 = provider === 'kling-v3';
+    const isOmni = provider === 'kling-v3-omni';
     const isSeedance2 = provider === 'seedance-2' || provider === 'seedance';
     const isKling26 = provider === 'kling';
     const isSeedance15 = provider === 'seedance-1.5';
     const showSoundToggle = isKling26 || isSeedance15;
+
+    // Computed display name for UI labels
+    const providerDisplayName =
+        provider === 'kling-v3-omni' ? 'Kling v3 Omni' :
+        provider === 'seedance-2' ? 'Seedance 2.0' :
+        provider === 'kling-v3' ? 'Kling v3' :
+        provider === 'seedance-1.5' ? 'Seedance 1.5' :
+        'Kling 2.6';
 
     // --- Pricing ---
     const { getVideoCost, getVideoEditRate, getLipSyncCost } = usePricing();
@@ -239,6 +261,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const [shotType, setShotType] = useState<'intelligence' | 'customize'>(initialSettings?.shot_type || 'intelligence');
     const [segments, setSegments] = useState<PromptSegment[]>(initialSettings?.multi_prompt || []);
 
+    // Kling v3 Omni
+    const [keepOriginalAudio, setKeepOriginalAudio] = useState(initialSettings?.keep_original_audio || false);
+
     // Elements & Voices
     const [elementIdInput, setElementIdInput] = useState('');
     const [internalElementList, setInternalElementList] = useState<string[]>(initialSettings?.element_list || []);
@@ -252,10 +277,14 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         () => refMedia.filter(r => r.type === 'video' && r.duration != null).map(r => r.duration!),
         [refMedia]
     );
+    // Omni: dynamic reference media limits based on content
+    const hasRefVideo = refMedia.some(r => r.type === 'video');
+    const maxRefMedia = isOmni ? (hasRefVideo ? 4 : 12) : MAX_REF_MEDIA;
+
     const surchargeFlags = {
-        sound: isV3 ? sound === 'on' : (!isSeedance15 && showSoundToggle ? sound === 'on' : false),
-        multiShot: isV3 && multiShot,
-        hasEndFrame: (isSeedance2 || isV3) && (!!endFrameUrl || (isLinked && !!nextShotImage)),
+        sound: (isV3 || isOmni) ? sound === 'on' : (!isSeedance15 && showSoundToggle ? sound === 'on' : false),
+        multiShot: (isV3 || isOmni) && multiShot,
+        hasEndFrame: (isSeedance2 || isV3 || isOmni) && (!!endFrameUrl || (isLinked && !!nextShotImage)),
         resolution: mode as 'std' | 'pro',
         referenceVideoDurations: isSeedance2 ? refVideoDurations : undefined,
     };
@@ -293,7 +322,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
     // Auto-correct duration if not available for selected provider
     React.useEffect(() => {
-        if (isV3 || isSeedance2) {
+        if (isV3 || isOmni || isSeedance2) {
             const val = parseInt(duration);
             const min = isSeedance2 ? 4 : 3;
             const max = 15;
@@ -303,10 +332,37 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         }
     }, [provider]);
 
-    // Auto-expand Advanced Settings for Kling v3
+    // Auto-expand Advanced Settings for Kling v3 / Omni
     React.useEffect(() => {
-        if (provider === 'kling-v3') setShowAdvanced(true);
+        if (provider === 'kling-v3' || provider === 'kling-v3-omni') setShowAdvanced(true);
     }, [provider]);
+
+    // Omni: auto-disable multi-shot when video is added to ref tray
+    React.useEffect(() => {
+        if (isOmni && hasRefVideo && multiShot) {
+            setMultiShot(false);
+            toastError("Multi-Shot disabled — incompatible with video reference.");
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOmni, hasRefVideo]);
+
+    // Omni: reset keepOriginalAudio when video is removed
+    React.useEffect(() => {
+        if (!hasRefVideo) setKeepOriginalAudio(false);
+    }, [hasRefVideo]);
+
+    // Omni: trim excess images when video is added (max 4 with video)
+    React.useEffect(() => {
+        if (isOmni && hasRefVideo) {
+            const imageItems = refMedia.filter(r => r.type === 'image');
+            if (imageItems.length > 4) {
+                const nonImageItems = refMedia.filter(r => r.type !== 'image');
+                setRefMedia([...nonImageItems, ...imageItems.slice(0, 4)]);
+                toastError("Trimmed to 4 images — video reference limits image count.");
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOmni, hasRefVideo]);
 
     // Seedance 2.0 has native audio — force sound on
     React.useEffect(() => {
@@ -370,13 +426,14 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             cfg_scale: cfgScale, sound, watermark, multi_shot: multiShot,
             shot_type: shotType, multi_prompt: segments,
             element_list: elementList,
-            voice_list: voiceList
+            voice_list: voiceList,
+            keep_original_audio: keepOriginalAudio,
         };
         const timer = setTimeout(() => {
             onSettingsChange(currentSettings);
         }, 500);
         return () => clearTimeout(timer);
-    }, [provider, duration, mode, quality, aspectRatio, refMedia, endFrameUrl, sourceVideoUrl, sourceVideoDuration, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, onSettingsChange]);
+    }, [provider, duration, mode, quality, aspectRatio, refMedia, endFrameUrl, sourceVideoUrl, sourceVideoDuration, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, keepOriginalAudio, onSettingsChange]);
 
     // Clear preflight warnings when settings change
     React.useEffect(() => {
@@ -391,7 +448,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         return segments.reduce((acc, seg) => acc + (parseFloat(seg.duration) || 0), 0);
     };
 
-    const isDurationValid = !(isV3 && multiShot) || shotType === 'intelligence' || getTotalSegmentDuration() === parseFloat(duration);
+    const isDurationValid = !((isV3 || isOmni) && multiShot) || shotType === 'intelligence' || getTotalSegmentDuration() === parseFloat(duration);
 
     // Video-edit cost override: use trimmed duration × per-second rate from pricing API
     // PiAPI enforces a 5-second minimum output — clamp billing duration accordingly
@@ -432,17 +489,17 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
     // ── Untagged media nudge: compute set of display indices missing from prompt ──
     const untaggedItems = React.useMemo(() => {
-        if (!isSeedance2 || !promptText) return new Set<number>();
+        if (!(isSeedance2 || isOmni) || !promptText) return new Set<number>();
         const missing = new Set<number>();
         displayMedia.forEach((item, i) => {
             if (item.locked) return; // backend auto-injects locked items
-            const tag = getMediaTag(displayMedia, i);
+            const tag = getMediaTag(displayMedia, i, provider);
             if (!promptText.includes(tag)) {
                 missing.add(i);
             }
         });
         return missing;
-    }, [isSeedance2, promptText, displayMedia]);
+    }, [isSeedance2, isOmni, promptText, displayMedia]);
 
     const buildOptions = (): AnimateOptions => {
         // Split refMedia into three typed arrays for PiAPI omni_reference
@@ -486,6 +543,19 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             multi_prompt: (multiShot && shotType === 'customize') ? segments : undefined,
             // element_list: elementList.length > 0 ? elementList.map(id => ({ element_id: String(id) })) : undefined,  // TODO: Uncomment for official Kling API
             // voice_list: voiceList.length > 0 ? voiceList.map(id => ({ voice_id: id })) : undefined,                  // TODO: Uncomment for official Kling API
+        } : {}),
+        // Kling v3 Omni — bridge: Seedance-style refs + Kling-style toggles
+        ...(isOmni ? {
+            sound,
+            multi_shot: multiShot,
+            shot_type: multiShot ? shotType : undefined,
+            multi_prompt: (multiShot && shotType === 'customize') ? segments : undefined,
+            ...(refImageUrls.length > 0 ? { reference_image_urls: refImageUrls } : {}),
+            ...(() => {
+                const omniVideo = refMedia.find(r => r.type === 'video');
+                return omniVideo ? { video_url: omniVideo.url } : {};
+            })(),
+            keep_original_audio: keepOriginalAudio,
         } : {}),
     };
     };
@@ -594,6 +664,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                     >
                         Seedance 2.0
                     </button>
+                    <button type="button" onClick={() => setProvider('kling-v3-omni')} className={pill(provider === 'kling-v3-omni')}>
+                        Kling v3 Omni
+                    </button>
                     <button type="button" onClick={() => setProvider('kling-v3')} className={pill(provider === 'kling-v3')}>
                         Kling v3
                     </button>
@@ -631,7 +704,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 </span>
                                 <span className="text-[8px] text-neutral-600">locked</span>
                             </div>
-                        ) : isV3 || isSeedance2 ? (
+                        ) : isV3 || isOmni || isSeedance2 ? (
                             <div className="flex items-center gap-2 flex-1 px-2 py-1 bg-white/[0.03] border border-white/[0.08] rounded-md group hover:border-white/20 transition-colors">
                                 <span className="text-[10px] font-semibold text-neutral-400 group-hover:text-neutral-300 w-4">{duration}s</span>
                                 <input
@@ -697,8 +770,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                 </div>
             )}
 
-            {/* ── Seedance 2.0 Features ── */}
-            {isSeedance2 && (
+            {/* ── Seedance 2.0 / Omni Features ── */}
+            {(isSeedance2 || isOmni) && (
                 <div className="space-y-2">
                     {/* Peak Hours Warning */}
                     {peakStatus?.is_peak && (
@@ -711,8 +784,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             </div>
                         </div>
                     )}
-                    {/* Draft / Final Toggle */}
-                    <div className="flex gap-1.5">
+                    {/* Draft / Final Toggle (Seedance 2.0 only — Omni uses 720p/1080p) */}
+                    {isSeedance2 && <div className="flex gap-1.5">
                         <button type="button" onClick={() => setQuality('fast')}
                             className={`flex-1 px-2 py-2 rounded-md text-center transition-all cursor-pointer select-none border
                                 ${quality === 'fast'
@@ -737,7 +810,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             </div>
                             <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost('seedance-2', 'pro', duration, surchargeFlags))} cr</div>
                         </button>
-                    </div>
+                    </div>}
 
                     {/* Aspect Ratio Icons */}
                     <div className="flex gap-1.5">
@@ -821,14 +894,14 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                     {generationMode !== 'extend' && <div>
                         <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex items-center justify-between">
                             <span>Reference Media</span>
-                            <span className="text-neutral-600">{refMedia.length}/{MAX_REF_MEDIA}</span>
+                            <span className="text-neutral-600">{refMedia.length}/{maxRefMedia}</span>
                         </label>
                         <p className="text-[7px] text-neutral-600 mb-1.5 leading-relaxed">
-                            Mix up to {MAX_REF_MEDIA} images, videos, or audio tracks to guide style and motion.
+                            Mix up to {maxRefMedia} images{isOmni ? ' and video' : ', videos, or audio tracks'} to guide style and motion.
                         </p>
                         <div className="flex gap-1.5 overflow-x-auto pb-1 flex-wrap">
                             {displayMedia.map((item, i) => {
-                                const tag = getMediaTag(displayMedia, i);
+                                const tag = getMediaTag(displayMedia, i, provider);
                                 const isLocked = !!item.locked;
                                 const borderColor = isLocked
                                     ? 'border-amber-500/30'
@@ -933,11 +1006,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             })}
 
                             {/* Add button */}
-                            {refMedia.length < MAX_REF_MEDIA && (
+                            {refMedia.length < maxRefMedia && (
                                 <>
                                     <input
                                         type="file"
-                                        accept="image/*,video/mp4,video/quicktime,audio/mpeg,audio/wav"
+                                        accept={isOmni ? "image/*,video/mp4,video/quicktime" : "image/*,video/mp4,video/quicktime,audio/mpeg,audio/wav"}
                                         multiple
                                         className="hidden"
                                         ref={refInputRef}
@@ -1218,7 +1291,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         {refMedia.length} reference{refMedia.length > 1 ? 's' : ''} selected
                                     </p>
                                     <p className="text-[8px] text-amber-400/70 leading-relaxed mt-0.5">
-                                        Click <span className="font-bold text-amber-300">✨ Enhance</span> on the prompt to generate a cinematic Seedance 2.0 prompt with @tags for your references.
+                                        Click <span className="font-bold text-amber-300">✨ Enhance</span> on the prompt to generate a cinematic {providerDisplayName} prompt with @tags for your references.
                                     </p>
                                 </div>
                             </div>
@@ -1287,8 +1360,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         </div>
                     )}
 
-                    {/* ── End Frame Upload Zone (hidden in Edit & Extend mode) ── */}
-                    {generationMode === 'new' && <div>
+                    {/* ── End Frame Upload Zone (hidden in Edit & Extend mode, and for Omni) ── */}
+                    {generationMode === 'new' && !isOmni && <div>
                         <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex items-center justify-between">
                             <span>
                                 End Frame
@@ -1587,8 +1660,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         </div>
                     )}
 
-                    {/* Native Audio Badge — hidden when user provides custom audio reference */}
-                    {!hasCustomAudio && (
+                    {/* Native Audio Badge — hidden when user provides custom audio reference, and for Omni */}
+                    {!hasCustomAudio && !isOmni && (
                         <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">
                             <Volume2 size={10} className="text-emerald-400" />
                             <span className="text-[9px] font-semibold text-emerald-400 tracking-wider uppercase">Native Audio Included</span>
@@ -1881,6 +1954,104 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     </div>
                                 </div>
                                 */}
+
+                            </div>
+                        )}
+                    </div>
+                )
+            }
+
+            {/* ── Advanced Settings (Kling v3 Omni) ── */}
+            {
+                isOmni && (
+                    <div className="rounded-lg border border-white/[0.06] overflow-hidden">
+                        <button
+                            type="button"
+                            onClick={() => setShowAdvanced(!showAdvanced)}
+                            className={`w-full flex items-center justify-between px-3 py-2 text-[10px] font-semibold transition-colors
+                            ${showAdvanced ? 'bg-white/[0.05] text-white' : 'bg-white/[0.02] text-neutral-400 hover:text-neutral-200'}
+                        `}
+                        >
+                            <span className="flex items-center gap-1.5">
+                                <Sliders size={11} className={showAdvanced ? "text-[#E50914]" : ""} />
+                                Advanced Settings
+                            </span>
+                            {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        </button>
+
+                        {showAdvanced && (
+                            <div className="px-3 pb-3 space-y-4 border-t border-white/[0.04] bg-black/20 pt-3">
+                                {/* Sound + Multi-Shot + Keep Original Audio Toggles */}
+                                <div className="flex flex-wrap gap-4">
+                                    {/* Sound Toggle */}
+                                    <label className="flex items-center gap-2 cursor-pointer group">
+                                        <div onClick={() => setSound(sound === 'on' ? 'off' : 'on')} className={`w-7 h-3.5 rounded-full transition-colors relative ${sound === 'on' ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
+                                            <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${sound === 'on' ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                        </div>
+                                        <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">Sound</span>
+                                    </label>
+
+                                    {/* Multi-Shot Toggle (disabled when video is in tray) */}
+                                    <label className={`flex items-center gap-2 group ${hasRefVideo ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
+                                        title={hasRefVideo ? 'Multi-Shot is incompatible with video reference' : undefined}>
+                                        <div onClick={() => { if (!hasRefVideo) setMultiShot(!multiShot); }} className={`w-7 h-3.5 rounded-full transition-colors relative ${multiShot ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
+                                            <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${multiShot ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                        </div>
+                                        <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">Multi-Shot</span>
+                                    </label>
+
+                                    {/* Keep Original Audio Toggle (only when video present) */}
+                                    {hasRefVideo && (
+                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                            <div onClick={() => setKeepOriginalAudio(!keepOriginalAudio)} className={`w-7 h-3.5 rounded-full transition-colors relative ${keepOriginalAudio ? 'bg-emerald-500' : 'bg-white/[0.1]'}`}>
+                                                <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${keepOriginalAudio ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                            </div>
+                                            <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">Keep Original Audio</span>
+                                        </label>
+                                    )}
+                                </div>
+
+                                {/* ── Multi-Shot Editor (Omni) ── */}
+                                {multiShot && (
+                                    <div className="p-2.5 rounded-lg border border-white/[0.08] bg-white/[0.02]">
+                                        <div className="flex gap-2 mb-2">
+                                            <button type="button" onClick={() => setShotType('intelligence')} className={pill(shotType === 'intelligence')}>Auto (Intelligence)</button>
+                                            <button type="button" onClick={() => setShotType('customize')} className={pill(shotType === 'customize')}>Manual (Customize)</button>
+                                        </div>
+
+                                        {shotType === 'customize' && (
+                                            <div className="space-y-2">
+                                                {segments.map((seg, idx) => (
+                                                    <div key={idx} className="flex gap-2 items-start">
+                                                        <span className="text-[9px] text-neutral-500 pt-2 w-3 text-center">{seg.index}</span>
+                                                        <textarea
+                                                            value={seg.prompt}
+                                                            onChange={(e) => updateSegment(idx, 'prompt', e.target.value)}
+                                                            placeholder="Segment prompt..."
+                                                            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#E50914]/40 resize-none h-[34px]"
+                                                        />
+                                                        <input
+                                                            type="number"
+                                                            value={seg.duration}
+                                                            onChange={(e) => updateSegment(idx, 'duration', e.target.value)}
+                                                            className="w-10 bg-white/[0.03] border border-white/[0.08] rounded-md px-1 py-1.5 text-[10px] text-center outline-none focus:border-[#E50914]/40"
+                                                        />
+                                                        <button type="button" onClick={() => removeSegment(idx)} className="text-neutral-600 hover:text-red-500 pt-1.5"><Trash2 size={12} /></button>
+                                                    </div>
+                                                ))}
+                                                <button type="button" onClick={addSegment} className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md border border-dashed border-white/[0.1] text-[10px] text-neutral-500 hover:border-white/20 hover:text-neutral-300">
+                                                    <Plus size={10} /> Add Segment
+                                                </button>
+
+                                                <div className={`text-[9px] flex items-center gap-1.5 ${isDurationValid ? 'text-green-500' : 'text-red-500'}`}>
+                                                    <AlertCircle size={10} />
+                                                    Total Duration: {getTotalSegmentDuration()}s / {duration}s required
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
 
                             </div>
                         )}
