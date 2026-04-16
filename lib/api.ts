@@ -444,6 +444,33 @@ export const generateSetDesign = async (
         scene_action: sceneAction || "",
         location: location || "",
         override_lock: overrideLock || false,
+        generation_mode: "v2_burst",
+    });
+    return res.data;
+};
+
+export const expandSetLegacy = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string
+) => {
+    const res = await api.post("/api/v1/shot/expand_set_legacy", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+    });
+    return res.data;
+};
+
+export const expandSet360 = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string
+) => {
+    const res = await api.post("/api/v1/shot/expand_set_360", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
     });
     return res.data;
 };

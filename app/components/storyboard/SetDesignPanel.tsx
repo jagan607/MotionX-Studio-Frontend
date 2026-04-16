@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     Sparkles, X, Loader2, Save, CloudFog, Building2,
-    ChevronLeft, ChevronRight, Eye, ImagePlus, Paintbrush, Download, AlertTriangle, Coins, Trash2
+    ChevronLeft, ChevronRight, Eye, ImagePlus, Pencil, Download, AlertTriangle, Coins, Trash2, Maximize2
 } from "lucide-react";
-import { generateSetDesign, updateSetDesign, inpaintSetDesign, cloneSetDesign, retrySetAngle, resetSetDesign } from "@/lib/api";
+import { generateSetDesign, expandSetLegacy, expandSet360, updateSetDesign, inpaintSetDesign, cloneSetDesign, retrySetAngle, resetSetDesign } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { InpaintEditor } from "./InpaintEditor";
 
@@ -19,6 +19,10 @@ interface SetDesignData {
     image_urls?: { front?: string; back?: string; left?: string; right?: string; };
     image_status?: string;
     is_locked?: boolean;
+    // v2 burst fields
+    engine_version?: string;
+    burst_status?: string;
+    anchor_image_url?: string;
 }
 
 interface LocationAsset {
@@ -55,6 +59,7 @@ interface SetDesignPanelProps {
 }
 
 const ANGLE_LABELS: Record<string, string> = { wide: "ESTABLISHING", front: "FRONT", left: "LEFT", right: "RIGHT", back: "BACK" };
+const BURST_ANGLES = ["left", "right", "back"] as const;
 
 
 
@@ -79,6 +84,8 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     // during a single-angle retry so no Firestore intermediate state can flash.
     const frozenViewsRef = useRef<Record<string, string> | null>(null);
     const [isResetting, setIsResetting] = useState(false);
+    const [isExpandingLegacy, setIsExpandingLegacy] = useState(false);
+    const [isExpanding360, setIsExpanding360] = useState(false);
 
     const location = locations.find(
         l => l.name === locationName || l.id === locationName?.replace(/[\s.]+/g, '_').toUpperCase()
@@ -107,9 +114,19 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const hasData = !!(existingData?.atmosphere || existingData?.image_prompt);
     const isGeneratingImage = existingData?.image_status === "generating";
 
+    // ── Expansion state derivation ──────────────────────────────────
+    const hasOtherWalls      = !!(existingData?.image_urls?.left || existingData?.image_urls?.right || existingData?.image_urls?.back);
+    const isAnchorReady      = existingData?.image_status === "anchor_ready" ||
+                               (existingData?.image_status === "ready" && !hasOtherWalls && !!existingData?.image_urls?.front);
+    const isBurstGenerating  = existingData?.burst_status === "generating";
+    const isBurstReady       = existingData?.burst_status === "ready";
+    // Legacy expansion: anchor was ready, user clicked "Standard", image_status went back to "generating"
+    const isLegacyExpanding  = isGeneratingImage && isAnchorReady === false && !isBurstGenerating && existingData?.burst_status !== "ready" && !!existingData?.image_urls?.front && !existingData?.image_urls?.left;
+
     // Per-angle retry vs full overhaul distinction
     const isRetryingSingleAngle = !!retryingAngleKey;
-    const showGlobalRenderOverlay = isGeneratingImage && !isRetryingSingleAngle;
+    const isAnyExpansion = isBurstGenerating || isLegacyExpanding;
+    const showGlobalRenderOverlay = (isGeneratingImage && !isRetryingSingleAngle && !isAnchorReady) || isBurstGenerating;
     const showAngleRenderOverlay = isRetryingSingleAngle && activeView === retryingAngleKey;
 
     // --- SIBLING SET DETECTION ---
@@ -152,6 +169,13 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
         else setIsVisible(false);
     }, [isOpen]);
 
+    // Force front view when in anchor-ready state (only front wall exists)
+    useEffect(() => {
+        if (isAnchorReady && activeView !== "front") {
+            setActiveView("front");
+        }
+    }, [isAnchorReady, activeView]);
+
     const isDirty =
         atmosphere !== (existingData?.atmosphere || "") ||
         archNotes !== (existingData?.architecture_notes || "");
@@ -164,8 +188,14 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
         setIsGenerating(true);
 
         // Immediately flip the local UI state if it's an overhaul
-        if (hasData && onUpdate && existingData?.is_locked) {
-            onUpdate({ ...existingData, is_locked: false });
+        if (hasData && onUpdate && existingData) {
+            onUpdate({
+                ...existingData,
+                is_locked: false,
+                image_status: "generating",
+                image_urls: {},       // Clear old walls so they don't mix with the new anchor
+                burst_status: undefined,
+            });
         }
 
         try {
@@ -178,13 +208,56 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
             toastSuccess("Set design generation queued");
         } catch (e: any) {
             if (e?.response?.status === 402) {
-                toastError("Insufficient credits. You need 2 credits to build a set.");
+                toastError("Insufficient credits. You need 0.5 credits to retry set props.");
             } else {
                 toastError(e?.response?.data?.detail || "Failed to generate set design");
             }
         } finally {
             isGeneratingRef.current = false;
             setIsGenerating(false);
+        }
+    };
+
+    // ── EXPAND HANDLERS ──────────────────────────────────────────────
+    const handleExpandLegacy = async () => {
+        if (isExpandingLegacy) return;
+        setIsExpandingLegacy(true);
+        try {
+            await expandSetLegacy(projectId, episodeId, sceneId);
+            // Optimistically flip image_status so UI shows spinners on remaining walls
+            if (onUpdate && existingData) {
+                onUpdate({ ...existingData, image_status: "generating" });
+            }
+            toastSuccess("Standard expansion queued — generating 3 remaining walls");
+        } catch (e: any) {
+            if (e?.response?.status === 402) {
+                toastError("Insufficient credits. You need 1.5 credits to build the set.");
+            } else {
+                toastError(e?.response?.data?.detail || "Failed to expand set");
+            }
+        } finally {
+            setIsExpandingLegacy(false);
+        }
+    };
+
+    const handleExpand360 = async () => {
+        if (isExpanding360) return;
+        setIsExpanding360(true);
+        try {
+            await expandSet360(projectId, episodeId, sceneId);
+            // Optimistically flip burst_status so UI reacts immediately
+            if (onUpdate && existingData) {
+                onUpdate({ ...existingData, burst_status: "generating" });
+            }
+            toastSuccess("360° expansion queued — rendering 3 additional walls with Seedance 2.0");
+        } catch (e: any) {
+            if (e?.response?.status === 402) {
+                toastError("Insufficient credits. You need 4 credits to expand to 360°.");
+            } else {
+                toastError(e?.response?.data?.detail || "Failed to expand set to 360°");
+            }
+        } finally {
+            setIsExpanding360(false);
         }
     };
 
@@ -378,7 +451,20 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                         {(showGlobalRenderOverlay || showAngleRenderOverlay) && (
                             <div className="mt-4 inline-flex items-center gap-2 text-[10px] font-mono text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-3 py-1.5 rounded uppercase tracking-widest">
                                 <Loader2 size={12} className="animate-spin" />
-                                {isRetryingSingleAngle ? `Rendering ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toUpperCase()}` : "Rendering View"}
+                                {isBurstGenerating
+                                    ? "Expanding to 360°"
+                                    : isLegacyExpanding
+                                        ? "Expanding Standard Set"
+                                        : isRetryingSingleAngle
+                                            ? `Rendering ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toUpperCase()}`
+                                            : "Rendering View"}
+                            </div>
+                        )}
+
+                        {isAnchorReady && !isBurstGenerating && !isLegacyExpanding && (
+                            <div className="mt-4 inline-flex items-center gap-2 text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded uppercase tracking-widest">
+                                <Maximize2 size={12} />
+                                Front Wall Ready · Choose Expansion
                             </div>
                         )}
                     </div>
@@ -457,14 +543,33 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                         <X size={18} />
                     </button>
 
-                    {availableViews.length > 1 && (
+                    {/* ── ANGLE TAB BAR ── */}
+                    {(availableViews.length > 1 || isAnchorReady) && (
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 z-30 flex items-center text-[11px] bg-black/40 backdrop-blur-xl border border-white/10 p-1.5 rounded-2xl gap-1 pointer-events-auto shadow-2xl">
-                            {availableViews.map(([angle]) => (
-                                <button key={angle} onClick={() => setActiveView(angle)}
-                                    className={`px-5 py-2 uppercase tracking-widest transition-all cursor-pointer font-bold rounded-xl ${activeView === angle ? "bg-red-600/90 text-white shadow-lg" : "text-white/50 hover:text-white hover:bg-white/5"}`}>
-                                    {ANGLE_LABELS[angle] || angle}
-                                </button>
-                            ))}
+                            {/* In anchor-ready state, show all 4 wall tabs but dim the unrendered ones */}
+                            {isAnchorReady ? (
+                                ["front", "left", "right", "back"].map((angle) => (
+                                    <button key={angle} onClick={() => angle === "front" && setActiveView(angle)}
+                                        disabled={angle !== "front"}
+                                        className={`px-5 py-2 uppercase tracking-widest transition-all font-bold rounded-xl ${
+                                            activeView === angle
+                                                ? "bg-red-600/90 text-white shadow-lg cursor-pointer"
+                                                : angle === "front"
+                                                    ? "text-white/50 hover:text-white hover:bg-white/5 cursor-pointer"
+                                                    : "text-white/20 cursor-not-allowed"
+                                        }`}>
+                                        {ANGLE_LABELS[angle] || angle}
+                                        {angle !== "front" && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-white/10" />}
+                                    </button>
+                                ))
+                            ) : (
+                                availableViews.map(([angle]) => (
+                                    <button key={angle} onClick={() => setActiveView(angle)}
+                                        className={`px-5 py-2 uppercase tracking-widest transition-all cursor-pointer font-bold rounded-xl ${activeView === angle ? "bg-red-600/90 text-white shadow-lg" : "text-white/50 hover:text-white hover:bg-white/5"}`}>
+                                        {ANGLE_LABELS[angle] || angle}
+                                    </button>
+                                ))
+                            )}
                         </div>
                     )}
 
@@ -522,9 +627,12 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                 </div>
                             )}
 
+                            {/* ── GENERATION OVERLAYS ── */}
                             {(showGlobalRenderOverlay || showAngleRenderOverlay) && (
                                 <>
-                                    <style>{`@keyframes setOverlayFadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
+                                    <style>{`@keyframes setOverlayFadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes burstPulse { 0%,100% { opacity: 0.4 } 50% { opacity: 1 } }
+@keyframes burstSweep { 0% { transform: translateX(-100%) } 100% { transform: translateX(100%) } }`}</style>
                                     <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md pointer-events-none font-mono"
                                         style={{ animation: 'setOverlayFadeIn 300ms ease-out' }}>
                                         <div className="w-16 h-16 rounded-full border border-red-500/50 flex items-center justify-center relative overflow-hidden mb-6">
@@ -532,16 +640,45 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                                         </div>
                                         <div className="text-[14px] font-bold text-red-400 uppercase tracking-[6px] mb-3">
-                                            {isRetryingSingleAngle ? `Rendering ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toUpperCase()}` : "Rendering"}
+                                            {isBurstGenerating
+                                                ? "Expanding 360°"
+                                                : isLegacyExpanding
+                                                    ? "Expanding Set"
+                                                    : isRetryingSingleAngle
+                                                        ? `Rendering ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toUpperCase()}`
+                                                        : "Rendering"}
                                         </div>
                                         <div className="text-[11px] text-white/50 max-w-[320px] text-center leading-relaxed">
-                                            {isRetryingSingleAngle
-                                                ? `Regenerating the ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toLowerCase()} angle. Other angles remain available.`
-                                                : (existingData?.image_prompt || "Compositing location, extras, and props into preview frame...")}
+                                            {isBurstGenerating
+                                                ? "Rendering 360° Environment with Seedance 2.0 — generating Left, Right, and Back walls with guaranteed spatial consistency..."
+                                                : isLegacyExpanding
+                                                    ? "Generating Left, Right, and Back walls independently..."
+                                                    : isRetryingSingleAngle
+                                                        ? `Regenerating the ${(ANGLE_LABELS[retryingAngleKey!] || retryingAngleKey!).toLowerCase()} angle. Other angles remain available.`
+                                                        : (existingData?.image_prompt || "Compositing location, extras, and props into preview frame...")}
                                         </div>
+                                        {/* Burst progress pills */}
+                                        {isBurstGenerating && (
+                                            <div className="flex items-center gap-3 mt-6">
+                                                {BURST_ANGLES.map((a, i) => {
+                                                    const done = !!existingData?.image_urls?.[a as keyof typeof existingData.image_urls];
+                                                    return (
+                                                        <div key={a} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[9px] font-bold uppercase tracking-widest ${
+                                                            done
+                                                                ? "border-green-500/40 text-green-400 bg-green-500/10"
+                                                                : "border-white/10 text-white/30 bg-white/[0.02]"
+                                                        }`} style={{ animation: done ? 'none' : `burstPulse 2s ease-in-out ${i * 0.3}s infinite` }}>
+                                                            {done ? "✓" : <Loader2 size={9} className="animate-spin" />}
+                                                            {ANGLE_LABELS[a] || a}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 </>
                             )}
+
 
                             <div className="absolute bottom-12 left-12 z-30 flex items-center gap-3 pointer-events-auto">
                                 {/* Import dropdown OR concept frame pill */}
@@ -586,27 +723,38 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                             {isCloning ? "IMPORTING..." : "IMPORT SET"}
                                         </button>
                                     </div>
-                                ) : (
-                                    generatedImage && !showGlobalRenderOverlay && !showAngleRenderOverlay && (
-                                        <div className="inline-flex items-center gap-3 bg-black/70 border border-red-500/40 text-red-400 px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[3px]">
-                                            <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                                            CONCEPT FRAME
-                                        </div>
-                                    )
-                                )}
+                                ) : null}
 
-                                {/* Edit frame — only when generated image exists */}
+                                {/* 1. EDIT FRAME — only when generated image exists */}
                                 {generatedImage && !showGlobalRenderOverlay && !showAngleRenderOverlay && (
                                     <button
                                         onClick={() => setShowInpaint(true)}
                                         className="inline-flex items-center gap-2 bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer"
                                     >
-                                        <Paintbrush size={12} />
+                                        <Pencil size={12} />
                                         Edit Frame
                                     </button>
                                 )}
 
-                                {/* Retry single angle — only when set data exists and multi-angle */}
+                                {/* 2. RETRY SET PROPS — visible during anchor review (recalculates LLM props + regenerates) */}
+                                {isAnchorReady && !showGlobalRenderOverlay && !showAngleRenderOverlay && !isRetryingAngle && (
+                                    <button
+                                        onClick={() => {
+                                            setConfirmAction({
+                                                title: "Retry Set Props?",
+                                                message: "This will recalculate the atmosphere, architecture, and props from scratch via AI and generate a new front image. Costs 0.5 credits.",
+                                                onConfirm: () => handleGenerate(),
+                                            });
+                                        }}
+                                        disabled={isGenerating}
+                                        className="inline-flex items-center gap-2 bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isGenerating ? "GENERATING..." : "RETRY SET PROPS"}
+                                        {!isGenerating && <span className="inline-flex items-center gap-1 ml-1 text-white/40"><Coins size={10} />0.5</span>}
+                                    </button>
+                                )}
+
+                                {/* 3. RETRY FRONT — rerolls the image seed */}
                                 {hasData && !showGlobalRenderOverlay && !showAngleRenderOverlay && (
                                     <button
                                         onClick={handleRetryAngle}
@@ -618,14 +766,39 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                     </button>
                                 )}
 
-                                {/* Generate / Overhaul button — hidden during rendering */}
-                                {!showGlobalRenderOverlay && !showAngleRenderOverlay && !isRetryingAngle && (
+                                {/* 4. BUILD SET — legacy grid expansion (visible during anchor review) */}
+                                {isAnchorReady && !showGlobalRenderOverlay && !showAngleRenderOverlay && (
+                                    <button
+                                        onClick={handleExpandLegacy}
+                                        disabled={isExpandingLegacy || isExpanding360}
+                                        className="inline-flex items-center gap-2 bg-red-600/90 hover:bg-red-600 border border-red-500/60 hover:border-red-400 text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isExpandingLegacy ? <><Loader2 size={12} className="animate-spin" /> BUILDING...</> : <>BUILD SET</>}
+                                        {!isExpandingLegacy && <span className="inline-flex items-center gap-1 ml-1 text-white"><Coins size={10} />1.5</span>}
+                                    </button>
+                                )}
+
+                                {/* 5. EXTEND SET WITH SEEDANCE — burst expansion (commented out for now)
+                                {isAnchorReady && !showGlobalRenderOverlay && !showAngleRenderOverlay && (
+                                    <button
+                                        onClick={handleExpand360}
+                                        disabled={isExpanding360 || isExpandingLegacy}
+                                        className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isExpanding360 ? <><Loader2 size={12} className="animate-spin" /> EXTENDING...</> : <>EXTEND SET WITH SEEDANCE</>}
+                                        {!isExpanding360 && <span className="inline-flex items-center gap-1 ml-1 text-white/40"><Coins size={10} />4</span>}
+                                    </button>
+                                )}
+                                */}
+
+                                {/* OVERHAUL / GENERATE — visible when NOT in anchor review */}
+                                {!isAnchorReady && !showGlobalRenderOverlay && !showAngleRenderOverlay && !isRetryingAngle && (
                                     <button
                                         onClick={() => {
                                             if (hasData) {
                                                 setConfirmAction({
                                                     title: "Overhaul Set Design?",
-                                                    message: "This will completely overwrite your current set dressing, props, and lighting for this scene and cost 2 credits. This action cannot be undone.",
+                                                    message: "This will completely overwrite your current set dressing, props, and lighting for this scene. This action cannot be undone.",
                                                     onConfirm: () => handleGenerate(),
                                                 });
                                             } else {
@@ -633,10 +806,10 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                             }
                                         }}
                                         disabled={isGenerating}
-                                        className="inline-flex items-center gap-2 justify-center bg-red-600/80 hover:bg-red-600 border border-red-500/60 hover:border-red-400 text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(229,9,20,0.15)]"
+                                        className="inline-flex items-center gap-2 justify-center bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        {isGenerating ? "GENERATING..." : (hasData ? "OVERHAUL DESIGN" : "GENERATE SET")}
-                                        {!isGenerating && <span className="inline-flex items-center gap-1 ml-1 text-white/50"><Coins size={10} />2</span>}
+                                        {isGenerating ? "GENERATING..." : hasData ? "OVERHAUL DESIGN" : "GENERATE SET"}
+                                        {!isGenerating && <span className="inline-flex items-center gap-1 ml-1 text-white/40"><Coins size={10} />2</span>}
                                     </button>
                                 )}
                             </div>
