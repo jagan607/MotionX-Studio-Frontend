@@ -453,6 +453,8 @@ export default function DraftPage() {
                 location_id: s.location_id || "",
                 cast_ids: s.cast_ids || s.characters || [],
                 characters: s.characters || s.cast_ids || [],
+                dialogues: s.dialogues || [],
+                mood: s.mood || {},
             }));
 
             const res = await api.post("/api/v1/script/commit-scene-sequence", {
