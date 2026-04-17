@@ -152,7 +152,7 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     useEffect(() => {
         const fetchPricing = async () => {
             try {
-                const res = await api.get("/api/v1/production/pricing");
+                const res = await api.get("/api/v1/shot/pricing");
                 if (res.data?.pricing) {
                     setPricing(prev => ({ ...prev, ...res.data.pricing }));
                 }
