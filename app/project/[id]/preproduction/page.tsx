@@ -122,11 +122,14 @@ function autoLayoutNodes(
         const sceneLocs: LocationProfile[] = [];
         if (scene.location_id && locMap.has(scene.location_id)) {
             sceneLocs.push(locMap.get(scene.location_id)!);
-        }
-        for (const loc of locations) {
-            if (!sceneLocs.find(l => l.id === loc.id) && scene.header && loc.name &&
-                scene.header.toLowerCase().includes(loc.name.toLowerCase())) {
-                sceneLocs.push(loc);
+        } else {
+            // Fallback: fuzzy match only if no explicit location_id
+            for (const loc of locations) {
+                if (scene.header && loc.name &&
+                    scene.header.toLowerCase().includes(loc.name.toLowerCase())) {
+                    sceneLocs.push(loc);
+                    break; // At most one fuzzy match
+                }
             }
         }
         sceneLocs.forEach((loc, li) => {

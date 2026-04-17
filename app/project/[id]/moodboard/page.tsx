@@ -291,7 +291,7 @@ export default function MoodboardPage() {
     };
 
     const handleConfirm = async () => {
-        if (!selectedMood) return;
+        if (!selectedMood || phase !== "select") return;
         setPhase("confirming");
         try {
             const res = await api.post("/api/v1/shot/select_moodboard", {
@@ -385,7 +385,7 @@ export default function MoodboardPage() {
         const handler = (e: KeyboardEvent) => {
             if (e.key === "ArrowRight") navigate(1);
             if (e.key === "ArrowLeft") navigate(-1);
-            if (e.key === "Enter") handleConfirm();
+            if (e.key === "Enter" && phase === "select") handleConfirm();
         };
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
@@ -423,13 +423,15 @@ export default function MoodboardPage() {
             <div className="absolute top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-6 bg-gradient-to-b from-black/80 to-transparent">
                 {/* Left: back + project name */}
                 <div className="flex items-center gap-4">
-                    <Link href={preproductionUrl} className="flex items-center gap-2 text-white/40 hover:text-white transition-colors no-underline group">
-                        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-[10px] font-bold tracking-[2px] uppercase">Pre-Production</span>
-                    </Link>
+                    {!isOnboarding && (
+                        <Link href={preproductionUrl} className="flex items-center gap-2 text-white/40 hover:text-white transition-colors no-underline group">
+                            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                            <span className="text-[10px] font-bold tracking-[2px] uppercase">Pre-Production</span>
+                        </Link>
+                    )}
                     {projectTitle && (
                         <>
-                            <div className="w-px h-4 bg-white/10" />
+                            {!isOnboarding && <div className="w-px h-4 bg-white/10" />}
                             <span className="text-[10px] text-white/25 font-mono uppercase tracking-wider truncate max-w-[200px]">{projectTitle}</span>
                         </>
                     )}
@@ -455,7 +457,7 @@ export default function MoodboardPage() {
                         </button>
                     )}
 
-                    {selectedMood && (
+                    {selectedMood && !isOnboarding && (
                         <button onClick={() => generateMoods()} disabled={isRegenerating}
                             className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30">
                             <RefreshCw size={12} className={isRegenerating ? "animate-spin" : ""} />
@@ -589,9 +591,9 @@ export default function MoodboardPage() {
                                         <Sparkles size={9} /> Variation
                                     </span>
                                 )}
-                                {isApplied && (
+                                {isApplied && !isOnboarding && (
                                     <span className="flex items-center gap-1 text-[8px] font-bold text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase tracking-wider">
-                                        <Check size={9} /> Custom
+                                        <Check size={9} /> Selected
                                     </span>
                                 )}
                             </div>
@@ -647,7 +649,7 @@ export default function MoodboardPage() {
                             {moods.map((mood, idx) => {
                                 const active = idx === selectedIdx;
                                 const hasImage = mood.status === "ready" && mood.image_url;
-                                const isMoodApplied = mood.id === appliedMoodId;
+                                const isMoodApplied = !isOnboarding && mood.id === appliedMoodId;
                                 return (
                                     <button key={mood.id}
                                         onClick={() => setSelectedIdx(idx)}
@@ -682,7 +684,7 @@ export default function MoodboardPage() {
                                                 <div className="absolute bottom-0 inset-x-0 h-[2px] bg-emerald-400/40" />
                                                 <div className="absolute top-2 right-2 flex items-center gap-1 bg-emerald-500/30 border border-emerald-400/50 rounded-full px-2 py-0.5 backdrop-blur-sm">
                                                     <Check size={8} className="text-emerald-300" />
-                                                    <span className="text-[7px] font-bold text-emerald-300 uppercase tracking-wider">Custom</span>
+                                                    <span className="text-[7px] font-bold text-emerald-300 uppercase tracking-wider">Selected</span>
                                                 </div>
                                             </>
                                         )}
@@ -757,7 +759,7 @@ export default function MoodboardPage() {
                                     </button>
                                 )}
                                 <button onClick={handleConfirm}
-                                    disabled={isApplied && !isOnboarding}
+                                    disabled={(isApplied && !isOnboarding) || phase !== "select"}
                                     className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
                                         ${isApplied && !isOnboarding
                                             ? 'bg-emerald-900/30 text-emerald-400/60 border border-emerald-500/20 cursor-default'
@@ -844,11 +846,10 @@ export default function MoodboardPage() {
                                 { label: "Extracting locations" },
                                 { label: "Applying visual aesthetic" },
                             ].map((step, i) => {
-                                const isDone = i < extractionStep + 1;
-                                const isActive = i === extractionStep + 1;
-                                // Step 0 ("Visual direction locked") is always done
-                                const done = i === 0 || isDone;
-                                const active = !done && isActive;
+                                // Step 0 is always done (mood already locked).
+                                // extractionStep 0..3 maps to steps 1..4 becoming active then done.
+                                const done = i === 0 || i <= extractionStep;
+                                const active = !done && i === extractionStep + 1;
 
                                 return (
                                     <div key={step.label}
