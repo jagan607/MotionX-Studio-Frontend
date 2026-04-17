@@ -14,6 +14,9 @@ interface UsePromptMentionOptions {
     textareaRef: React.RefObject<HTMLTextAreaElement | null>;
     items: MentionItem[];
     enabled: boolean;
+    /** Called after insertTag writes a new value into the textarea.
+     *  The parent should mirror `newValue` into its own React state. */
+    onInsert?: (newValue: string) => void;
 }
 
 interface MenuPosition {
@@ -102,8 +105,10 @@ export function usePromptMention({
     textareaRef,
     items,
     enabled,
+    onInsert,
 }: UsePromptMentionOptions): UsePromptMentionReturn {
     const [isOpen, setIsOpen] = useState(false);
+    const isOpenRef = useRef(false);
     const [filteredItems, setFilteredItems] = useState<MentionItem[]>([]);
     const [activeIndex, setActiveIndex] = useState(0);
     const [menuPosition, setMenuPosition] = useState<MenuPosition>({ top: 0, left: 0 });
@@ -113,6 +118,7 @@ export function usePromptMention({
     // Close the menu
     const close = useCallback(() => {
         setIsOpen(false);
+        isOpenRef.current = false;
         setFilteredItems([]);
         setActiveIndex(0);
         triggerIndexRef.current = -1;
@@ -129,7 +135,7 @@ export function usePromptMention({
     const handleChange = useCallback(
         (value: string, cursorPos?: number) => {
             if (!enabled || items.length === 0) {
-                if (isOpen) close();
+                if (isOpenRef.current) close();
                 return;
             }
 
@@ -139,7 +145,7 @@ export function usePromptMention({
             const match = MENTION_TRIGGER.exec(textBeforeCursor);
 
             if (!match) {
-                if (isOpen) close();
+                if (isOpenRef.current) close();
                 return;
             }
 
@@ -153,13 +159,14 @@ export function usePromptMention({
                 : items; // show all when just "@"
 
             if (filtered.length === 0) {
-                if (isOpen) close();
+                if (isOpenRef.current) close();
                 return;
             }
 
             setFilteredItems(filtered);
             setActiveIndex(0);
             setIsOpen(true);
+            isOpenRef.current = true;
 
             // Compute pixel position
             if (textarea) {
@@ -167,7 +174,7 @@ export function usePromptMention({
                 setMenuPosition(position);
             }
         },
-        [enabled, items, isOpen, close, textareaRef]
+        [enabled, items, close, textareaRef]
     );
 
     // ── Insert tag: cleanly replaces the @partial trigger text ──
@@ -186,15 +193,11 @@ export function usePromptMention({
         const newValue = before + insertion + after;
         const newCursorPos = triggerPos + insertion.length;
 
-        // Use native setter for React 18 controlled inputs
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-            window.HTMLTextAreaElement.prototype,
-            'value'
-        )?.set;
-        if (nativeInputValueSetter) {
-            nativeInputValueSetter.call(textarea, newValue);
-            textarea.dispatchEvent(new Event('input', { bubbles: true }));
-        }
+        // Write directly into the uncontrolled textarea
+        textarea.value = newValue;
+
+        // Notify parent so it can mirror into React state (backdrop highlight, etc.)
+        onInsert?.(newValue);
 
         requestAnimationFrame(() => {
             textarea.focus();
@@ -202,7 +205,7 @@ export function usePromptMention({
         });
 
         close();
-    }, [close, textareaRef]);
+    }, [close, textareaRef, onInsert]);
 
     // ── Keyboard handler ──
     const handleKeyDown = useCallback(

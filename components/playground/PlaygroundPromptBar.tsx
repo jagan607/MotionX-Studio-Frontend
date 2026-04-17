@@ -170,7 +170,12 @@ export default function PlaygroundPromptBar() {
     } = usePlayground();
 
     // --- Local state ---
+    // `prompt` is the React-side mirror used for derived UI (highlight backdrop,
+    // generate button enabled state, credit cost, etc.).  The actual textarea is
+    // **uncontrolled** — we never pass `value={prompt}` back to it — so React
+    // can't fight the browser over cursor position during rapid edits / paste.
     const [prompt, setPrompt] = useState("");
+    const promptRef = useRef("");           // always-current, no re-render
     const [isGenerating, setIsGenerating] = useState(false);
     const [isEnhancing, setIsEnhancing] = useState(false);
     const [referenceImages, setReferenceImages] = useState<File[]>([]);
@@ -182,54 +187,7 @@ export default function PlaygroundPromptBar() {
     const [batchSize, setBatchSize] = useState<BatchSize>(1);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-    // --- Magic Enhance handler ---
-    const handleEnhance = useCallback(async () => {
-        if (!prompt.trim() || isEnhancing || isGenerating) return;
-
-        // 1. Extract all @tags before sending
-        const originalTags = (prompt.match(/@\w+/g) || []).map(t => t.toLowerCase());
-
-        setIsEnhancing(true);
-        try {
-            const enhanced = await playgroundEnhancePrompt({
-                prompt,
-                provider: stylePrefs.image_provider || 'gemini',
-                aspect_ratio: stylePrefs.aspect_ratio || '16:9',
-            });
-
-            // 2. @Tag safety net: verify all original tags are still present
-            let safePrompt = enhanced;
-            const enhancedLower = enhanced.toLowerCase();
-            const missingTags = originalTags.filter(tag => !enhancedLower.includes(tag));
-            if (missingTags.length > 0) {
-                // Re-append missing tags (deduplicated, original casing from prompt)
-                const origCasing = (prompt.match(/@\w+/g) || []);
-                const toAppend = origCasing.filter(t => missingTags.includes(t.toLowerCase()));
-                safePrompt = `${enhanced} ${toAppend.join(' ')}`;
-            }
-
-            setPrompt(safePrompt);
-
-            // Sync the native textarea value for React controlled input
-            if (textareaRef.current) {
-                const nativeSetter = Object.getOwnPropertyDescriptor(
-                    window.HTMLTextAreaElement.prototype, 'value'
-                )?.set;
-                if (nativeSetter) {
-                    nativeSetter.call(textareaRef.current, safePrompt);
-                    textareaRef.current.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            }
-
-
-        } catch (e: any) {
-            console.error('[Enhance] Failed:', e);
-            toast.error('Enhancement failed — try again');
-        } finally {
-            setIsEnhancing(false);
-        }
-    }, [prompt, isEnhancing, isGenerating, stylePrefs]);
+    // mentionRef is initialised after `mention` is created (below)
 
     // --- Dynamic pricing ---
     const { getImageCost } = usePricing();
@@ -239,21 +197,82 @@ export default function PlaygroundPromptBar() {
     const finalCost = Math.round(imageCost * (RESOLUTION_MULTIPLIER[resolution] || 1) * batchSize * 100) / 100;
     const hasInsufficientBalance = credits !== null && credits < finalCost;
 
+    // --- Stable callback for mention tag insertion (must be defined before usePromptMention) ---
+    const handleMentionInsert = useCallback((newValue: string) => {
+        promptRef.current = newValue;
+        setPrompt(newValue);
+    }, []);
+
     // --- usePromptMention wiring ---
     const mention = usePromptMention({
         textareaRef,
         items: mentionItems, // PlaygroundMentionItem extends MentionItem
         enabled: mentionItems.length > 0,
+        onInsert: handleMentionInsert,
     });
 
-    // --- Handle prompt input ---
+    // Now that `mention` is defined, keep a stable ref for callbacks
+    const mentionRef = useRef(mention);
+    mentionRef.current = mention;
+
+    // --- Magic Enhance handler ---
+    const handleEnhance = useCallback(async () => {
+        const cur = promptRef.current;
+        if (!cur.trim() || isEnhancing || isGenerating) return;
+
+        // 1. Extract all @tags before sending
+        const originalTags = (cur.match(/@\w+/g) || []).map(t => t.toLowerCase());
+
+        setIsEnhancing(true);
+        try {
+            const enhanced = await playgroundEnhancePrompt({
+                prompt: cur,
+                provider: stylePrefs.image_provider || 'gemini',
+                aspect_ratio: stylePrefs.aspect_ratio || '16:9',
+            });
+
+            // 2. @Tag safety net: verify all original tags are still present
+            let safePrompt = enhanced;
+            const enhancedLower = enhanced.toLowerCase();
+            const missingTags = originalTags.filter(tag => !enhancedLower.includes(tag));
+            if (missingTags.length > 0) {
+                const origCasing = (cur.match(/@\w+/g) || []);
+                const toAppend = origCasing.filter(t => missingTags.includes(t.toLowerCase()));
+                safePrompt = `${enhanced} ${toAppend.join(' ')}`;
+            }
+
+            // Push into the uncontrolled textarea + mirror to React
+            writeToTextarea(safePrompt);
+            autoResize();
+            requestAnimationFrame(() => textareaRef.current?.focus());
+
+        } catch (e: any) {
+            console.error('[Enhance] Failed:', e);
+            toast.error('Enhancement failed — try again');
+        } finally {
+            setIsEnhancing(false);
+        }
+    }, [isEnhancing, isGenerating, stylePrefs]);
+
+    // --- Helper: imperatively set textarea value (uncontrolled) ---
+    const writeToTextarea = useCallback((text: string) => {
+        const el = textareaRef.current;
+        if (el) el.value = text;
+        promptRef.current = text;
+        setPrompt(text);
+    }, []);
+
+    // --- Handle prompt input (uncontrolled — textarea owns cursor) ---
     const handlePromptChange = useCallback(
         (e: React.ChangeEvent<HTMLTextAreaElement>) => {
             const value = e.target.value;
+            // Mirror to React state (for button enable/disable, credit calc, backdrop)
+            promptRef.current = value;
             setPrompt(value);
-            mention.handleChange(value, e.target.selectionStart ?? undefined);
+            // Let mention system check for @ triggers
+            mentionRef.current.handleChange(value, e.target.selectionStart ?? undefined);
         },
-        [mention]
+        []
     );
 
     // --- Handle reference image(s) ---
@@ -342,26 +361,36 @@ export default function PlaygroundPromptBar() {
     const autoResize = useCallback(() => {
         const el = textareaRef.current;
         if (!el) return;
-        el.style.height = "auto";
-        el.style.height = Math.min(el.scrollHeight, 80) + "px";
-        // Sync backdrop height
-        if (backdropRef.current) {
-            backdropRef.current.style.height = el.style.height;
-        }
+
+        // Save and restore scroll / selection so the resize can't
+        // displace the caret or cause visible content jumps.
+        const savedScrollTop = el.scrollTop;
+
+        // Reset to auto so scrollHeight reports the true content height
+        // (setting to '0' mid-edit can reflow the caret to a wrong line).
+        el.style.height = 'auto';
+        const next = Math.min(el.scrollHeight, 120);
+        el.style.height = next + 'px';
+
+        el.scrollTop = savedScrollTop;
+
+        // Pin backdrop height to match
+        const bd = backdropRef.current;
+        if (bd) bd.style.height = next + 'px';
     }, []);
 
     // --- Watch pendingPrompt from context (one-shot reuse) ---
     useEffect(() => {
         if (pendingPrompt) {
-            setPrompt(pendingPrompt);
+            writeToTextarea(pendingPrompt);
             setPendingPrompt(null);
-            // Trigger auto-resize on next tick after state updates
-            setTimeout(() => {
+            // autoResize in rAF so the DOM value is committed
+            requestAnimationFrame(() => {
                 autoResize();
                 textareaRef.current?.focus();
-            }, 0);
+            });
         }
-    }, [pendingPrompt, setPendingPrompt, autoResize]);
+    }, [pendingPrompt, setPendingPrompt, autoResize, writeToTextarea]);
 
     // Sync scroll between textarea and backdrop
     const handleScroll = useCallback(() => {
@@ -403,7 +432,7 @@ export default function PlaygroundPromptBar() {
 
     // ═══ GENERATE HANDLER ═══
     const handleGenerate = useCallback(async () => {
-        const trimmed = prompt.trim();
+        const trimmed = promptRef.current.trim();
         if (!trimmed || isGenerating) return;
 
         setIsGenerating(true);
@@ -438,7 +467,6 @@ export default function PlaygroundPromptBar() {
             );
 
             const failed = results.filter((r) => r.status === "rejected").length;
-            const succeeded = batchSize - failed;
 
 
             if (failed > 0) {
@@ -447,7 +475,7 @@ export default function PlaygroundPromptBar() {
                 );
             }
 
-            setPrompt("");
+            writeToTextarea("");
             clearReference();
             // Reset textarea height
             if (textareaRef.current) textareaRef.current.style.height = "auto";
@@ -459,13 +487,13 @@ export default function PlaygroundPromptBar() {
         } finally {
             setIsGenerating(false);
         }
-    }, [prompt, isGenerating, mentionItems, stylePrefs, referenceImages, batchSize]);
+    }, [isGenerating, mentionItems, stylePrefs, referenceImages, batchSize, writeToTextarea]);
 
     // --- Keyboard: Enter to submit (Shift+Enter for newline) ---
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
             // Let the mention system handle its keys first
-            mention.handleKeyDown(e);
+            mentionRef.current.handleKeyDown(e);
             if (e.defaultPrevented) return;
 
             if (e.key === "Enter" && !e.shiftKey) {
@@ -473,10 +501,10 @@ export default function PlaygroundPromptBar() {
                 handleGenerate();
             }
         },
-        [mention, handleGenerate]
+        [handleGenerate]
     );
 
-    // Count tagged assets in current prompt
+    // Count tagged assets in current prompt (used only for display, fine with state)
     const taggedCount = useMemo(() => {
         return (prompt.match(/@\w+/g) || []).filter(tag =>
             mentionItems.some(m => m.tag.toLowerCase() === tag.toLowerCase())
@@ -588,13 +616,17 @@ export default function PlaygroundPromptBar() {
 
                                     <textarea
                                         ref={textareaRef}
-                                        value={prompt}
+                                        defaultValue=""
                                         onChange={(e) => {
                                             handlePromptChange(e);
-                                            autoResize();
+                                            // Defer resize to next frame so the browser
+                                            // finishes processing the keystroke first —
+                                            // running it synchronously can misplace the
+                                            // caret during backspace / delete.
+                                            requestAnimationFrame(autoResize);
                                         }}
                                         onKeyDown={handleKeyDown}
-                                        onBlur={mention.handleBlur}
+                                        onBlur={() => mentionRef.current.handleBlur()}
                                         onScroll={handleScroll}
                                         placeholder="Describe your scene… Use @ to tag characters, locations, and products"
                                         className="w-full text-[13px] placeholder:text-[#444] outline-none font-sans resize-none leading-relaxed min-h-[24px]"
