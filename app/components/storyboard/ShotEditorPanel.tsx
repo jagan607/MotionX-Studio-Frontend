@@ -581,7 +581,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                             onFocus={() => { isPromptFocusedRef.current = true; }}
                                             onBlur={(e) => {
                                                 isPromptFocusedRef.current = false;
-                                                mention.handleBlur(e);
+                                                mention.handleBlur();
                                             }}
                                             onKeyDown={mention.handleKeyDown}
                                             onScroll={handlePromptScroll}
