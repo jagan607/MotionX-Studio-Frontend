@@ -50,6 +50,9 @@ export interface AnimateOptions {
 
     // Preflight bypass
     skipPreflight?: boolean;                 // Skip preflight warnings check
+
+    // Seedance 2.0 engine variant
+    model_version?: 'official' | 'preview';  // Official (default) or Preview (faster/cheaper)
 }
 
 export interface PreflightResult {
@@ -129,6 +132,9 @@ export const useShotVideoGen = (
 
                 // Kling v3 Omni
                 if (options.keep_original_audio) payload.keep_original_audio = options.keep_original_audio;
+
+                // Seedance 2.0 engine variant
+                if (options.model_version) payload.model_version = options.model_version;
 
                 // Multi-shot
                 if (options.multi_shot) {

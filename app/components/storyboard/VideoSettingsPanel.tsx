@@ -185,9 +185,17 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const isSeedance15 = provider === 'seedance-1.5';
     const showSoundToggle = isKling26 || isSeedance15;
 
+    // Seedance 2.0 engine variant: Official vs Preview (faster/cheaper)
+    const [modelVersion, setModelVersion] = useState<'official' | 'preview'>(initialSettings?.model_version || 'official');
+    const isPreview = isSeedance2 && modelVersion === 'preview';
+
+    // Pricing provider key: routes cost calculations to the correct pricing table
+    const pricingProvider = isPreview ? 'seedance-2-preview' : provider;
+
     // Computed display name for UI labels
     const providerDisplayName =
         provider === 'kling-v3-omni' ? 'Kling v3 Omni' :
+        isPreview ? 'Seedance 2.0 Preview' :
         provider === 'seedance-2' ? 'Seedance 2.0' :
         provider === 'kling-v3' ? 'Kling v3' :
         provider === 'seedance-1.5' ? 'Seedance 1.5' :
@@ -279,7 +287,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     );
     // Omni: dynamic reference media limits based on content
     const hasRefVideo = refMedia.some(r => r.type === 'video');
-    const maxRefMedia = isOmni ? (hasRefVideo ? 4 : 12) : MAX_REF_MEDIA;
+    const maxRefMedia = isOmni ? (hasRefVideo ? 4 : 12) : (isPreview ? 9 : MAX_REF_MEDIA);
 
     const surchargeFlags = {
         sound: (isV3 || isOmni) ? sound === 'on' : (!isSeedance15 && showSoundToggle ? sound === 'on' : false),
@@ -288,7 +296,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         resolution: mode as 'std' | 'pro',
         referenceVideoDurations: isSeedance2 ? refVideoDurations : undefined,
     };
-    const videoCost = getVideoCost(provider, pricingMode, duration, surchargeFlags);
+    const videoCost = getVideoCost(pricingProvider, pricingMode, duration, surchargeFlags);
 
     // Peak Hours Detection
     const [peakStatus, setPeakStatus] = useState<{ is_peak: boolean; wait: string; message: string } | null>(null);
@@ -324,13 +332,24 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     React.useEffect(() => {
         if (isV3 || isOmni || isSeedance2) {
             const val = parseInt(duration);
-            const min = isSeedance2 ? 4 : 3;
-            const max = 15;
-            if (isNaN(val) || val < min || val > max) setDuration(isSeedance2 ? '5' : '5');
+            if (isPreview) {
+                // Preview only allows 5, 10, 15 — snap to nearest valid
+                const validDurations = [5, 10, 15];
+                if (!validDurations.includes(val)) {
+                    const nearest = validDurations.reduce((prev, curr) =>
+                        Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev
+                    );
+                    setDuration(String(nearest));
+                }
+            } else {
+                const min = isSeedance2 ? 4 : 3;
+                const max = 15;
+                if (isNaN(val) || val < min || val > max) setDuration(isSeedance2 ? '5' : '5');
+            }
         } else if (!availableDurations.includes(duration as any)) {
             setDuration(availableDurations[1] as any); // default to 5s
         }
-    }, [provider]);
+    }, [provider, modelVersion]);
 
     // Auto-expand Advanced Settings for Kling v3 / Omni
     React.useEffect(() => {
@@ -364,9 +383,35 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOmni, hasRefVideo]);
 
-    // Seedance 2.0 has native audio — force sound on
+    // Preview: trim excess references when switching from Official (12) to Preview (9)
     React.useEffect(() => {
-        if (isSeedance2) setSound('on');
+        if (isPreview && refMedia.length > 9) {
+            setRefMedia(prev => prev.slice(0, 9));
+            toastError('Trimmed to 9 references — Preview mode supports up to 9.');
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isPreview]);
+
+    // Seedance 2.0 always has native audio
+    React.useEffect(() => {
+        if (isSeedance2) {
+            setSound('on');
+
+            // Preview models do not support custom audio uploads (audio_urls)
+            if (isPreview) {
+                const audioRefs = refMedia.filter(r => r.type === 'audio');
+                if (audioRefs.length > 0) {
+                    setRefMedia(prev => prev.filter(r => r.type !== 'audio'));
+                    toastError('Custom audio references are not supported in Preview mode.');
+                }
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isSeedance2, isPreview, refMedia]);
+
+    // Reset modelVersion when switching away from seedance-2
+    React.useEffect(() => {
+        if (!isSeedance2) setModelVersion('official');
     }, [isSeedance2]);
 
     // Seedance 2.0: resolution is dictated by Draft/Final tier
@@ -388,12 +433,12 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         }
     }, [isLinked, provider]);
 
-    // Auto-revert to 'new' mode when provider doesn't support video editing
+    // Auto-revert to 'new' mode when provider doesn't support video editing, or if in Preview mode
     React.useEffect(() => {
-        if (!isSeedance2 && generationMode === 'edit') {
+        if ((!isSeedance2 || isPreview) && generationMode !== 'new') {
             setGenerationMode('new');
         }
-    }, [isSeedance2, generationMode]);
+    }, [isSeedance2, isPreview, generationMode]);
 
     // Clear stale end frame when entering edit mode
     React.useEffect(() => {
@@ -428,12 +473,13 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             element_list: elementList,
             voice_list: voiceList,
             keep_original_audio: keepOriginalAudio,
+            model_version: modelVersion,
         };
         const timer = setTimeout(() => {
             onSettingsChange(currentSettings);
         }, 500);
         return () => clearTimeout(timer);
-    }, [provider, duration, mode, quality, aspectRatio, refMedia, endFrameUrl, sourceVideoUrl, sourceVideoDuration, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, keepOriginalAudio, onSettingsChange]);
+    }, [provider, duration, mode, quality, aspectRatio, refMedia, endFrameUrl, sourceVideoUrl, sourceVideoDuration, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, keepOriginalAudio, modelVersion, onSettingsChange]);
 
     // Clear preflight warnings when settings change
     React.useEffect(() => {
@@ -458,7 +504,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const editDuration = rawEditDuration ? Math.max(rawEditDuration, MIN_EDIT_DURATION) : rawEditDuration;
     const isTrimBelowMinimum = generationMode === 'edit' && trimmedDuration > 0 && trimmedDuration < MIN_EDIT_DURATION;
     const videoEditCost = (generationMode === 'edit' && sourceVideoUrl && editDuration)
-        ? Math.round(editDuration * getVideoEditRate(provider, editMode as 'std' | 'pro') * 10) / 10
+        ? Math.round(editDuration * getVideoEditRate(pricingProvider, editMode as 'std' | 'pro') * 10) / 10
         : null;
     const displayCost = videoEditCost ?? videoCost;
 
@@ -515,9 +561,10 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         ...(isSeedance2 ? {
             sound: hasCustomAudio ? 'off' : 'on',
             quality,
+            model_version: modelVersion,
             ...(refImageUrls.length > 0 ? { reference_image_urls: refImageUrls } : {}),
             ...(refVideoUrls.length > 0 ? { reference_video_urls: refVideoUrls } : {}),
-            ...(refAudioUrls.length > 0 ? { reference_audio_urls: refAudioUrls } : {}),
+            ...(!isPreview && refAudioUrls.length > 0 ? { reference_audio_urls: refAudioUrls } : {}),
             ...(() => {
                 const videoDurations = refMedia
                     .filter(r => r.type === 'video' && r.duration != null)
@@ -606,7 +653,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     }, [provider, duration, mode, quality, aspectRatio, endFrameUrl, negativePrompt, cfgScale, sound,
         watermark, multiShot, shotType, segments, elementList, voiceList, refMedia,
         hasImage, hasVideo, isBusy, isLinked, isDurationValid, videoCost, displayCost,
-        generationMode, sourceVideoUrl, sourceVideoDuration, trimStart, trimEnd, preflightWarnings, hasOnlyAudio]);
+        generationMode, sourceVideoUrl, sourceVideoDuration, trimStart, trimEnd, preflightWarnings, hasOnlyAudio, modelVersion]);
 
     // --- Helpers ---
     const addSegment = () => {
@@ -688,6 +735,32 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                     </button>
             </div>
 
+            {/* ── Seedance 2.0 Engine Sub-Selector (Official vs Preview) ── */}
+            {isSeedance2 && (
+                <div className="flex gap-1 p-0.5 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                    <button
+                        type="button"
+                        onClick={() => setModelVersion('official')}
+                        className={`flex-1 px-2 py-1.5 rounded-md text-[10px] font-semibold text-center transition-all cursor-pointer select-none
+                            ${modelVersion === 'official'
+                                ? 'bg-[#E50914]/15 text-white shadow-sm'
+                                : 'text-neutral-500 hover:text-neutral-300'}`}
+                    >
+                        Official
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setModelVersion('preview')}
+                        className={`flex-1 px-2 py-1.5 rounded-md text-[10px] font-semibold text-center transition-all cursor-pointer select-none
+                            ${modelVersion === 'preview'
+                                ? 'bg-[#E50914]/15 text-white shadow-sm'
+                                : 'text-neutral-500 hover:text-neutral-300'}`}
+                    >
+                        Preview
+                    </button>
+                </div>
+            )}
+
             {/* ── Basic Controls ── */}
             <div className="flex gap-1.5 flex-wrap">
                     {/* Duration */}
@@ -704,6 +777,18 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 </span>
                                 <span className="text-[8px] text-neutral-600">locked</span>
                             </div>
+                        ) : isPreview ? (
+                            /* Preview: discrete 3-button pill group (5s | 10s | 15s) */
+                            ['5', '10', '15'].map(d => (
+                                <button
+                                    key={d}
+                                    type="button"
+                                    onClick={() => setDuration(d)}
+                                    className={pill(duration === d)}
+                                >
+                                    {d}s
+                                </button>
+                            ))
                         ) : isV3 || isOmni || isSeedance2 ? (
                             <div className="flex items-center gap-2 flex-1 px-2 py-1 bg-white/[0.03] border border-white/[0.08] rounded-md group hover:border-white/20 transition-colors">
                                 <span className="text-[10px] font-semibold text-neutral-400 group-hover:text-neutral-300 w-4">{duration}s</span>
@@ -796,7 +881,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <FastForward size={10} />
                                 <span className="text-[10px] font-bold">Draft</span>
                             </div>
-                            <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost('seedance-2', 'std', duration, surchargeFlags))} cr</div>
+                            <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost(pricingProvider, 'std', duration, surchargeFlags))} cr</div>
                         </button>
                         <button type="button" onClick={() => setQuality('pro')}
                             className={`flex-1 px-2 py-2 rounded-md text-center transition-all cursor-pointer select-none border
@@ -808,7 +893,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <Film size={10} />
                                 <span className="text-[10px] font-bold">Final</span>
                             </div>
-                            <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost('seedance-2', 'pro', duration, surchargeFlags))} cr</div>
+                            <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost(pricingProvider, 'pro', duration, surchargeFlags))} cr</div>
                         </button>
                     </div>}
 
@@ -834,7 +919,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                     </div>
 
                     {/* ── Generation Mode Toggle (3-Way: New / Edit / Extend) ── */}
-                    {shotHasVideo && (
+                    {shotHasVideo && !isPreview && (
                         <div>
                             <label className="text-[9px] font-semibold text-neutral-500 mb-1.5 block">Generation Mode</label>
                             <div className="flex gap-1">
@@ -1010,7 +1095,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <>
                                     <input
                                         type="file"
-                                        accept={isOmni ? "image/*,video/mp4,video/quicktime" : "image/*,video/mp4,video/quicktime,audio/mpeg,audio/wav"}
+                                        accept={(isOmni || isPreview) ? "image/*,video/mp4,video/quicktime" : "image/*,video/mp4,video/quicktime,audio/mpeg,audio/wav"}
                                         multiple
                                         className="hidden"
                                         ref={refInputRef}
@@ -1019,11 +1104,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                             if (!fileList || fileList.length === 0) return;
 
                                             // ── Guardrail: Remaining slot check ──
-                                            const remaining = MAX_REF_MEDIA - refMedia.length;
+                                            const remaining = maxRefMedia - refMedia.length;
                                             let files = Array.from(fileList);
                                             if (files.length > remaining) {
                                                 files = files.slice(0, remaining);
-                                                toastError(`Only ${MAX_REF_MEDIA} reference files allowed. Some files were skipped.`);
+                                                toastError(`Only ${maxRefMedia} reference files allowed. Some files were skipped.`);
                                             }
                                             if (files.length === 0) return;
 
@@ -1066,7 +1151,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                     uploaded.push({ url, type: mediaType, name: file.name, duration: fileDuration });
                                                 }
                                                 if (uploaded.length > 0) {
-                                                    setRefMedia(prev => [...prev, ...uploaded].slice(0, MAX_REF_MEDIA));
+                                                    setRefMedia(prev => [...prev, ...uploaded].slice(0, maxRefMedia));
                                                 }
                                             } catch (err) {
                                                 console.error('[RefMediaUpload] Failed:', err);
@@ -1120,7 +1205,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                 <div key={s.id} className="flex flex-col gap-0.5 flex-shrink-0">
                                                     <button
                                                         type="button"
-                                                        disabled={(!isAdded && refMedia.length >= MAX_REF_MEDIA) || isCurrentShot}
+                                                        disabled={(!isAdded && refMedia.length >= maxRefMedia) || isCurrentShot}
                                                         onClick={() => {
                                                             if (isAdded) {
                                                                 // Remove it
@@ -1133,7 +1218,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                                     url: s.image_url!,
                                                                     type: 'image' as const,
                                                                     name: `Shot ${i + 1}`,
-                                                                }].slice(0, MAX_REF_MEDIA));
+                                                                }].slice(0, maxRefMedia));
                                                             }
                                                         }}
                                                         className={`relative w-12 h-12 rounded-lg overflow-hidden border flex-shrink-0 transition-all
@@ -1172,12 +1257,12 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                                 type="button"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    if (refMedia.length >= MAX_REF_MEDIA) return;
+                                                                    if (refMedia.length >= maxRefMedia) return;
                                                                     setRefMedia(prev => [...prev, {
                                                                         url: s.video_url!,
                                                                         type: 'video' as const,
                                                                         name: `Shot ${i + 1} video`,
-                                                                    }].slice(0, MAX_REF_MEDIA));
+                                                                    }].slice(0, maxRefMedia));
                                                                 }}
                                                                 className="absolute bottom-0 right-0 p-0.5 bg-purple-900/80 rounded-tl text-purple-300 hover:bg-purple-700/80 transition-colors"
                                                                 title="Add video as reference"
@@ -1215,7 +1300,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                 <div key={c.name} className="flex flex-col items-center gap-0.5 flex-shrink-0">
                                                     <button
                                                         type="button"
-                                                        disabled={!isAdded && refMedia.length >= MAX_REF_MEDIA}
+                                                        disabled={!isAdded && refMedia.length >= maxRefMedia}
                                                         onClick={() => {
                                                             if (isAdded) {
                                                                 setRefMedia(prev => prev.filter(r => r.url !== c.image_url));
@@ -1224,7 +1309,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                                     url: c.image_url,
                                                                     type: 'image' as const,
                                                                     name: c.name,
-                                                                }].slice(0, MAX_REF_MEDIA));
+                                                                }].slice(0, maxRefMedia));
                                                             }
                                                         }}
                                                         className={`relative w-12 h-12 rounded-full overflow-hidden border-2 flex-shrink-0 transition-all

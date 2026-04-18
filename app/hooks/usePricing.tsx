@@ -95,6 +95,12 @@ const DEFAULT_PRICING: Pricing = {
             "audio_surcharge": { "standard": 0.0, "pro": 0.0 },
             "end_frame_surcharge": { "standard": 0.3, "pro": 0.3 }
         },
+        "seedance-2-preview": {
+            "standard": { "5s": 2.0, "10s": 3.5, "15s": 5.5 },
+            "pro": { "5s": 3.0, "10s": 5.5, "15s": 8.0 },
+            "audio_surcharge": { "standard": 0.0, "pro": 0.0 },
+            "end_frame_surcharge": { "standard": 0.2, "pro": 0.2 }
+        },
         "seedance": {
             "standard": { "5s": 3.0, "10s": 6.0, "15s": 9.0 },
             "pro": { "5s": 4.0, "10s": 8.0, "15s": 12.0 },
@@ -109,6 +115,7 @@ const DEFAULT_PRICING: Pricing = {
     },
     video_edit: {
         "seedance-2": { standard: 0.8, pro: 1.2 },
+        "seedance-2-preview": { standard: 0.7, pro: 1.0 },
         "seedance":   { standard: 0.8, pro: 1.2 },
     },
     image: {
@@ -182,26 +189,18 @@ export const PricingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         // If we found an exact match for the duration, use it directly (no interpolation needed)
         if (baseCost > 0) {
-            // Still apply surcharges on top
+            // Apply flat surcharges directly to the base cost
             let surcharges = 0;
-            if (options?.sound === true) {
-                surcharges += (providerData.audio_surcharge as SurchargePricing)?.[modeKey] ?? 0;
-            }
-            if (options?.multiShot === true) {
-                surcharges += (providerData.multi_shot_surcharge as SurchargePricing)?.[modeKey] ?? 0;
-            }
-            if (options?.hasEndFrame === true) {
-                surcharges += (providerData.end_frame_surcharge as SurchargePricing)?.[modeKey] ?? 0;
-            }
-            // Interpolate from 5s base
-            const base5s = tierData?.[options?.resolution === 'pro' ? '5s_1080p' : '5s'] ?? tierData?.['5s'] ?? 0;
-            const total5sBase = base5s + surcharges;
-            const rawCost = (total5sBase / 5) * dur;
+            if (options?.sound === true) surcharges += (providerData.audio_surcharge as SurchargePricing)?.[modeKey] ?? 0;
+            if (options?.multiShot === true) surcharges += (providerData.multi_shot_surcharge as SurchargePricing)?.[modeKey] ?? 0;
+            if (options?.hasEndFrame === true) surcharges += (providerData.end_frame_surcharge as SurchargePricing)?.[modeKey] ?? 0;
 
-            // Reference video surcharge: each ref video second is billed at the same per-second rate
+            const rawCost = baseCost + surcharges;
+
+            // Reference video surcharge
             let refVideoSurcharge = 0;
             if (options?.referenceVideoDurations && options.referenceVideoDurations.length > 0) {
-                const perSecondRate = total5sBase / 5;
+                const perSecondRate = rawCost / dur;
                 const totalRefSeconds = options.referenceVideoDurations.reduce((a, b) => a + b, 0);
                 refVideoSurcharge = perSecondRate * totalRefSeconds;
             }
