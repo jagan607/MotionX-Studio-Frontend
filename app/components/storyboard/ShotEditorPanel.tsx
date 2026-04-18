@@ -71,6 +71,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const promptTextareaRef = useRef<HTMLTextAreaElement>(null);
     const promptBackdropRef = useRef<HTMLDivElement>(null);
+    const isPromptFocusedRef = useRef(false);
 
     // ── Preflight Warnings State (Phase 3) ──
     const [preflightWarnings, setPreflightWarnings] = useState<string[]>([]);
@@ -127,8 +128,9 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Sync local prompt from Firestore ONLY when the shot changes (by ID)
+    // Focus Lock: never overwrite while the user is actively typing
     useEffect(() => {
-        if (shot) {
+        if (shot && !isPromptFocusedRef.current) {
             setLocalPrompt(shot.video_prompt ?? shot.visual_action ?? '');
             setLocalProvider(shot.video_settings?.provider);
         }
@@ -576,8 +578,12 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                                 handlePromptChange(e.target.value);
                                                 mention.handleChange(e.target.value, e.target.selectionStart ?? undefined);
                                             }}
+                                            onFocus={() => { isPromptFocusedRef.current = true; }}
+                                            onBlur={(e) => {
+                                                isPromptFocusedRef.current = false;
+                                                mention.handleBlur(e);
+                                            }}
                                             onKeyDown={mention.handleKeyDown}
-                                            onBlur={mention.handleBlur}
                                             onScroll={handlePromptScroll}
                                             aria-expanded={mention.isOpen}
                                             aria-activedescendant={mention.isOpen ? `mention-option-${mention.activeIndex}` : undefined}
