@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2, Film, RefreshCw, Link2, Plus } from 'lucide-react';
 import { VideoHistoryStrip } from './VideoHistoryStrip';
 import { VideoSettingsPanel, RefMediaItem, getMediaTag } from './VideoSettingsPanel';
@@ -49,8 +49,13 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     sceneContext,
     sceneShots = [],
 }) => {
+    // ── Track the active provider locally so the @mention hook stays in sync
+    //    even when onUpdateShot is a no-op (e.g. Playground flow). ──
+    const [localProvider, setLocalProvider] = useState<string | undefined>(shot?.video_settings?.provider);
+
     // ── Stable callbacks for VideoSettingsPanel (breaks Firestore write loops) ──
     const handleSettingsChange = useCallback((newSettings: any) => {
+        if (newSettings?.provider) setLocalProvider(newSettings.provider);
         if (shot) onUpdateShot(shot.id, 'video_settings', newSettings);
     }, [shot?.id, onUpdateShot]);
 
@@ -65,6 +70,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     const [localPrompt, setLocalPrompt] = useState('');
     const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const promptTextareaRef = useRef<HTMLTextAreaElement>(null);
+    const promptBackdropRef = useRef<HTMLDivElement>(null);
 
     // ── Preflight Warnings State (Phase 3) ──
     const [preflightWarnings, setPreflightWarnings] = useState<string[]>([]);
@@ -77,7 +83,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     }, []);
 
     // ── Active provider for tag format ──
-    const activeProvider = shot?.video_settings?.provider;
+    const activeProvider = localProvider || shot?.video_settings?.provider;
 
     /** Build reference_media manifest for the enhance_prompt API */
     const buildRefMediaPayload = useCallback(() => {
@@ -124,6 +130,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     useEffect(() => {
         if (shot) {
             setLocalPrompt(shot.video_prompt ?? shot.visual_action ?? '');
+            setLocalProvider(shot.video_settings?.provider);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [shot?.id]);
@@ -234,8 +241,8 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     }, [shot?.id, localPrompt, onUpdateShot]);
 
     // ── @Mention Autocomplete Hook (must be after handleInsertPromptTag) ──
-    const isSeedance2 = shot?.video_settings?.provider === 'seedance-2' || shot?.video_settings?.provider === 'seedance';
-    const isOmniProvider = shot?.video_settings?.provider === 'kling-v3-omni';
+    const isSeedance2 = activeProvider === 'seedance-2' || activeProvider === 'seedance';
+    const isOmniProvider = activeProvider === 'kling-v3-omni';
     const mentionItems: MentionItem[] = React.useMemo(() =>
         displayMedia.map((item, i) => ({
             tag: getMediaTag(displayMedia, i, activeProvider),
@@ -251,7 +258,48 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
         textareaRef: promptTextareaRef,
         items: mentionItems,
         enabled: !!(isSeedance2 || isOmniProvider),
+        onInsert: handlePromptChange,
     });
+
+    // ── Backdrop highlight: build tag→type lookup + renderer ──
+    const knownTagMap = useMemo(() => {
+        const map = new Map<string, string>(); // lowercase tag → type
+        for (const item of mentionItems) {
+            map.set(item.tag.toLowerCase(), item.type);
+        }
+        return map;
+    }, [mentionItems]);
+
+    const TAG_COLOR: Record<string, string> = {
+        image: '#F6C46C',  // warm amber
+        video: '#C084FC',  // purple
+        audio: '#67E8F9',  // cyan
+    };
+
+    const renderHighlightedPrompt = useCallback((text: string) => {
+        if (!text) return <>&nbsp;</>;
+        const parts = text.split(/(@\w+)/g);
+        return parts.map((part, idx) => {
+            if (part.startsWith('@')) {
+                const mediaType = knownTagMap.get(part.toLowerCase());
+                if (mediaType) {
+                    return (
+                        <span key={idx} style={{ color: TAG_COLOR[mediaType] || '#60A5FA', fontWeight: 600 }}>
+                            {part}
+                        </span>
+                    );
+                }
+            }
+            return <span key={idx} style={{ color: 'rgba(255,255,255,0.9)' }}>{part}</span>;
+        });
+    }, [knownTagMap]);
+
+    // Sync scroll between textarea and backdrop
+    const handlePromptScroll = useCallback(() => {
+        if (promptTextareaRef.current && promptBackdropRef.current) {
+            promptBackdropRef.current.scrollTop = promptTextareaRef.current.scrollTop;
+        }
+    }, []);
 
 
     const {
@@ -501,21 +549,48 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                     </button>
                                 </div>
                                 <div className="relative">
-                                    <textarea
-                                        ref={promptTextareaRef}
-                                        value={localPrompt}
-                                        onChange={(e) => {
-                                            handlePromptChange(e.target.value);
-                                            mention.handleChange(e.target.value, e.target.selectionStart ?? undefined);
-                                        }}
-                                        onKeyDown={mention.handleKeyDown}
-                                        onBlur={mention.handleBlur}
-                                        aria-expanded={mention.isOpen}
-                                        aria-activedescendant={mention.isOpen ? `mention-option-${mention.activeIndex}` : undefined}
-                                        placeholder="Describe the shot..."
-                                        className={`w-full h-40 bg-[#0a0a0a] border border-white/[0.1] rounded-lg px-3 py-3 text-[13px] text-white outline-none focus:border-white/[0.3] resize-none leading-relaxed transition-all
+                                    {/* Grid stack: backdrop + textarea share the same cell */}
+                                    <div
+                                        className={`relative grid bg-[#0a0a0a] border border-white/[0.1] rounded-lg overflow-hidden transition-all focus-within:border-white/[0.3]
                                             ${isEnhancing ? 'animate-pulse opacity-60' : ''}`}
-                                    />
+                                        style={{ gridTemplateColumns: '1fr' }}
+                                    >
+                                        {/* Backdrop: highlighted text layer behind the textarea */}
+                                        <div
+                                            ref={promptBackdropRef}
+                                            aria-hidden="true"
+                                            className="pointer-events-none whitespace-pre-wrap break-words text-[13px] leading-relaxed px-3 py-3 h-40 overflow-y-auto"
+                                            style={{
+                                                gridArea: '1 / 1',
+                                                wordWrap: 'break-word',
+                                                overflowWrap: 'break-word',
+                                            }}
+                                        >
+                                            {renderHighlightedPrompt(localPrompt)}
+                                        </div>
+
+                                        <textarea
+                                            ref={promptTextareaRef}
+                                            value={localPrompt}
+                                            onChange={(e) => {
+                                                handlePromptChange(e.target.value);
+                                                mention.handleChange(e.target.value, e.target.selectionStart ?? undefined);
+                                            }}
+                                            onKeyDown={mention.handleKeyDown}
+                                            onBlur={mention.handleBlur}
+                                            onScroll={handlePromptScroll}
+                                            aria-expanded={mention.isOpen}
+                                            aria-activedescendant={mention.isOpen ? `mention-option-${mention.activeIndex}` : undefined}
+                                            placeholder="Describe the shot..."
+                                            className="w-full h-40 px-3 py-3 text-[13px] outline-none resize-none leading-relaxed placeholder:text-neutral-600"
+                                            style={{
+                                                gridArea: '1 / 1',
+                                                background: 'transparent',
+                                                color: 'transparent',
+                                                caretColor: '#F6C46C',
+                                            }}
+                                        />
+                                    </div>
 
                                     {/* @mention autocomplete dropdown */}
                                     {mention.isOpen && (
