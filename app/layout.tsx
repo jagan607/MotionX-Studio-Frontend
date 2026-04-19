@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/react";
 import { Inter, Anton, Roboto_Mono } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
@@ -178,6 +179,7 @@ export default function RootLayout({
             </AuthProvider>
           </div>
         </MediaViewerProvider>
+        <Analytics />
       </body>
     </html>
   );
