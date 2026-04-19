@@ -703,7 +703,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         <div className="mt-2 pt-2 border-t border-white/[0.06] space-y-2">
 
             {/* ── Provider Selector ── */}
-            <div className="flex gap-1.5 flex-wrap">
+            <div id="tour-shot-provider" className="flex gap-1.5 flex-wrap">
                     <button
                         type="button"
                         onClick={() => setProvider('seedance-2')}
@@ -762,7 +762,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             )}
 
             {/* ── Basic Controls ── */}
-            <div className="flex gap-1.5 flex-wrap">
+            <div id="tour-shot-controls" className="flex gap-1.5 flex-wrap">
                     {/* Duration */}
                     <div className="flex gap-1 flex-1 min-w-[100px]">
                         {generationMode === 'edit' ? (
@@ -976,7 +976,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                     )}
 
                     {/* ── Reference Media Strip (Omni-Reference) — hidden in Extend mode ── */}
-                    {generationMode !== 'extend' && <div>
+                    {generationMode !== 'extend' && <div id="tour-shot-refmedia">
                         <label className="text-[9px] font-semibold text-neutral-500 mb-1 flex items-center justify-between">
                             <span>Reference Media</span>
                             <span className="text-neutral-600">{refMedia.length}/{maxRefMedia}</span>

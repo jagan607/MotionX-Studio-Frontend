@@ -45,6 +45,7 @@ import Link from "next/link";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
 import { PricingProvider, formatCredits } from "@/app/hooks/usePricing";
 import { useCredits } from '@/hooks/useCredits';
+import LowCreditBanner from "@/app/components/LowCreditBanner";
 
 //db
 import { doc, onSnapshot, getDoc, collection, query, orderBy, getDocs } from "firebase/firestore";
@@ -131,9 +132,11 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     // --- TOUR FILTERING ---
     const tourSteps = useMemo(() => {
         return STORYBOARD_TOUR_STEPS.filter(step => {
+            // Generate-all button is currently hidden — always skip
+            if (step.targetId === 'tour-sb-generate-all') return false;
             // Steps that depend on shots existing:
-            if (step.targetId === 'tour-sb-generate-all' && shotMgr.shots.length === 0) return false;
             if (step.targetId === 'tour-sb-shot-card' && shotMgr.shots.length === 0) return false;
+            if (step.targetId.startsWith('tour-sb-shot-card-') && shotMgr.shots.length === 0) return false;
             return true;
         });
     }, [shotMgr.shots.length]);
@@ -158,6 +161,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     // Scene Selector Dropdown
     const [showSceneDropdown, setShowSceneDropdown] = useState(false);
     const sceneDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Content scroll container — used to scroll-to-top when tour starts
+    const contentScrollRef = useRef<HTMLDivElement>(null);
 
     // Close dropdowns on outside click
     useEffect(() => {
@@ -198,6 +204,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
     // Data State (Episode Title Correction)
     const [realEpisodeTitle, setRealEpisodeTitle] = useState(episodeTitle);
+
+    // --- TOUR: Scroll to top when tour starts so all targets are visible ---
+    useEffect(() => {
+        if (tourStep > 0 && contentScrollRef.current) {
+            contentScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [tourStep]);
 
     // --- 1. FETCH SCENE LIST ---
     useEffect(() => {
@@ -892,13 +905,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             </div>
 
                             <button
-                                onClick={() => {
-                                    if (plan === "free") {
-                                        router.push("/pricing?from=topup");
-                                    } else {
-                                        setShowTopUp(true);
-                                    }
-                                }}
+                                onClick={() => setShowTopUp(true)}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(127, 29, 29, 0.1)',
                                     border: '1px solid rgba(220, 38, 38, 0.3)', color: 'white', padding: '8px 16px', fontSize: '9px', fontWeight: 700,
@@ -914,8 +921,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     </div>
                 </div>
 
+                {/* LOW CREDIT BANNER */}
+                <div style={{ padding: '0 20px', paddingTop: '8px' }}>
+                    <LowCreditBanner />
+                </div>
+
                 {/* --- CONTENT --- */}
-                <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#050505', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                <div ref={contentScrollRef} style={{ flex: 1, overflowY: 'auto', backgroundColor: '#050505', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
                     <div id="tour-sb-context-strip" style={{ margin: '40px 40px 0 40px' }}>
                         <SceneContextStrip

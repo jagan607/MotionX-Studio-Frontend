@@ -2,7 +2,7 @@
 
 import { auth, googleProvider, db } from "@/lib/firebase";
 import { signInWithPopup } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ArrowRight, Activity, Disc, Globe, ArrowLeft, AlertTriangle } from "lucide-react";
@@ -18,13 +18,20 @@ const syncUserToFirestore = async (user: any) => {
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
+      // 10-day expiry for free credits
+      const expireDate = new Date();
+      expireDate.setDate(expireDate.getDate() + 10);
+
       await setDoc(userRef, {
         uid: user.uid,
         email: user.email,
         displayName: user.displayName || "Operative",
         photoURL: user.photoURL || "",
         plan: "free",
-        credits: 5,
+        credits: 30,
+        credits_granted_at: serverTimestamp(),
+        credits_expire_at: Timestamp.fromDate(expireDate),
+        free_credits_expired: false,
         createdAt: serverTimestamp(),
         lastActiveAt: serverTimestamp(),
         onboarding: {

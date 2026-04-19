@@ -9,6 +9,8 @@ export function useCredits() {
     const [plan, setPlan] = useState<string>("free");
     const [loading, setLoading] = useState(true);
     const [isEnterprise, setIsEnterprise] = useState(false);
+    const [creditsExpireAt, setCreditsExpireAt] = useState<Date | null>(null);
+    const [freeCreditsExpired, setFreeCreditsExpired] = useState(false);
 
     const { activeWorkspaceSlug } = useWorkspace();
     const unsubRef = useRef<Unsubscribe | null>(null);
@@ -23,6 +25,8 @@ export function useCredits() {
             setCredits(null);
             setPlan("free");
             setIsEnterprise(false);
+            setCreditsExpireAt(null);
+            setFreeCreditsExpired(false);
             setLoading(false);
             return;
         }
@@ -33,6 +37,8 @@ export function useCredits() {
         if (activeWorkspaceSlug) {
             // Enterprise Wallet — listen to the org document matching this workspace slug
             setIsEnterprise(true);
+            setCreditsExpireAt(null);
+            setFreeCreditsExpired(false);
             const orgQuery = query(
                 collection(db, "organizations"),
                 where("slug", "==", activeWorkspaceSlug),
@@ -55,11 +61,24 @@ export function useCredits() {
             const userRef = doc(db, "users", user.uid);
             unsubRef.current = onSnapshot(userRef, (snap) => {
                 if (snap.exists()) {
-                    setCredits(snap.data().credits ?? 0);
-                    setPlan(snap.data().plan ?? "free");
+                    const data = snap.data();
+                    setCredits(data.credits ?? 0);
+                    setPlan(data.plan ?? "free");
+                    // Credit expiry fields
+                    const expireAt = data.credits_expire_at;
+                    if (expireAt && expireAt.toDate) {
+                        setCreditsExpireAt(expireAt.toDate());
+                    } else if (expireAt) {
+                        setCreditsExpireAt(new Date(expireAt));
+                    } else {
+                        setCreditsExpireAt(null);
+                    }
+                    setFreeCreditsExpired(data.free_credits_expired ?? false);
                 } else {
                     setCredits(0);
                     setPlan("free");
+                    setCreditsExpireAt(null);
+                    setFreeCreditsExpired(false);
                 }
                 setLoading(false);
             }, (error) => {
@@ -74,5 +93,5 @@ export function useCredits() {
         };
     }, [activeWorkspaceSlug]);
 
-    return { credits, plan, loading, isEnterprise };
+    return { credits, plan, loading, isEnterprise, creditsExpireAt, freeCreditsExpired };
 }

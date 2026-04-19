@@ -18,6 +18,7 @@
     "@ffmpeg/util": "^0.12.2",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
+    "@vercel/analytics": "^2.0.1",
     "@xzdarcy/react-timeline-editor": "^1.0.0",
     "autoprefixer": "^10.4.23",
     "axios": "^1.13.3",

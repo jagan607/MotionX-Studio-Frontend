@@ -590,7 +590,7 @@ export const SortableShotCard = ({
             {/* ── Image Prompt ── */}
             <div className="mb-3">
                 <div className="flex justify-between items-center mb-1.5">
-                    <label className="text-[9px] font-semibold text-neutral-500">Image Prompt</label>
+                    <label className="text-[9px] font-semibold text-neutral-500" id={tourId ? `${tourId}-prompt` : undefined}>Image Prompt</label>
                     <div className="flex items-center gap-1.5 relative"
                         onMouseEnter={() => setIsHoveringRef(true)}
                         onMouseLeave={() => setIsHoveringRef(false)}
@@ -662,6 +662,7 @@ export const SortableShotCard = ({
 
                 {/* Edit & Animate Button - Triggers Inspector */}
                 <button
+                    id={tourId ? `${tourId}-settings` : undefined}
                     onClick={onEdit}
                     disabled={isBusy}
                     className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
@@ -701,6 +702,7 @@ export const SortableShotCard = ({
                 {/* Image Rendering Utils */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
                     <button
+                        id={tourId ? `${tourId}-gen` : undefined}
                         onClick={() => onRender(refFile, imageProvider, continuityRefId, undefined, undefined, modelTier)}
                         disabled={isBusy}
                         className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"

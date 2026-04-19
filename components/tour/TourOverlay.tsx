@@ -42,8 +42,8 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
 
         const tryFind = (attempts = 0) => {
             const el = document.getElementById(currentStep.targetId);
-            if (!el && attempts < 15) {
-                setTimeout(() => tryFind(attempts + 1), 200);
+            if (!el && attempts < 5) {
+                setTimeout(() => tryFind(attempts + 1), 150);
                 return;
             }
             if (!el) {
@@ -58,6 +58,19 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
             }
 
             const rect = el.getBoundingClientRect();
+
+            // Skip step if target is mostly outside viewport (e.g. scrolled away)
+            const visibleX = Math.max(0, Math.min(rect.right, window.innerWidth) - Math.max(rect.left, 0));
+            const visibleY = Math.max(0, Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0));
+            const visibleArea = visibleX * visibleY;
+            const totalArea = rect.width * rect.height;
+            if (totalArea > 0 && visibleArea / totalArea < 0.3) {
+                // Target is <30% visible — auto-skip
+                console.warn(`[TourOverlay] Target "${currentStep.targetId}" is off-screen, auto-skipping`);
+                if (isLastStep) { onComplete(); } else { onNext(); }
+                return;
+            }
+
             setTargetRect({
                 top: rect.top,
                 left: rect.left,
@@ -89,13 +102,17 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                 top = targetRect.bottom + GAP;
                 left = currentStep.arrowSide === "right"
                     ? targetRect.right - tooltipWidth
-                    : targetRect.left;
+                    : currentStep.arrowSide === "left"
+                    ? targetRect.left
+                    : targetRect.left + (targetRect.width / 2) - (tooltipWidth / 2); // center
                 break;
             case "top":
                 top = targetRect.top - tooltipHeight - GAP;
                 left = currentStep.arrowSide === "right"
                     ? targetRect.right - tooltipWidth
-                    : targetRect.left;
+                    : currentStep.arrowSide === "left"
+                    ? targetRect.left
+                    : targetRect.left + (targetRect.width / 2) - (tooltipWidth / 2); // center
                 break;
             case "left":
                 top = targetRect.top;
@@ -136,7 +153,10 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                     ...base,
                     top: "-8px",
                     right: currentStep.arrowSide === "right" ? "20px" : "auto",
-                    left: currentStep.arrowSide !== "right" ? "20px" : "auto",
+                    left: currentStep.arrowSide === "right" ? "auto"
+                        : currentStep.arrowSide === "left" ? "20px"
+                        : "50%",
+                    transform: !currentStep.arrowSide ? "translateX(-50%)" : undefined,
                     borderWidth: "0 8px 8px 8px",
                     borderColor: "transparent transparent #E50914 transparent",
                 };
@@ -145,7 +165,10 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                     ...base,
                     bottom: "-8px",
                     right: currentStep.arrowSide === "right" ? "20px" : "auto",
-                    left: currentStep.arrowSide !== "right" ? "20px" : "auto",
+                    left: currentStep.arrowSide === "right" ? "auto"
+                        : currentStep.arrowSide === "left" ? "20px"
+                        : "50%",
+                    transform: !currentStep.arrowSide ? "translateX(-50%)" : undefined,
                     borderWidth: "8px 8px 0 8px",
                     borderColor: "#E50914 transparent transparent transparent",
                 };

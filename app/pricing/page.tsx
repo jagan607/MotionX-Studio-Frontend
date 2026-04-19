@@ -6,7 +6,7 @@ import PricingCard from "@/app/components/PricingCard";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
-import { ArrowRight, MessageSquare, CheckCircle2 } from "lucide-react";
+import { ArrowRight, MessageSquare, CheckCircle2, ChevronDown, Film, Image as ImageIcon, Mic, Sparkles } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
@@ -17,6 +17,30 @@ const PRICING_MAP = {
     pro: { USD: "$40", INR: "₹3,663" },
     agency: { USD: "$80", INR: "₹7,325" }
 };
+
+// --- FAQ DATA ---
+const FAQ_ITEMS = [
+    { q: "Can I cancel anytime?", a: "Yes, cancel anytime from your profile. Your credits remain active until the end of your billing period." },
+    { q: "Do credits roll over?", a: "Yes — unused credits from your subscription roll over to the next month as long as your subscription is active." },
+    { q: "What happens when I run out of credits?", a: "You can buy additional credit packs anytime from the Top Up button. Your projects and content remain accessible — only generation requires credits." },
+    { q: "Can I use the content commercially?", a: "Commercial license is included with Pro and Agency plans. Free and Starter plan content is for personal use only." },
+    { q: "What's the difference between Standard and Turbo queue?", a: "Standard queue processes in order. Pro gets High Priority (faster starts), and Agency gets Turbo Priority (dedicated capacity, 2-3x faster)." },
+];
+
+function FAQItem({ q, a }: { q: string; a: string }) {
+    const [open, setOpen] = useState(false);
+    return (
+        <div className="border-b border-white/[0.06] last:border-b-0">
+            <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between py-5 px-1 text-left cursor-pointer bg-transparent border-none">
+                <span className="text-[13px] font-semibold text-white/90">{q}</span>
+                <ChevronDown size={16} className={`text-[#555] transition-transform duration-300 shrink-0 ml-4 ${open ? 'rotate-180' : ''}`} />
+            </button>
+            <div className={`overflow-hidden transition-all duration-300 ${open ? 'max-h-40 pb-5' : 'max-h-0'}`}>
+                <p className="text-[12px] text-[#888] leading-relaxed px-1">{a}</p>
+            </div>
+        </div>
+    );
+}
 
 export default function PricingPage() {
     const { subscribe } = usePayment();
@@ -194,11 +218,60 @@ export default function PricingPage() {
                     />
                 </div>
 
-                {/* ... (Footer Section) ... */}
+                {/* ═══ WHAT 100 CREDITS GETS YOU ═══ */}
+                <div className="w-full max-w-[1400px] mt-16 z-10">
+                    <div className="text-center mb-10">
+                        <p className="text-[#E50914] text-[9px] font-semibold tracking-[3px] mb-3 uppercase">Credit Value</p>
+                        <h2 className="text-3xl md:text-4xl text-white font-anton uppercase tracking-tight">What 100 Credits Gets You</h2>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                            { icon: <Film size={20} />, count: "~33", label: "AI Videos", sub: "10s cinematic clips", color: "#E50914" },
+                            { icon: <ImageIcon size={20} />, count: "~100", label: "AI Images", sub: "Storyboard frames", color: "#3B82F6" },
+                            { icon: <Mic size={20} />, count: "~50", label: "Voiceovers", sub: "AI voice generation", color: "#8B5CF6" },
+                            { icon: <Sparkles size={20} />, count: "~20", label: "Lip Syncs", sub: "Video lip sync", color: "#F59E0B" },
+                        ].map((item, i) => (
+                            <div key={i} className="bg-[#0A0A0A] border border-[#1A1A1A] rounded-xl p-6 text-center hover:border-white/10 hover:bg-[#0D0D0D] transition-all group">
+                                <div className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center transition-transform group-hover:scale-110" style={{ background: `${item.color}10`, color: item.color }}>
+                                    {item.icon}
+                                </div>
+                                <div className="text-3xl font-bold text-white font-mono mb-1">{item.count}</div>
+                                <div className="text-[11px] font-semibold text-white/80 uppercase tracking-wider mb-1">{item.label}</div>
+                                <div className="text-[9px] text-[#555] uppercase tracking-widest">{item.sub}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* ═══ FAQ ═══ */}
+                <div className="w-full max-w-[700px] mt-20 z-10">
+                    <div className="text-center mb-8">
+                        <p className="text-[#E50914] text-[9px] font-semibold tracking-[3px] mb-3 uppercase">FAQ</p>
+                        <h2 className="text-3xl text-white font-anton uppercase tracking-tight">Common Questions</h2>
+                    </div>
+                    <div className="bg-[#0A0A0A] border border-[#1A1A1A] rounded-xl px-6">
+                        {FAQ_ITEMS.map((item, i) => (<FAQItem key={i} q={item.q} a={item.a} />))}
+                    </div>
+                </div>
+
+                {/* ═══ TRUST BAR ═══ */}
+                <div className="w-full max-w-[1400px] mt-16 z-10">
+                    <div className="flex items-center justify-center gap-1 mb-6">
+                        <div className="h-[1px] flex-1 max-w-[100px] bg-gradient-to-r from-transparent to-white/10" />
+                        <span className="text-[8px] text-[#444] uppercase tracking-[3px] font-semibold px-4">Powered By</span>
+                        <div className="h-[1px] flex-1 max-w-[100px] bg-gradient-to-l from-transparent to-white/10" />
+                    </div>
+                    <div className="flex items-center justify-center gap-8 md:gap-12 flex-wrap">
+                        {["Seedance 2.0", "Kling v3", "ElevenLabs", "Gemini 2.5", "Sync Labs", "Flux"].map((name) => (
+                            <span key={name} className="text-[11px] font-mono text-[#444] uppercase tracking-wider hover:text-[#666] transition-colors">{name}</span>
+                        ))}
+                    </div>
+                </div>
+
+                {/* --- ENTERPRISE CARD --- */}
                 <div className="w-full max-w-[1400px] mt-12 z-10">
                     <div className="border border-[#222] bg-[#080808] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group rounded-lg">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-[#E50914] opacity-5 blur-[100px] rounded-full pointer-events-none group-hover:opacity-10 transition-opacity" />
-                        {/* ...Enterprise Content... */}
                         <div className="text-left">
                             <h2 className="text-3xl md:text-4xl text-white font-anton uppercase mb-2">Enterprise</h2>
                             <p className="text-[#888] text-sm max-w-xl">Dedicated GPU clusters, custom AI model fine-tuning, and API access.</p>

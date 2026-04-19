@@ -13,21 +13,45 @@ export interface TourStep {
 }
 
 // --- DASHBOARD TOUR ---
-// Target IDs: "tour-credits-target", "tour-new-series-target"
 export const DASHBOARD_TOUR_STEPS: TourStep[] = [
     {
+        targetId: "tour-monitor",
+        title: "PROJECT PREVIEW",
+        body: "This monitor previews your active project. Click a project below to see its content here, or open it to start editing.",
+        placement: "bottom",
+    },
+    {
+        targetId: "tour-filmstrip",
+        title: "YOUR PROJECTS",
+        body: "Your project library lives here. We've added a sample project to get you started — click it to explore a fully produced storyboard with AI-generated shots.",
+        placement: "top",
+    },
+    {
+        targetId: "tour-new-series-target",
+        title: "CREATE A PROJECT",
+        body: "Ready to direct? Click here to start a new project. Paste a script, let AI break it into scenes, then generate storyboards and animations.",
+        placement: "bottom",
+        arrowSide: "left",
+    },
+    {
         targetId: "tour-credits-target",
-        title: "SYSTEM CREDITS",
-        body: "This is your production fuel. Every AI generation consumes credits. Keep an eye on this meter.",
+        title: "YOUR CREDITS",
+        body: "Every AI generation (images, videos, auto-direct) costs credits. You start with 30 free credits. Top up anytime to keep creating.",
         placement: "bottom",
         arrowSide: "right",
     },
     {
-        targetId: "tour-new-series-target",
-        title: "START CREATING",
-        body: "Ready to direct? Click here to initialize a new Series and start generating your script.",
+        targetId: "tour-playground",
+        title: "PLAYGROUND",
+        body: "Want to experiment without a project? The Playground lets you generate AI images and videos instantly — great for testing ideas.",
         placement: "bottom",
         arrowSide: "right",
+    },
+    {
+        targetId: "tour-community-feed",
+        title: "COMMUNITY FEED",
+        body: "See what other creators are making in real time. Hover to preview their shots — a great source of inspiration for your own work.",
+        placement: "left",
     },
 ];
 
@@ -96,13 +120,70 @@ export const STORYBOARD_TOUR_STEPS: TourStep[] = [
         title: "SCENE CONTEXT",
         body: "Edit your scene summary, review location, time of day, and cast. Changes here influence AI shot generation.",
         placement: "bottom",
-        arrowSide: "left",
     },
     {
         targetId: "tour-sb-shot-card",
         title: "SHOT CARD",
-        body: "Each card is one shot. Configure casting, prompts, choose your AI engine (SEEDREAM / GEMINI), then hit GENERATE. Drag to reorder.",
+        body: "Each card is one shot. Configure casting, prompts, choose your AI engine, then hit GENERATE. Drag to reorder.",
         placement: "right",
+    },
+    {
+        targetId: "tour-sb-shot-card-prompt",
+        title: "IMAGE PROMPT",
+        body: "Describe what you want to see in this shot. AI will compose the image using your cast, location, and visual style. You can also attach a reference image.",
+        placement: "bottom",
+    },
+    {
+        targetId: "tour-sb-shot-card-gen",
+        title: "GENERATE IMAGE",
+        body: "Click here to render the AI frame. Each generation costs credits (shown on the button). You can re-generate as many times as you want.",
+        placement: "top",
+    },
+    {
+        targetId: "tour-sb-shot-card-settings",
+        title: "ANIMATE THIS SHOT",
+        body: "Open Shot Settings to fine-tune, then generate a video animation from your still frame. This is where your storyboard comes to life.",
+        placement: "top",
+    },
+];
+
+// --- SHOT SETTINGS (EDITOR PANEL) TOUR ---
+export const SHOT_SETTINGS_TOUR_STEPS: TourStep[] = [
+    {
+        targetId: "tour-shot-preview",
+        title: "SHOT PREVIEW",
+        body: "Your shot's current frame — a still image or animated video. Review how it looks before tweaking the prompt.",
+        placement: "right",
+    },
+    {
+        targetId: "tour-shot-prompt",
+        title: "VIDEO PROMPT",
+        body: "Describe the motion and action you want. Type @ to reference characters or images. Hit 'Enhance' to let AI auto-upgrade your prompt.",
+        placement: "right",
+    },
+    {
+        targetId: "tour-shot-provider",
+        title: "AI ENGINE",
+        body: "Choose your video generation engine. Seedance 2.0 excels at cinematic motion, Kling v3 Omni supports multi-reference, and Kling v3 offers element control.",
+        placement: "left",
+    },
+    {
+        targetId: "tour-shot-controls",
+        title: "DURATION & QUALITY",
+        body: "Set the clip duration (4–15 seconds) and resolution (720p for drafts, 1080p for final renders). Longer clips cost more credits.",
+        placement: "left",
+    },
+    {
+        targetId: "tour-shot-refmedia",
+        title: "REFERENCE MEDIA",
+        body: "Add character images, scene references, or audio to guide the AI. Your base shot image is auto-included. Use @tags in your prompt to anchor them.",
+        placement: "left",
+    },
+    {
+        targetId: "tour-shot-animate-btn",
+        title: "GENERATE VIDEO",
+        body: "Once everything is set, hit this button to animate your still frame into a cinematic video clip. Credits will be deducted based on duration and quality.",
+        placement: "top",
     },
 ];
 
@@ -184,5 +265,110 @@ export const ASSET_MANAGER_TOUR_STEPS: TourStep[] = [
         title: "ASSET CARD",
         body: "This is a single asset. Use REGEN to create new variations, or CONFIG to fine-tune details like voice and appearance.",
         placement: "right",
+    },
+];
+
+// --- PRE-PRODUCTION CANVAS TOUR ---
+export const PREPRODUCTION_TOUR_STEPS: TourStep[] = [
+    {
+        targetId: "tour-preprod-canvas",
+        title: "PRODUCTION CANVAS",
+        body: "This is your visual map. Scenes appear as clapperboards, characters as Polaroid cards, and locations as cinematic frames — all connected by wires showing relationships.",
+        placement: "bottom",
+    },
+    {
+        targetId: "tour-preprod-toolbar",
+        title: "ASSET TOOLBAR",
+        body: "Add new characters, locations, or props to your canvas. Open the Moodboard to set your film's visual direction. Each tool creates a new draggable node.",
+        placement: "right",
+    },
+    {
+        targetId: "tour-preprod-assets-btn",
+        title: "ASSET MANAGER",
+        body: "Open the full asset database. Browse all characters, locations, and products — bulk-generate visuals, configure voice profiles, and fine-tune details.",
+        placement: "bottom",
+        arrowSide: "right",
+    },
+    {
+        targetId: "tour-preprod-script-btn",
+        title: "SCRIPT EDITOR",
+        body: "Upload or paste your screenplay here. The AI will extract scenes, characters, and locations automatically and populate them on the canvas.",
+        placement: "bottom",
+    },
+    {
+        targetId: "tour-preprod-scene-nav",
+        title: "SCENE NAVIGATOR",
+        body: "Jump between scenes instantly. Each scene shows its character count and locations. Click a scene to fly the canvas to its cluster.",
+        placement: "left",
+    },
+    {
+        targetId: "tour-preprod-minimap",
+        title: "MINIMAP",
+        body: "A bird's-eye view of your entire production. The white rectangle shows your current viewport — click anywhere to navigate large projects.",
+        placement: "left",
+    },
+    {
+        targetId: "tour-preprod-production-btn",
+        title: "GO TO PRODUCTION",
+        body: "Once your characters and locations are set, head to Production to start generating storyboard frames and animating your shots.",
+        placement: "bottom",
+        arrowSide: "right",
+    },
+];
+
+// --- ASSET CONFIGURATION TOUR (inside the AssetModal) ---
+export const ASSET_CONFIG_TOUR_STEPS: TourStep[] = [
+    {
+        targetId: "tour-assetcfg-header",
+        title: "CONFIGURATION STUDIO",
+        body: "This is where you define every detail of a character, location, or product. The header shows the asset name and type.",
+        placement: "bottom",
+    },
+    {
+        targetId: "tour-assetcfg-traits",
+        title: "VISUAL TRAITS",
+        body: "Define appearance details — age, ethnicity, build, hair, clothing, and vibe for characters; atmosphere and lighting for locations. These traits auto-generate the AI prompt.",
+        placement: "bottom",
+    },
+    {
+        targetId: "tour-assetcfg-visuals",
+        title: "AI GENERATION",
+        body: "Upload a reference photo to guide the AI, or use the auto-generated prompt to create a visual. You can also upload your own image directly or inpaint edits.",
+        placement: "top",
+    },
+    {
+        targetId: "tour-assetcfg-actions",
+        title: "SAVE & GENERATE",
+        body: "Save Configuration persists your trait edits. Generate AI creates a new image using the prompt and reference. Characters also support voice casting via the voice bar above.",
+        placement: "top",
+    },
+];
+
+// --- POST-PRODUCTION TOUR ---
+export const POSTPRODUCTION_TOUR_STEPS: TourStep[] = [
+    {
+        targetId: "tour-postprod-preview",
+        title: "VIDEO PREVIEW",
+        body: "Watch your assembled cut here. Select a clip in the timeline below to preview it, or press Space to play the full sequence.",
+        placement: "bottom",
+    },
+    {
+        targetId: "tour-postprod-transport",
+        title: "TRANSPORT CONTROLS",
+        body: "Play, pause, scrub, split clips, adjust speed, and undo/redo edits. Use keyboard shortcuts like Space, B (split), and ⌘Z (undo) for speed.",
+        placement: "top",
+    },
+    {
+        targetId: "tour-postprod-timeline",
+        title: "TIMELINE",
+        body: "Drag and reorder video clips. Trim edges, adjust clip speed, add SFX and background music tracks to build your final edit.",
+        placement: "top",
+    },
+    {
+        targetId: "tour-postprod-export",
+        title: "EXPORT",
+        body: "When your edit is ready, click Export to render your final video. Choose resolution and format, then download or share your finished film.",
+        placement: "bottom",
+        arrowSide: "right",
     },
 ];

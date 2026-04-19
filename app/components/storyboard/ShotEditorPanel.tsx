@@ -13,6 +13,9 @@ import { formatCredits } from '@/app/hooks/usePricing';
 import { api } from '@/lib/api';
 import Image from 'next/image';
 import { Shot, VideoHistoryEntry } from '@/lib/types';
+import { TourOverlay } from '@/components/tour/TourOverlay';
+import { SHOT_SETTINGS_TOUR_STEPS } from '@/lib/tourConfigs';
+import { useTour } from '@/hooks/useTour';
 
 interface ShotEditorPanelProps {
     shot: Shot | null;
@@ -52,6 +55,9 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
     // ── Track the active provider locally so the @mention hook stays in sync
     //    even when onUpdateShot is a no-op (e.g. Playground flow). ──
     const [localProvider, setLocalProvider] = useState<string | undefined>(shot?.video_settings?.provider);
+
+    // ── Shot Settings Tour ──
+    const { step: settingsTourStep, nextStep: settingsTourNext, completeTour: settingsTourComplete } = useTour('shot_settings_tour');
 
     // ── Stable callbacks for VideoSettingsPanel (breaks Firestore write loops) ──
     const handleSettingsChange = useCallback((newSettings: any) => {
@@ -433,6 +439,14 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
 
     return (
         <>
+            {/* ── Shot Settings Tour ── */}
+            <TourOverlay
+                step={settingsTourStep}
+                steps={SHOT_SETTINGS_TOUR_STEPS}
+                onNext={settingsTourNext}
+                onComplete={settingsTourComplete}
+            />
+
             {/* ── Backdrop ── */}
             <div
                 className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200]"
@@ -468,7 +482,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                         <div className="col-span-7 border-r border-white/[0.06] overflow-y-auto p-5 space-y-5">
 
                             {/* Video Preview */}
-                            <div className="aspect-video bg-black rounded-xl overflow-hidden border border-white/[0.1] relative group">
+                            <div id="tour-shot-preview" className="aspect-video bg-black rounded-xl overflow-hidden border border-white/[0.1] relative group">
                                 {(previewVideoUrl || shot.video_url) ? (
                                     <video
                                         key={previewVideoUrl || shot.video_url}
@@ -498,7 +512,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                             />
 
                             {/* Prompt Editor */}
-                            <div className="space-y-2">
+                            <div id="tour-shot-prompt" className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <label className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">Prompt</label>
                                     <button
@@ -697,7 +711,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
 
                             {/* ── Sticky CTA Footer ── */}
                             {(shot.image_url || shot.video_url) && animateInfo && (
-                                <div className="px-4 py-3 border-t border-white/[0.08] bg-[#111] flex-shrink-0">
+                                <div id="tour-shot-animate-btn" className="px-4 py-3 border-t border-white/[0.08] bg-[#111] flex-shrink-0">
                                     <button
                                         onClick={animateInfo.handleAnimate}
                                         disabled={animateInfo.disabled}

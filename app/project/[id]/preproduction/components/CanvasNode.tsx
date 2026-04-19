@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback } from "react";
-import { Edit2, Sparkles, Trash2, User, MapPin, Palette, Package, Film } from "lucide-react";
+import { Edit2, Sparkles, Trash2, User, MapPin, Palette, Package, Film, Maximize2, Settings } from "lucide-react";
 
 export type NodeType = "scene" | "character" | "location" | "moodboard" | "product";
 
@@ -46,11 +46,13 @@ export function CanvasNode({
     const width = TYPE_WIDTHS[type];
     const [isDragging, setIsDragging] = useState(false);
     const dragState = useRef<{ startX: number; startY: number; posX: number; posY: number; moved: boolean } | null>(null);
+    const didStartDrag = useRef(false);
 
     const handlePointerDown = useCallback((e: React.PointerEvent) => {
         if ((e.target as HTMLElement).closest("button")) return;
         e.stopPropagation();
         setIsDragging(true);
+        didStartDrag.current = true;
         dragState.current = { startX: e.clientX, startY: e.clientY, posX: position.x, posY: position.y, moved: false };
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     }, [position]);
@@ -67,9 +69,11 @@ export function CanvasNode({
     }, [id, onPositionChange]);
 
     const handlePointerUp = useCallback((e: React.PointerEvent) => {
+        if (!didStartDrag.current) return; // Button click — don't trigger onEdit
         const wasMoved = dragState.current?.moved || false;
         setIsDragging(false);
         dragState.current = null;
+        didStartDrag.current = false;
         try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { }
         if (!wasMoved && onEdit) onEdit();
     }, [onEdit]);
@@ -167,13 +171,31 @@ export function CanvasNode({
                             </div>
                         )}
                         <div className="absolute top-1 right-1 z-40 flex gap-0.5 opacity-0 group-hover/node:opacity-100 transition-opacity">
-                            {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} className="p-1 bg-black/50 text-white/70 hover:text-white rounded transition-all"><Edit2 size={10} /></button>}
                             {onGenerate && <button onClick={e => { e.stopPropagation(); onGenerate(); }} className="p-1 bg-black/50 text-white/70 hover:text-[#E50914] rounded transition-all"><Sparkles size={10} /></button>}
                             {onDelete && <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-1 bg-black/50 text-white/70 hover:text-red-400 rounded transition-all"><Trash2 size={10} /></button>}
                         </div>
-                        {imageUrl && onImageClick && (
-                            <button onClick={e => { e.stopPropagation(); onImageClick(); }} className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors opacity-0 group-hover/node:opacity-100 cursor-zoom-in" />
-                        )}
+                        {/* Center action buttons */}
+                        <div className="absolute inset-0 z-30 flex items-center justify-center gap-2 opacity-0 group-hover/node:opacity-100 transition-all duration-200">
+                            <div className="absolute inset-0 bg-black/40 transition-opacity" />
+                            {imageUrl && onImageClick && (
+                                <button
+                                    onClick={e => { e.stopPropagation(); onImageClick(); }}
+                                    className="relative z-10 flex flex-col items-center gap-1 px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg hover:bg-white/20 hover:border-white/40 transition-all cursor-pointer"
+                                >
+                                    <Maximize2 size={14} className="text-white" />
+                                    <span className="text-[7px] font-bold tracking-[2px] uppercase text-white/80">Expand</span>
+                                </button>
+                            )}
+                            {onEdit && (
+                                <button
+                                    onClick={e => { e.stopPropagation(); onEdit(); }}
+                                    className="relative z-10 flex flex-col items-center gap-1 px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg hover:bg-white/20 hover:border-white/40 transition-all cursor-pointer"
+                                >
+                                    <Settings size={14} className="text-[#D4A843]" />
+                                    <span className="text-[7px] font-bold tracking-[2px] uppercase text-[#D4A843]/80">Config</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
                     <div className="mt-2 text-center">
                         <h3 className="text-[13px] font-bold text-[#2A2520] tracking-wide" style={{ fontFamily: "'Georgia', serif" }}>{title}</h3>
@@ -208,13 +230,31 @@ export function CanvasNode({
                                     </div>
                                 )}
                                 <div className="absolute top-1 right-1 z-40 flex gap-0.5 opacity-0 group-hover/node:opacity-100 transition-opacity">
-                                    {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} className="p-1 bg-black/50 text-white/70 hover:text-white rounded transition-all"><Edit2 size={10} /></button>}
                                     {onGenerate && <button onClick={e => { e.stopPropagation(); onGenerate(); }} className="p-1 bg-black/50 text-white/70 hover:text-[#E50914] rounded transition-all"><Sparkles size={10} /></button>}
                                     {onDelete && <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-1 bg-black/50 text-white/70 hover:text-red-400 rounded transition-all"><Trash2 size={10} /></button>}
                                 </div>
-                                {imageUrl && onImageClick && (
-                                    <button onClick={e => { e.stopPropagation(); onImageClick(); }} className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors opacity-0 group-hover/node:opacity-100 cursor-zoom-in" />
-                                )}
+                                {/* Center action buttons */}
+                                <div className="absolute inset-0 z-30 flex items-center justify-center gap-2 opacity-0 group-hover/node:opacity-100 transition-all duration-200">
+                                    <div className="absolute inset-0 bg-black/40 transition-opacity" />
+                                    {imageUrl && onImageClick && (
+                                        <button
+                                            onClick={e => { e.stopPropagation(); onImageClick(); }}
+                                            className="relative z-10 flex flex-col items-center gap-1 px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg hover:bg-white/20 hover:border-white/40 transition-all cursor-pointer"
+                                        >
+                                            <Maximize2 size={12} className="text-white" />
+                                            <span className="text-[6px] font-bold tracking-[2px] uppercase text-white/80">Expand</span>
+                                        </button>
+                                    )}
+                                    {onEdit && (
+                                        <button
+                                            onClick={e => { e.stopPropagation(); onEdit(); }}
+                                            className="relative z-10 flex flex-col items-center gap-1 px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg hover:bg-white/20 hover:border-white/40 transition-all cursor-pointer"
+                                        >
+                                            <Settings size={12} className="text-[#4A90E2]" />
+                                            <span className="text-[6px] font-bold tracking-[2px] uppercase text-[#4A90E2]/80">Config</span>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             <div className="w-4 flex-shrink-0 flex flex-col items-center gap-1 py-1">
                                 {[...Array(4)].map((_, i) => <div key={i} className="w-2 h-3 rounded-sm bg-white/[0.04]" />)}
@@ -249,9 +289,30 @@ export function CanvasNode({
                                 </div>
                             )}
                             <div className="absolute top-1 right-1 z-40 flex gap-0.5 opacity-0 group-hover/node:opacity-100 transition-opacity">
-                                {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} className="p-1 bg-black/50 text-white/70 hover:text-white rounded transition-all"><Edit2 size={10} /></button>}
                                 {onGenerate && <button onClick={e => { e.stopPropagation(); onGenerate(); }} className="p-1 bg-black/50 text-white/70 hover:text-[#E50914] rounded transition-all"><Sparkles size={10} /></button>}
                                 {onDelete && <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-1 bg-black/50 text-white/70 hover:text-red-400 rounded transition-all"><Trash2 size={10} /></button>}
+                            </div>
+                            {/* Center action buttons */}
+                            <div className="absolute inset-0 z-30 flex items-center justify-center gap-2 opacity-0 group-hover/node:opacity-100 transition-all duration-200">
+                                <div className="absolute inset-0 bg-black/40 transition-opacity" />
+                                {imageUrl && onImageClick && (
+                                    <button
+                                        onClick={e => { e.stopPropagation(); onImageClick(); }}
+                                        className="relative z-10 flex flex-col items-center gap-1 px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg hover:bg-white/20 hover:border-white/40 transition-all cursor-pointer"
+                                    >
+                                        <Maximize2 size={12} className="text-white" />
+                                        <span className="text-[6px] font-bold tracking-[2px] uppercase text-white/80">Expand</span>
+                                    </button>
+                                )}
+                                {onEdit && (
+                                    <button
+                                        onClick={e => { e.stopPropagation(); onEdit(); }}
+                                        className="relative z-10 flex flex-col items-center gap-1 px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg hover:bg-white/20 hover:border-white/40 transition-all cursor-pointer"
+                                    >
+                                        <Settings size={12} className="text-[#10B981]" />
+                                        <span className="text-[6px] font-bold tracking-[2px] uppercase text-[#10B981]/80">Config</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                         <div className="px-3 py-2">

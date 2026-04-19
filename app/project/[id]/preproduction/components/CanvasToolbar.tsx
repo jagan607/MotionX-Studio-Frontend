@@ -4,6 +4,7 @@ import React from "react";
 import { Film, User, MapPin, Palette, Package, Maximize2 } from "lucide-react";
 
 interface CanvasToolbarProps {
+    id?: string;
     onAddScene?: () => void;
     onAddCharacter?: () => void;
     onAddLocation?: () => void;
@@ -14,7 +15,7 @@ interface CanvasToolbarProps {
 }
 
 export function CanvasToolbar({
-    onAddScene, onAddCharacter, onAddLocation, onAddProduct, onOpenMoodboard, onFitToView,
+    id, onAddScene, onAddCharacter, onAddLocation, onAddProduct, onOpenMoodboard, onFitToView,
     productLabel = "Prop"
 }: CanvasToolbarProps) {
     const tools = [
@@ -28,7 +29,7 @@ export function CanvasToolbar({
     ];
 
     return (
-        <div className="absolute left-5 top-1/2 -translate-y-1/2 z-[20] flex flex-col gap-1.5 bg-[#0C0C0C]/90 backdrop-blur-xl border border-white/[0.06] rounded-2xl p-2 shadow-2xl">
+        <div id={id} className="absolute left-5 top-1/2 -translate-y-1/2 z-[20] flex flex-col gap-1.5 bg-[#0C0C0C]/90 backdrop-blur-xl border border-white/[0.06] rounded-2xl p-2 shadow-2xl">
             {tools.map((tool, i) => {
                 if (tool === "---") {
                     return <div key={i} className="h-px bg-white/[0.06] mx-1.5 my-1" />;

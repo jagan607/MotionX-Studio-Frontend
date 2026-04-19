@@ -16,6 +16,7 @@ import { TourOverlay } from "@/components/tour/TourOverlay";
 import { useTour } from "@/hooks/useTour";
 import { DASHBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
 import { useWorkspace } from "@/app/context/WorkspaceContext";
+import ShowcaseSection from "@/app/components/ShowcaseSection";
 
 const DEFAULT_SHOWREEL = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
 
@@ -183,7 +184,23 @@ export default function Dashboard() {
             const feedPromise = fetchGlobalFeed();
             const basicsPromise = fetchUserProjectsBasic(user.uid);
 
-            const [basics, feed] = await Promise.all([basicsPromise, feedPromise]);
+            let [basics, feed] = await Promise.all([basicsPromise, feedPromise]);
+
+            // If 0 projects, trigger /init to clone sample project, then re-fetch
+            if (basics.length === 0 && !isOrgAccount) {
+                try {
+                    const token = await user.getIdToken();
+                    await fetch(`${BACKEND_URL}/api/v1/user/init`, {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    // Re-fetch after clone
+                    invalidateDashboardCache(user.uid);
+                    basics = await fetchUserProjectsBasic(user.uid);
+                } catch (e) {
+                    console.warn('[dashboard] init/clone failed:', e);
+                }
+            }
 
             setMyProjects(basics);
             setGlobalShots(feed);
@@ -303,7 +320,7 @@ export default function Dashboard() {
                 <div className="flex-1 lg:flex-[3] flex flex-col min-w-0 h-full overflow-hidden gap-4 lg:gap-6">
 
                     {/* MONITOR */}
-                    <div className="flex-[2] relative bg-black border border-[#222] group overflow-hidden shadow-2xl min-h-0 rounded-lg transition-colors hover:border-[#333]">
+                    <div id="tour-monitor" className="flex-[2] relative bg-black border border-[#222] group overflow-hidden shadow-2xl min-h-0 rounded-lg transition-colors hover:border-[#333]">
                         {/* FIX #9: Consistent viewfinder bracket opacity */}
                         <div className="absolute inset-0 pointer-events-none z-20 p-4">
                             <div className="absolute top-4 left-4 w-8 h-8 border-l border-t border-white/30" />
@@ -419,6 +436,9 @@ export default function Dashboard() {
                         );
                     })()}
 
+                    {/* SHOWCASE — featured AI-generated content */}
+                    <ShowcaseSection />
+
                     {/* Film strip header */}
                     {myProjects.length >= 6 && (
                         <div className="flex items-center justify-between mb-2 shrink-0">
@@ -433,7 +453,7 @@ export default function Dashboard() {
                     )}
 
                     {/* Film strip */}
-                    <div className="h-[160px] md:h-[200px] lg:h-[220px] relative group/strip shrink-0">
+                    <div id="tour-filmstrip" className="h-[160px] md:h-[200px] lg:h-[220px] relative group/strip shrink-0">
 
                         {/* LEFT SCROLL BUTTON */}
                         <button
@@ -489,7 +509,11 @@ export default function Dashboard() {
 
                                     {/* VISIBILITY BADGE */}
                                     <div className="absolute top-2 left-2 z-20">
-                                        {p.is_global ? (
+                                        {(p as any).is_sample ? (
+                                            <span className="flex items-center gap-1 bg-[#E50914]/90 text-white text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded backdrop-blur-sm animate-pulse">
+                                                ✨ Click to Explore
+                                            </span>
+                                        ) : p.is_global ? (
                                             <span className="flex items-center gap-1 bg-blue-500/80 text-white text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded backdrop-blur-sm">
                                                 <Globe size={8} /> Global
                                             </span>
@@ -514,9 +538,14 @@ export default function Dashboard() {
                                     )}
                                     <div className="absolute bottom-0 p-2 w-full bg-gradient-to-t from-black to-transparent flex justify-between items-center pointer-events-none">
                                         <span className="text-white text-[9px] font-bold uppercase tracking-widest truncate block max-w-[70%]">{p.title}</span>
-                                        <span className="text-[8px] font-mono text-[#666] uppercase bg-black/50 px-1 rounded">
-                                            {p.type === 'movie' ? 'MOV' : 'SER'}
-                                        </span>
+                                        <div className="flex items-center gap-1">
+                                            {(p as any).is_sample && (
+                                                <span className="text-[6px] font-bold text-[#E50914] bg-[#E50914]/10 px-1 py-0.5 rounded uppercase tracking-widest">Sample</span>
+                                            )}
+                                            <span className="text-[8px] font-mono text-[#666] uppercase bg-black/50 px-1 rounded">
+                                                {p.type === 'movie' ? 'MOV' : 'SER'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -535,7 +564,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* RIGHT FEED STREAM — hidden on mobile/tablet */}
-                <div className="hidden lg:flex w-[320px] border-l border-[#222] pl-6 flex-col shrink-0 h-full overflow-hidden">
+                <div id="tour-community-feed" className="hidden lg:flex w-[320px] border-l border-[#222] pl-6 flex-col shrink-0 h-full overflow-hidden">
                     <div className="flex items-center justify-between mb-4 shrink-0 h-8">
                         <span className="text-[10px] text-[#888] uppercase tracking-[2px] flex items-center gap-2 font-semibold"><Radio size={12} className={globalShots.length > 0 ? "text-[#E50914] animate-pulse" : "text-[#333]"} /> Community Feed</span>
                         {/* FIX #8: Readable filter labels instead of single letters */}

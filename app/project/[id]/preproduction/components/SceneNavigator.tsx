@@ -13,18 +13,20 @@ interface SceneInfo {
 }
 
 interface SceneNavigatorProps {
+    id?: string;
     scenes: SceneInfo[];
     onJumpToScene: (position: { x: number; y: number }) => void;
     activeSceneId?: string;
 }
 
-export function SceneNavigator({ scenes, onJumpToScene, activeSceneId }: SceneNavigatorProps) {
+export function SceneNavigator({ id, scenes, onJumpToScene, activeSceneId }: SceneNavigatorProps) {
     const [collapsed, setCollapsed] = useState(false);
 
     if (scenes.length === 0) return null;
 
     return (
         <div
+            id={id}
             className={`absolute right-5 top-1/2 -translate-y-1/2 z-[20] flex transition-all duration-300 ease-out ${collapsed ? 'translate-x-[calc(100%-32px)]' : ''
                 }`}
         >

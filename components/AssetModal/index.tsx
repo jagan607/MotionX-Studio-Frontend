@@ -8,6 +8,9 @@ import { constructLocationPrompt, constructCharacterPrompt, constructProductProm
 import { toast } from 'react-hot-toast';
 import { Asset } from '@/lib/types';
 import { InpaintEditor } from '@/app/components/storyboard/InpaintEditor';
+import { TourOverlay } from '@/components/tour/TourOverlay';
+import { ASSET_CONFIG_TOUR_STEPS } from '@/lib/tourConfigs';
+import { useTour } from '@/hooks/useTour';
 
 // --- SUB-COMPONENTS ---
 import { TraitsTab } from './TraitsTab';
@@ -86,6 +89,9 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
     // Inpaint State
     const [inpaintData, setInpaintData] = useState<{ src: string } | null>(null);
+
+    // Tour
+    const { step: tourStep, nextStep: tourNext, completeTour: tourComplete } = useTour('asset_config_tour');
 
     // --- DERIVED STATE ---
     const isCreationMode = currentData.id === 'new';
@@ -496,7 +502,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             <div className="bg-[#090909] border border-[#222] rounded-xl w-[880px] max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
 
                 {/* HEADER */}
-                <div className="p-5 border-b border-[#222] flex justify-between items-center bg-[#0a0a0a] shrink-0">
+                <div className="p-5 border-b border-[#222] flex justify-between items-center bg-[#0a0a0a] shrink-0" id="tour-assetcfg-header">
                     <div className="flex items-center gap-3">
                         {isVoiceMode && <ArrowLeft size={20} className="cursor-pointer hover:text-motion-red" onClick={() => setIsVoiceMode(false)} />}
                         {getHeaderIcon()}
@@ -535,7 +541,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         />
                     ) : (
                         <>
-                            <div className="animate-in fade-in duration-300">
+                            <div className="animate-in fade-in duration-300" id="tour-assetcfg-traits">
                                 <div className="text-[11px] font-bold text-neutral-500 mb-4 tracking-widest uppercase">Asset Definition</div>
 
                                 {/* [NEW] Conditional Rendering of ProductTab vs TraitsTab */}
@@ -562,6 +568,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                 )}
                             </div>
 
+                            <div id="tour-assetcfg-visuals">
                             <VisualsSection
                                 displayImage={localDisplayImage}
                                 refImage={refImage}
@@ -579,6 +586,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
                                 onInpaint={localDisplayImage ? () => setInpaintData({ src: localDisplayImage }) : undefined}
                             />
+                            </div>
 
                             {assetType === 'character' && (
                                 <VoicePreviewBar
@@ -596,7 +604,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
                 {/* FOOTER - SPLIT ACTIONS */}
                 {!isVoiceMode && (
-                    <div className="p-5 border-t border-[#222] bg-[#0a0a0a] shrink-0 grid grid-cols-2 gap-3">
+                    <div className="p-5 border-t border-[#222] bg-[#0a0a0a] shrink-0 grid grid-cols-2 gap-3" id="tour-assetcfg-actions">
                         <button
                             onClick={handleSaveOnly}
                             disabled={isSaveDisabled}
@@ -657,6 +665,14 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                     }}
                 />
             )}
+
+            {/* Tour Overlay */}
+            <TourOverlay
+                step={tourStep}
+                steps={ASSET_CONFIG_TOUR_STEPS}
+                onNext={tourNext}
+                onComplete={tourComplete}
+            />
         </div>
     );
 };

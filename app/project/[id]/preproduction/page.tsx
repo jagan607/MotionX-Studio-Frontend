@@ -14,6 +14,9 @@ import { AssetManagerModal } from "@/app/components/studio/AssetManagerModal";
 import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionModal";
 import { toast } from "react-hot-toast";
 import { AssetModal } from "@/components/AssetModal";
+import { TourOverlay } from "@/components/tour/TourOverlay";
+import { PREPRODUCTION_TOUR_STEPS } from "@/lib/tourConfigs";
+import { useTour } from "@/hooks/useTour";
 
 import { CanvasEngine, CanvasTransform, CanvasJumpTo } from "./components/CanvasEngine";
 import { CanvasNode, NodePosition, NodeType } from "./components/CanvasNode";
@@ -248,6 +251,9 @@ export default function PreProductionCanvas() {
     const [loading, setLoading] = useState(true);
     const [activeEpisodeId, setActiveEpisodeId] = useState<string | null>(null);
     const [episodes, setEpisodes] = useState<any[]>([]);
+
+    // Tour
+    const { step: tourStep, nextStep: tourNext, completeTour: tourComplete } = useTour('preproduction_tour');
 
     // Canvas State
     const [nodePositions, setNodePositions] = useState<Record<string, NodePosition>>({});
@@ -532,9 +538,11 @@ export default function PreProductionCanvas() {
     }, [project, characters.length, scenes.length, products.length, isCommercial]);
 
     // Redirect to moodboard page if no visual direction is set
+    // Skip for sample projects — they should open directly to the canvas
     const moodRedirected = useRef(false);
     useEffect(() => {
         if (!project || !hasScript || !isDraftApproved || moodRedirected.current) return;
+        if ((project as any).is_sample) return; // Sample projects bypass moodboard gate
         const hasMood = (project as any).moodboard_image_url || (project as any).style_ref_url;
         if (!hasMood) {
             moodRedirected.current = true;
@@ -569,7 +577,7 @@ export default function PreProductionCanvas() {
             />
 
             {/* ── MAIN CANVAS ── */}
-            <div className="relative flex-1 overflow-hidden" style={{ maxHeight: '100%' }}>
+            <div id="tour-preprod-canvas" className="relative flex-1 overflow-hidden" style={{ maxHeight: '100%' }}>
 
 
                 {(!hasScript || (project?.script_status === "ready" && !isDraftApproved)) ? (
@@ -695,6 +703,7 @@ export default function PreProductionCanvas() {
                             ))}
                         </CanvasEngine>
                         <CanvasToolbar
+                            id="tour-preprod-toolbar"
                             productLabel={isCommercial ? "Product" : "Prop"}
                             onAddCharacter={() => setSelectedAsset({
                                 data: { id: 'new', name: '', type: 'character', visual_traits: {}, created_at: new Date() },
@@ -711,6 +720,7 @@ export default function PreProductionCanvas() {
                             onOpenMoodboard={() => router.push(`/project/${projectId}/moodboard?episode_id=${activeEpisodeId || 'main'}`)}
                         />
                         <CanvasMinimap
+                            id="tour-preprod-minimap"
                             nodes={canvasNodes.map(n => ({ id: n.id, type: n.nodeType, position: n.position }))}
                             transform={canvasTransform}
                             containerWidth={containerRef.current?.clientWidth || 1200}
@@ -718,6 +728,7 @@ export default function PreProductionCanvas() {
                             onJumpTo={(x, y) => canvasJumpToRef.current?.(x, y)}
                         />
                         <SceneNavigator
+                            id="tour-preprod-scene-nav"
                             scenes={scenes.map(s => {
                                 const sceneNode = canvasNodes.find(n => n.id === `scene-${s.id}`);
                                 return {
@@ -734,6 +745,14 @@ export default function PreProductionCanvas() {
                     </>
                 )}
             </div>
+
+            {/* ── Tour Overlay ── */}
+            <TourOverlay
+                step={tourStep}
+                steps={PREPRODUCTION_TOUR_STEPS}
+                onNext={tourNext}
+                onComplete={tourComplete}
+            />
 
             {/* ── MODALS ── */}
             {selectedAsset && (

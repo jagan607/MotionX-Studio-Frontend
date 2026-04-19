@@ -14,7 +14,7 @@ export default function GlobalHeader() {
     const pathname = usePathname();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { credits, plan, isEnterprise } = useCredits();
+    const { credits, plan, isEnterprise, creditsExpireAt, freeCreditsExpired } = useCredits();
     const { availableWorkspaces, activeWorkspaceSlug, setActiveWorkspace } = useWorkspace();
     const [showTopUp, setShowTopUp] = useState(false);
     const [showSwitcher, setShowSwitcher] = useState(false);
@@ -184,23 +184,28 @@ export default function GlobalHeader() {
                 <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
 
                     {/* Credits + Top Up */}
-                    <div id="tour-credits-target" className="flex items-center gap-2 sm:gap-3 lg:gap-4 mr-1 sm:mr-2 lg:mr-4">
+                    <div id="tour-credits-target" className={`flex items-center gap-2 sm:gap-3 lg:gap-4 mr-1 sm:mr-2 lg:mr-4 ${credits !== null && credits < 5 ? 'animate-pulse' : ''}`}>
                         <div className="text-right">
                             <span className="text-[7px] sm:text-[8px] text-[#999] font-mono uppercase block leading-none mb-0.5 flex items-center gap-1">
                                 {isEnterprise && <Building size={8} className="text-[#E50914]" />}
                                 {isEnterprise ? 'Org Credits' : 'Credits'}
                             </span>
-                            <div className="text-xs sm:text-[13px] text-white font-bold font-mono tracking-[0.5px]">{credits !== null ? credits : '---'}</div>
+                            <div className={`text-xs sm:text-[13px] font-bold font-mono tracking-[0.5px] ${credits !== null && credits < 5 ? 'text-[#E50914]' : 'text-white'}`}>{credits !== null ? credits : '---'}</div>
+                            {/* Expiry countdown for free users */}
+                            {plan === "free" && creditsExpireAt && !freeCreditsExpired && credits !== null && credits > 0 && (() => {
+                                const now = new Date();
+                                const diff = creditsExpireAt.getTime() - now.getTime();
+                                const daysLeft = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+                                if (daysLeft <= 0) return null;
+                                return (
+                                    <span className={`text-[7px] font-mono uppercase block leading-none mt-0.5 ${daysLeft <= 3 ? 'text-[#E50914] animate-pulse' : 'text-[#666]'}`}>
+                                        {daysLeft}d left
+                                    </span>
+                                );
+                            })()}
                         </div>
                         <button
-                            onClick={() => {
-                                if (plan === "free") {
-                                    // Free users must subscribe before topping up
-                                    router.push("/pricing?from=topup");
-                                } else {
-                                    setShowTopUp(true);
-                                }
-                            }}
+                            onClick={() => setShowTopUp(true)}
                             className="flex items-center gap-1 sm:gap-1.5 bg-[#E50914]/10 border border-[#E50914]/30 text-white px-2 sm:px-3 py-1.5 sm:py-[6px] text-[8px] sm:text-[9px] font-bold uppercase rounded-md cursor-pointer transition-all hover:bg-[#E50914]/25 hover:border-[#E50914] hover:shadow-[0_0_20px_rgba(229,9,20,0.2)]"
                         >
                             <Plus size={9} strokeWidth={4} />
@@ -209,7 +214,7 @@ export default function GlobalHeader() {
                     </div>
 
                     {/* Playground — B2C workspace */}
-                    <Link href="/playground" className="hidden md:block no-underline">
+                    <Link id="tour-playground" href="/playground" className="hidden md:block no-underline">
                         <button
                             className={`flex items-center gap-2 text-[10px] sm:text-xs font-bold tracking-[2px] uppercase transition-all rounded-md px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 cursor-pointer border ${
                                 pathname === '/playground'

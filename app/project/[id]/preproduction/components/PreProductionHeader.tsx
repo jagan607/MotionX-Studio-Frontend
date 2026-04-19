@@ -151,6 +151,7 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
                         {/* Assets */}
                         {onOpenAssets && (
                             <button
+                                id="tour-preprod-assets-btn"
                                 onClick={onOpenAssets}
                                 className="flex items-center gap-2 h-9 px-4 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[11px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md cursor-pointer"
                             >
@@ -161,6 +162,7 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
                         {/* Script */}
                         {onEditScript && (
                             <button
+                                id="tour-preprod-script-btn"
                                 onClick={onEditScript}
                                 className="flex items-center gap-2 h-9 px-4 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[11px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md cursor-pointer"
                             >
@@ -171,6 +173,7 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
                         {/* Production Link */}
                         {hasScript && (
                             <Link
+                                id="tour-preprod-production-btn"
                                 href={productionUrl}
                                 className="flex items-center gap-2 h-9 px-4 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[11px] font-semibold text-[#EEE] hover:text-[#D4A843] uppercase tracking-wide transition-colors rounded-md no-underline cursor-pointer"
                                 title="Go to Production"
@@ -192,13 +195,7 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
                                 {credits !== null ? formatCredits(credits) : <span className="text-[#333] animate-pulse">---</span>}
                             </div>
                         </div>
-                        <button onClick={() => {
-                            if (plan === "free") {
-                                router.push("/pricing?from=topup");
-                            } else {
-                                setShowTopUp(true);
-                            }
-                        }} className="flex items-center gap-1.5 bg-red-900/10 border border-red-600/30 text-white px-3 py-1.5 text-[8px] font-bold uppercase cursor-pointer transition-all hover:bg-red-600 hover:border-red-600 rounded-md">
+                        <button onClick={() => setShowTopUp(true)} className="flex items-center gap-1.5 bg-red-900/10 border border-red-600/30 text-white px-3 py-1.5 text-[8px] font-bold uppercase cursor-pointer transition-all hover:bg-red-600 hover:border-red-600 rounded-md">
                             <Plus size={9} strokeWidth={4} /> Top Up
                         </button>
                     </div>

@@ -14,6 +14,9 @@ import {
     loadTimeline as loadTimelineAPI,
 } from "@/lib/api";
 import { Project, Shot } from "@/lib/types";
+import { TourOverlay } from "@/components/tour/TourOverlay";
+import { POSTPRODUCTION_TOUR_STEPS } from "@/lib/tourConfigs";
+import { useTour } from "@/hooks/useTour";
 
 import Timeline from "@/components/studio/postprod/Timeline";
 import ShotInspector from "@/components/studio/postprod/ShotInspector";
@@ -58,6 +61,9 @@ export default function PostProdPage() {
     const [loading, setLoading] = useState(true);
     const [project, setProject] = useState<Project | null>(null);
     const [episodeId, setEpisodeId] = useState("main");
+
+    // Tour
+    const { step: tourStep, nextStep: tourNext, completeTour: tourComplete } = useTour('postproduction_tour');
 
     // Scene-scoped timeline
     const [scenes, setScenes] = useState<{ id: string; label: string }[]>([]);
@@ -1399,6 +1405,7 @@ export default function PostProdPage() {
                         <SlidersHorizontal size={11} /> INSPECTOR
                     </button>
                     <button
+                        id="tour-postprod-export"
                         onClick={() => setShowExport(!showExport)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-[9px] font-bold tracking-widest transition-all ${
                             exportProgress.status === 'exporting' || exportProgress.status === 'queued'
@@ -1427,6 +1434,7 @@ export default function PostProdPage() {
                 <div className="flex-1 flex flex-col overflow-hidden">
                     {/* ──── VIDEO PREVIEW ──── */}
                     <div
+                        id="tour-postprod-preview"
                         ref={previewContainerRef}
                         className="min-h-[120px] bg-black flex items-center justify-center border-b border-[#1a1a1a] relative"
                         style={{ height: `${previewHeightPct}%` }}
@@ -1502,6 +1510,7 @@ export default function PostProdPage() {
                     </div>
 
                     {/* Transport Controls */}
+                    <div id="tour-postprod-transport" className="shrink-0">
                     <TransportControls
                         isPlaying={timeline.isPlaying}
                         currentTime={timeline.playheadPosition}
@@ -1542,8 +1551,10 @@ export default function PostProdPage() {
                         }}
                         hasVideo={!!previewClip?.videoUrl}
                     />
+                    </div>
 
                     {/* Timeline */}
+                    <div id="tour-postprod-timeline" className="flex-1 flex flex-col overflow-hidden">
                     <Timeline
                         state={timeline}
                         onClipSelect={onClipSelect}
@@ -1569,7 +1580,7 @@ export default function PostProdPage() {
                         onDeleteTrack={onDeleteTrack}
                         onOpenAudioGen={(trackId, type) => setAudioGenBar({ type, trackId })}
                     />
-
+                    </div>
                     {/* Audio Generate Bar */}
                     {audioGenBar && (
                         <AudioGenerateBar
@@ -1647,6 +1658,14 @@ export default function PostProdPage() {
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* ── Tour Overlay ── */}
+            <TourOverlay
+                step={tourStep}
+                steps={POSTPRODUCTION_TOUR_STEPS}
+                onNext={tourNext}
+                onComplete={tourComplete}
+            />
         </div>
     );
 }

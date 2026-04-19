@@ -11,6 +11,7 @@ interface MinimapNode {
 }
 
 interface CanvasMinimapProps {
+    id?: string;
     nodes: MinimapNode[];
     transform: CanvasTransform;
     containerWidth: number;
@@ -26,7 +27,7 @@ const TYPE_COLORS: Record<NodeType, string> = {
     product: "#10B981",
 };
 
-export function CanvasMinimap({ nodes, transform, containerWidth, containerHeight, onJumpTo }: CanvasMinimapProps) {
+export function CanvasMinimap({ id, nodes, transform, containerWidth, containerHeight, onJumpTo }: CanvasMinimapProps) {
     if (nodes.length === 0) return null;
 
     const MINIMAP_W = 160;
@@ -64,6 +65,7 @@ export function CanvasMinimap({ nodes, transform, containerWidth, containerHeigh
 
     return (
         <div
+            id={id}
             className="absolute bottom-6 right-6 z-[20] rounded-xl overflow-hidden border border-white/[0.08] bg-[#0A0A0A]/90 backdrop-blur-md shadow-2xl cursor-crosshair"
             style={{ width: MINIMAP_W, height: MINIMAP_H }}
             onClick={handleClick}
