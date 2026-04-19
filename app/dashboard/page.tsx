@@ -9,7 +9,7 @@ import Link from "next/link";
 import { Loader2, Plus, Film, Radio, Image as ImageIcon, Crosshair, Maximize, Play, ChevronLeft, ChevronRight, Trash2, ArrowRight, Megaphone, Sparkles, Zap, Wrench, X, Share2, Globe, Users as UsersIcon, Lock } from "lucide-react";
 import ShareProjectModal from "@/components/ShareProjectModal";
 import { collection as fsCollection, query as fsQuery, where as fsWhere, limit as fsLimit, onSnapshot as fsOnSnapshot } from "firebase/firestore";
-import { DashboardProject, fetchUserDashboardProjects, fetchGlobalFeed, invalidateDashboardCache, fetchUserProjectsBasic, enrichProjectPreview } from "@/lib/api";
+import { DashboardProject, fetchUserDashboardProjects, fetchCommunityFeed, invalidateDashboardCache, fetchUserProjectsBasic, enrichProjectPreview } from "@/lib/api";
 import { API_BASE_URL } from "@/lib/config";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { TourOverlay } from "@/components/tour/TourOverlay";
@@ -22,7 +22,7 @@ const DEFAULT_SHOWREEL = "https://firebasestorage.googleapis.com/v0/b/motionx-st
 
 export default function Dashboard() {
     const [myProjects, setMyProjects] = useState<DashboardProject[]>([]);
-    const [globalShots, setGlobalShots] = useState<any[]>([]);
+    const [communityShots, setCommunityShots] = useState<any[]>([]);
     const [activeProjectIndex, setActiveProjectIndex] = useState(0);
     const [bootState, setBootState] = useState<'booting' | 'ready'>('booting');
     const [filter, setFilter] = useState<'ALL' | 'MOTION' | 'STATIC'>('ALL');
@@ -181,7 +181,7 @@ export default function Dashboard() {
 
         // 1. FAST LOAD: Metadata
         const loadData = async () => {
-            const feedPromise = fetchGlobalFeed();
+            const feedPromise = fetchCommunityFeed();
             const basicsPromise = fetchUserProjectsBasic(user.uid);
 
             let [basics, feed] = await Promise.all([basicsPromise, feedPromise]);
@@ -203,7 +203,7 @@ export default function Dashboard() {
             }
 
             setMyProjects(basics);
-            setGlobalShots(feed);
+            setCommunityShots(feed);
             setBootState('ready');
 
             // 2. SLOW LOAD: Hydrate media one by one
@@ -274,7 +274,7 @@ export default function Dashboard() {
         }
     }, [activeProject]);
 
-    const filteredGlobal = globalShots.filter(s => {
+    const filteredCommunity = communityShots.filter(s => {
         if (filter === 'MOTION') return !!s.video_url;
         if (filter === 'STATIC') return !s.video_url;
         return true;
@@ -566,7 +566,7 @@ export default function Dashboard() {
                 {/* RIGHT FEED STREAM — hidden on mobile/tablet */}
                 <div id="tour-community-feed" className="hidden lg:flex w-[320px] border-l border-[#222] pl-6 flex-col shrink-0 h-full overflow-hidden">
                     <div className="flex items-center justify-between mb-4 shrink-0 h-8">
-                        <span className="text-[10px] text-[#888] uppercase tracking-[2px] flex items-center gap-2 font-semibold"><Radio size={12} className={globalShots.length > 0 ? "text-[#E50914] animate-pulse" : "text-[#333]"} /> Community Feed</span>
+                        <span className="text-[10px] text-[#888] uppercase tracking-[2px] flex items-center gap-2 font-semibold"><Radio size={12} className={communityShots.length > 0 ? "text-[#E50914] animate-pulse" : "text-[#333]"} /> Community Feed</span>
                         {/* FIX #8: Readable filter labels instead of single letters */}
                         <div className="flex gap-1">
                             {[
@@ -581,7 +581,7 @@ export default function Dashboard() {
 
                     <div className="flex-1 overflow-y-auto space-y-4 pr-2 no-scrollbar pb-10">
                         {/* FIX #7: Empty state for filtered community feed */}
-                        {filteredGlobal.length === 0 ? (
+                        {filteredCommunity.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center py-20">
                                 <Film size={28} className="text-[#222] mb-3" />
                                 <p className="text-[11px] text-[#444] uppercase tracking-widest font-semibold">No shots found</p>
@@ -590,7 +590,7 @@ export default function Dashboard() {
                                 </p>
                             </div>
                         ) : (
-                            filteredGlobal.map((shot, i) => (
+                            filteredCommunity.map((shot, i) => (
                                 <div key={shot.id + i} className="bg-[#0A0A0A] border border-[#222] group hover:border-[#333] transition-all rounded-md overflow-hidden shrink-0 relative"
                                     onMouseEnter={() => {
                                         const vid = videoRefs.current[shot.id + i];

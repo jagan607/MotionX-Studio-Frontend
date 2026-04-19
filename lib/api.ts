@@ -346,6 +346,17 @@ export const fetchGlobalFeed = async () => {
     }
 };
 
+export const fetchCommunityFeed = async () => {
+    try {
+        const res = await fetch('/api/v1/feed/community');
+        if (!res.ok) throw new Error(`Community Feed API returned ${res.status}`);
+        return await res.json();
+    } catch (e) {
+        console.error("Community Feed Load Error:", e);
+        return [];
+    }
+};
+
 // --- 9. TREATMENT NOTES ---
 
 export const generateTreatment = async (projectId: string, episodeId: string) => {
