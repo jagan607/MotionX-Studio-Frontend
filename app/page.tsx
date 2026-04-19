@@ -279,14 +279,28 @@ const HeroSection = () => {
     return () => clearInterval(timer);
   }, [isComplete]);
 
-  // Fetch media from Firebase global feed (free users only)
+  // Fetch media from Firebase global feed (edge-cached, 50 items)
   useEffect(() => {
     fetchGlobalFeed().then((shots: any[]) => {
-      const media = shots
-        .filter((s: any) => s.video_url || s.image_url)
-        .slice(0, 8)
-        .map((s: any) => ({ video_url: s.video_url, image_url: s.image_url }));
-      setHeroMedia(media);
+      // Filter to items with playable media
+      const pool = shots.filter((s: any) => s.video_url || s.image_url);
+
+      // ── Fisher-Yates (Knuth) Shuffle ──
+      // Guarantees uniform randomness unlike biased sort(() => 0.5 - Math.random())
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+
+      // Take first 10 from shuffled pool
+      const selected = pool.slice(0, 10);
+
+      setHeroMedia(
+        selected.map((s: any) => ({
+          video_url: s.video_url,
+          image_url: s.image_url,
+        }))
+      );
     }).catch((e) => {
       console.warn("Global Feed fetching error:", e);
     });
