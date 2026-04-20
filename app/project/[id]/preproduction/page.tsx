@@ -36,6 +36,7 @@ import { Phase3Skeleton } from "./components/Phase3Skeleton";
 import { DirectorConsole } from "@/app/components/script/DirectorConsole";
 import { ContextSelectorModal, ContextReference } from "@/app/components/script/ContextSelectorModal";
 import { SceneData } from "@/components/studio/SceneCard";
+import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
 
 // ─── TYPES ───────────────────────────────────────────────────
 
@@ -54,8 +55,8 @@ interface CanvasNodeData {
 }
 
 // ─── NODE DIMENSION CONSTANTS ────────────────────────────────
-const NODE_W: Record<NodeType, number> = { scene: 260, character: 160, location: 260, moodboard: 240, product: 150 };
-const NODE_H_EST: Record<NodeType, number> = { scene: 260, character: 300, location: 170, moodboard: 220, product: 200 };
+const NODE_W: Record<NodeType, number> = { scene: 340, character: 160, location: 260, moodboard: 240, product: 150 };
+const NODE_H_EST: Record<NodeType, number> = { scene: 300, character: 300, location: 170, moodboard: 220, product: 200 };
 
 // Section label type for canvas labels
 interface SectionLabel {
@@ -281,6 +282,7 @@ export default function PreProductionCanvas() {
 
     // Header Modal State
     const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
 
     // Scene Draft State
@@ -895,6 +897,8 @@ export default function PreProductionCanvas() {
                 episodes={episodes}
                 onOpenAssets={() => setIsAssetModalOpen(true)}
                 onEditScript={() => setIsScriptModalOpen(true)}
+                onOpenMoodboard={() => router.push(`/project/${projectId}/moodboard?episode_id=${activeEpisodeId || 'main'}`)}
+                onOpenSettings={() => setIsSettingsOpen(true)}
                 onSelectEpisode={(newEpId) => {
                     setActiveEpisodeId(newEpId);
                     setNodePositions({});
@@ -1218,6 +1222,13 @@ export default function PreProductionCanvas() {
                     setIsScriptModalOpen(false);
                     fetchAssets();
                 }}
+            />
+
+            <ProjectSettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                project={project}
+                onUpdate={(updated: Project) => setProject(updated)}
             />
 
             {/* ── DELETE CONFIRMATION MODAL ── */}

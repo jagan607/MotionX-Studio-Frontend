@@ -27,7 +27,7 @@ export function SceneNavigator({ id, scenes, onJumpToScene, activeSceneId }: Sce
     return (
         <div
             id={id}
-            className={`absolute right-5 top-1/2 -translate-y-1/2 z-[20] flex transition-all duration-300 ease-out ${collapsed ? 'translate-x-[calc(100%-32px)]' : ''
+            className={`absolute right-5 top-5 z-[20] flex transition-all duration-300 ease-out ${collapsed ? 'translate-x-[calc(100%-32px)]' : ''
                 }`}
         >
             {/* Toggle button */}
@@ -53,7 +53,7 @@ export function SceneNavigator({ id, scenes, onJumpToScene, activeSceneId }: Sce
 
                 {/* Scene list */}
                 <div className="max-h-[320px] overflow-y-auto scrollbar-thin" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
-                    {scenes.map((scene, idx) => {
+                    {[...scenes].sort((a, b) => a.sceneNumber - b.sceneNumber).map((scene, idx) => {
                         const isActive = scene.id === activeSceneId;
                         return (
                             <button

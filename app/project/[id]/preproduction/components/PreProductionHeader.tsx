@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
     ArrowLeft, ChevronDown, Check, Plus, FileText,
-    Database, Play, Clapperboard
+    Database, Play, Clapperboard, Palette, Settings
 } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import { formatCredits } from "@/app/hooks/usePricing";
@@ -24,6 +24,8 @@ interface PreProductionHeaderProps {
     onOpenAssets?: () => void;
     onEditScript?: () => void;
     onSelectEpisode?: (episodeId: string) => void;
+    onOpenMoodboard?: () => void;
+    onOpenSettings?: () => void;
     className?: string;
 }
 
@@ -37,6 +39,8 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
     onOpenAssets,
     onEditScript,
     onSelectEpisode,
+    onOpenMoodboard,
+    onOpenSettings,
     className = ""
 }) => {
     const router = useRouter();
@@ -219,6 +223,17 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
                             </button>
                         )}
 
+                        {/* Moodboard */}
+                        {onOpenMoodboard && (
+                            <button
+                                id="tour-preprod-moodboard-btn"
+                                onClick={onOpenMoodboard}
+                                className="flex items-center gap-2 h-9 px-4 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[11px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md cursor-pointer"
+                            >
+                                <Palette size={13} /> Moodboard
+                            </button>
+                        )}
+
                         {/* Script */}
                         {onEditScript && (
                             <button
@@ -258,6 +273,15 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
                         <button onClick={() => setShowTopUp(true)} className="flex items-center gap-1.5 bg-red-900/10 border border-red-600/30 text-white px-3 py-1.5 text-[8px] font-bold uppercase cursor-pointer transition-all hover:bg-red-600 hover:border-red-600 rounded-md">
                             <Plus size={9} strokeWidth={4} /> Top Up
                         </button>
+                        {onOpenSettings && (
+                            <button
+                                onClick={onOpenSettings}
+                                className="w-9 h-9 flex items-center justify-center bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[#888] hover:text-white rounded-md transition-colors cursor-pointer"
+                                title="Project Settings"
+                            >
+                                <Settings size={14} />
+                            </button>
+                        )}
                     </div>
                 </div>
             </header>

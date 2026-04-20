@@ -31,7 +31,7 @@ interface CanvasNodeProps {
 }
 
 const TYPE_WIDTHS: Record<NodeType, number> = {
-    scene: 260,
+    scene: 340,
     character: 160,
     location: 260,
     moodboard: 240,
@@ -112,37 +112,37 @@ export function CanvasNode({
                     style={{ background: "linear-gradient(180deg, #1A1A1A 0%, #0D0D0D 100%)" }}
                 >
                     {/* Clapperboard top bar */}
-                    <div className="relative h-8 overflow-hidden" style={{
+                    <div className="relative h-10 overflow-hidden" style={{
                         background: "repeating-linear-gradient(-45deg, #1a1a1a, #1a1a1a 8px, #222 8px, #222 16px)",
                     }}>
                         <div className="absolute inset-0 flex items-center justify-between px-3">
-                            <span className="text-[8px] font-bold tracking-[3px] uppercase text-white/30">SCENE</span>
-                            <div className="relative z-40 flex items-center gap-0.5 opacity-0 group-hover/node:opacity-100 transition-opacity">
-                                {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} className="p-1 text-white/30 hover:text-white rounded transition-all"><Edit2 size={10} /></button>}
-                                {onDelete && <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-1 text-white/30 hover:text-red-400 rounded transition-all"><Trash2 size={10} /></button>}
+                            <span className="text-[10px] font-bold tracking-[3px] uppercase text-white/30">SCENE</span>
+                            <div className="relative z-40 flex items-center gap-1 opacity-0 group-hover/node:opacity-100 transition-opacity">
+                                {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} className="p-1.5 text-white/30 hover:text-white rounded transition-all"><Edit2 size={14} /></button>}
+                                {onDelete && <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-1.5 text-white/30 hover:text-red-400 rounded transition-all"><Trash2 size={14} /></button>}
                             </div>
                         </div>
                     </div>
                     {/* Scene number */}
                     <div className="px-4 pt-3">
-                        <span className="text-[48px] font-['Anton'] leading-none text-white/[0.06] tracking-tight">
+                        <span className="text-[56px] font-['Anton'] leading-none text-white/[0.06] tracking-tight">
                             {String(sceneNumber ?? 0).padStart(2, "0")}
                         </span>
                     </div>
                     {/* Title + Description */}
                     <div className="px-4 pb-1 -mt-2">
-                        <h3 className="text-[11px] font-bold tracking-wide uppercase text-white/80 leading-tight">{title}</h3>
+                        <h3 className="text-[13px] font-bold tracking-wide uppercase text-white/80 leading-tight">{title}</h3>
                     </div>
                     {subtitle && (
                         <div className="px-4 pb-3">
-                            <p className="text-[10px] text-white/35 leading-relaxed line-clamp-4">{subtitle}</p>
+                            <p className="text-[11px] text-white/35 leading-relaxed line-clamp-4">{subtitle}</p>
                         </div>
                     )}
                     {/* Character badges */}
                     {badges && badges.length > 0 && (
                         <div className="px-4 pb-3 flex flex-wrap gap-1">
                             {badges.slice(0, 3).map((b, i) => (
-                                <span key={i} className="px-1.5 py-0.5 rounded text-[7px] font-mono uppercase tracking-widest text-[#D4A843]/60 border border-[#D4A843]/15 bg-[#D4A843]/[0.04]">{b}</span>
+                                <span key={i} className="px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-widest text-[#D4A843]/60 border border-[#D4A843]/15 bg-[#D4A843]/[0.04]">{b}</span>
                             ))}
                         </div>
                     )}
