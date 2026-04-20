@@ -11,6 +11,7 @@ import { MediaViewerProvider } from "@/app/context/MediaViewerContext";
 import GlobalMediaViewer from "@/app/components/media/GlobalMediaViewer";
 import { ActivityTracker } from "@/components/ActivityTracker";
 import { WorkspaceProvider } from "@/app/context/WorkspaceContext";
+import { CreditsProvider } from "@/hooks/useCredits";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -135,6 +136,7 @@ export default function RootLayout({
             />
             <AuthProvider>
               <WorkspaceProvider>
+              <CreditsProvider>
               <ActivityTracker />
               {/* <div className="vignette pointer-events-none fixed inset-0 z-50" /> */}
 
@@ -175,6 +177,7 @@ export default function RootLayout({
                   },
                 }}
               />
+              </CreditsProvider>
               </WorkspaceProvider>
             </AuthProvider>
           </div>
