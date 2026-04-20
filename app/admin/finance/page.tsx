@@ -2,6 +2,8 @@ import { adminDb } from '@/lib/firebase-admin';
 import { ExportButton } from './export-button';
 import { FinanceChart } from '@/components/admin/FinanceChart';
 
+export const dynamic = 'force-dynamic';
+
 const CURRENCY_SYMBOLS: Record<string, string> = {
     USD: '$',
     INR: '₹',

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 
+// Ensure this route is never statically rendered at build time
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         // ── Read the pre-computed cache document (populated hourly by backend cron) ──

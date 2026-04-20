@@ -3,6 +3,8 @@ import { Shield, Zap, MoreVertical, Plus, HardDrive, RefreshCw } from 'lucide-re
 import { updateUserCredits, calculateUserStorage } from '../actions';
 import { UserSearch } from './user-search'; // Import Client Component
 
+export const dynamic = 'force-dynamic';
+
 // --- HELPER FUNCTIONS ---
 function formatBytes(bytes: number, decimals = 2) {
     if (!bytes) return '0 B';
