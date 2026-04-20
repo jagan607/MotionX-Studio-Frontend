@@ -86,6 +86,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const [isResetting, setIsResetting] = useState(false);
     const [isExpandingLegacy, setIsExpandingLegacy] = useState(false);
     const [isExpanding360, setIsExpanding360] = useState(false);
+    const [isDownloadingAll, setIsDownloadingAll] = useState(false);
 
     const location = locations.find(
         l => l.name === locationName || l.id === locationName?.replace(/[\s.]+/g, '_').toUpperCase()
@@ -128,6 +129,14 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const isAnyExpansion = isBurstGenerating || isLegacyExpanding;
     const showGlobalRenderOverlay = (isGeneratingImage && !isRetryingSingleAngle && !isAnchorReady) || isBurstGenerating;
     const showAngleRenderOverlay = isRetryingSingleAngle && activeView === retryingAngleKey;
+
+    // All 4 walls present — enable bulk download
+    const allFourReady = !!(
+        existingData?.image_urls?.front &&
+        existingData?.image_urls?.left &&
+        existingData?.image_urls?.right &&
+        existingData?.image_urls?.back
+    );
 
     // --- SIBLING SET DETECTION ---
     const availableSiblingSets = useMemo(() => {
@@ -301,6 +310,59 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
             }
         } finally {
             setIsRetryingAngle(false);
+        }
+    };
+
+    // ── DOWNLOAD ALL 4 ANGLES AT 2K ─────────────────────────────────
+    const handleDownloadAll = async () => {
+        if (!existingData?.image_urls || isDownloadingAll) return;
+        setIsDownloadingAll(true);
+
+        const angles = ['front', 'left', 'right', 'back'] as const;
+        const TARGET_W = 2048; // 2K width
+
+        try {
+            for (const angle of angles) {
+                const url = existingData.image_urls?.[angle as keyof typeof existingData.image_urls];
+                if (!url) continue;
+
+                const resp = await fetch(url as string);
+                const srcBlob = await resp.blob();
+                const bmp = await createImageBitmap(srcBlob);
+
+                // Scale to 2K width, preserving aspect ratio
+                const scale = TARGET_W / bmp.width;
+                const w = TARGET_W;
+                const h = Math.round(bmp.height * scale);
+
+                const cvs = document.createElement('canvas');
+                cvs.width = w;
+                cvs.height = h;
+                const ctx = cvs.getContext('2d')!;
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(bmp, 0, 0, w, h);
+                bmp.close();
+
+                const outBlob: Blob = await new Promise(res => cvs.toBlob(b => res(b!), 'image/png'));
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(outBlob);
+                const safeName = (locationName || 'set').replace(/[^a-zA-Z0-9]+/g, '_').toLowerCase();
+                a.download = `${safeName}_${angle}_2k.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+
+                // Brief pause between downloads so browser doesn't block them
+                if (angle !== 'back') await new Promise(r => setTimeout(r, 400));
+            }
+            toastSuccess("All 4 set images downloaded in 2K");
+        } catch (e) {
+            console.error("Download all failed:", e);
+            toastError("Failed to download set images");
+        } finally {
+            setIsDownloadingAll(false);
         }
     };
 
@@ -531,6 +593,18 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                 </button>
                             )}
                         </div>
+
+                        {/* Download All — only visible when all 4 walls are generated */}
+                        {allFourReady && (
+                            <button
+                                onClick={handleDownloadAll}
+                                disabled={isDownloadingAll}
+                                className="w-full inline-flex items-center justify-center gap-2 py-3 bg-emerald-500/[0.06] hover:bg-emerald-500/[0.12] border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-400/80 hover:text-emerald-300 rounded-xl text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50"
+                            >
+                                {isDownloadingAll ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                                {isDownloadingAll ? "DOWNLOADING..." : "DOWNLOAD ALL · 2K"}
+                            </button>
+                        )}
                     </div>
                 </div>
 

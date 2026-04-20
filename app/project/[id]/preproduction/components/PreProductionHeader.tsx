@@ -20,8 +20,10 @@ interface PreProductionHeaderProps {
     project: Project | null;
     activeEpisodeId?: string;
     hasScript?: boolean;
+    episodes?: any[];
     onOpenAssets?: () => void;
     onEditScript?: () => void;
+    onSelectEpisode?: (episodeId: string) => void;
     className?: string;
 }
 
@@ -31,8 +33,10 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
     project,
     activeEpisodeId,
     hasScript = false,
+    episodes = [],
     onOpenAssets,
     onEditScript,
+    onSelectEpisode,
     className = ""
 }) => {
     const router = useRouter();
@@ -42,7 +46,9 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
     // --- PROJECT SWITCHER STATE ---
     const [projects, setProjects] = useState<DashboardProject[]>([]);
     const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+    const [showEpisodeDropdown, setShowEpisodeDropdown] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const episodeDropdownRef = useRef<HTMLDivElement>(null);
 
     // Fetch all user projects on mount
     useEffect(() => {
@@ -52,11 +58,14 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
         }
     }, []);
 
-    // Close dropdown on outside click
+    // Close dropdowns on outside click
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
                 setShowProjectDropdown(false);
+            }
+            if (episodeDropdownRef.current && !episodeDropdownRef.current.contains(e.target as Node)) {
+                setShowEpisodeDropdown(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -144,6 +153,57 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
                             </div>
                         )}
                     </div>
+
+                    {/* EPISODE SWITCHER (Series only) */}
+                    {project?.type === 'micro_drama' && episodes.length > 1 && onSelectEpisode && (
+                        <>
+                            <div className="h-7 w-[1px] bg-[#222]" />
+                            <div className="relative" ref={episodeDropdownRef}>
+                                <button
+                                    onClick={() => setShowEpisodeDropdown(!showEpisodeDropdown)}
+                                    className="flex items-center gap-2 h-9 px-3 bg-[#1A1A1A] border border-[#333] hover:border-[#555] rounded-md transition-all cursor-pointer"
+                                >
+                                    <Clapperboard size={13} className="text-[#D4A843]" />
+                                    <span className="text-[10px] font-semibold uppercase tracking-wide text-[#EEE] max-w-[120px] truncate">
+                                        {episodes.find((e: any) => e.id === activeEpisodeId)?.title || 'Episode'}
+                                    </span>
+                                    <ChevronDown size={12} className={`text-[#666] transition-transform duration-200 ${showEpisodeDropdown ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {showEpisodeDropdown && (
+                                    <div className="absolute top-full right-0 mt-1 w-[220px] bg-[#1A1A1A] border border-[#333] rounded-md shadow-2xl shadow-black/80 z-[9999] overflow-hidden">
+                                        <div className="px-4 py-2 border-b border-[#222] bg-[#111]">
+                                            <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Switch Episode</span>
+                                        </div>
+                                        <div className="max-h-[280px] overflow-y-auto">
+                                            {episodes.map((ep: any) => (
+                                                <button
+                                                    key={ep.id}
+                                                    onClick={() => {
+                                                        setShowEpisodeDropdown(false);
+                                                        if (ep.id !== activeEpisodeId) onSelectEpisode(ep.id);
+                                                    }}
+                                                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all cursor-pointer ${
+                                                        ep.id === activeEpisodeId
+                                                            ? 'bg-amber-900/10 border-l-2 border-l-[#D4A843]'
+                                                            : 'hover:bg-[#222] border-l-2 border-l-transparent'
+                                                    }`}
+                                                >
+                                                    <span className="text-[8px] font-mono text-[#555] bg-[#111] border border-[#333] px-1.5 py-0.5 rounded-sm">
+                                                        {String(ep.episode_number || 0).padStart(2, '0')}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-[#EEE] uppercase tracking-wide truncate flex-1">
+                                                        {ep.title || 'Untitled'}
+                                                    </span>
+                                                    {ep.id === activeEpisodeId && <Check size={12} className="text-[#D4A843] shrink-0" />}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
 
                     {/* CTAs */}
                     <div className="h-7 w-[1px] bg-[#222]" />

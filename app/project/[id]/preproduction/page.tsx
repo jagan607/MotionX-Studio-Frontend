@@ -2,16 +2,20 @@
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, onSnapshot, collection, query, getDocs, updateDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, collection, query, getDocs, updateDoc, setDoc, deleteDoc, serverTimestamp, orderBy, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
     fetchEpisodes, fetchProjectAssets, updateAsset, deleteAsset, triggerAssetGeneration,
+    api, checkJobStatus, fetchEpisodeScript,
 } from "@/lib/api";
+import { toastError, toastSuccess } from "@/lib/toast";
+import { v4 as uuidv4 } from 'uuid';
 import { Project, Scene, CharacterProfile, LocationProfile, ProductProfile } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import { PreProductionHeader } from "./components/PreProductionHeader";
 import { AssetManagerModal } from "@/app/components/studio/AssetManagerModal";
 import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionModal";
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { toast } from "react-hot-toast";
 import { AssetModal } from "@/components/AssetModal";
 import { TourOverlay } from "@/components/tour/TourOverlay";
@@ -22,12 +26,16 @@ import { CanvasEngine, CanvasTransform, CanvasJumpTo } from "./components/Canvas
 import { CanvasNode, NodePosition, NodeType } from "./components/CanvasNode";
 import { WireLayer } from "./components/ConnectionWire";
 import { CanvasToolbar } from "./components/CanvasToolbar";
+import { CanvasCommandBar } from "./components/CanvasCommandBar";
 import { CanvasMinimap } from "./components/CanvasMinimap";
 import { SceneNavigator } from "./components/SceneNavigator";
 import { Lightbox } from "./components/Lightbox";
 import { ScriptSection } from "./components/ScriptSection";
 
 import { Phase3Skeleton } from "./components/Phase3Skeleton";
+import { DirectorConsole } from "@/app/components/script/DirectorConsole";
+import { ContextSelectorModal, ContextReference } from "@/app/components/script/ContextSelectorModal";
+import { SceneData } from "@/components/studio/SceneCard";
 
 // ─── TYPES ───────────────────────────────────────────────────
 
@@ -281,6 +289,16 @@ export default function PreProductionCanvas() {
     // Extraction Error — show toast once per session
     const extractionErrorToastedRef = useRef(false);
 
+    // Scene CRUD State
+    const [isExtending, setIsExtending] = useState(false);
+    const [isRegenerating, setIsRegenerating] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // DirectorConsole State
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [selectedContext, setSelectedContext] = useState<ContextReference[]>([]);
+    const [isContextModalOpen, setIsContextModalOpen] = useState(false);
 
     // ─── LOCK BODY SCROLL ───
     useEffect(() => {
@@ -388,17 +406,22 @@ export default function PreProductionCanvas() {
     };
 
     // ─── BUILD CANVAS NODES ───
-    const { canvasNodes, sectionLabels: canvasSectionLabels } = useMemo(() => {
-        if (!project) return { canvasNodes: [] as CanvasNodeData[], sectionLabels: [] as SectionLabel[] };
-        const { nodes: layoutNodes, sectionLabels: labels } = autoLayoutNodes(scenes, characters, locations, products, project.moodboard, project);
-        const finalNodes = layoutNodes.map((n, i) => ({
+    // Step 1: Expensive layout computation — only re-runs when data changes (NOT during drag)
+    const { layoutNodes, sectionLabels: canvasSectionLabels } = useMemo(() => {
+        if (!project) return { layoutNodes: [] as CanvasNodeData[], sectionLabels: [] as SectionLabel[] };
+        const { nodes, sectionLabels: labels } = autoLayoutNodes(scenes, characters, locations, products, project.moodboard, project);
+        return { layoutNodes: nodes, sectionLabels: labels };
+    }, [scenes, characters, locations, products, project, generatingMap]);
+
+    // Step 2: Cheap position merge — runs on drag but is O(n) with no layout recalculation
+    const canvasNodes = useMemo(() => {
+        return layoutNodes.map((n, i) => ({
             ...n,
             position: nodePositions[n.id] || n.position,
             isGenerating: generatingMap[n.raw?.id] || false,
             index: i,
         }));
-        return { canvasNodes: finalNodes, sectionLabels: labels };
-    }, [scenes, characters, locations, products, project, nodePositions, generatingMap]);
+    }, [layoutNodes, nodePositions, generatingMap]);
 
     const wires = useMemo(() => buildWires(canvasNodes, scenes), [canvasNodes, scenes]);
 
@@ -525,6 +548,303 @@ export default function PreProductionCanvas() {
         }
     };
 
+    // ─── SCENE CRUD HANDLERS (ported from Studio) ───
+
+    const handleManualAdd = async () => {
+        if (!activeEpisodeId) return;
+        try {
+            const maxSceneNum = scenes.length > 0
+                ? Math.max(...scenes.map(s => s.scene_number))
+                : 0;
+            const newSceneNum = maxSceneNum + 1;
+            const newSceneId = `scene_${uuidv4().slice(0, 8)}`;
+            const sceneRef = doc(db, "projects", projectId, "episodes", activeEpisodeId, "scenes", newSceneId);
+
+            await setDoc(sceneRef, {
+                id: newSceneId,
+                scene_number: newSceneNum,
+                slugline: "INT. UNTITLED SCENE - DAY",
+                synopsis: "",
+                header: "INT. UNTITLED SCENE - DAY",
+                summary: "",
+                cast_ids: [],
+                characters: [],
+                location: "",
+                status: "draft",
+                created_at: serverTimestamp()
+            });
+
+            toastSuccess("New Scene Created");
+            await fetchAssets();
+        } catch (e) {
+            console.error("Manual Add Error:", e);
+            toastError("Failed to create scene");
+        }
+    };
+
+    const handleAutoExtend = async () => {
+        if (!activeEpisodeId || scenes.length === 0) {
+            toastError("Need at least one scene to extend from!");
+            return;
+        }
+
+        setIsExtending(true);
+        try {
+            const sorted = [...scenes].sort((a, b) => a.scene_number - b.scene_number);
+            const lastScene = sorted[sorted.length - 1];
+            const payload = {
+                project_id: projectId,
+                episode_id: activeEpisodeId,
+                previous_scene: {
+                    location: lastScene.header,
+                    time_of_day: (lastScene as any).time || "DAY",
+                    visual_action: lastScene.summary,
+                    characters: lastScene.characters || []
+                }
+            };
+
+            const res = await api.post("/api/v1/script/extend-scene", payload);
+            const generatedScene = res.data.scene;
+
+            // Resolve location to existing asset
+            let finalLocationName = generatedScene.location || "";
+            let finalLocationId = "";
+            if (finalLocationName) {
+                const cleanName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+                const searchVal = cleanName(finalLocationName);
+                const foundLoc = locations.find(loc => {
+                    const lName = cleanName(loc.name || "");
+                    const lId = cleanName(loc.id || "");
+                    return lName.includes(searchVal) || searchVal.includes(lName) || lId === searchVal;
+                });
+                if (foundLoc) {
+                    finalLocationName = foundLoc.name;
+                    finalLocationId = foundLoc.id;
+                }
+            }
+
+            const maxSceneNum = Math.max(...scenes.map(s => s.scene_number));
+            const newSceneNum = maxSceneNum + 1;
+            const newSceneId = `scene_${uuidv4().slice(0, 8)}`;
+            const sceneRef = doc(db, "projects", projectId, "episodes", activeEpisodeId, "scenes", newSceneId);
+
+            await setDoc(sceneRef, {
+                id: newSceneId,
+                scene_number: newSceneNum,
+                slugline: generatedScene.slugline || "EXT. NEW SCENE - DAY",
+                synopsis: generatedScene.visual_action || generatedScene.synopsis || "",
+                header: generatedScene.slugline || "EXT. NEW SCENE - DAY",
+                summary: generatedScene.visual_action || generatedScene.synopsis || "",
+                time: generatedScene.time_of_day || "DAY",
+                cast_ids: generatedScene.characters || [],
+                characters: generatedScene.characters || [],
+                location: finalLocationName,
+                location_id: finalLocationId,
+                products: generatedScene.products || [],
+                status: "draft",
+                created_at: serverTimestamp()
+            });
+
+            toastSuccess("Scene Auto-Extended!");
+            await fetchAssets();
+        } catch (e) {
+            console.error("Auto Extend Error:", e);
+            toastError("Failed to extend narrative");
+        } finally {
+            setIsExtending(false);
+        }
+    };
+
+    const handleRegenerateScenes = async () => {
+        if (!activeEpisodeId) return;
+        setIsRegenerating(true);
+        try {
+            const { script_text } = await fetchEpisodeScript(projectId, activeEpisodeId);
+            if (!script_text) {
+                toastError("No script found. Use the Script button to add one first.");
+                setIsRegenerating(false);
+                return;
+            }
+
+            const activeEp = episodes.find((e: any) => e.id === activeEpisodeId);
+            const formData = new FormData();
+            formData.append("project_id", projectId);
+            formData.append("script_title", activeEp?.title || project?.title || "Untitled");
+            formData.append("episode_id", activeEpisodeId);
+            if (activeEp?.runtime) formData.append("runtime_seconds", String(activeEp.runtime));
+
+            const blob = new Blob([script_text], { type: "text/plain" });
+            formData.append("file", new File([blob], "regenerate.txt"));
+
+            const res = await api.post("/api/v1/script/upload-script", formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+
+            const jobId = res.data.job_id;
+            toastSuccess("Regenerating scenes...");
+
+            const pollInterval = setInterval(async () => {
+                try {
+                    const job = await checkJobStatus(jobId);
+                    if (job.status === "completed") {
+                        clearInterval(pollInterval);
+                        toastSuccess("Scenes regenerated!");
+                        await fetchAssets();
+                        setIsRegenerating(false);
+                    } else if (job.status === "failed") {
+                        clearInterval(pollInterval);
+                        toastError(job.error || "Regeneration failed");
+                        setIsRegenerating(false);
+                    }
+                } catch (e) {
+                    clearInterval(pollInterval);
+                    toastError("Failed to check regeneration status");
+                    setIsRegenerating(false);
+                }
+            }, 1500);
+        } catch (e: any) {
+            console.error("Regenerate Error:", e);
+            toastError(e.response?.data?.detail || "Failed to start regeneration");
+            setIsRegenerating(false);
+        }
+    };
+
+    const handleDeleteScene = (sceneId: string) => {
+        setPendingDeleteId(sceneId);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!pendingDeleteId || !activeEpisodeId) return;
+        setIsDeleting(true);
+        try {
+            if (editingScene?.id === pendingDeleteId) setEditingScene(null);
+            const sceneRef = doc(db, "projects", projectId, "episodes", activeEpisodeId, "scenes", pendingDeleteId);
+            await deleteDoc(sceneRef);
+            toastSuccess("Scene Deleted");
+            await fetchAssets();
+        } catch (e) {
+            console.error("Delete Scene Error:", e);
+            toastError("Failed to delete scene");
+        } finally {
+            setIsDeleting(false);
+            setPendingDeleteId(null);
+        }
+    };
+
+    // ─── DIRECTOR CONSOLE HANDLERS (ported from Studio) ───
+
+    // Reset context when editing scene changes
+    useEffect(() => {
+        setSelectedContext([]);
+    }, [editingScene?.id]);
+
+    const handleUpdateScene = async (sceneId: string, updates: Partial<SceneData>) => {
+        if (!activeEpisodeId) return;
+        try {
+            const sceneRef = doc(db, "projects", projectId, "episodes", activeEpisodeId, "scenes", sceneId);
+            await updateDoc(sceneRef, updates);
+            setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, ...updates } : s));
+            if (editingScene?.id === sceneId) {
+                setEditingScene(prev => prev ? { ...prev, ...updates } : null);
+            }
+        } catch (e) {
+            console.error("Update Scene Error:", e);
+            toast.error("Failed to save changes");
+        }
+    };
+
+    const handleUpdateCast = async (sceneId: string, newCast: string[]) => {
+        if (!activeEpisodeId) return;
+        try {
+            const sceneRef = doc(db, "projects", projectId, "episodes", activeEpisodeId, "scenes", sceneId);
+            await updateDoc(sceneRef, { cast_ids: newCast, characters: newCast });
+            setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, cast_ids: newCast, characters: newCast } as any : s));
+            if (editingScene?.id === sceneId) {
+                setEditingScene(prev => prev ? { ...prev, cast_ids: newCast, characters: newCast } as any : null);
+            }
+        } catch (e) {
+            console.error("Update Cast Error:", e);
+            toast.error("Failed to update cast");
+        }
+    };
+
+    const handleRewrite = async (sceneId: string, instruction: string, contextRefs?: ContextReference[]) => {
+        if (!activeEpisodeId) return;
+        setIsProcessing(true);
+        const currentIndex = scenes.findIndex(s => s.id === sceneId);
+        const targetScene = scenes[currentIndex];
+        if (!targetScene) { setIsProcessing(false); return; }
+
+        try {
+            const prevScene = currentIndex > 0 ? scenes[currentIndex - 1] : null;
+            const nextScene = currentIndex < scenes.length - 1 ? scenes[currentIndex + 1] : null;
+
+            const memoryReferences = contextRefs?.map(ref => ({
+                source: ref.sourceLabel,
+                header: ref.header,
+                content: ref.summary
+            })) || [];
+
+            const contextPayload = {
+                project_genre: (project as any)?.genre,
+                project_style: (project as any)?.style,
+                previous_scene_summary: prevScene ? prevScene.summary : "Start of Episode",
+                next_scene_header: nextScene ? nextScene.header : "End of Episode",
+                characters: targetScene.characters || [],
+                custom_references: memoryReferences
+            };
+
+            const res = await api.post("api/v1/script/rewrite-scene", {
+                original_text: targetScene.summary,
+                instruction: instruction,
+                context: `Scene Heading: ${targetScene.header}`,
+                smart_context: contextPayload
+            });
+
+            const newText = res.data.new_text;
+            const ref = doc(db, "projects", projectId, "episodes", activeEpisodeId, "scenes", sceneId);
+            await updateDoc(ref, { synopsis: newText, summary: newText, status: 'draft' });
+
+            setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, synopsis: newText, summary: newText } : s));
+            if (editingScene?.id === sceneId) {
+                setEditingScene(prev => prev ? { ...prev, synopsis: newText, summary: newText } : null);
+            }
+            toast.success("Scene Updated");
+        } catch (e) {
+            console.error(e);
+            toast.error("AI Rewrite Failed");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleExecuteAi = async (instruction: string) => {
+        if (!editingScene || !instruction.trim()) return;
+        await handleRewrite(editingScene.id, instruction, selectedContext);
+    };
+
+    const fetchRemoteScenes = async (targetEpisodeId: string) => {
+        try {
+            const q = query(
+                collection(db, "projects", projectId, "episodes", targetEpisodeId, "scenes"),
+                orderBy("scene_number", "asc")
+            );
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(d => {
+                const data = d.data();
+                return {
+                    id: d.id,
+                    scene_number: data.scene_number,
+                    header: data.slugline || data.header || "UNKNOWN SCENE",
+                    summary: data.synopsis || data.summary || "",
+                };
+            });
+        } catch (e) {
+            console.error("Context Load Error:", e);
+            return [];
+        }
+    };
+
     const hasScript = (project ? (project.script_status !== "empty" && project.script_status !== "pending" && project.script_status !== undefined) : false) || scenes.length > 0;
     const isCommercial = project?.type === "ad";
 
@@ -572,8 +892,14 @@ export default function PreProductionCanvas() {
                 project={project}
                 activeEpisodeId={activeEpisodeId || undefined}
                 hasScript={hasScript}
+                episodes={episodes}
                 onOpenAssets={() => setIsAssetModalOpen(true)}
                 onEditScript={() => setIsScriptModalOpen(true)}
+                onSelectEpisode={(newEpId) => {
+                    setActiveEpisodeId(newEpId);
+                    setNodePositions({});
+                    fetchAssets();
+                }}
             />
 
             {/* ── MAIN CANVAS ── */}
@@ -695,9 +1021,11 @@ export default function PreProductionCanvas() {
                                             : undefined
                                     }
                                     onDelete={
-                                        node.nodeType !== "scene" && node.nodeType !== "moodboard"
-                                            ? () => handleDeleteAsset(node.nodeType, node.raw.id, node.title)
-                                            : undefined
+                                        node.nodeType === "scene"
+                                            ? () => handleDeleteScene(node.raw.id)
+                                            : node.nodeType !== "moodboard"
+                                                ? () => handleDeleteAsset(node.nodeType, node.raw.id, node.title)
+                                                : undefined
                                     }
                                 />
                             ))}
@@ -705,6 +1033,7 @@ export default function PreProductionCanvas() {
                         <CanvasToolbar
                             id="tour-preprod-toolbar"
                             productLabel={isCommercial ? "Product" : "Prop"}
+                            onAddScene={handleManualAdd}
                             onAddCharacter={() => setSelectedAsset({
                                 data: { id: 'new', name: '', type: 'character', visual_traits: {}, created_at: new Date() },
                                 type: "character"
@@ -718,7 +1047,18 @@ export default function PreProductionCanvas() {
                                 type: "product"
                             })}
                             onOpenMoodboard={() => router.push(`/project/${projectId}/moodboard?episode_id=${activeEpisodeId || 'main'}`)}
+                            onFitToView={() => canvasJumpToRef.current?.(0, 0)}
                         />
+                        {/* ── FLOATING COMMAND BAR (Add Scene / Auto-Extend / Regenerate) ── */}
+                        {scenes.length > 0 && (
+                            <CanvasCommandBar
+                                onAddScene={handleManualAdd}
+                                onAutoExtend={handleAutoExtend}
+                                onRegenerate={handleRegenerateScenes}
+                                isExtending={isExtending}
+                                isRegenerating={isRegenerating}
+                            />
+                        )}
                         <CanvasMinimap
                             id="tour-preprod-minimap"
                             nodes={canvasNodes.map(n => ({ id: n.id, type: n.nodeType, position: n.position }))}
@@ -790,62 +1130,69 @@ export default function PreProductionCanvas() {
                 />
             )}
 
-            {/* Scene Editing Overlay */}
+            {/* ── DIRECTOR CONSOLE MODAL (centered, two-column) ── */}
             {editingScene && (
-                <div className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-md flex items-center justify-center p-8">
-                    <div className="relative w-full max-w-lg bg-[#0C0C0C] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
-                        {/* Header */}
-                        <div className="px-6 pt-5 pb-3 border-b border-white/[0.06] flex items-center justify-between">
+                <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in duration-200">
+                    <div
+                        className="relative w-full max-w-5xl bg-[#0C0C0C] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+                        style={{ maxHeight: 'calc(100vh - 80px)' }}
+                    >
+                        {/* Modal Header */}
+                        <div className="px-6 pt-5 pb-3 border-b border-white/[0.06] flex items-center justify-between shrink-0 bg-[#0A0A0A]">
                             <div className="flex items-center gap-3">
                                 <span className="text-[28px] font-['Anton'] text-white/[0.08]">
                                     {String(editingScene.scene_number).padStart(2, "0")}
                                 </span>
-                                <span className="text-[9px] font-bold tracking-[3px] uppercase text-white/40">Edit Scene</span>
+                                <div>
+                                    <span className="text-[9px] font-bold tracking-[3px] uppercase text-white/40">Scene {String(editingScene.scene_number).padStart(2, "0")}</span>
+                                    {editingScene.header && (
+                                        <div className="text-[10px] font-mono text-white/20 mt-0.5 truncate max-w-[400px]">{editingScene.header}</div>
+                                    )}
+                                </div>
                             </div>
                             <button
                                 onClick={() => setEditingScene(null)}
                                 className="p-2 text-white/30 hover:text-white hover:bg-white/10 rounded-full transition-colors"
                             >✕</button>
                         </div>
-                        {/* Fields */}
-                        <div className="p-6 space-y-5">
-                            <div>
-                                <label className="text-[9px] font-bold tracking-[2px] uppercase text-white/30 block mb-2">Scene Header</label>
-                                <input
-                                    type="text"
-                                    value={editHeader}
-                                    onChange={e => setEditHeader(e.target.value)}
-                                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-white/20 transition-colors font-mono"
-                                    placeholder="INT. LOCATION — TIME"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[9px] font-bold tracking-[2px] uppercase text-white/30 block mb-2">Summary / Description</label>
-                                <textarea
-                                    value={editSummary}
-                                    onChange={e => setEditSummary(e.target.value)}
-                                    rows={5}
-                                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-3 text-sm text-white/80 focus:outline-none focus:border-white/20 transition-colors resize-none leading-relaxed"
-                                    placeholder="Describe what happens in this scene..."
-                                />
-                            </div>
-                        </div>
-                        {/* Footer */}
-                        <div className="px-6 pb-5 flex justify-end gap-3">
-                            <button
-                                onClick={() => setEditingScene(null)}
-                                className="px-4 py-2 text-[10px] font-bold tracking-widest uppercase text-white/40 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] rounded-lg transition-colors"
-                            >Cancel</button>
-                            <button
-                                onClick={handleSaveScene}
-                                className="px-5 py-2 text-[10px] font-bold tracking-widest uppercase text-white bg-[#E50914] hover:bg-[#F6121D] rounded-lg transition-colors shadow-[0_0_20px_rgba(229,9,20,0.3)]"
-                            >Save Scene</button>
-                        </div>
+
+                        {/* DirectorConsole (wide two-column layout) */}
+                        <DirectorConsole
+                            layout="wide"
+                            activeScene={editingScene as any}
+                            availableCharacters={characters.map(c => ({ id: c.id || c.name, name: c.name }))}
+                            availableLocations={locations.map(l => ({ id: l.id || l.name, name: l.name }))}
+                            availableProducts={products.map(p => ({ id: p.id || p.name, name: p.name }))}
+                            projectType={project.type as 'movie' | 'ad' | 'music_video'}
+                            selectedContext={selectedContext}
+                            isProcessing={isProcessing}
+                            onUpdateCast={handleUpdateCast}
+                            onUpdateScene={handleUpdateScene}
+                            onExecuteAi={handleExecuteAi}
+                            onOpenContextModal={() => setIsContextModalOpen(true)}
+                            onRemoveContextRef={(id) => setSelectedContext(prev => prev.filter(r => r.id !== id))}
+                            onCancelSelection={() => setEditingScene(null)}
+                            onEnterProduction={() => {
+                                const productionUrl = project.type === 'micro_drama'
+                                    ? `/project/${projectId}/studio`
+                                    : `/project/${projectId}/storyboard`;
+                                setEditingScene(null);
+                                router.push(productionUrl);
+                            }}
+                        />
                     </div>
                 </div>
             )}
 
-
+            {/* ── CONTEXT SELECTOR MODAL ── */}
+            <ContextSelectorModal
+                isOpen={isContextModalOpen}
+                onClose={() => setIsContextModalOpen(false)}
+                episodes={episodes}
+                onFetchScenes={fetchRemoteScenes}
+                initialSelection={selectedContext}
+                onConfirm={(newSelection) => setSelectedContext(newSelection)}
+            />
 
             {/* ── HEADER MODALS ── */}
             <AssetManagerModal
@@ -872,6 +1219,17 @@ export default function PreProductionCanvas() {
                     fetchAssets();
                 }}
             />
+
+            {/* ── DELETE CONFIRMATION MODAL ── */}
+            {pendingDeleteId && (
+                <DeleteConfirmModal
+                    title="Delete Scene"
+                    message="Are you sure you want to delete this scene? This action cannot be undone."
+                    isDeleting={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setPendingDeleteId(null)}
+                />
+            )}
         </div>
     );
 }

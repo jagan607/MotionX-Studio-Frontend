@@ -8,11 +8,10 @@ interface WireProps {
     x2: number;
     y2: number;
     color?: string;
+    wireIndex: number;
 }
 
-let wireIdCounter = 0;
-
-function ConnectionWire({ x1, y1, x2, y2, color = "rgba(212, 168, 67, 0.5)" }: WireProps) {
+function ConnectionWire({ x1, y1, x2, y2, color = "rgba(212, 168, 67, 0.5)", wireIndex }: WireProps) {
     const dx = x2 - x1;
     const dy = y2 - y1;
 
@@ -27,10 +26,9 @@ function ConnectionWire({ x1, y1, x2, y2, color = "rgba(212, 168, 67, 0.5)" }: W
 
     const d = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
 
-    // Unique IDs for gradients
-    const gradId = `wire-grad-${wireIdCounter}`;
-    const glowId = `wire-glow-${wireIdCounter}`;
-    wireIdCounter++;
+    // Stable IDs based on array index (no module-level counter)
+    const gradId = `wire-grad-${wireIndex}`;
+    const glowId = `wire-glow-${wireIndex}`;
 
     return (
         <g>
@@ -132,7 +130,7 @@ export function WireLayer({ wires }: WireLayerProps) {
                 }
             `}</style>
             {wires.map((w, i) => (
-                <ConnectionWire key={i} {...w} />
+                <ConnectionWire key={i} wireIndex={i} {...w} />
             ))}
         </svg>
     );

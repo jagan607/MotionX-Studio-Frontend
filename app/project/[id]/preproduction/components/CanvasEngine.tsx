@@ -120,14 +120,31 @@ export function CanvasEngine({ children, onTransformChange, initialTransform, ac
             const PAN_STEP = 80;
             switch (e.key) {
                 case '=':
-                case '+':
+                case '+': {
                     e.preventDefault();
-                    setTransform(prev => ({ ...prev, scale: Math.min(MAX_SCALE, prev.scale + 0.15) }));
+                    setTransform(prev => {
+                        const newScale = Math.min(MAX_SCALE, prev.scale + 0.15);
+                        // Zoom towards viewport center
+                        const rect = containerRef.current?.getBoundingClientRect();
+                        const cx = (rect?.width || 1200) / 2;
+                        const cy = (rect?.height || 800) / 2;
+                        const ratio = newScale / prev.scale;
+                        return { scale: newScale, x: cx - ratio * (cx - prev.x), y: cy - ratio * (cy - prev.y) };
+                    });
                     break;
-                case '-':
+                }
+                case '-': {
                     e.preventDefault();
-                    setTransform(prev => ({ ...prev, scale: Math.max(MIN_SCALE, prev.scale - 0.15) }));
+                    setTransform(prev => {
+                        const newScale = Math.max(MIN_SCALE, prev.scale - 0.15);
+                        const rect = containerRef.current?.getBoundingClientRect();
+                        const cx = (rect?.width || 1200) / 2;
+                        const cy = (rect?.height || 800) / 2;
+                        const ratio = newScale / prev.scale;
+                        return { scale: newScale, x: cx - ratio * (cx - prev.x), y: cy - ratio * (cy - prev.y) };
+                    });
                     break;
+                }
                 case '0':
                     e.preventDefault();
                     setTransform({ x: 40, y: 20, scale: 0.55 });
