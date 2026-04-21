@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, onSnapshot, collection, query, getDocs, updateDoc, setDoc, deleteDoc, serverTimestamp, orderBy, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
-    fetchEpisodes, fetchProjectAssets, updateAsset, deleteAsset, triggerAssetGeneration, api,
+    fetchEpisodes, fetchProjectAssets, updateAsset, deleteAsset, triggerAssetGeneration,
     api, checkJobStatus, fetchEpisodeScript,
 } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
