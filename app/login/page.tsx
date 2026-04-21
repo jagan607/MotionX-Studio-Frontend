@@ -11,8 +11,9 @@ import { toast } from "react-hot-toast";
 import { API_BASE_URL } from "@/lib/config";
 
 // --- FIRESTORE SYNC HELPER ---
-const syncUserToFirestore = async (user: any) => {
-  if (!user) return;
+// Returns true if the user is brand-new (first sign-in)
+const syncUserToFirestore = async (user: any): Promise<boolean> => {
+  if (!user) return false;
   try {
     const userRef = doc(db, "users", user.uid);
     const userSnap = await getDoc(userRef);
@@ -44,14 +45,17 @@ const syncUserToFirestore = async (user: any) => {
         },
       });
       console.log("✅ New user foundational document created | UID:", user.uid);
+      return true; // New user
     } else {
       await setDoc(userRef, { lastActiveAt: serverTimestamp() }, { merge: true });
       console.log("✅ Existing user lastActiveAt updated | UID:", user.uid);
+      // Check if profile questionnaire was completed
+      const hasProfile = !!userSnap.data()?.profile?.completed_at;
+      return !hasProfile; // Needs onboarding if no profile
     }
   } catch (error: any) {
     console.error("❌ syncUserToFirestore FAILED:", error);
     toast.error(`User sync failed: ${error?.message || error}`, { duration: 10000 });
-    // Re-throw so the caller knows the sync failed
     throw error;
   }
 };
@@ -94,7 +98,7 @@ export default function LoginPage() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      await syncUserToFirestore(user);
+      const needsOnboarding = await syncUserToFirestore(user);
       const idToken = await user.getIdToken();
 
       // Initialize user on backend (welcome credits, welcome email)
@@ -111,7 +115,7 @@ export default function LoginPage() {
         body: JSON.stringify({ idToken }),
       });
       if (response.ok) {
-        router.push("/dashboard");
+        router.push(needsOnboarding ? "/onboarding" : "/dashboard");
       } else {
         toast.error("Login failed. Please try again.");
         setIsLoading(false);

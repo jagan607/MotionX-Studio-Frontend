@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { doc, onSnapshot, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { doc, onSnapshot, getDoc, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 
 import { useRouter } from "next/navigation";
@@ -17,6 +17,7 @@ import { useTour } from "@/hooks/useTour";
 import { DASHBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
 import { useWorkspace } from "@/app/context/WorkspaceContext";
 import ShowcaseSection from "@/app/components/ShowcaseSection";
+import QuickStartTemplates from "@/components/dashboard/QuickStartTemplates";
 
 const DEFAULT_SHOWREEL = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
 
@@ -30,6 +31,8 @@ export default function Dashboard() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [showAllProjects, setShowAllProjects] = useState(false);
     const [shareProject, setShareProject] = useState<DashboardProject | null>(null);
+    const [userProfile, setUserProfile] = useState<{ goal?: string; experience?: string; workflow?: string } | null>(null);
+    const [showQuickStart, setShowQuickStart] = useState(true);
 
     // Workspace context for org-aware reactivity
     const { activeWorkspaceSlug, availableWorkspaces } = useWorkspace();
@@ -175,6 +178,17 @@ export default function Dashboard() {
         setMyProjects([]);
         setActiveProjectIndex(0);
         setBootState('booting');
+
+        // Load user profile for quick-start templates
+        getDoc(doc(db, "users", user.uid)).then(snap => {
+            const profile = snap.data()?.profile;
+            if (profile) setUserProfile(profile);
+            // Check if user dismissed quick-start
+            try {
+                const dismissed = localStorage.getItem('quickstart_dismissed');
+                if (dismissed === 'true') setShowQuickStart(false);
+            } catch { }
+        }).catch(() => { });
 
         // Invalidate cache so the fresh workspace-scoped list is fetched
         invalidateDashboardCache(user.uid);
@@ -458,6 +472,17 @@ export default function Dashboard() {
                                 View All
                             </button>
                         </div>
+                    )}
+
+                    {/* Quick Start Templates — shown for new users */}
+                    {showQuickStart && myProjects.length <= 1 && (
+                        <QuickStartTemplates
+                            userGoal={userProfile?.goal}
+                            onDismiss={() => {
+                                setShowQuickStart(false);
+                                try { localStorage.setItem('quickstart_dismissed', 'true'); } catch { }
+                            }}
+                        />
                     )}
 
                     {/* Film strip */}

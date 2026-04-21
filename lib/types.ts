@@ -151,6 +151,19 @@ export interface Project {
     product_count?: number;
     script_status?: string;
 
+    // Quickstart onboarding fields
+    is_quickstart?: boolean;
+    selected_mood_id?: string;
+    moodboard_style?: {
+        name?: string;
+        color_palette?: string;
+        lighting?: string;
+        texture?: string;
+        atmosphere?: string;
+    };
+    moodboard_image_url?: string;
+    extraction_error?: string;
+
     // RBAC collaboration fields
     tenant_id?: string | null;
     team_ids?: string[];

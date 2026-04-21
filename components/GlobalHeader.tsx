@@ -60,7 +60,7 @@ export default function GlobalHeader() {
     );
 
 
-    if (pathname === "/login" || pathname === "/" || pathname === "/pricing" || isEditorPage) {
+    if (pathname === "/login" || pathname === "/" || pathname === "/pricing" || pathname === "/onboarding" || isEditorPage) {
         return null;
     }
 
