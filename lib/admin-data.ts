@@ -71,3 +71,79 @@ export async function getCmsConfig() {
         ? cmsSnap.data()
         : { headline: 'Direct Everything', subhead: 'AI CINEMA ENGINE' };
 }
+
+/**
+ * Computes MRR (grouped by currency) and active subscriber count
+ * by querying the top-level `transactions` collection for recent
+ * subscription charges (last 30 days).
+ *
+ * This avoids the need for a collection-group index on the
+ * `subscription` subcollection, which Firestore treats as a
+ * single-field exemption and cannot be deployed via CLI.
+ *
+ * Data model (written by backend webhook):
+ *   transactions/{id} → { uid, type: "subscription_charge", amount, currency, timestamp }
+ *
+ * We deduplicate by UID so each subscriber is counted once
+ * at their most recent payment amount.
+ */
+export async function getMrrStats() {
+    try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const txSnap = await adminDb
+            .collection('transactions')
+            .where('type', '==', 'subscription_charge')
+            .where('timestamp', '>=', thirtyDaysAgo)
+            .get();
+
+        // Deduplicate by UID — keep latest payment per user
+        const latestByUser = new Map<string, { amount: number; currency: string }>();
+
+        txSnap.docs.forEach(doc => {
+            const data = doc.data();
+            const uid = data.uid;
+            const amount = data.amount || 0;
+            const currency = (data.currency || 'USD').toUpperCase();
+
+            if (uid && amount > 0) {
+                latestByUser.set(uid, { amount, currency });
+            }
+        });
+
+        // Aggregate
+        let activeSubscribers = 0;
+        const mrrByCurrency: Record<string, number> = {};
+
+        latestByUser.forEach(({ amount, currency }) => {
+            activeSubscribers++;
+            mrrByCurrency[currency] = (mrrByCurrency[currency] || 0) + amount;
+        });
+
+        return { activeSubscribers, mrrByCurrency };
+    } catch (error: any) {
+        // Log the index creation URL from the error so admin can click it
+        console.warn('[getMrrStats] Index not ready — click the link in the error above to create it.');
+        console.warn(error?.message || error);
+        return { activeSubscribers: 0, mrrByCurrency: {} };
+    }
+}
+
+/**
+ * Counts active sessions by querying the `active_sessions` collection
+ * for documents with `last_seen` within the last 2 minutes.
+ *
+ * The heartbeat client hook writes to: active_sessions/{uid}
+ * with fields: { uid, last_seen: serverTimestamp() }
+ */
+export async function getActiveSessionCount() {
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+
+    const snap = await adminDb
+        .collection('active_sessions')
+        .where('last_seen', '>=', twoMinutesAgo)
+        .get();
+
+    return snap.size;
+}

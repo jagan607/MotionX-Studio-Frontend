@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getChartData, getAuditLogs, getCmsConfig } from '@/lib/admin-data';
+import { getChartData, getAuditLogs, getCmsConfig, getMrrStats, getActiveSessionCount } from '@/lib/admin-data';
 import { OverviewChart } from '@/components/admin/OverviewChart';
 import { LiveStatsGrid } from '@/components/admin/LiveStatsGrid';
 import { ChartSkeleton, CmsSkeleton, AuditSkeleton } from '@/components/admin/AdminSkeletons';
@@ -25,6 +25,20 @@ async function updateLandingCopy(formData: FormData) {
 }
 
 // --- ASYNC SERVER COMPONENTS (each is its own Suspense unit) ---
+
+async function LiveStatsSection() {
+    const [mrrData, activeCount] = await Promise.all([
+        getMrrStats(),
+        getActiveSessionCount(),
+    ]);
+    return (
+        <LiveStatsGrid
+            mrrByCurrency={mrrData.mrrByCurrency}
+            activeSubscribers={mrrData.activeSubscribers}
+            serverActiveCount={activeCount}
+        />
+    );
+}
 
 async function OverviewChartSection() {
     const chartData = await getChartData();
@@ -117,8 +131,10 @@ export default async function AdminDashboard() {
                 </div>
             </div>
 
-            {/* 1. LIVE STATS GRID — Client component, renders instantly */}
-            <LiveStatsGrid />
+            {/* 1. LIVE STATS GRID — Server-streamed MRR + client real-time counts */}
+            <Suspense fallback={<LiveStatsGrid />}>
+                <LiveStatsSection />
+            </Suspense>
 
             {/* 2. CHARTS & LOGS SPLIT — Each section streams independently */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

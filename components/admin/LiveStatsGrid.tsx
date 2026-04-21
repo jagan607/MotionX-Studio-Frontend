@@ -3,86 +3,83 @@
 import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Users, DollarSign, Activity, Zap } from 'lucide-react';
+import { Users, DollarSign, Activity, Zap, Crown } from 'lucide-react';
 
-export function LiveStatsGrid() {
+interface LiveStatsGridProps {
+    /** Server-computed MRR grouped by currency, e.g. { USD: 150, INR: 8400 } */
+    mrrByCurrency?: Record<string, number>;
+    /** Server-computed count of active subscribers */
+    activeSubscribers?: number;
+    /** Server-computed count of active sessions (last 2 min heartbeat) */
+    serverActiveCount?: number;
+}
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+    USD: '$', INR: '₹', EUR: '€', GBP: '£',
+};
+
+function formatMrr(mrrByCurrency: Record<string, number>): string {
+    const parts = Object.entries(mrrByCurrency)
+        .filter(([, amount]) => amount > 0)
+        .map(([cur, amount]) => {
+            const sym = CURRENCY_SYMBOLS[cur] || cur + ' ';
+            return `${sym}${amount.toLocaleString()}`;
+        });
+    return parts.length > 0 ? parts.join(' + ') : '$0';
+}
+
+export function LiveStatsGrid({
+    mrrByCurrency = {},
+    activeSubscribers = 0,
+    serverActiveCount = 0
+}: LiveStatsGridProps) {
     const [stats, setStats] = useState({
         users: 0,
         dau: 0,
-        activeNow: 0,
-        mrr: 0,
+        activeNow: serverActiveCount,
     });
 
     useEffect(() => {
-        // 1. LISTEN TO USERS
+        // LISTEN TO USERS — for total count and DAU
         const unsubUsers = onSnapshot(collection(db, "users"), (snapshot) => {
             const now = new Date();
-            let activeNowCount = 0;
             let dauCount = 0;
 
             snapshot.docs.forEach(doc => {
                 const data = doc.data();
                 if (data.lastActiveAt) {
                     const lastActive = data.lastActiveAt.toDate();
-                    const diffMinutes = (now.getTime() - lastActive.getTime()) / (1000 * 60);
-                    const diffHours = diffMinutes / 60;
-
-                    if (diffMinutes <= 15) activeNowCount++;
+                    const diffHours = (now.getTime() - lastActive.getTime()) / (1000 * 60 * 60);
                     if (diffHours <= 24) dauCount++;
                 }
             });
 
-            setStats(prev => ({ ...prev, users: snapshot.size, activeNow: activeNowCount, dau: dauCount }));
+            setStats(prev => ({ ...prev, users: snapshot.size, dau: dauCount }));
         });
 
-        // 2. LISTEN TO TRANSACTIONS (Fixed for 'subscription_charge')
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        const q = query(
-            collection(db, "transactions"),
-            where("timestamp", ">=", Timestamp.fromDate(thirtyDaysAgo))
+        // LISTEN TO ACTIVE SESSIONS (real-time heartbeat from all users)
+        const twoMinAgo = Timestamp.fromDate(new Date(Date.now() - 2 * 60 * 1000));
+        const activeQ = query(
+            collection(db, "active_sessions"),
+            where("last_seen", ">=", twoMinAgo)
         );
-
-        const unsubTx = onSnapshot(q, (snapshot) => {
-            const uniqueUserPayments = new Map<string, number>();
-
-            snapshot.docs.forEach(doc => {
-                const data = doc.data();
-
-                // ⬇️ FIX 1: Match your DB value "subscription_charge"
-                if (data.type === 'subscription_charge') {
-
-                    // ⬇️ FIX 2: Use 'uid' field from your DB (not 'userId')
-                    const userId = data.uid || doc.id;
-                    const amount = data.amount || 0;
-
-                    // Store latest amount for this user
-                    uniqueUserPayments.set(userId, amount);
-                }
-            });
-
-            let trueMrr = 0;
-            uniqueUserPayments.forEach((amount) => {
-                trueMrr += amount;
-            });
-
-            setStats(prev => ({ ...prev, mrr: trueMrr }));
+        const unsubActive = onSnapshot(activeQ, (snapshot) => {
+            setStats(prev => ({ ...prev, activeNow: snapshot.size }));
         });
 
         return () => {
             unsubUsers();
-            unsubTx();
+            unsubActive();
         };
     }, []);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard
                 label="Monthly Recurring Rev"
-                value={`$${stats.mrr}`}
+                value={formatMrr(mrrByCurrency)}
                 icon={DollarSign}
-                sub="Active Subscribers"
+                sub={`${activeSubscribers} Active Subscriber${activeSubscribers !== 1 ? 's' : ''}`}
             />
             <StatCard
                 label="Daily Active Users"
@@ -101,7 +98,7 @@ export function LiveStatsGrid() {
                 label="Active Sessions"
                 value={stats.activeNow}
                 icon={Activity}
-                sub="Live Websockets"
+                sub="Live Heartbeats (2m)"
                 isLiveIndicator
             />
         </div>

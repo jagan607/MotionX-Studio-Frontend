@@ -4,12 +4,16 @@ import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { useRouter, usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { useHeartbeat } from "@/hooks/useHeartbeat";
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authCheckComplete, setAuthCheckComplete] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Heartbeat: writes to active_sessions/{uid} every 60s for admin dashboard
+  useHeartbeat();
 
   // Guard to prevent concurrent session refreshes
   const isRefreshingSession = useRef(false);
