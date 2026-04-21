@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { adminDb } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 import { Megaphone, Plus, Trash2, ToggleLeft, ToggleRight, Sparkles, Wrench, Zap, Image as ImageIcon, Film, Mail } from 'lucide-react';
@@ -56,11 +57,29 @@ const TYPE_CONFIG: Record<string, { icon: any; color: string; label: string }> =
     fix: { icon: Wrench, color: '#22C55E', label: 'Fix' },
 };
 
-// --- PAGE ---
+// --- SKELETON ---
+function AnnouncementsListSkeleton() {
+    return (
+        <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-[#080808] border border-[#222] p-5 flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-[#111] animate-pulse shrink-0" style={{ animationDelay: `${i * 120}ms` }} />
+                    <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex items-center gap-3">
+                            <div className="h-3 w-14 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 120 + 30}ms` }} />
+                            <div className="h-2.5 w-20 bg-[#0D0D0D] rounded animate-pulse" style={{ animationDelay: `${i * 120 + 60}ms` }} />
+                        </div>
+                        <div className="h-5 w-48 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 120 + 40}ms` }} />
+                        <div className="h-3 w-3/4 bg-[#0D0D0D] rounded animate-pulse" style={{ animationDelay: `${i * 120 + 80}ms` }} />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
 
-export const dynamic = 'force-dynamic';
-
-export default async function AnnouncementsPage() {
+// --- ASYNC SERVER COMPONENT ---
+async function AnnouncementsListSection() {
     const snap = await adminDb.collection('announcements').orderBy('created_at', 'desc').get();
     const announcements = snap.docs.map(doc => ({
         id: doc.id,
@@ -69,28 +88,9 @@ export default async function AnnouncementsPage() {
     }));
 
     return (
-        <div className="space-y-10 animate-in fade-in duration-500 pb-20">
-
-            {/* HEADER */}
-            <div className="flex justify-between items-end border-b border-[#222] pb-6">
-                <div>
-                    <div className="flex items-center gap-2 text-[#E50914] mb-2">
-                        <Megaphone size={18} />
-                        <span className="text-[10px] font-mono tracking-widest uppercase">Broadcast System</span>
-                    </div>
-                    <h1 className="font-anton text-5xl text-white uppercase tracking-tighter leading-none">Announcements</h1>
-                </div>
-                <span className="text-[10px] font-mono text-[#444]">{announcements.length} total</span>
-            </div>
-
-            {/* CREATE FORM — Client Component with Upload */}
-            <div className="bg-[#080808] border border-[#222] p-6">
-                <div className="flex items-center gap-3 mb-6 border-b border-[#222] pb-4">
-                    <Plus className="text-[#E50914]" size={16} />
-                    <h3 className="font-anton text-lg text-white uppercase tracking-wide">New Announcement</h3>
-                </div>
-                <AnnouncementForm onPublish={createAnnouncement} />
-            </div>
+        <>
+            {/* Count badge for header */}
+            <div className="text-[10px] font-mono text-[#444] text-right -mt-2 mb-4">{announcements.length} total</div>
 
             {/* EXISTING ANNOUNCEMENTS */}
             <div className="space-y-3">
@@ -159,8 +159,44 @@ export default async function AnnouncementsPage() {
                     })
                 )}
             </div>
+        </>
+    );
+}
 
-            {/* EMAIL BLAST SECTION */}
+// --- MAIN PAGE (shell renders instantly) ---
+
+export const dynamic = 'force-dynamic';
+
+export default async function AnnouncementsPage() {
+    return (
+        <div className="space-y-10 animate-in fade-in duration-500 pb-20">
+
+            {/* HEADER — renders instantly */}
+            <div className="flex justify-between items-end border-b border-[#222] pb-6">
+                <div>
+                    <div className="flex items-center gap-2 text-[#E50914] mb-2">
+                        <Megaphone size={18} />
+                        <span className="text-[10px] font-mono tracking-widest uppercase">Broadcast System</span>
+                    </div>
+                    <h1 className="font-anton text-5xl text-white uppercase tracking-tighter leading-none">Announcements</h1>
+                </div>
+            </div>
+
+            {/* CREATE FORM — Client Component with Upload (renders instantly) */}
+            <div className="bg-[#080808] border border-[#222] p-6">
+                <div className="flex items-center gap-3 mb-6 border-b border-[#222] pb-4">
+                    <Plus className="text-[#E50914]" size={16} />
+                    <h3 className="font-anton text-lg text-white uppercase tracking-wide">New Announcement</h3>
+                </div>
+                <AnnouncementForm onPublish={createAnnouncement} />
+            </div>
+
+            {/* ANNOUNCEMENTS LIST — Streamed via Suspense */}
+            <Suspense fallback={<AnnouncementsListSkeleton />}>
+                <AnnouncementsListSection />
+            </Suspense>
+
+            {/* EMAIL BLAST SECTION (Client component — renders instantly) */}
             <div className="bg-[#080808] border border-[#222] p-6">
                 <div className="flex items-center gap-3 mb-6 border-b border-[#222] pb-4">
                     <Mail className="text-[#E50914]" size={16} />

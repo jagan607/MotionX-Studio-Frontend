@@ -85,3 +85,103 @@ export function AuditSkeleton() {
         </div>
     );
 }
+
+// --- USERS TABLE SKELETON ---
+// Matches: Users page → border border-[#222] bg-[#080808] max-h-[80vh] with 8-column table
+export function UsersTableSkeleton() {
+    const columns = ['Status', 'Identity', 'Storage', 'Timeline', 'Activity', 'Balance', 'Role', 'Controls'];
+
+    return (
+        <div className="border border-[#222] bg-[#080808] max-h-[80vh] overflow-y-auto">
+            <table className="w-full text-left">
+                <thead className="bg-[#0A0A0A] text-[10px] uppercase font-mono text-[#666] tracking-widest sticky top-0 z-10">
+                    <tr>
+                        {columns.map((col, i) => (
+                            <th key={col} className={`p-4 border-b border-[#222] bg-[#0A0A0A] ${i < columns.length - 1 ? 'border-r' : ''} ${i === columns.length - 1 ? 'text-right' : ''}`}>
+                                {col}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-[#222]">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                        <tr key={i}>
+                            <td className="p-4 border-r border-[#222] text-center">
+                                <div className="w-1.5 h-1.5 bg-[#222] rounded-full mx-auto animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
+                            </td>
+                            <td className="p-4 border-r border-[#222]">
+                                <div className="h-4 w-28 bg-[#111] rounded animate-pulse mb-1" style={{ animationDelay: `${i * 100}ms` }} />
+                                <div className="h-2.5 w-36 bg-[#0D0D0D] rounded animate-pulse" style={{ animationDelay: `${i * 100 + 50}ms` }} />
+                            </td>
+                            <td className="p-4 border-r border-[#222]">
+                                <div className="h-4 w-16 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 100 + 20}ms` }} />
+                            </td>
+                            <td className="p-4 border-r border-[#222]">
+                                <div className="h-3 w-24 bg-[#111] rounded animate-pulse mb-1" style={{ animationDelay: `${i * 100 + 30}ms` }} />
+                                <div className="h-3 w-24 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 100 + 60}ms` }} />
+                            </td>
+                            <td className="p-4 border-r border-[#222]">
+                                <div className="h-3 w-20 bg-[#111] rounded animate-pulse mb-1" style={{ animationDelay: `${i * 100 + 40}ms` }} />
+                                <div className="h-3 w-16 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 100 + 70}ms` }} />
+                            </td>
+                            <td className="p-4 border-r border-[#222]">
+                                <div className="h-6 w-12 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 100 + 50}ms` }} />
+                            </td>
+                            <td className="p-4 border-r border-[#222]">
+                                <div className="h-5 w-14 bg-[#111] border border-[#222] rounded animate-pulse" style={{ animationDelay: `${i * 100 + 60}ms` }} />
+                            </td>
+                            <td className="p-4 text-right">
+                                <div className="h-8 w-24 bg-[#111] border border-[#222] ml-auto animate-pulse" style={{ animationDelay: `${i * 100 + 70}ms` }} />
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+// --- FINANCE TABLE SKELETON ---
+// Matches: Finance page → 3 stat cards + 5-column transaction table
+export function FinanceTableSkeleton() {
+    return (
+        <div className="space-y-8">
+            {/* Chart placeholder */}
+            <div className="h-[300px] w-full bg-[#080808] border border-[#222] p-4 animate-pulse" />
+
+            {/* Stats row */}
+            <div className="grid grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-[#080808] border border-[#222] p-6">
+                        <div className="h-2.5 w-24 bg-[#111] rounded animate-pulse mb-3" />
+                        <div className="h-10 w-28 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
+                    </div>
+                ))}
+            </div>
+
+            {/* Table */}
+            <div className="border border-[#222] bg-[#080808]">
+                <table className="w-full text-left">
+                    <thead className="bg-[#0A0A0A] text-[10px] uppercase font-mono text-[#666] tracking-widest">
+                        <tr>
+                            {['Date', 'Transaction ID', 'Type', 'Amount', 'Status'].map((col, i) => (
+                                <th key={col} className={`p-4 border-b border-[#222] ${i < 4 ? 'border-r' : ''}`}>{col}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#222]">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <tr key={i}>
+                                <td className="p-4 border-r border-[#222]"><div className="h-3 w-20 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 80}ms` }} /></td>
+                                <td className="p-4 border-r border-[#222]"><div className="h-3 w-32 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 80 + 20}ms` }} /></td>
+                                <td className="p-4 border-r border-[#222]"><div className="h-5 w-20 bg-[#111] border border-[#222] rounded animate-pulse" style={{ animationDelay: `${i * 80 + 40}ms` }} /></td>
+                                <td className="p-4 border-r border-[#222]"><div className="h-3 w-16 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 80 + 60}ms` }} /></td>
+                                <td className="p-4"><div className="h-3 w-16 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 80 + 80}ms` }} /></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}

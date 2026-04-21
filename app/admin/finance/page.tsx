@@ -1,6 +1,8 @@
+import { Suspense } from 'react';
 import { adminDb } from '@/lib/firebase-admin';
 import { ExportButton } from './export-button';
 import { FinanceChart } from '@/components/admin/FinanceChart';
+import { FinanceTableSkeleton } from '@/components/admin/AdminSkeletons';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,7 +66,8 @@ async function getFinanceData() {
     return { transactions, volumeByCurrency, countByCurrency, count };
 }
 
-export default async function FinancePage() {
+// --- ASYNC SERVER COMPONENT (Suspense unit) ---
+async function FinanceDataSection() {
     const { transactions, volumeByCurrency, countByCurrency, count } = await getFinanceData();
 
     // Format date for display in table
@@ -74,18 +77,8 @@ export default async function FinancePage() {
     }));
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 pb-20">
-
-            {/* HEADER */}
-            <div className="flex justify-between items-end border-b border-[#333] pb-6">
-                <div>
-                    <h1 className="font-anton text-5xl uppercase text-white">Ledger</h1>
-                    <p className="text-[#666] text-xs font-mono mt-2 tracking-widest">TRANSACTION HISTORY // AUDIT LOG</p>
-                </div>
-                <ExportButton data={tableData} />
-            </div>
-
-            {/* 1. NEW: MONTHLY REVENUE CHART */}
+        <>
+            {/* 1. MONTHLY REVENUE CHART */}
             <FinanceChart transactions={transactions} />
 
             {/* 2. STATS ROW */}
@@ -152,6 +145,31 @@ export default async function FinancePage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Hidden export button data source */}
+            <div className="flex justify-end -mt-4">
+                <ExportButton data={tableData} />
+            </div>
+        </>
+    );
+}
+
+// --- MAIN PAGE (shell renders instantly) ---
+export default async function FinancePage() {
+    return (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 pb-20">
+
+            {/* HEADER — renders instantly */}
+            <div className="flex justify-between items-end border-b border-[#333] pb-6">
+                <div>
+                    <h1 className="font-anton text-5xl uppercase text-white">Ledger</h1>
+                    <p className="text-[#666] text-xs font-mono mt-2 tracking-widest">TRANSACTION HISTORY // AUDIT LOG</p>
+                </div>
+            </div>
+
+            <Suspense fallback={<FinanceTableSkeleton />}>
+                <FinanceDataSection />
+            </Suspense>
         </div>
     );
 }
