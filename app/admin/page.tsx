@@ -1,9 +1,10 @@
 import { Suspense } from 'react';
-import { getChartData, getAuditLogs, getCmsConfig, getMrrStats, getActiveSessionCount } from '@/lib/admin-data';
+import { getChartData, getAuditLogs, getCmsConfig, getMrrStats, getActiveSessionCount, getOperationalKpis, getGrowthKpis } from '@/lib/admin-data';
 import { OverviewChart } from '@/components/admin/OverviewChart';
 import { LiveStatsGrid } from '@/components/admin/LiveStatsGrid';
-import { ChartSkeleton, CmsSkeleton, AuditSkeleton } from '@/components/admin/AdminSkeletons';
-import { Globe, Save } from 'lucide-react';
+import { OperationalKpiGrid, GrowthKpiGrid } from '@/components/admin/KpiGrids';
+import { ChartSkeleton, CmsSkeleton, AuditSkeleton, KpiSkeleton } from '@/components/admin/AdminSkeletons';
+import { Globe, Save, Cpu, TrendingDown } from 'lucide-react';
 import { adminDb } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 
@@ -43,6 +44,16 @@ async function LiveStatsSection() {
 async function OverviewChartSection() {
     const chartData = await getChartData();
     return <OverviewChart data={chartData} />;
+}
+
+async function OperationalKpiSection() {
+    const opsData = await getOperationalKpis();
+    return <OperationalKpiGrid data={opsData} />;
+}
+
+async function GrowthKpiSection() {
+    const growthData = await getGrowthKpis();
+    return <GrowthKpiGrid data={growthData} />;
 }
 
 async function LandingCmsSection() {
@@ -136,7 +147,17 @@ export default async function AdminDashboard() {
                 <LiveStatsSection />
             </Suspense>
 
-            {/* 2. CHARTS & LOGS SPLIT — Each section streams independently */}
+            {/* 2. OPERATIONS & GROWTH KPIs — Each streams independently */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Suspense fallback={<KpiSkeleton label="Operations" icon="cpu" />}>
+                    <OperationalKpiSection />
+                </Suspense>
+                <Suspense fallback={<KpiSkeleton label="Growth" icon="trend" />}>
+                    <GrowthKpiSection />
+                </Suspense>
+            </div>
+
+            {/* 3. CHARTS & LOGS SPLIT — Each section streams independently */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                 {/* Left: Chart & CMS (Takes 2 columns) */}

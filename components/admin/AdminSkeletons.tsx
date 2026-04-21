@@ -185,3 +185,28 @@ export function FinanceTableSkeleton() {
         </div>
     );
 }
+
+// --- KPI SECTION SKELETON ---
+// Matches: OperationalKpiGrid / GrowthKpiGrid → section header + 3-col grid of cards
+export function KpiSkeleton({ label = 'Loading', icon = 'cpu' }: { label?: string; icon?: string }) {
+    return (
+        <div className="space-y-4 animate-pulse">
+            <div className="flex items-center gap-3 border-b border-[#222] pb-3">
+                <div className="w-4 h-4 bg-[#222] rounded" />
+                <div className="h-5 w-40 bg-[#1a1a1a] rounded" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="bg-[#0A0A0A] border border-[#222] p-5 h-[160px]">
+                        <div className="flex justify-between mb-3">
+                            <div className="h-3 w-20 bg-[#1a1a1a] rounded" />
+                            <div className="w-3.5 h-3.5 bg-[#1a1a1a] rounded" />
+                        </div>
+                        <div className="h-10 w-24 bg-[#1a1a1a] rounded mb-2" />
+                        <div className="h-2 w-32 bg-[#111] rounded" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}

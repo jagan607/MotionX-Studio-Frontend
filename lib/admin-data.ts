@@ -147,3 +147,158 @@ export async function getActiveSessionCount() {
 
     return snap.size;
 }
+
+/**
+ * Operational KPIs from `task_tracking` collection.
+ * Uses existing composite indexes: (status + scheduled_at), (task_type + scheduled_at)
+ *
+ * Returns:
+ *  - failureRate: % of tasks that failed in last 24h
+ *  - totalTasks24h: total generations attempted
+ *  - failedTasks24h: failed count
+ *  - latencyP50: median generation time in seconds (completed tasks)
+ *  - latencyByType: { video: p50, image: p50, ... }
+ */
+export async function getOperationalKpis() {
+    try {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+        // Parallel: fetch all tasks + failed tasks + completed tasks (for latency)
+        const [allSnap, failedSnap, completedSnap] = await Promise.all([
+            adminDb.collection('task_tracking')
+                .where('scheduled_at', '>=', twentyFourHoursAgo)
+                .get(),
+            adminDb.collection('task_tracking')
+                .where('status', '==', 'FAILED')
+                .where('scheduled_at', '>=', twentyFourHoursAgo)
+                .get(),
+            adminDb.collection('task_tracking')
+                .where('status', '==', 'COMPLETED')
+                .where('scheduled_at', '>=', twentyFourHoursAgo)
+                .get(),
+        ]);
+
+        const totalTasks24h = allSnap.size;
+        const failedTasks24h = failedSnap.size;
+        const failureRate = totalTasks24h > 0
+            ? Math.round((failedTasks24h / totalTasks24h) * 100 * 10) / 10
+            : 0;
+
+        // Compute latencies from completed tasks
+        const latencies: number[] = [];
+        const latenciesByType: Record<string, number[]> = {};
+
+        completedSnap.docs.forEach(doc => {
+            const data = doc.data();
+            const started = data.started_at?.toDate?.();
+            const resolved = data.resolved_at?.toDate?.();
+            if (started && resolved) {
+                const latency = (resolved.getTime() - started.getTime()) / 1000;
+                if (latency > 0 && latency < 3600) { // Sanity check: under 1h
+                    latencies.push(latency);
+                    const taskType = data.task_type || 'unknown';
+                    if (!latenciesByType[taskType]) latenciesByType[taskType] = [];
+                    latenciesByType[taskType].push(latency);
+                }
+            }
+        });
+
+        // P50 (median)
+        const median = (arr: number[]) => {
+            if (arr.length === 0) return 0;
+            const sorted = [...arr].sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        };
+
+        const latencyP50 = Math.round(median(latencies));
+        const latencyByType: Record<string, number> = {};
+        for (const [type, lats] of Object.entries(latenciesByType)) {
+            latencyByType[type] = Math.round(median(lats));
+        }
+
+        // Error breakdown
+        const errorBreakdown: Record<string, number> = {};
+        failedSnap.docs.forEach(doc => {
+            const code = doc.data().error_code || 'UNKNOWN';
+            errorBreakdown[code] = (errorBreakdown[code] || 0) + 1;
+        });
+
+        return {
+            totalTasks24h,
+            failedTasks24h,
+            failureRate,
+            latencyP50,
+            latencyByType,
+            errorBreakdown,
+        };
+    } catch (error: any) {
+        console.warn('[getOperationalKpis] Error:', error?.message || error);
+        return {
+            totalTasks24h: 0, failedTasks24h: 0, failureRate: 0,
+            latencyP50: 0, latencyByType: {}, errorBreakdown: {},
+        };
+    }
+}
+
+/**
+ * Growth KPIs computed from `users` and `transactions` collections.
+ *
+ * Returns:
+ *  - totalUsers: lifetime signups
+ *  - paidUsers: users with plan != "free"
+ *  - freeUsers: users on free plan
+ *  - conversionRate: paid / total %
+ *  - churnCount30d: subscription cancellations in last 30 days
+ *  - planBreakdown: { free: N, starter: N, pro: N, agency: N }
+ */
+export async function getGrowthKpis() {
+    try {
+        const usersSnap = await adminDb.collection('users').get();
+
+        let totalUsers = 0;
+        let paidUsers = 0;
+        const planBreakdown: Record<string, number> = {};
+
+        usersSnap.docs.forEach(doc => {
+            totalUsers++;
+            const plan = doc.data().plan || 'free';
+            planBreakdown[plan] = (planBreakdown[plan] || 0) + 1;
+            if (plan !== 'free') paidUsers++;
+        });
+
+        const conversionRate = totalUsers > 0
+            ? Math.round((paidUsers / totalUsers) * 100 * 10) / 10
+            : 0;
+
+        // Churn: subscription cancellations in last 30 days
+        let churnCount30d = 0;
+        try {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const churnSnap = await adminDb
+                .collection('transactions')
+                .where('type', '==', 'subscription_cancelled')
+                .where('timestamp', '>=', thirtyDaysAgo)
+                .get();
+            churnCount30d = churnSnap.size;
+        } catch {
+            // Index may not exist yet — graceful fallback
+        }
+
+        return {
+            totalUsers,
+            paidUsers,
+            freeUsers: totalUsers - paidUsers,
+            conversionRate,
+            churnCount30d,
+            planBreakdown,
+        };
+    } catch (error: any) {
+        console.warn('[getGrowthKpis] Error:', error?.message || error);
+        return {
+            totalUsers: 0, paidUsers: 0, freeUsers: 0,
+            conversionRate: 0, churnCount30d: 0, planBreakdown: {},
+        };
+    }
+}
