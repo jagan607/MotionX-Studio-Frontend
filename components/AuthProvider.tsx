@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { useRouter, usePathname } from "next/navigation";
@@ -11,6 +11,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const router = useRouter();
   const pathname = usePathname();
 
+  // Guard to prevent concurrent session refreshes
+  const isRefreshingSession = useRef(false);
+
   // 1. LISTEN TO AUTH STATE (PASSIVE — no Firestore writes)
   // All DB provisioning (user document, credits, welcome email) is handled
   // exclusively by login/page.tsx to avoid dual-write race conditions.
@@ -18,6 +21,27 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setAuthCheckComplete(true);
+
+      // 1b. SILENT SESSION COOKIE REFRESH
+      // Firebase SDK silently refreshes ID tokens, but the HttpOnly session
+      // cookie (used by server-side admin layout) goes stale. Sync it here
+      // so server-protected routes (/admin) never see an expired cookie.
+      if (currentUser && !isRefreshingSession.current) {
+        isRefreshingSession.current = true;
+        currentUser.getIdToken(/* forceRefresh */ false).then((idToken) => {
+          fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken }),
+          }).catch((err) => {
+            console.warn("[AuthProvider] session cookie refresh failed:", err);
+          }).finally(() => {
+            isRefreshingSession.current = false;
+          });
+        }).catch(() => {
+          isRefreshingSession.current = false;
+        });
+      }
     });
     return () => unsubscribe();
   }, []);

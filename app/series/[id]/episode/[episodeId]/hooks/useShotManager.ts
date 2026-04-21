@@ -181,7 +181,8 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         }
     };
 
-    // --- AI: AUTO DIRECT ---
+    // --- AI: AUTO DIRECT (Async — fire and forget) ---
+    // The backend now returns 202 immediately. The worker writes shots to Firestore.
     const handleAutoDirect = async (currentScene: any, overrideSummary?: string) => {
         if (!activeSceneId) return;
         setIsAutoDirecting(true);
@@ -193,78 +194,31 @@ export const useShotManager = (seriesId: string, episodeId: string, activeSceneI
         const sceneProductsArray = currentScene.products || [];
         const sceneProductsString = Array.isArray(sceneProductsArray) ? sceneProductsArray.join(", ") : "";
 
-        const formData = new FormData();
-        formData.append("series_id", seriesId);
-        formData.append("episode_id", episodeId);
-        formData.append("scene_id", activeSceneId);
-        formData.append("scene_action", sceneAction);
-        formData.append("characters", sceneChars);
-        formData.append("location", sceneLocation);
-        if (sceneProductsString) {
-            formData.append("products", sceneProductsString);
-        }
-        formData.append("scene_duration", String(currentScene.estimated_duration_seconds || 0));
+        const payload = {
+            series_id: seriesId,
+            episode_id: episodeId,
+            scene_id: activeSceneId,
+            scene_action: sceneAction,
+            characters: sceneChars,
+            location: sceneLocation,
+            products: sceneProductsString,
+            scene_duration: currentScene.estimated_duration_seconds || 0,
+        };
 
         try {
-            const res = await api.post("/api/v1/shot/suggest_shots", formData);
-            const data = res.data;
-            if (data.shots) {
-                setTerminalLog(prev => [...prev, "> GENERATING SHOT LIST..."]);
-                const batch = writeBatch(db);
+            const res = await api.post("/api/v1/shot/suggest_shots", payload);
 
-                data.shots.forEach((shot: any, index: number) => {
-                    const newShotId = `shot_${String(index + 1).padStart(2, '0')}`;
-                    const docRef = doc(db, "series", seriesId, "episodes", episodeId, "scenes", activeSceneId, "shots", newShotId);
-
-                    let charArray: string[] = [];
-                    if (typeof shot.characters === 'string') {
-                        charArray = shot.characters.split(',').map((c: string) => c.trim()).filter((c: string) => c !== "");
-                    } else if (Array.isArray(shot.characters)) {
-                        charArray = shot.characters;
-                    }
-
-                    // Handle products from AI response
-                    let productArray: string[] = [];
-                    if (Array.isArray(shot.products)) {
-                        productArray = shot.products.map((p: string) => p.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase());
-                    }
-                    // Fallback: inherit scene products when AI doesn't return them
-                    else if (sceneProductsArray.length > 0) {
-                        productArray = sceneProductsArray.map((p: string) => p.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase());
-                    }
-
-                    // Prefer AI-returned shot location, fallback to scene location
-                    const shotLocation = shot.location || sceneLocation;
-                    const shotLocationId = shot.location
-                        ? shot.location.replace(/[\s.]+/g, '_').toUpperCase()
-                        : (currentScene.location_id || "");
-
-                    const payload = {
-                        id: newShotId,
-                        shot_type: shot.shot_type,
-                        visual_action: shot.image_prompt || shot.description || "",
-                        video_prompt: shot.video_prompt || "",
-                        characters: charArray,
-                        products: productArray,
-                        estimated_duration: shot.estimated_duration || 0,
-                        location: shotLocation,
-                        location_id: shotLocationId,
-                        // NEW — Camera / continuity metadata from AI
-                        location_angle: shot.location_angle || "",
-                        camera_direction: shot.camera_direction || "",
-                        continuity_note: shot.continuity_note || "",
-                        ambient_scene: shot.ambient_scene || "",
-                        status: "draft",
-                        order: index
-                    };
-                    batch.set(docRef, payload);
-                });
-
-                await batch.commit();
+            if (res.status === 202 || res.data?.status === "processing") {
+                // Job is queued — Firestore onSnapshot handles the rest
+                return;
             }
-        } catch (e) {
+
+            console.warn("[Legacy useShotManager] Unexpected response:", res.status, res.data);
+        } catch (e: any) {
             console.error(e);
-        } finally {
+            if (e.response?.status === 402) {
+                if (onLowCredits) onLowCredits();
+            }
             setIsAutoDirecting(false);
         }
     };

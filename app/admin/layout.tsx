@@ -44,8 +44,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             throw new Error("Unauthorized Access");
         }
     } catch (error) {
-        console.log("⛔ Access Denied:", error);
-        redirect('/');
+        console.log("⛔ Admin Access Denied — session cookie invalid or expired. Redirecting to /login.", error);
+        redirect('/login');
     }
 
     // 3. Render Brutalist Admin Interface

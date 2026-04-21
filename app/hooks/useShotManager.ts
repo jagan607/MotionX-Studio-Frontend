@@ -27,6 +27,11 @@ export const useShotManager = (
     // Terminal Log State (Now driven by DB + Local actions)
     const [terminalLog, setTerminalLog] = useState<string[]>([]);
 
+    // Auto-Direct state — LIFTED from useShotAI.
+    // Driven by both optimistic API response (via setter passed to useShotAI)
+    // AND authoritative Firestore `auto_direct_status` field.
+    const [isAutoDirecting, setIsAutoDirecting] = useState(false);
+
     const [aspectRatio, setAspectRatio] = useState("16:9");
 
     const shotsRef = useRef<any[]>([]);
@@ -34,6 +39,10 @@ export const useShotManager = (
 
     // Track which shot errors have already been toasted
     const failedToastedIds = useRef<Set<string>>(new Set());
+
+    // Track whether we've already shown the "complete" toast for the current session
+    // to prevent re-toasting on every snapshot update
+    const autoDirectCompleteToasted = useRef<string | null>(null);
 
     // Helper functions for loading state
     const addLoadingShot = (id: string) => setLoadingShots(prev => new Set(prev).add(id));
@@ -75,25 +84,65 @@ export const useShotManager = (
         return () => unsubscribe();
     }, [projectId, episodeId, activeSceneId]);
 
-    // --- 2. REAL-TIME LOGS SYNC (NEW) ---
-    // This listens to the Scene Document for 'ai_logs' updates from the backend
+    // --- 2. REAL-TIME SCENE DOC SYNC (ai_logs + auto_direct_status) ---
+    // Single persistent listener on the scene document. Handles:
+    //   - ai_logs: real-time terminal log updates from the worker
+    //   - auto_direct_status: transitions (processing → complete | failed)
+    //   - Page refresh resilience: picks up current status on mount
     useEffect(() => {
         if (!projectId || !episodeId || !activeSceneId) return;
 
         const sceneDocRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", activeSceneId);
 
         const unsubscribe = onSnapshot(sceneDocRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                // If backend has pushed logs, sync them to local state
-                if (data?.ai_logs && Array.isArray(data.ai_logs)) {
-                    setTerminalLog(data.ai_logs);
+            if (!docSnap.exists()) return;
+            const data = docSnap.data();
+
+            // --- AI Terminal Logs ---
+            if (data?.ai_logs && Array.isArray(data.ai_logs)) {
+                setTerminalLog(data.ai_logs);
+            }
+
+            // --- Auto-Direct Status (authoritative source of truth) ---
+            const status = data?.auto_direct_status;
+
+            if (status === "processing") {
+                // Worker is running — ensure loading UI is shown
+                // (covers page refresh during processing)
+                setIsAutoDirecting(true);
+            }
+
+            if (status === "complete") {
+                setIsAutoDirecting(false);
+
+                // Toast once per completion — keyed by sceneId to avoid
+                // re-toasting when the user switches scenes and comes back
+                const toastKey = `${activeSceneId}_complete`;
+                if (autoDirectCompleteToasted.current !== toastKey) {
+                    autoDirectCompleteToasted.current = toastKey;
+                    const shotCount = data.auto_direct_shot_count || 0;
+                    toastSuccess(`${shotCount} shots generated successfully.`);
+                }
+            }
+
+            if (status === "failed") {
+                setIsAutoDirecting(false);
+
+                const toastKey = `${activeSceneId}_failed`;
+                if (autoDirectCompleteToasted.current !== toastKey) {
+                    autoDirectCompleteToasted.current = toastKey;
+                    toastError("Shot generation failed. Your credits have been refunded.");
                 }
             }
         });
 
         return () => unsubscribe();
     }, [projectId, episodeId, activeSceneId]);
+
+    // Reset the toast dedup key when switching scenes
+    useEffect(() => {
+        autoDirectCompleteToasted.current = null;
+    }, [activeSceneId]);
 
 
     // --- COMPOSITION ---
@@ -103,7 +152,8 @@ export const useShotManager = (
     // Note: We use a special wrapper for wipe to allow UI state updates (AI Loader) if needed
     const media = useShotMedia(projectId, episodeId, activeSceneId, shots, setShots, setTerminalLog);
 
-    const ai = useShotAI(projectId, episodeId, activeSceneId, setTerminalLog);
+    // useShotAI now receives setIsAutoDirecting and onLowCredits
+    const ai = useShotAI(projectId, episodeId, activeSceneId, setIsAutoDirecting, onLowCredits);
 
     const imageGen = useShotImageGen(projectId, episodeId, activeSceneId, addLoadingShot, removeLoadingShot, onLowCredits);
 
@@ -165,8 +215,8 @@ export const useShotManager = (
             await media.wipeSceneData();
         },
 
-        // AI
-        isAutoDirecting: ai.isAutoDirecting,
+        // AI — isAutoDirecting is now managed here, not in useShotAI
+        isAutoDirecting,
         handleAutoDirect: ai.handleAutoDirect,
 
         // Image — modelTier passed from individual shot card

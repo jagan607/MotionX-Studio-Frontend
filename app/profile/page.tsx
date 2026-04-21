@@ -65,6 +65,8 @@ export default function ProfilePage() {
 
     const handleLogout = async () => {
         try {
+            // Clear the server-side session cookie first
+            await fetch("/api/auth/logout", { method: "POST" });
             await signOut(auth);
             router.push("/");
         } catch (error) {

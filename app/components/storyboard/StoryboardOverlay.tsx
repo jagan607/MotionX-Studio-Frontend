@@ -296,22 +296,10 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     }, [seriesId, episodeId, activeSceneId]);
 
     // --- 4. REAL-TIME TERMINAL LOG LISTENER ---
-    useEffect(() => {
-        if (!shotMgr.isAutoDirecting || !seriesId || !episodeId || !activeSceneId) return;
-
-        const sceneRef = doc(db, "projects", seriesId, "episodes", episodeId, "scenes", activeSceneId);
-
-        const unsubscribe = onSnapshot(sceneRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                if (data?.ai_logs && Array.isArray(data.ai_logs)) {
-                    shotMgr.setTerminalLog(data.ai_logs);
-                }
-            }
-        });
-
-        return () => unsubscribe();
-    }, [shotMgr.isAutoDirecting, seriesId, episodeId, activeSceneId]);
+    // REMOVED: The main useShotManager hook now has a persistent onSnapshot
+    // on the scene document that syncs ai_logs and auto_direct_status.
+    // The previous listener here was redundant and also buggy (only activated
+    // when isAutoDirecting was true, so it wouldn't work after page refresh).
 
 
     if (!activeSceneId) return null;
