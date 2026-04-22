@@ -117,7 +117,9 @@ export default function LoginPage() {
       if (response.ok) {
         router.push(needsOnboarding ? "/onboarding" : "/dashboard");
       } else {
-        toast.error("Login failed. Please try again.");
+        const errData = await response.json().catch(() => ({}));
+        console.error("[Login] Auth session failed:", response.status, errData);
+        toast.error(errData.detail || "Login failed. Please try again.");
         setIsLoading(false);
       }
     } catch (error) {
