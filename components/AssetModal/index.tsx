@@ -98,16 +98,25 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const isNameValid = editableName && editableName.trim().length > 0;
 
     // --- INITIALIZATION ---
+    // Only run full initialization on fresh modal open or asset ID change.
+    // Do NOT depend on currentData — that causes re-init after generation
+    // completes and the parent pushes fresh data, resetting useRefForGen.
     useEffect(() => {
         if (isOpen && currentData) {
             setIsVoiceMode(false);
             initializeData();
         }
-    }, [isOpen, props.assetId, JSON.stringify(currentData), assetType]);
+    }, [isOpen, props.assetId, assetType]);
 
+    // Sync display image and ref image from parent data changes (e.g., after
+    // generation completes) WITHOUT resetting the useRefForGen toggle —
+    // that toggle is user-controlled local state.
     useEffect(() => {
         setLocalDisplayImage(currentData.image_url);
-    }, [currentData.image_url]);
+        if ((currentData as any).ref_image_url) {
+            setRefImage((currentData as any).ref_image_url);
+        }
+    }, [currentData.image_url, (currentData as any).ref_image_url]);
 
     useEffect(() => {
         if (isVoiceMode && allVoices.length === 0) loadVoices();

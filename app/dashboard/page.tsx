@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { doc, onSnapshot, deleteDoc, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { doc, onSnapshot, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 
 import { useRouter } from "next/navigation";
@@ -280,14 +280,22 @@ export default function Dashboard() {
         return true;
     });
 
-    // FIX #4: Safe delete handler with correct index logic
+    // FIX #4: Safe delete handler — uses backend API for recursive cleanup
     const handleDeleteProject = async () => {
         if (!projectToDelete) return;
         setIsDeleting(true);
         try {
-            await deleteDoc(doc(db, "projects", projectToDelete.id));
+            const token = await auth.currentUser?.getIdToken();
+            const resp = await fetch(`${BACKEND_URL}/api/v1/project/${projectToDelete.id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!resp.ok && resp.status !== 202) {
+                throw new Error(`Delete failed: ${resp.status}`);
+            }
             if (auth.currentUser) invalidateDashboardCache(auth.currentUser.uid);
 
+            // Optimistically remove from local state
             const newProjects = myProjects.filter(p => p.id !== projectToDelete.id);
             setMyProjects(newProjects);
 
