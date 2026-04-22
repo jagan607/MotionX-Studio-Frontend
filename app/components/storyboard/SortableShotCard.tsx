@@ -648,8 +648,8 @@ export const SortableShotCard = ({
                     value={isMorphedByPrev ? "Content determined by morph transition." : localVisualAction}
                     onChange={(e) => { setLocalVisualAction(e.target.value); onUpdateShot(shot.id, "visual_action", e.target.value); }}
                     placeholder="Visual description..."
-                    className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 resize-none transition-colors placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
-                    rows={2}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 resize-y transition-colors placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                    rows={3}
                 />
             </div>
 
@@ -661,7 +661,7 @@ export const SortableShotCard = ({
                     value={isMorphedByPrev ? "Movement controlled by previous shot transition." : localVideoPrompt}
                     onChange={(e) => { setLocalVideoPrompt(e.target.value); onUpdateShot(shot.id, "video_prompt", e.target.value); }}
                     placeholder="Motion description..."
-                    className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 resize-none transition-colors placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 resize-y transition-colors placeholder:text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed"
                     rows={2}
                 />
             </div>
