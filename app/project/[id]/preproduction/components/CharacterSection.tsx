@@ -5,7 +5,7 @@ import { CharacterProfile, Project, Scene } from "@/lib/types";
 import { CreativeBlock } from "./CreativeBlock";
 import { api, updateAsset, deleteAsset, triggerAssetGeneration } from "@/lib/api";
 import { AssetModal } from "@/components/AssetModal";
-import { Lightbox } from "./Lightbox";
+import { useMediaViewer, MediaItem } from "@/app/context/MediaViewerContext";
 import { toast } from "react-hot-toast";
 import { Loader2, Plus } from "lucide-react";
 
@@ -20,7 +20,7 @@ export function CharacterSection({ project, characters, onRefresh }: CharacterSe
 
     // Modal & Lightbox State
     const [selectedAsset, setSelectedAsset] = useState<CharacterProfile | null>(null);
-    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+    const { openViewer } = useMediaViewer();
     const [genPrompt, setGenPrompt] = useState("");
 
     // --- ACTIONS ---
@@ -169,7 +169,18 @@ export function CharacterSection({ project, characters, onRefresh }: CharacterSe
                                 onEdit={() => setSelectedAsset(char)}
                                 onDelete={() => handleDelete(char)}
                                 onUploadReference={() => setSelectedAsset(char)}
-                                onImageClick={() => char.image_url && setLightboxUrl(char.image_url)}
+                                onImageClick={() => {
+                                    if (char.image_url) {
+                                        const mediaItems: MediaItem[] = characters.filter(c => c.image_url).map(c => ({
+                                            id: c.id,
+                                            type: 'image' as const,
+                                            imageUrl: c.image_url!,
+                                            title: c.name,
+                                        }));
+                                        const idx = mediaItems.findIndex(m => m.id === char.id);
+                                        openViewer(mediaItems, idx >= 0 ? idx : 0);
+                                    }
+                                }}
                             >
                                 <div className="mt-1 flex flex-col gap-1.5">
                                     <div className="text-[9px] text-white/40 uppercase tracking-wider mb-2 line-clamp-2">
@@ -213,11 +224,7 @@ export function CharacterSection({ project, characters, onRefresh }: CharacterSe
                 />
             )}
 
-            <Lightbox
-                imageUrl={lightboxUrl}
-                title={characters.find(c => c.image_url === lightboxUrl)?.name || "Character"}
-                onClose={() => setLightboxUrl(null)}
-            />
+
         </div>
     );
 }

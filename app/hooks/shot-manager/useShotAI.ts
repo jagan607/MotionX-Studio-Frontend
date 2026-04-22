@@ -60,7 +60,6 @@ export const useShotAI = (
             if (res.status === 202 || res.data?.status === "processing") {
                 // Job is queued — the onSnapshot listener in useShotManager
                 // handles the rest (ai_logs, auto_direct_status transitions).
-                toastSuccess("Auto-Direct started. You'll see results in real-time.");
                 return;
             }
 

@@ -243,6 +243,15 @@ export const SortableShotCard = ({
         setIsCustomShotType(!!shot.shot_type && !SHOT_TYPE_PRESETS.includes(shot.shot_type));
     }, [shot.shot_type]);
 
+    // Keep the shot type input scrolled to the start so text is visible from the left
+    // Only reset when value syncs from the shot prop, not while the user is typing
+    useEffect(() => {
+        const el = customInputRef.current;
+        if (el && document.activeElement !== el) {
+            el.scrollLeft = 0;
+        }
+    }, [localShotType, isCustomShotType]);
+
     // --- Drag Style ---
     const dragStyle = {
         transform: CSS.Transform.toString(transform),

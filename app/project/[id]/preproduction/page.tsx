@@ -29,7 +29,7 @@ import { CanvasToolbar } from "./components/CanvasToolbar";
 import { CanvasCommandBar } from "./components/CanvasCommandBar";
 import { CanvasMinimap } from "./components/CanvasMinimap";
 import { SceneNavigator } from "./components/SceneNavigator";
-import { Lightbox } from "./components/Lightbox";
+import { useMediaViewer, MediaItem } from "@/app/context/MediaViewerContext";
 import { ScriptSection } from "./components/ScriptSection";
 
 import { Phase3Skeleton } from "./components/Phase3Skeleton";
@@ -273,7 +273,7 @@ export default function PreProductionCanvas() {
 
     // Modal State
     const [selectedAsset, setSelectedAsset] = useState<{ data: any; type: "character" | "location" | "product" } | null>(null);
-    const [lightboxData, setLightboxData] = useState<{ url: string; title: string } | null>(null);
+    const { openViewer } = useMediaViewer();
     const [genPrompt, setGenPrompt] = useState("");
     const [editingScene, setEditingScene] = useState<Scene | null>(null);
     const [editHeader, setEditHeader] = useState("");
@@ -991,8 +991,20 @@ export default function PreProductionCanvas() {
                                         handleNodeMove(id, pos);
                                     }}
                                     onImageClick={() => {
-                                        if (node.imageUrl) setLightboxData({ url: node.imageUrl, title: node.title });
-                                        else handleNodeClick(node);
+                                        if (node.imageUrl) {
+                                            // Build media items from all visible nodes that have images
+                                            const mediaNodes = canvasNodes.filter(n => n.imageUrl);
+                                            const mediaItems: MediaItem[] = mediaNodes.map(n => ({
+                                                id: n.id,
+                                                type: 'image' as const,
+                                                imageUrl: n.imageUrl!,
+                                                title: n.title,
+                                            }));
+                                            const idx = mediaNodes.findIndex(n => n.id === node.id);
+                                            openViewer(mediaItems, idx >= 0 ? idx : 0);
+                                        } else {
+                                            handleNodeClick(node);
+                                        }
                                     }}
                                     onGenerate={
                                         node.nodeType !== "scene" && node.nodeType !== "moodboard"
@@ -1126,13 +1138,7 @@ export default function PreProductionCanvas() {
                 />
             )}
 
-            {lightboxData && (
-                <Lightbox
-                    imageUrl={lightboxData.url}
-                    title={lightboxData.title}
-                    onClose={() => setLightboxData(null)}
-                />
-            )}
+
 
             {/* ── DIRECTOR CONSOLE MODAL (centered, two-column) ── */}
             {editingScene && (

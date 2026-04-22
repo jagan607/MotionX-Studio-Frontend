@@ -5,7 +5,7 @@ import { ProductProfile, Project } from "@/lib/types";
 import { CreativeBlock } from "./CreativeBlock";
 import { api, updateAsset, deleteAsset, triggerAssetGeneration } from "@/lib/api";
 import { AssetModal } from "@/components/AssetModal";
-import { Lightbox } from "./Lightbox";
+import { useMediaViewer, MediaItem } from "@/app/context/MediaViewerContext";
 import { toast } from "react-hot-toast";
 import { Plus } from "lucide-react";
 
@@ -24,7 +24,7 @@ export function ProductSection({ project, products, onRefresh }: ProductSectionP
 
     // Modal & Lightbox State
     const [selectedAsset, setSelectedAsset] = useState<ProductProfile | null>(null);
-    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+    const { openViewer } = useMediaViewer();
     const [genPrompt, setGenPrompt] = useState("");
 
     // --- ACTIONS ---
@@ -161,7 +161,18 @@ export function ProductSection({ project, products, onRefresh }: ProductSectionP
                                 onEdit={() => setSelectedAsset(prod)}
                                 onDelete={() => handleDelete(prod)}
                                 onUploadReference={() => setSelectedAsset(prod)}
-                                onImageClick={() => prod.image_url && setLightboxUrl(prod.image_url)}
+                                onImageClick={() => {
+                                    if (prod.image_url) {
+                                        const mediaItems: MediaItem[] = products.filter(p => p.image_url).map(p => ({
+                                            id: p.id,
+                                            type: 'image' as const,
+                                            imageUrl: p.image_url!,
+                                            title: p.name,
+                                        }));
+                                        const idx = mediaItems.findIndex(m => m.id === prod.id);
+                                        openViewer(mediaItems, idx >= 0 ? idx : 0);
+                                    }
+                                }}
                             >
                                 <div className="mt-1 flex flex-col gap-1.5">
                                     {prod.description && (
@@ -207,11 +218,7 @@ export function ProductSection({ project, products, onRefresh }: ProductSectionP
                 />
             )}
 
-            <Lightbox
-                imageUrl={lightboxUrl}
-                title={products.find(c => c.image_url === lightboxUrl)?.name || "Product"}
-                onClose={() => setLightboxUrl(null)}
-            />
+
         </div>
     );
 }

@@ -5,7 +5,7 @@ import { LocationProfile, Project } from "@/lib/types";
 import { CreativeBlock } from "./CreativeBlock";
 import { api, updateAsset, deleteAsset, triggerAssetGeneration } from "@/lib/api";
 import { AssetModal } from "@/components/AssetModal";
-import { Lightbox } from "./Lightbox";
+import { useMediaViewer, MediaItem } from "@/app/context/MediaViewerContext";
 import { toast } from "react-hot-toast";
 import { Plus } from "lucide-react";
 
@@ -20,7 +20,7 @@ export function LocationSection({ project, locations, onRefresh }: LocationSecti
 
     // Modal & Lightbox State
     const [selectedAsset, setSelectedAsset] = useState<LocationProfile | null>(null);
-    const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+    const { openViewer } = useMediaViewer();
     const [genPrompt, setGenPrompt] = useState("");
 
     // --- ACTIONS ---
@@ -157,7 +157,18 @@ export function LocationSection({ project, locations, onRefresh }: LocationSecti
                                 onEdit={() => setSelectedAsset(loc)}
                                 onDelete={() => handleDelete(loc)}
                                 onUploadReference={() => setSelectedAsset(loc)}
-                                onImageClick={() => loc.image_url && setLightboxUrl(loc.image_url)}
+                                onImageClick={() => {
+                                    if (loc.image_url) {
+                                        const mediaItems: MediaItem[] = locations.filter(l => l.image_url).map(l => ({
+                                            id: l.id,
+                                            type: 'image' as const,
+                                            imageUrl: l.image_url!,
+                                            title: l.name,
+                                        }));
+                                        const idx = mediaItems.findIndex(m => m.id === loc.id);
+                                        openViewer(mediaItems, idx >= 0 ? idx : 0);
+                                    }
+                                }}
                             >
                                 <div className="mt-1 flex flex-col gap-1.5">
                                     <div className="text-[9px] text-white/40 uppercase tracking-wider mb-2 line-clamp-2">
@@ -201,11 +212,7 @@ export function LocationSection({ project, locations, onRefresh }: LocationSecti
                 />
             )}
 
-            <Lightbox
-                imageUrl={lightboxUrl}
-                title={locations.find(c => c.image_url === lightboxUrl)?.name || "Location"}
-                onClose={() => setLightboxUrl(null)}
-            />
+
         </div>
     );
 }
