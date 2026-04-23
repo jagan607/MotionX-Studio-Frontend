@@ -756,7 +756,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 ? 'bg-[#E50914]/15 text-white shadow-sm'
                                 : 'text-neutral-500 hover:text-neutral-300'}`}
                     >
-                        Preview
+                        Preview <span className="opacity-50 font-normal">(Best for Faces)</span>
                     </button>
                 </div>
             )}
