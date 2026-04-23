@@ -54,8 +54,9 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     credits
 }) => {
 
-    // Tour
+    // Tours — separate toolbar and shot card tours
     const sbTour = useTour("storyboard_tour");
+    const shotCardTour = useTour("shot_card_tour");
 
     // 1. Internal State for Scene Switching
     const [activeSceneData, setActiveSceneData] = useState<SceneData>(scene);
@@ -265,6 +266,9 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
                 tourStep={sbTour.step}
                 onTourNext={sbTour.nextStep}
                 onTourComplete={sbTour.completeTour}
+                shotCardTourStep={shotCardTour.step}
+                onShotCardTourNext={shotCardTour.nextStep}
+                onShotCardTourComplete={shotCardTour.completeTour}
             />
         </div>
     );

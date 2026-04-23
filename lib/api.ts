@@ -1040,3 +1040,40 @@ export const getWorkflowHistory = async (limit: number = 20) => {
     const res = await api.get(`/api/v1/workflow/history?limit=${limit}`);
     return res.data;
 };
+
+// ═══════════════════════════════════════════════════════════
+//   PROJECT CLONING & TEMPLATES
+// ═══════════════════════════════════════════════════════════
+
+export interface TemplateProject {
+    id: string;
+    title: string;
+    type: string;
+    genre: string;
+    style: string;
+    aspect_ratio: string;
+    preview_image: string | null;
+    scene_count: number;
+    moodboard_image_url: string | null;
+}
+
+/**
+ * Clone an existing project into the current user's account.
+ * Deep-copies all subcollections (episodes, scenes, shots, assets).
+ */
+export const cloneProject = async (sourceProjectId: string): Promise<{ id: string; title: string }> => {
+    const res = await api.post("/api/v1/project/clone", {
+        source_project_id: sourceProjectId,
+    });
+    return res.data;
+};
+
+/**
+ * Fetch template projects available for cloning.
+ * Returns dashboard-enabled projects from the template owner account.
+ * Pass refresh=true to bypass backend cache.
+ */
+export const fetchTemplateProjects = async (refresh = false): Promise<{ templates: TemplateProject[]; count: number }> => {
+    const res = await api.get("/api/v1/project/templates", { params: refresh ? { refresh: true } : {} });
+    return res.data;
+};

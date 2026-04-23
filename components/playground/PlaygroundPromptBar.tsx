@@ -36,8 +36,9 @@ import { usePromptMention } from "@/app/hooks/usePromptMention";
 import { usePlayground, type PlaygroundMentionItem } from "@/app/context/PlaygroundContext";
 import { usePricing, formatCredits } from "@/app/hooks/usePricing";
 import { useCredits } from "@/hooks/useCredits";
-import { playgroundGenerate, playgroundEnhancePrompt } from "@/lib/playgroundApi";
+import { playgroundGenerate, playgroundAnimate, playgroundEnhancePrompt } from "@/lib/playgroundApi";
 import toast from "react-hot-toast";
+import { Video } from "lucide-react";
 
 // ═══════════════════════════════════════════════════════════════
 //  ASSET ID EXTRACTION
@@ -119,6 +120,7 @@ const RESOLUTIONS = [
 
 const BATCH_SIZES = [1, 2, 4] as const;
 type BatchSize = (typeof BATCH_SIZES)[number];
+type GenerationMode = 'image' | 'video';
 
 const RESOLUTION_MULTIPLIER: Record<string, number> = {
     '1k': 1.0,
@@ -135,6 +137,22 @@ const VISUAL_STYLES = [
     { value: "watercolor", label: "Watercolor" },
     { value: "comic", label: "Comic" },
     { value: "noir", label: "Noir" },
+];
+
+const VIDEO_PROVIDERS = [
+    { value: "seedance-2", label: "Seedance 2.0" },
+    { value: "kling-v3", label: "Kling 3.0" },
+];
+
+const VIDEO_DURATIONS = [
+    { value: "5", label: "5s" },
+    { value: "10", label: "10s" },
+    { value: "15", label: "15s" },
+];
+
+const VIDEO_QUALITIES = [
+    { value: "fast", label: "720P" },
+    { value: "pro", label: "1080P" },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -164,6 +182,8 @@ export default function PlaygroundPromptBar() {
         setStylePref,
         pendingPrompt,
         setPendingPrompt,
+        pendingVideoSettings,
+        setPendingVideoSettings,
         assetDrawerOpen,
         setAssetDrawerOpen,
         setAssetDrawerIntent,
@@ -185,16 +205,24 @@ export default function PlaygroundPromptBar() {
     const dragCounterRef = useRef(0); // Counter to prevent child-element flickering
     const [showSettings, setShowSettings] = useState(false);
     const [batchSize, setBatchSize] = useState<BatchSize>(1);
+    const [generationMode, setGenerationMode] = useState<GenerationMode>('image');
+    const [videoProvider, setVideoProvider] = useState('seedance-2');
+    const [videoDuration, setVideoDuration] = useState('5');
+    const [videoQuality, setVideoQuality] = useState('pro');
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     // mentionRef is initialised after `mention` is created (below)
 
     // --- Dynamic pricing ---
-    const { getImageCost } = usePricing();
+    const { getImageCost, getVideoCost } = usePricing();
     const { credits } = useCredits();
     const imageCost = getImageCost(stylePrefs.image_provider, stylePrefs.model_tier as 'flash' | 'pro', 'playground');
     const resolution = stylePrefs.image_resolution || '1k';
-    const finalCost = Math.round(imageCost * (RESOLUTION_MULTIPLIER[resolution] || 1) * batchSize * 100) / 100;
+    const finalImageCost = Math.round(imageCost * (RESOLUTION_MULTIPLIER[resolution] || 1) * batchSize * 100) / 100;
+    const finalVideoCost = useMemo(() => {
+        try { return getVideoCost(videoProvider, videoQuality === 'pro' ? 'pro' : 'standard', videoDuration); } catch { return 0; }
+    }, [videoProvider, videoDuration, videoQuality, getVideoCost]);
+    const finalCost = generationMode === 'video' ? finalVideoCost : finalImageCost;
     const hasInsufficientBalance = credits !== null && credits < finalCost;
 
     // --- Stable callback for mention tag insertion (must be defined before usePromptMention) ---
@@ -263,16 +291,25 @@ export default function PlaygroundPromptBar() {
     }, []);
 
     // --- Handle prompt input (uncontrolled — textarea owns cursor) ---
+    // Uses a micro-debounced React state update so rapid edits / paste
+    // don't thrash the highlight backdrop and cause layout issues.
+    const promptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const syncPromptState = useCallback((value: string) => {
+        promptRef.current = value;
+        // Immediate ref update for generate/credit calc, debounced state for backdrop
+        if (promptTimerRef.current) clearTimeout(promptTimerRef.current);
+        promptTimerRef.current = setTimeout(() => setPrompt(value), 30);
+    }, []);
+
     const handlePromptChange = useCallback(
         (e: React.ChangeEvent<HTMLTextAreaElement>) => {
             const value = e.target.value;
-            // Mirror to React state (for button enable/disable, credit calc, backdrop)
-            promptRef.current = value;
-            setPrompt(value);
+            syncPromptState(value);
             // Let mention system check for @ triggers
             mentionRef.current.handleChange(value, e.target.selectionStart ?? undefined);
         },
-        []
+        [syncPromptState]
     );
 
     // --- Handle reference image(s) ---
@@ -392,6 +429,17 @@ export default function PlaygroundPromptBar() {
         }
     }, [pendingPrompt, setPendingPrompt, autoResize, writeToTextarea]);
 
+    // --- Watch pendingVideoSettings from context (one-shot from TemplatePicker) ---
+    useEffect(() => {
+        if (pendingVideoSettings) {
+            setGenerationMode('video');
+            setVideoProvider(pendingVideoSettings.provider);
+            setVideoDuration(pendingVideoSettings.duration);
+            if (pendingVideoSettings.quality) setVideoQuality(pendingVideoSettings.quality);
+            setPendingVideoSettings(null);
+        }
+    }, [pendingVideoSettings, setPendingVideoSettings]);
+
     // Sync scroll between textarea and backdrop
     const handleScroll = useCallback(() => {
         if (textareaRef.current && backdropRef.current) {
@@ -438,56 +486,85 @@ export default function PlaygroundPromptBar() {
         setIsGenerating(true);
 
         try {
-            // Extract asset IDs from @tags
-            const { characters, location, products } = extractAssetIds(trimmed, mentionItems);
+            if (generationMode === 'video') {
+                // ── DIRECT VIDEO GENERATION ──
+                const generation_id = `gen_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-            // Build a single-generation thunk
-            const generateOne = () =>
-                playgroundGenerate({
+                // If user uploaded a reference image, upload it first to get a URL
+                let imageUrl = '';
+                if (referenceImages.length > 0) {
+                    const formData = new FormData();
+                    formData.append('file', referenceImages[0]);
+                    try {
+                        const { api } = await import('@/lib/api');
+                        const uploadRes = await api.post('/api/v1/playground/upload-temp', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                        imageUrl = uploadRes.data?.image_url || '';
+                    } catch (uploadErr) {
+                        console.warn('[Video] Ref image upload failed, proceeding as text-to-video:', uploadErr);
+                    }
+                } else if (referenceUrls.length > 0) {
+                    imageUrl = referenceUrls[0];
+                }
+
+                await playgroundAnimate({
+                    generation_id,
+                    image_url: imageUrl,
                     prompt: trimmed,
-                    characters: characters || undefined,
-                    location: location || undefined,
-                    products: products || undefined,
-                    aspect_ratio: stylePrefs.aspect_ratio,
-                    style: stylePrefs.style,
-                    shot_type: stylePrefs.shot_type,
-                    image_provider: stylePrefs.image_provider,
-                    model_tier: stylePrefs.model_tier,
-                    style_palette: stylePrefs.style_palette || undefined,
-                    style_lighting: stylePrefs.style_lighting || undefined,
-                    style_mood: stylePrefs.style_mood || undefined,
-                    reference_image: referenceImages[0] || null,
-                    ref_image_urls: referenceUrls.length ? referenceUrls : undefined,
-                    image_resolution: stylePrefs.image_resolution || '1k',
+                    provider: videoProvider,
+                    duration: videoDuration,
+                    mode: videoQuality === 'pro' ? 'pro' : 'std',
+                    quality: videoQuality,
+                    aspect_ratio: stylePrefs.aspect_ratio || '16:9',
+                    reference_image_urls: referenceUrls.length > 0 ? referenceUrls : undefined,
                 });
 
-            // Fire N parallel requests (batchSize = 1 | 2 | 4)
-            const results = await Promise.allSettled(
-                Array.from({ length: batchSize }, () => generateOne())
-            );
+                writeToTextarea('');
+                clearReference();
+                if (textareaRef.current) textareaRef.current.style.height = 'auto';
+            } else {
+                // ── IMAGE GENERATION (existing flow) ──
+                const { characters, location, products } = extractAssetIds(trimmed, mentionItems);
 
-            const failed = results.filter((r) => r.status === "rejected").length;
+                const generateOne = () =>
+                    playgroundGenerate({
+                        prompt: trimmed,
+                        characters: characters || undefined,
+                        location: location || undefined,
+                        products: products || undefined,
+                        aspect_ratio: stylePrefs.aspect_ratio,
+                        style: stylePrefs.style,
+                        shot_type: stylePrefs.shot_type,
+                        image_provider: stylePrefs.image_provider,
+                        model_tier: stylePrefs.model_tier,
+                        style_palette: stylePrefs.style_palette || undefined,
+                        style_lighting: stylePrefs.style_lighting || undefined,
+                        style_mood: stylePrefs.style_mood || undefined,
+                        reference_image: referenceImages[0] || null,
+                        ref_image_urls: referenceUrls.length ? referenceUrls : undefined,
+                        image_resolution: stylePrefs.image_resolution || '1k',
+                    });
 
-
-            if (failed > 0) {
-                toast.error(
-                    `${failed} generation${failed > 1 ? "s" : ""} failed to queue`
+                const results = await Promise.allSettled(
+                    Array.from({ length: batchSize }, () => generateOne())
                 );
+
+                const failed = results.filter((r) => r.status === 'rejected').length;
+                if (failed > 0) {
+                    toast.error(`${failed} generation${failed > 1 ? 's' : ''} failed to queue`);
+                }
+
+                writeToTextarea('');
+                clearReference();
+                if (textareaRef.current) textareaRef.current.style.height = 'auto';
             }
-
-            writeToTextarea("");
-            clearReference();
-            // Reset textarea height
-            if (textareaRef.current) textareaRef.current.style.height = "auto";
-
         } catch (err: any) {
-            console.error("[PlaygroundPromptBar] Generate failed:", err);
-            const msg = err?.response?.data?.detail || "Generation failed. Please try again.";
+            console.error('[PlaygroundPromptBar] Generate failed:', err);
+            const msg = err?.response?.data?.detail || 'Generation failed. Please try again.';
             toast.error(msg);
         } finally {
             setIsGenerating(false);
         }
-    }, [isGenerating, mentionItems, stylePrefs, referenceImages, batchSize, writeToTextarea]);
+    }, [isGenerating, mentionItems, stylePrefs, referenceImages, referenceUrls, batchSize, writeToTextarea, generationMode, videoProvider, videoDuration, videoQuality]);
 
     // --- Keyboard: Enter to submit (Shift+Enter for newline) ---
     const handleKeyDown = useCallback(
@@ -730,11 +807,33 @@ export default function PlaygroundPromptBar() {
                             })()}
                         </div>
 
-                        {/* ── BOTTOM ROW: Settings + Actions ── */}
-                        <div className="flex items-center justify-between px-3 pb-2.5 pt-0.5">
-
-                            {/* Left: Quick controls */}
+                        {/* ── BOTTOM ROW 1: Mode + Actions ── */}
+                        <div id="tour-pg-settings" className="flex items-center justify-between px-3 pb-1 pt-0.5">
                             <div className="flex items-center gap-1.5">
+                                {/* Mode toggle: Image / Video */}
+                                <div className="flex gap-0 bg-white/[0.03] rounded-md border border-white/[0.06] overflow-hidden">
+                                    <button
+                                        onClick={() => setGenerationMode('image')}
+                                        className={`flex items-center gap-1 px-2 py-1.5 text-[8px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border-none ${
+                                            generationMode === 'image' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/50'
+                                        }`}
+                                    >
+                                        <ImageIcon size={10} />
+                                        Image
+                                    </button>
+                                    <button
+                                        onClick={() => setGenerationMode('video')}
+                                        className={`flex items-center gap-1 px-2 py-1.5 text-[8px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border-none ${
+                                            generationMode === 'video' ? 'bg-[#E50914]/15 text-[#E50914]' : 'text-white/30 hover:text-white/50'
+                                        }`}
+                                    >
+                                        <Video size={10} />
+                                        Video
+                                    </button>
+                                </div>
+
+                                <div className="w-px h-4 bg-white/[0.06]" />
+
                                 {/* + Asset shortcut */}
                                 <button
                                     onClick={() => {
@@ -785,30 +884,61 @@ export default function PlaygroundPromptBar() {
                                     />
                                     <span className="hidden sm:inline">Settings</span>
                                 </button>
+                            </div>
+                        </div>
 
-                                {/* Inline quick-selects (always visible) */}
-                                <QuickSelect
-                                    value={stylePrefs.image_provider}
-                                    options={PROVIDERS}
-                                    onChange={(v) => setStylePref("image_provider", v)}
-                                />
-                                <QuickSelect
-                                    value={stylePrefs.aspect_ratio}
-                                    options={ASPECT_RATIOS}
-                                    onChange={(v) => setStylePref("aspect_ratio", v)}
-                                />
-                                <QuickSelect
-                                    value={stylePrefs.model_tier}
-                                    options={MODEL_TIERS}
-                                    onChange={(v) => setStylePref("model_tier", v)}
-                                />
-                                <QuickSelect
-                                    value={stylePrefs.image_resolution || '1k'}
-                                    options={RESOLUTIONS}
-                                    onChange={(v) => setStylePref("image_resolution", v)}
-                                />
-
-                                <BatchSelector value={batchSize} onChange={setBatchSize} />
+                        {/* ── BOTTOM ROW 2: Quick Selects + Generate ── */}
+                        <div className="flex items-center justify-between px-3 pb-2.5 pt-0">
+                            <div className="flex items-center gap-1.5">
+                                {/* Quick settings — mode-specific */}
+                                {generationMode === 'image' ? (
+                                    <>
+                                        <QuickSelect
+                                            value={stylePrefs.image_provider}
+                                            options={PROVIDERS}
+                                            onChange={(v) => setStylePref("image_provider", v)}
+                                        />
+                                        <QuickSelect
+                                            value={stylePrefs.aspect_ratio}
+                                            options={ASPECT_RATIOS}
+                                            onChange={(v) => setStylePref("aspect_ratio", v)}
+                                        />
+                                        <QuickSelect
+                                            value={stylePrefs.model_tier}
+                                            options={MODEL_TIERS}
+                                            onChange={(v) => setStylePref("model_tier", v)}
+                                        />
+                                        <QuickSelect
+                                            value={stylePrefs.image_resolution || '1k'}
+                                            options={RESOLUTIONS}
+                                            onChange={(v) => setStylePref("image_resolution", v)}
+                                        />
+                                        <BatchSelector value={batchSize} onChange={setBatchSize} />
+                                    </>
+                                ) : (
+                                    <>
+                                        <QuickSelect
+                                            value={videoProvider}
+                                            options={VIDEO_PROVIDERS}
+                                            onChange={setVideoProvider}
+                                        />
+                                        <QuickSelect
+                                            value={videoDuration}
+                                            options={VIDEO_DURATIONS}
+                                            onChange={setVideoDuration}
+                                        />
+                                        <QuickSelect
+                                            value={stylePrefs.aspect_ratio}
+                                            options={ASPECT_RATIOS}
+                                            onChange={(v) => setStylePref("aspect_ratio", v)}
+                                        />
+                                        <QuickSelect
+                                            value={videoQuality}
+                                            options={VIDEO_QUALITIES}
+                                            onChange={setVideoQuality}
+                                        />
+                                    </>
+                                )}
                             </div>
 
                             {/* Right: Generate */}
@@ -826,7 +956,7 @@ export default function PlaygroundPromptBar() {
                                 ) : (
                                     <Send size={12} />
                                 )}
-                                {isGenerating ? "Generating…" : hasInsufficientBalance ? "Low Balance" : "Generate"}
+                                {isGenerating ? "Generating…" : hasInsufficientBalance ? "Low Balance" : generationMode === 'video' ? "Generate Video" : "Generate"}
                                 {!isGenerating && (
                                     <span className="opacity-50 text-[8px] font-normal">• {formatCredits(finalCost)} cr</span>
                                 )}

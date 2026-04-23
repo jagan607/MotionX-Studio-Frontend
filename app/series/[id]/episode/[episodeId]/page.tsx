@@ -29,7 +29,7 @@ import { useEpisodeData } from "./hooks/useEpisodeData";
 import { useAssetManager } from "./hooks/useAssetManager";
 // import { useShotManager } from "./hooks/useShotManager";
 import { useTour } from "@/hooks/useTour";
-import { EPISODE_TOUR_STEPS, STORYBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
+import { EPISODE_TOUR_STEPS, STORYBOARD_TOOLBAR_TOUR_STEPS, STORYBOARD_SHOT_CARD_TOUR_STEPS } from "@/lib/tourConfigs";
 import { useSeriesAssets } from "@/hooks/useSeriesAssets";
 
 // --- TYPES ---
@@ -90,6 +90,7 @@ export default function EpisodeBoard() {
 
     const epTour = useTour("episode_tour");
     const sbTour = useTour("storyboard_tour");
+    const shotCardTour = useTour("shot_card_tour");
 
     const [deleteShotId, setDeleteShotId] = useState<string | null>(null);
     const [isDeletingShot, setIsDeletingShot] = useState(false);
@@ -254,7 +255,8 @@ export default function EpisodeBoard() {
     return (
         <main>
             <TourOverlay step={epTour.step} steps={EPISODE_TOUR_STEPS} onNext={epTour.nextStep} onComplete={epTour.completeTour} />
-            <TourOverlay step={sbTour.step} steps={STORYBOARD_TOUR_STEPS} onNext={sbTour.nextStep} onComplete={sbTour.completeTour} />
+            <TourOverlay step={sbTour.step} steps={STORYBOARD_TOOLBAR_TOUR_STEPS} onNext={sbTour.nextStep} onComplete={sbTour.completeTour} />
+            <TourOverlay step={shotCardTour.step} steps={STORYBOARD_SHOT_CARD_TOUR_STEPS} onNext={shotCardTour.nextStep} onComplete={shotCardTour.completeTour} />
         </main>
     );
 }

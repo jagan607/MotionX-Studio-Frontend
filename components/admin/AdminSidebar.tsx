@@ -12,6 +12,8 @@ import {
     CreditCard,
     ListChecks,
     ShieldAlert,
+    Film,
+    Sparkles,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -19,6 +21,8 @@ const NAV_ITEMS = [
     { href: "/admin/users", icon: Users, label: "User Database" },
     { href: "/admin/announcements", icon: Megaphone, label: "Announcements" },
     { href: "/admin/announcements#email-blast", icon: Mail, label: "Email Blast" },
+    { href: "/admin/templates", icon: Film, label: "Templates" },
+    { href: "/admin/playground-templates", icon: Sparkles, label: "PG Templates" },
     { href: "/admin/enterprise", icon: Building, label: "Enterprise Setup", exact: true },
     { href: "/admin/enterprise/configure", icon: ShieldCheck, label: "SSO Configuration" },
     { href: "/admin/finance", icon: CreditCard, label: "Revenue Stream" },

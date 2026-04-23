@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { api, invalidateDashboardCache } from "@/lib/api";
+import { api, invalidateDashboardCache, cloneProject, fetchTemplateProjects, TemplateProject } from "@/lib/api";
 import {
     Smartphone, Film, Megaphone, Sparkles,
     Egg, Layers, Zap,
     LayoutTemplate, FileText, Eye,
-    ArrowRight, Check, Disc, Send, Loader2
+    ArrowRight, Check, Disc, Send, Loader2, Copy
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -181,6 +181,12 @@ export default function OnboardingPage() {
     const [isCreating, setIsCreating] = useState(false);
     const [showShowcase, setShowShowcase] = useState(false);
 
+    // Template browser state
+    const [templateProjects, setTemplateProjects] = useState<TemplateProject[]>([]);
+    const [templatesLoading, setTemplatesLoading] = useState(false);
+    const [cloningId, setCloningId] = useState<string | null>(null);
+    const [showTemplateBrowser, setShowTemplateBrowser] = useState(false);
+
     // Auth guard
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (user) => {
@@ -207,44 +213,119 @@ export default function OnboardingPage() {
         setSelectedKey(key);
     }, []);
 
+    // ═══ LOAD TEMPLATES (for template browser) ═══
+    const loadTemplates = useCallback(async () => {
+        setTemplatesLoading(true);
+        try {
+            const data = await fetchTemplateProjects();
+            setTemplateProjects(data.templates);
+        } catch (e) {
+            console.error("[Onboarding] Failed to load templates:", e);
+        } finally {
+            setTemplatesLoading(false);
+        }
+    }, []);
+
+    // ═══ CLONE TEMPLATE PROJECT ═══
+    const handleCloneTemplate = useCallback(async (templateId: string) => {
+        if (cloningId) return;
+        setCloningId(templateId);
+        try {
+            const result = await cloneProject(templateId);
+            if (auth.currentUser) {
+                invalidateDashboardCache(auth.currentUser.uid);
+            }
+            toast.success(`Cloned: ${result.title}`);
+            router.push(`/project/${result.id}/preproduction`);
+        } catch (e: any) {
+            console.error("[Onboarding] Clone failed:", e);
+            toast.error(e.response?.data?.detail || "Failed to clone project");
+            setCloningId(null);
+        }
+    }, [cloningId, router]);
+
     const handleNext = useCallback(async () => {
         if (!selectedKey) return;
 
         const updatedAnswers = { ...answers, [question!.id]: selectedKey };
         setAnswers(updatedAnswers as any);
 
-        // After Q3, save profile and go to Step 4 (creation)
+        // After Q3, route by goal × workflow matrix
         if (currentStep === 2) {
-            // Save profile to Firestore
-            try {
-                if (uid) {
-                    await setDoc(doc(db, "users", uid), {
-                        profile: {
-                            goal: updatedAnswers.goal,
-                            experience: updatedAnswers.experience,
-                            workflow: updatedAnswers.workflow,
-                            completed_at: serverTimestamp(),
-                        }
-                    }, { merge: true });
-                }
-            } catch (e) {
-                console.error("[Onboarding] Failed to save profile:", e);
+            const goal = updatedAnswers.goal as GoalKey;
+            const workflow = selectedKey as WorkflowKey;
+            const isSocial = goal === "social_clips";
+
+            console.log("[Onboarding] Q3 routing →", { goal, workflow, isSocial, updatedAnswers });
+
+            // Save profile to Firestore (fire-and-forget — never block routing)
+            if (uid) {
+                setDoc(doc(db, "users", uid), {
+                    profile: {
+                        goal,
+                        experience: updatedAnswers.experience,
+                        workflow,
+                        completed_at: serverTimestamp(),
+                    }
+                }, { merge: true }).catch(e => console.error("[Onboarding] Profile save failed:", e));
             }
 
-            // If "showcase" → show showcase first, then create
-            if (selectedKey === "showcase") {
-                setShowShowcase(true);
+            // ── Route based on goal × workflow ──
+
+            if (workflow === "showcase") {
+                // Any goal + "Show me what's possible" → Explore gallery
+                console.log("[Onboarding] → /explore");
+                router.push("/explore");
+                return;
             }
 
-            // Transition to Step 4
-            setFadeDirection("out");
-            setIsTransitioning(true);
-            setTimeout(() => {
-                setCurrentStep(3);
-                setSelectedKey(null);
-                setFadeDirection("in");
-                setIsTransitioning(false);
-            }, 350);
+            if (isSocial && workflow === "template") {
+                // Social + Template → Playground with tour
+                console.log("[Onboarding] → /playground?tour=true");
+                router.push("/playground?tour=true");
+                return;
+            }
+
+            if (isSocial && workflow === "script") {
+                // Social + I have an idea → Step 4 (idea input for playground)
+                console.log("[Onboarding] → Step 4 (social idea input)");
+                setFadeDirection("out");
+                setIsTransitioning(true);
+                setTimeout(() => {
+                    setCurrentStep(3);
+                    setSelectedKey(null);
+                    setFadeDirection("in");
+                    setIsTransitioning(false);
+                }, 350);
+                return;
+            }
+
+            if (!isSocial && (workflow === "template")) {
+                // Non-social + Template → Template Browser
+                console.log("[Onboarding] → Step 4 (template browser)");
+                setShowTemplateBrowser(true);
+                loadTemplates();
+                setFadeDirection("out");
+                setIsTransitioning(true);
+                setTimeout(() => {
+                    setCurrentStep(3);
+                    setSelectedKey(null);
+                    setFadeDirection("in");
+                    setIsTransitioning(false);
+                }, 350);
+                return;
+            }
+
+            if (!isSocial && (workflow === "script")) {
+                // Non-social + I have an idea → New Project page
+                console.log("[Onboarding] → /project/new");
+                router.push("/project/new");
+                return;
+            }
+
+            // Fallback (should never reach here)
+            console.warn("[Onboarding] No route matched!", { goal, workflow });
+            router.push("/dashboard");
             return;
         }
 
@@ -257,21 +338,28 @@ export default function OnboardingPage() {
             setFadeDirection("in");
             setIsTransitioning(false);
         }, 350);
-    }, [selectedKey, answers, question, currentStep, uid]);
+    }, [selectedKey, answers, question, currentStep, uid, router, loadTemplates]);
 
-    // ═══ CREATE PROJECT ═══
+    // ═══ CREATE PROJECT (or redirect to playground for social) ═══
     const handleCreateProject = useCallback(async () => {
         const text = idea.trim();
         if (!text || isCreating) return;
         setIsCreating(true);
 
-        // Generate a short title from the idea (extract key nouns, 2-4 words max)
+        // Social media + I have an idea → redirect to playground with idea
+        const isSocial = answers.goal === "social_clips";
+        if (isSocial) {
+            const encoded = encodeURIComponent(text);
+            router.push(`/playground?idea=${encoded}&tour=true`);
+            return;
+        }
+
+        // Non-social: create project with presets
         const stopWords = new Set(["a", "an", "the", "in", "on", "at", "for", "with", "and", "or", "of", "to", "from", "by", "about", "like", "my", "is", "its", "that", "this"]);
         const words = text.split(/\s+/).filter(w => !stopWords.has(w.toLowerCase()) && w.length > 2);
         const title = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ") || "My Project";
 
         try {
-            // 1. Create project with persona-based presets
             const res = await api.post("/api/v1/project/create", {
                 title,
                 genre: preset.genre,
@@ -282,17 +370,14 @@ export default function OnboardingPage() {
             });
             const projectId = res.data.id;
 
-            // 2. Mark as quickstart
             await setDoc(doc(db, "projects", projectId), {
                 is_quickstart: true,
             }, { merge: true });
 
-            // 3. Invalidate cache
             if (auth.currentUser) {
                 invalidateDashboardCache(auth.currentUser.uid);
             }
 
-            // 4. Upload idea as script
             const blob = new Blob([text], { type: "text/plain" });
             const formData = new FormData();
             formData.append("project_id", projectId);
@@ -311,7 +396,7 @@ export default function OnboardingPage() {
             toast.error(e.response?.data?.detail || "Failed to create project");
             setIsCreating(false);
         }
-    }, [idea, isCreating, preset, uid, router]);
+    }, [idea, isCreating, preset, uid, router, answers.goal]);
 
     const handleSkip = useCallback(async () => {
         try {
@@ -468,59 +553,112 @@ export default function OnboardingPage() {
                 ) : (
                     /* ═══ STEP 4: PERSONALIZED CREATION ═══ */
                     <div
-                        className={`w-full max-w-2xl ${fadeDirection === "in" ? "onb-fade-in" : "onb-fade-out"}`}
+                        className={`w-full max-w-3xl ${fadeDirection === "in" ? "onb-fade-in" : "onb-fade-out"}`}
                         key="creation"
                     >
-                        {/* Showcase view → then create */}
-                        {showShowcase && !idea ? (
+                        {/* ═══ TEMPLATE BROWSER (non-social + template) ═══ */}
+                        {showTemplateBrowser ? (
                             <div>
                                 <div className="text-center mb-8">
                                     <h1 className="font-['Anton'] text-[30px] sm:text-[36px] uppercase tracking-[2px] text-white leading-tight">
-                                        Here's What You Can Create
+                                        Choose a Template
                                     </h1>
                                     <p className="text-[12px] text-white/30 mt-2 tracking-wide max-w-lg mx-auto">
-                                        {preset.showcaseDescription}
+                                        Pick a project to clone into your account. All scenes, shots, and assets will be copied.
                                     </p>
                                 </div>
 
-                                {/* Highlights */}
-                                <div className="grid grid-cols-2 gap-3 mb-8 max-w-lg mx-auto">
-                                    {preset.showcaseHighlights.map((h, i) => (
-                                        <div
-                                            key={i}
-                                            className="flex items-start gap-2.5 px-4 py-3 rounded-xl border border-white/[0.06] bg-white/[0.02]"
-                                            style={{ animation: `onb-cardIn 0.5s ease ${i * 100}ms both` }}
-                                        >
-                                            <Check size={14} className="text-emerald-400 shrink-0 mt-0.5" strokeWidth={3} />
-                                            <span className="text-[11px] text-white/50 leading-relaxed">{h}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                                {templatesLoading ? (
+                                    <div className="flex flex-col items-center justify-center py-20">
+                                        <Loader2 size={28} className="animate-spin text-[#E50914] mb-3" />
+                                        <span className="text-[10px] font-mono text-white/30 uppercase tracking-[2px]">Loading templates...</span>
+                                    </div>
+                                ) : templateProjects.length === 0 ? (
+                                    <div className="text-center py-20">
+                                        <Film size={32} className="text-white/10 mx-auto mb-3" />
+                                        <p className="text-[12px] text-white/30">No templates available yet.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+                                        {templateProjects.map((tpl, i) => {
+                                            const isCloning = cloningId === tpl.id;
+                                            return (
+                                                <button
+                                                    key={tpl.id}
+                                                    onClick={() => handleCloneTemplate(tpl.id)}
+                                                    disabled={!!cloningId}
+                                                    className="group relative aspect-video rounded-xl border overflow-hidden text-left transition-all duration-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                                    style={{
+                                                        animation: `onb-cardIn 0.5s ease ${i * 80}ms both`,
+                                                        borderColor: isCloning ? "#E50914" : "rgba(255,255,255,0.08)",
+                                                        background: "rgba(255,255,255,0.02)",
+                                                    }}
+                                                >
+                                                    {/* Preview image */}
+                                                    {(tpl.preview_image || tpl.moodboard_image_url) ? (
+                                                        <img
+                                                            src={tpl.preview_image || tpl.moodboard_image_url || ""}
+                                                            alt={tpl.title}
+                                                            className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-all duration-500"
+                                                        />
+                                                    ) : (
+                                                        <div className="absolute inset-0 bg-gradient-to-br from-[#111] to-[#0a0a0a] flex items-center justify-center">
+                                                            <Film size={28} className="text-white/10" />
+                                                        </div>
+                                                    )}
 
-                                {/* CTA to start creating */}
-                                <div className="text-center">
-                                    <button
-                                        onClick={() => setShowShowcase(false)}
-                                        className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-[12px] font-bold tracking-[2px] uppercase cursor-pointer border-none"
-                                        style={{
-                                            background: "linear-gradient(135deg, #E50914, #B30710)",
-                                            boxShadow: "0 8px 32px rgba(229,9,20,0.3)",
-                                        }}
-                                    >
-                                        Create My First Video
-                                        <ArrowRight size={14} strokeWidth={3} />
-                                    </button>
-                                </div>
+                                                    {/* Gradient overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+
+                                                    {/* Clone icon overlay on hover */}
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
+                                                        {isCloning ? (
+                                                            <div className="bg-black/80 backdrop-blur-sm rounded-full p-3">
+                                                                <Loader2 size={20} className="animate-spin text-[#E50914]" />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="bg-[#E50914]/90 backdrop-blur-sm rounded-full p-3 shadow-lg shadow-[#E50914]/30">
+                                                                <Copy size={18} className="text-white" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Bottom info */}
+                                                    <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+                                                        <h3 className="text-[12px] font-bold text-white truncate uppercase tracking-wide">
+                                                            {tpl.title}
+                                                        </h3>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className="text-[8px] font-mono text-white/40 bg-white/[0.06] px-1.5 py-0.5 rounded uppercase">
+                                                                {tpl.genre || tpl.type}
+                                                            </span>
+                                                            <span className="text-[8px] font-mono text-white/40 bg-white/[0.06] px-1.5 py-0.5 rounded uppercase">
+                                                                {tpl.aspect_ratio}
+                                                            </span>
+                                                            {tpl.scene_count > 0 && (
+                                                                <span className="text-[8px] font-mono text-white/40 bg-white/[0.06] px-1.5 py-0.5 rounded">
+                                                                    {tpl.scene_count} scene{tpl.scene_count !== 1 ? "s" : ""}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             /* ═══ Creation input view ═══ */
                             <div>
                                 <div className="text-center mb-6">
                                     <h1 className="font-['Anton'] text-[30px] sm:text-[36px] uppercase tracking-[2px] text-white leading-tight">
-                                        Describe Your Video
+                                        {answers.goal === "social_clips" ? "Describe Your Clip" : "Describe Your Video"}
                                     </h1>
                                     <p className="text-[12px] text-white/30 mt-2 tracking-wide">
-                                        One line is all it takes. AI handles the rest.
+                                        {answers.goal === "social_clips"
+                                            ? "Tell us your idea — we'll set up the Playground for you."
+                                            : "One line is all it takes. AI handles the rest."}
                                     </p>
                                 </div>
 

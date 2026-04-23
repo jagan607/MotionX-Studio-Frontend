@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, User, Building, ChevronDown, Check, Zap } from "lucide-react";
+import { Plus, User, Building, ChevronDown, Check, Zap, Eye } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import { useWorkspace } from "@/app/context/WorkspaceContext";
 import CreditModal from "@/app/components/modals/CreditModal";
@@ -223,6 +223,20 @@ export default function GlobalHeader() {
                             }`}
                         >
                             Playground
+                        </button>
+                    </Link>
+
+                    {/* Explore — public gallery */}
+                    <Link href="/explore" className="hidden md:block no-underline">
+                        <button
+                            className={`flex items-center gap-2 text-[10px] sm:text-xs font-bold tracking-[2px] uppercase transition-all rounded-md px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 cursor-pointer border ${
+                                pathname === '/explore'
+                                    ? 'bg-[#E50914]/15 border-[#E50914]/40 text-[#E50914] shadow-[0_0_20px_rgba(229,9,20,0.15)]'
+                                    : 'bg-[#1A1A1A] border-[#222] text-white hover:bg-[#222]'
+                            }`}
+                        >
+                            <Eye size={12} />
+                            Explore
                         </button>
                     </Link>
 

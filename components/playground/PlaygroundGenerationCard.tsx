@@ -320,8 +320,31 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                     </div>
                 )}
 
+                {/* === STATE: ANIMATING (no image — direct video gen) === */}
+                {!isGenerating && !isFailed && !hasImage && isAnimating && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#080808]">
+                        <div className="absolute inset-0 skeleton-shimmer opacity-20" />
+                        <div className="relative z-10 flex flex-col items-center">
+                            <div className="w-12 h-12 rounded-xl bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center mb-3">
+                                <Loader2 className="animate-spin text-[#E50914]" size={20} />
+                            </div>
+                            <span className="text-[9px] font-mono text-[#666] uppercase tracking-[3px]">Generating Video…</span>
+                            {gen.provider && (
+                                <span className="text-[7px] font-mono text-[#444] uppercase tracking-[2px] mt-1">
+                                    via {gen.provider}
+                                </span>
+                            )}
+                            {gen.prompt && (
+                                <p className="text-[8px] text-[#444] max-w-[180px] text-center leading-relaxed mt-2 truncate">
+                                    {gen.prompt.slice(0, 80)}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* === STATE: NO IMAGE YET === */}
-                {!isGenerating && !isFailed && !hasImage && (
+                {!isGenerating && !isFailed && !hasImage && !isAnimating && (
                     <div className="absolute inset-0 skeleton-shimmer" />
                 )}
             </div>

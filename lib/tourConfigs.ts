@@ -17,21 +17,26 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
     {
         targetId: "tour-monitor",
         title: "PROJECT PREVIEW",
-        body: "This monitor previews your active project. Click a project below to see its content here, or open it to start editing.",
+        body: "This monitor previews your active project. Click a project in the film strip below to switch, or double-click to open it.",
         placement: "bottom",
     },
     {
-        targetId: "tour-filmstrip",
+        targetId: "tour-project-grid",
         title: "YOUR PROJECTS",
-        body: "Your project library lives here. We've added a sample project to get you started — click it to explore a fully produced storyboard with AI-generated shots.",
+        body: "Your project library. We've added a sample project to get you started — click to preview, double-click to open.",
         placement: "top",
     },
     {
-        targetId: "tour-new-series-target",
-        title: "CREATE A PROJECT",
-        body: "Ready to direct? Click here to start a new project. Paste a script, let AI break it into scenes, then generate storyboards and animations.",
-        placement: "bottom",
-        arrowSide: "left",
+        targetId: "tour-hero-actions",
+        title: "QUICK ACTIONS",
+        body: "Start a new project, jump into the Playground for instant AI generation, or explore what the community has created.",
+        placement: "left",
+    },
+    {
+        targetId: "tour-templates",
+        title: "PROJECT TEMPLATES",
+        body: "Kickstart your project with a template. Describe your idea or pick a pre-built template — AI will generate your script, scenes, and storyboard automatically.",
+        placement: "top",
     },
     {
         targetId: "tour-credits-target",
@@ -39,19 +44,6 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
         body: "Every AI generation (images, videos, auto-direct) costs credits. You start with 30 free credits. Top up anytime to keep creating.",
         placement: "bottom",
         arrowSide: "right",
-    },
-    {
-        targetId: "tour-playground",
-        title: "PLAYGROUND",
-        body: "Want to experiment without a project? The Playground lets you generate AI images and videos instantly — great for testing ideas.",
-        placement: "bottom",
-        arrowSide: "right",
-    },
-    {
-        targetId: "tour-community-feed",
-        title: "COMMUNITY FEED",
-        body: "See what other creators are making in real time. Hover to preview their shots — a great source of inspiration for your own work.",
-        placement: "left",
     },
 ];
 
@@ -79,22 +71,15 @@ export const EPISODE_TOUR_STEPS: TourStep[] = [
     },
 ];
 
-// --- STORYBOARD OVERLAY TOUR ---
-// Target IDs: tour-sb-scene-selector, tour-sb-generate-all, tour-sb-autodirect,
-//             tour-sb-add-shot, tour-sb-credits, tour-sb-context-strip, tour-sb-shot-card
-export const STORYBOARD_TOUR_STEPS: TourStep[] = [
+// --- STORYBOARD TOOLBAR TOUR (always present — fires on first storyboard visit) ---
+// Target IDs: tour-sb-scene-selector, tour-sb-autodirect, tour-sb-add-shot, tour-sb-credits, tour-sb-context-strip
+export const STORYBOARD_TOOLBAR_TOUR_STEPS: TourStep[] = [
     {
         targetId: "tour-sb-scene-selector",
         title: "SCENE SWITCHER",
         body: "Jump between scenes without closing the board. Your entire episode timeline is one click away.",
         placement: "bottom",
         arrowSide: "left",
-    },
-    {
-        targetId: "tour-sb-generate-all",
-        title: "BATCH GENERATE",
-        body: "Fire off AI generation for every shot in one go. Use STOP to halt mid-run if needed.",
-        placement: "bottom",
     },
     {
         targetId: "tour-sb-autodirect",
@@ -121,6 +106,11 @@ export const STORYBOARD_TOUR_STEPS: TourStep[] = [
         body: "Edit your scene summary, review location, time of day, and cast. Changes here influence AI shot generation.",
         placement: "bottom",
     },
+];
+
+// --- STORYBOARD SHOT CARD TOUR (fires after shots are created) ---
+// Target IDs: tour-sb-shot-card, tour-sb-shot-card-prompt, tour-sb-shot-card-gen, tour-sb-shot-card-settings
+export const STORYBOARD_SHOT_CARD_TOUR_STEPS: TourStep[] = [
     {
         targetId: "tour-sb-shot-card",
         title: "SHOT CARD",
@@ -145,6 +135,12 @@ export const STORYBOARD_TOUR_STEPS: TourStep[] = [
         body: "Open Shot Settings to fine-tune, then generate a video animation from your still frame. This is where your storyboard comes to life.",
         placement: "top",
     },
+];
+
+// Combined steps for backward compatibility (legacy usage)
+export const STORYBOARD_TOUR_STEPS: TourStep[] = [
+    ...STORYBOARD_TOOLBAR_TOUR_STEPS,
+    ...STORYBOARD_SHOT_CARD_TOUR_STEPS,
 ];
 
 // --- SHOT SETTINGS (EDITOR PANEL) TOUR ---
@@ -372,3 +368,40 @@ export const POSTPRODUCTION_TOUR_STEPS: TourStep[] = [
         arrowSide: "right",
     },
 ];
+
+// --- PLAYGROUND TOUR ---
+// Target IDs: tour-pg-templates, tour-pg-prompt, tour-pg-assets, tour-pg-grid, tour-pg-settings
+export const PLAYGROUND_TOUR_STEPS: TourStep[] = [
+    {
+        targetId: "tour-pg-templates",
+        title: "VIDEO TEMPLATES",
+        body: "Pick a pre-made prompt + style to get started instantly. Each template is optimized for a specific look — fashion, cinematic, product, and more. Just click to apply it to your prompt bar.",
+        placement: "left",
+    },
+    {
+        targetId: "tour-pg-assets",
+        title: "YOUR ASSETS",
+        body: "Upload character references, locations, and products here. Use @tags in your prompt to anchor them — the AI will use their appearance to guide generation.",
+        placement: "right",
+    },
+    {
+        targetId: "tour-pg-prompt",
+        title: "PROMPT BAR",
+        body: "Type what you want to see. Use @ to tag your uploaded characters and locations. Hit the ✨ wand to let AI expand your prompt, then press Enter or click Generate.",
+        placement: "top",
+    },
+    {
+        targetId: "tour-pg-settings",
+        title: "STYLE CONTROLS",
+        body: "Fine-tune your generation — choose the AI engine (Gemini / SeedReam), aspect ratio, shot type, and visual style. These settings apply to every generation.",
+        placement: "top",
+        arrowSide: "left",
+    },
+    {
+        targetId: "tour-pg-grid",
+        title: "GENERATION FEED",
+        body: "Your AI creations appear here in real-time. Click any image to expand, animate it into video, or drag it onto the prompt bar as a reference. Right-click for more options.",
+        placement: "bottom",
+    },
+];
+

@@ -6,7 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 
 /**
  * Generic onboarding tour hook.
- * Reads Firestore directly (no backend API call) for instant check.
+ * Persistence: localStorage (instant) + Firestore (durable).
  * tourId must match the key in Firestore: users/{uid}/onboarding.{tourId}
  * e.g. "dashboard_tour", "series_tour", "episode_tour", "storyboard_tour"
  */
@@ -14,13 +14,21 @@ export const useTour = (tourId: string) => {
     const [step, setStep] = useState(0); // 0 = inactive
     const hasChecked = useRef(false);
 
+    const localKey = `tour_done_${tourId}`;
+
     useEffect(() => {
         hasChecked.current = false; // Reset when tourId changes
-        // Wait for auth to resolve, then check Firestore
+        // Wait for auth to resolve, then check
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (!user || hasChecked.current) return;
             hasChecked.current = true;
-            // Small delay to ensure page DOM is mounted before we start tour
+
+            // 1. Instant check: localStorage (prevents flash on every refresh)
+            if (localStorage.getItem(localKey) === "true") {
+                return; // Tour already completed — step stays 0
+            }
+
+            // 2. Async check: Firestore
             const timer = setTimeout(() => checkStatus(user.uid), 1200);
             return () => clearTimeout(timer);
         });
@@ -32,12 +40,16 @@ export const useTour = (tourId: string) => {
             const userRef = doc(db, "users", uid);
             const snap = await getDoc(userRef);
             const tourDone = snap.data()?.onboarding?.[tourId] === true;
-            // key absent OR false → start tour
-            if (!tourDone) {
+            if (tourDone) {
+                // Sync to localStorage so future refreshes are instant
+                localStorage.setItem(localKey, "true");
+            } else {
+                // key absent OR false → start tour
                 setStep(1);
             }
         } catch (e) {
             console.error(`[useTour] Failed to check status for "${tourId}"`, e);
+            // On Firestore failure, don't show tour (avoid annoying the user)
         }
     };
 
@@ -45,6 +57,8 @@ export const useTour = (tourId: string) => {
 
     const completeTour = async () => {
         setStep(0); // Close UI immediately
+        // Persist to localStorage first (instant)
+        localStorage.setItem(localKey, "true");
         try {
             const uid = auth.currentUser?.uid;
             if (!uid) return;
@@ -58,3 +72,4 @@ export const useTour = (tourId: string) => {
 
     return { step, nextStep, completeTour };
 };
+

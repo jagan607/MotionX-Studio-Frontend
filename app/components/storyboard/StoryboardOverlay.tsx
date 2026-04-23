@@ -31,7 +31,7 @@ import { styles } from "./BoardStyles";
 
 // --- GLOBAL UI IMPORTS ---
 import { TourOverlay } from "@/components/tour/TourOverlay";
-import { STORYBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
+import { STORYBOARD_TOOLBAR_TOUR_STEPS, STORYBOARD_SHOT_CARD_TOUR_STEPS } from "@/lib/tourConfigs";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import CreditModal from "@/app/components/modals/CreditModal";
 import { CameraGizmoOverlay } from "./CameraGizmoOverlay";
@@ -103,10 +103,14 @@ interface StoryboardOverlayProps {
     onDeleteShot: any;
     onSceneChange?: (scene: any) => void;
 
-    // Tour Props
+    // Tour Props — toolbar tour (always)
     tourStep: number;
     onTourNext: () => void;
     onTourComplete: () => void;
+    // Tour Props — shot card tour (only when shots exist)
+    shotCardTourStep?: number;
+    onShotCardTourNext?: () => void;
+    onShotCardTourComplete?: () => void;
 
     styles?: any;
 }
@@ -118,7 +122,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     seriesId, episodeId,
     shotMgr, inpaintData, setInpaintData, onSaveInpaint, onApplyInpaint,
     onZoom, onDownload, onDeleteShot, onSceneChange,
-    tourStep, onTourNext, onTourComplete
+    tourStep, onTourNext, onTourComplete,
+    shotCardTourStep, onShotCardTourNext, onShotCardTourComplete
 }) => {
 
     const router = useRouter();
@@ -129,16 +134,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
     const { openViewer } = useMediaViewer();
 
-    // --- TOUR FILTERING ---
-    const tourSteps = useMemo(() => {
-        return STORYBOARD_TOUR_STEPS.filter(step => {
-            // Generate-all button is currently hidden — always skip
-            if (step.targetId === 'tour-sb-generate-all') return false;
-            // Steps that depend on shots existing:
-            if (step.targetId === 'tour-sb-shot-card' && shotMgr.shots.length === 0) return false;
-            if (step.targetId.startsWith('tour-sb-shot-card-') && shotMgr.shots.length === 0) return false;
-            return true;
-        });
+    // --- TOUR: Use toolbar steps (always present) ---
+    const toolbarTourSteps = STORYBOARD_TOOLBAR_TOUR_STEPS;
+
+    // Shot card tour steps — only include when shots exist
+    const shotCardTourSteps = useMemo(() => {
+        if (shotMgr.shots.length === 0) return [];
+        return STORYBOARD_SHOT_CARD_TOUR_STEPS;
     }, [shotMgr.shots.length]);
 
 
@@ -1242,7 +1244,13 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     }))}
                 />
 
-                <TourOverlay step={tourStep} steps={tourSteps} onNext={onTourNext} onComplete={onTourComplete} />
+                {/* Toolbar Tour (always present) */}
+                <TourOverlay step={tourStep} steps={toolbarTourSteps} onNext={onTourNext} onComplete={onTourComplete} />
+
+                {/* Shot Card Tour (only when shots exist) */}
+                {shotCardTourStep !== undefined && shotCardTourSteps.length > 0 && onShotCardTourNext && onShotCardTourComplete && (
+                    <TourOverlay step={shotCardTourStep} steps={shotCardTourSteps} onNext={onShotCardTourNext} onComplete={onShotCardTourComplete} />
+                )}
 
                 {/* Camera Gizmo Overlay */}
                 {activeGizmoShotId && (() => {

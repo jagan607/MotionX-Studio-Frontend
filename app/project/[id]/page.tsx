@@ -30,7 +30,7 @@ export default function ProjectHub() {
     const projectId = params.id as string;
     const [project, setProject] = useState<ProjectData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [counts, setCounts] = useState({ characters: 0, locations: 0, scenes: 0, shots: 0 });
+    const [counts, setCounts] = useState({ characters: 0, locations: 0, scenes: 0, shots: 0, generatedShots: 0, animatedShots: 0 });
 
     useEffect(() => {
         if (!projectId) return;
@@ -38,18 +38,47 @@ export default function ProjectHub() {
             try {
                 const snap = await getDoc(doc(db, "projects", projectId));
                 if (!snap.exists()) { router.push("/dashboard"); return; }
-                setProject(snap.data() as ProjectData);
+                const projData = snap.data() as ProjectData;
+                setProject(projData);
 
                 // Fetch quick counts for progress indicators
                 const [charSnap, locSnap] = await Promise.all([
                     getDocs(collection(db, "projects", projectId, "characters")),
                     getDocs(collection(db, "projects", projectId, "locations")),
                 ]);
-                setCounts(prev => ({
-                    ...prev,
+
+                // Fetch scenes + shots for production progress
+                let sceneCount = 0;
+                let shotCount = 0;
+                let generatedCount = 0;
+                let animatedCount = 0;
+                try {
+                    const epId = projData.script_status === 'empty' ? null : (snap.data().default_episode_id || 'main');
+                    if (epId) {
+                        const scenesSnap = await getDocs(collection(db, "projects", projectId, "episodes", epId, "scenes"));
+                        sceneCount = scenesSnap.size;
+                        for (const sceneDoc of scenesSnap.docs) {
+                            const shotsSnap = await getDocs(collection(db, "projects", projectId, "episodes", epId, "scenes", sceneDoc.id, "shots"));
+                            shotCount += shotsSnap.size;
+                            shotsSnap.forEach(s => {
+                                const d = s.data();
+                                if (d.image_url) generatedCount++;
+                                if (d.video_url) animatedCount++;
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.debug("[ProjectHub] Scenes/shots fetch (non-critical):", e);
+                }
+
+                setCounts({
                     characters: charSnap.size,
                     locations: locSnap.size,
-                }));
+                    scenes: sceneCount,
+                    shots: shotCount,
+                    generatedShots: generatedCount,
+                    animatedShots: animatedCount,
+                });
             } catch (e) {
                 console.error("Hub Error", e);
                 router.push("/dashboard");
@@ -71,6 +100,25 @@ export default function ProjectHub() {
         if (counts.locations > 0) score += 30;
         return Math.min(score, 100);
     }, [hasScript, counts]);
+
+    const prodProgress = useMemo(() => {
+        if (counts.shots === 0) return 0;
+        // Weight: having scenes (20%), having shots (20%), generated images (30%), animated (30%)
+        let score = 0;
+        if (counts.scenes > 0) score += 20;
+        if (counts.shots > 0) score += 20;
+        if (counts.shots > 0) {
+            score += Math.round((counts.generatedShots / counts.shots) * 30);
+            score += Math.round((counts.animatedShots / counts.shots) * 30);
+        }
+        return Math.min(score, 100);
+    }, [counts]);
+
+    const postProgress = useMemo(() => {
+        // Post-production starts once we have animated shots
+        if (counts.animatedShots === 0) return 0;
+        return 10; // Base progress when there are animated shots to edit
+    }, [counts]);
 
     if (loading || !project) {
         return (
@@ -113,8 +161,11 @@ export default function ProjectHub() {
             accentDark: "rgba(229, 9, 20, 0.08)",
             accentMid: "rgba(229, 9, 20, 0.25)",
             available: true,
-            progress: isProductionReady ? 10 : 0,
-            quickStats: [],
+            progress: prodProgress,
+            quickStats: counts.shots > 0 ? [
+                { value: counts.scenes, label: "Scenes" },
+                { value: counts.shots, label: "Shots" },
+            ] : [],
         },
         {
             id: "postproduction",
@@ -127,8 +178,10 @@ export default function ProjectHub() {
             accentDark: "rgba(168, 85, 247, 0.08)",
             accentMid: "rgba(168, 85, 247, 0.25)",
             available: true,
-            progress: 0,
-            quickStats: [],
+            progress: postProgress,
+            quickStats: counts.animatedShots > 0 ? [
+                { value: counts.animatedShots, label: "Clips" },
+            ] : [],
         },
 
     ];
