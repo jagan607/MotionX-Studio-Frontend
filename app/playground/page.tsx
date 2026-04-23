@@ -3,22 +3,25 @@
 /**
  * /playground — B2C Playground workspace page.
  *
- * Phase 3: Functional asset drawer with tabbed CRUD, prompt bar with @-mentions,
- * and real-time generation grid.
- *
  * Layout:
  *   Left:   PlaygroundAssetDrawer (Characters, Locations, Products + create form)
  *   Center: Generation feed (real-time from Firestore) + Prompt bar (functional)
- *   Right:  Style panel (placeholder — Phase 4)
+ *   Right:  PlaygroundTemplatePicker (collapsible sidebar with video clip templates)
  */
 
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { PlaygroundProvider, usePlayground } from "@/app/context/PlaygroundContext";
 import { PricingProvider } from "@/app/hooks/usePricing";
-import { Loader2, PanelLeftOpen, PanelLeftClose } from "lucide-react";
+import { Loader2, PanelLeftOpen, PanelLeftClose, PanelRightOpen, PanelRightClose } from "lucide-react";
 import PlaygroundGenerationGrid from "@/components/playground/PlaygroundGenerationGrid";
 import PlaygroundPromptBar from "@/components/playground/PlaygroundPromptBar";
 import PlaygroundAssetDrawer from "@/components/playground/PlaygroundAssetDrawer";
 import PlaygroundAnimateModal from "@/components/playground/PlaygroundAnimateModal";
+import PlaygroundTemplatePicker from "@/components/playground/PlaygroundTemplatePicker";
+import { TourOverlay } from "@/components/tour/TourOverlay";
+import { PLAYGROUND_TOUR_STEPS } from "@/lib/tourConfigs";
+import { useTour } from "@/hooks/useTour";
 
 export default function PlaygroundPage() {
     return (
@@ -31,6 +34,7 @@ export default function PlaygroundPage() {
 }
 
 function PlaygroundWorkspace() {
+    const searchParams = useSearchParams();
     const {
         generations,
         generationsLoading,
@@ -39,7 +43,69 @@ function PlaygroundWorkspace() {
         setAnimateTarget,
         assetDrawerOpen: drawerOpen,
         setAssetDrawerOpen: setDrawerOpen,
+        setPendingPrompt,
     } = usePlayground();
+
+    // ── Template sidebar state ──
+    const [templateSidebarOpen, setTemplateSidebarOpen] = useState(true);
+
+    // ── Tour ──
+    const { step: tourStep, nextStep: tourNext, completeTour } = useTour("playground_tour");
+    const [forceTour, setForceTour] = useState(false);
+    const tourForceCheckedRef = useRef(false);
+
+    useEffect(() => {
+        if (tourForceCheckedRef.current) return;
+        const shouldTour = searchParams.get("tour") === "true";
+        if (shouldTour) {
+            setForceTour(true);
+            tourForceCheckedRef.current = true;
+        }
+    }, [searchParams]);
+
+    const [manualTourStep, setManualTourStep] = useState(0);
+    useEffect(() => {
+        if (forceTour && tourStep === 0 && manualTourStep === 0) {
+            const timer = setTimeout(() => setManualTourStep(1), 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [forceTour, tourStep, manualTourStep]);
+
+    const activeTourStep = tourStep || manualTourStep;
+    const handleTourNext = () => {
+        if (tourStep > 0) {
+            tourNext();
+        } else {
+            setManualTourStep(prev => prev + 1);
+        }
+    };
+    const handleTourComplete = () => {
+        if (tourStep > 0) {
+            completeTour();
+        } else {
+            setManualTourStep(0);
+            setForceTour(false);
+            completeTour();
+        }
+    };
+
+    // Auto-open the asset drawer when tour reaches step 2 ("YOUR ASSETS")
+    useEffect(() => {
+        if (activeTourStep === 2 && !drawerOpen) {
+            setDrawerOpen(true);
+        }
+    }, [activeTourStep, drawerOpen, setDrawerOpen]);
+
+    // Read ?idea= query param and pre-fill the prompt bar (one-shot)
+    const ideaInjectedRef = useRef(false);
+    useEffect(() => {
+        if (ideaInjectedRef.current) return;
+        const idea = searchParams.get("idea");
+        if (idea) {
+            setPendingPrompt(decodeURIComponent(idea));
+            ideaInjectedRef.current = true;
+        }
+    }, [searchParams, setPendingPrompt]);
 
     if (!uid) {
         return (
@@ -53,11 +119,12 @@ function PlaygroundWorkspace() {
     return (
         <div className="fixed inset-0 bg-[#030303] text-[#EDEDED] font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#E50914] selection:text-white">
 
-            {/* ═══ MAIN LAYOUT ═══ */}
+            {/* ═══ MAIN LAYOUT: LEFT DRAWER | CENTER FEED | RIGHT TEMPLATES ═══ */}
             <div className="flex-1 flex min-h-0 overflow-hidden relative">
 
                 {/* ── LEFT: COLLAPSIBLE ASSET DRAWER ── */}
                 <aside
+                    id="tour-pg-assets"
                     className="flex flex-col bg-[#050505] border-r border-white/[0.06] shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
                     style={{ width: drawerOpen ? 280 : 0, minWidth: drawerOpen ? 280 : 0 }}
                 >
@@ -69,7 +136,7 @@ function PlaygroundWorkspace() {
                     {/* Feed header */}
                     <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-3">
-                            {/* Drawer toggle — prominent when collapsed, subtle when open */}
+                            {/* Left drawer toggle */}
                             {drawerOpen ? (
                                 <button
                                     onClick={() => setDrawerOpen(false)}
@@ -88,11 +155,34 @@ function PlaygroundWorkspace() {
                                     Assets ›
                                 </button>
                             )}
-                            <span className="text-[10px] font-mono text-white/60 uppercase tracking-[3px] font-bold">Generations</span>
+                            <span id="tour-pg-grid" className="text-[10px] font-mono text-white/60 uppercase tracking-[3px] font-bold">Generations</span>
                         </div>
-                        <span className="text-[9px] font-mono text-[#444] uppercase tracking-[1px]">
-                            {generationsLoading ? "Loading…" : `${generations.length} generation${generations.length !== 1 ? "s" : ""}`}
-                        </span>
+
+                        <div className="flex items-center gap-3">
+                            <span className="text-[9px] font-mono text-[#444] uppercase tracking-[1px]">
+                                {generationsLoading ? "Loading…" : `${generations.length} generation${generations.length !== 1 ? "s" : ""}`}
+                            </span>
+
+                            {/* Right template sidebar toggle */}
+                            {templateSidebarOpen ? (
+                                <button
+                                    onClick={() => setTemplateSidebarOpen(false)}
+                                    className="p-1.5 rounded-md text-[#555] hover:text-white hover:bg-white/[0.06] transition-all cursor-pointer"
+                                    title="Hide templates"
+                                >
+                                    <PanelRightClose size={16} />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => setTemplateSidebarOpen(true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#D4A843]/30 bg-[#D4A843]/10 text-[#D4A843] text-[9px] font-bold uppercase tracking-[2px] hover:bg-[#D4A843]/20 hover:border-[#D4A843]/50 transition-all cursor-pointer"
+                                    title="Show templates"
+                                >
+                                    ‹ Templates
+                                    <PanelRightOpen size={14} />
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* Feed grid — scrollable, with bottom padding for the prompt bar */}
@@ -104,15 +194,34 @@ function PlaygroundWorkspace() {
                     </div>
 
                     {/* ── BOTTOM: FUNCTIONAL PROMPT BAR ── */}
-                    <PlaygroundPromptBar />
+                    <div id="tour-pg-prompt">
+                        <PlaygroundPromptBar />
+                    </div>
                 </main>
+
+                {/* ── RIGHT: COLLAPSIBLE TEMPLATE SIDEBAR ── */}
+                <aside
+                    id="tour-pg-templates"
+                    className="flex flex-col bg-[#050505] border-l border-white/[0.06] shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
+                    style={{ width: templateSidebarOpen ? 300 : 0, minWidth: templateSidebarOpen ? 300 : 0 }}
+                >
+                    <PlaygroundTemplatePicker />
+                </aside>
             </div>
 
-            {/* ═══ ANIMATE MODAL (adapter around ShotEditorPanel) ═══ */}
+            {/* ═══ ANIMATE MODAL ═══ */}
             <PlaygroundAnimateModal
                 generation={animateTarget}
                 isOpen={!!animateTarget}
                 onClose={() => setAnimateTarget(null)}
+            />
+
+            {/* ═══ GUIDED TOUR ═══ */}
+            <TourOverlay
+                step={activeTourStep}
+                steps={PLAYGROUND_TOUR_STEPS}
+                onNext={handleTourNext}
+                onComplete={handleTourComplete}
             />
         </div>
     );

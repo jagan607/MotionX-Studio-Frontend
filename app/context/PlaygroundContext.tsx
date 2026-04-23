@@ -87,6 +87,10 @@ interface PlaygroundContextType {
     pendingPrompt: string | null;
     setPendingPrompt: (text: string | null) => void;
 
+    // === Pending Video Settings (one-shot signal from TemplatePicker → PromptBar) ===
+    pendingVideoSettings: PendingVideoSettings | null;
+    setPendingVideoSettings: (s: PendingVideoSettings | null) => void;
+
     // === Animate Modal (generation to animate) ===
     animateTarget: PlaygroundGeneration | null;
     setAnimateTarget: (gen: PlaygroundGeneration | null) => void;
@@ -108,6 +112,13 @@ export interface PlaygroundMentionItem {
     name: string;             // display name
     assetId: string;          // Firestore doc ID
     assetType: "character" | "location" | "product";
+}
+
+export interface PendingVideoSettings {
+    mode: 'video';
+    provider: string;
+    duration: string;
+    quality?: string;
 }
 
 
@@ -145,6 +156,8 @@ const DEFAULT_CONTEXT: PlaygroundContextType = {
     mentionItems: [],
     pendingPrompt: null,
     setPendingPrompt: () => {},
+    pendingVideoSettings: null,
+    setPendingVideoSettings: () => {},
     animateTarget: null,
     setAnimateTarget: () => {},
     assetDrawerOpen: true,
@@ -185,6 +198,7 @@ export function PlaygroundProvider({ children }: { children: ReactNode }) {
 
     // --- Prompt reuse (one-shot signal) ---
     const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+    const [pendingVideoSettings, setPendingVideoSettings] = useState<PendingVideoSettings | null>(null);
 
     // --- Animate modal target ---
     const [animateTarget, setAnimateTarget] = useState<PlaygroundGeneration | null>(null);
@@ -382,6 +396,8 @@ export function PlaygroundProvider({ children }: { children: ReactNode }) {
             mentionItems,
             pendingPrompt,
             setPendingPrompt,
+            pendingVideoSettings,
+            setPendingVideoSettings,
             animateTarget,
             setAnimateTarget,
             assetDrawerOpen,
@@ -395,6 +411,7 @@ export function PlaygroundProvider({ children }: { children: ReactNode }) {
             updateAsset, deleteAssetById,
             generations, generationsLoading, stylePrefs, setStylePref, mentionItems,
             pendingPrompt, setPendingPrompt,
+            pendingVideoSettings, setPendingVideoSettings,
             animateTarget, setAnimateTarget,
             assetDrawerOpen, setAssetDrawerOpen,
             assetDrawerIntent, setAssetDrawerIntent,

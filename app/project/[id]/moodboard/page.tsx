@@ -61,7 +61,9 @@ export default function MoodboardPage() {
     const [resolvedEpisodeId, setResolvedEpisodeId] = useState<string>(paramEpisodeId || "main");
     const episodeId = resolvedEpisodeId;
 
-    const preproductionUrl = `/project/${projectId}/preproduction?episode_id=${episodeId}`;
+    // Reactive — always uses the latest resolvedEpisodeId
+    const getPreproductionUrl = () => `/project/${projectId}/preproduction?episode_id=${resolvedEpisodeId}`;
+    const preproductionUrl = getPreproductionUrl();
     const isOnboarding = searchParams.get("onboarding") === "true";
 
     // --- State ---
@@ -325,7 +327,7 @@ export default function MoodboardPage() {
         // Safety timeout — if extraction takes > 5 minutes, navigate anyway
         const timeout = setTimeout(() => {
             toastError("Extraction is taking longer than expected. You can check back later.");
-            router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
+            router.push(getPreproductionUrl());
         }, 5 * 60 * 1000);
 
         // Listen to project document for script_status changes
@@ -342,7 +344,7 @@ export default function MoodboardPage() {
                 });
                 // Don't wait for "ready" — navigate immediately on failure
                 clearTimeout(timeout);
-                router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
+                router.push(getPreproductionUrl());
                 return;
             }
 
@@ -350,14 +352,14 @@ export default function MoodboardPage() {
             if (data.script_status === "ready") {
                 clearTimeout(timeout);
                 toastSuccess("Project setup complete!");
-                router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
+                router.push(getPreproductionUrl());
             }
 
             // Navigate on explicit failure status as well
             if (data.script_status === "failed") {
                 clearTimeout(timeout);
                 toastError("Extraction failed. You can manually configure assets.");
-                router.push(`/project/${projectId}/preproduction?episode_id=${episodeId}`);
+                router.push(getPreproductionUrl());
             }
         });
 

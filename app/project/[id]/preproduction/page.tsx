@@ -253,6 +253,7 @@ export default function PreProductionCanvas() {
 
     // Data State
     const [project, setProject] = useState<Project | null>(null);
+    const isQuickstart = !!project?.is_quickstart;
     const [scenes, setScenes] = useState<Scene[]>([]);
     const [characters, setCharacters] = useState<CharacterProfile[]>([]);
     const [locations, setLocations] = useState<LocationProfile[]>([]);
@@ -358,20 +359,81 @@ export default function PreProductionCanvas() {
         return () => unsubs.forEach(u => u());
     }, [projectId]);
 
-    // ─── RE-FETCH WHEN SCRIPT_STATUS TRANSITIONS TO "ready" ───
+    // ─── RE-FETCH WHEN SCRIPT_STATUS TRANSITIONS ───
     const prevScriptStatus = useRef<string | undefined>(undefined);
     useEffect(() => {
         const currentStatus = project?.script_status;
-        if (prevScriptStatus.current !== "ready" && currentStatus === "ready" && activeEpisodeId) {
-            fetchAssets(activeEpisodeId);
+        const prev = prevScriptStatus.current;
+        if (prev !== currentStatus && ["ready", "extracting", "assets_pending", "production_ready"].includes(currentStatus || "")) {
+            if (activeEpisodeId) {
+                fetchAssets(activeEpisodeId);
+            } else if (projectId) {
+                // Episode didn't exist on initial load (quickstart) — refetch episodes
+                (async () => {
+                    try {
+                        const epsData = await fetchEpisodes(projectId);
+                        const eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
+                        if (eps.length > 0) {
+                            setEpisodes(eps);
+                            const epId = eps[0].id;
+                            setActiveEpisodeId(epId);
+                            await fetchAssets(epId);
+                        }
+                    } catch (e) {
+                        console.error("[Quickstart] Episode refetch failed:", e);
+                    }
+                })();
+            }
         }
         prevScriptStatus.current = currentStatus;
+    }, [project?.script_status, activeEpisodeId, projectId]);
+
+    // ─── POLL FOR ASSETS DURING EXTRACTION ───
+    useEffect(() => {
+        const isExtracting = project?.script_status === "extracting";
+        if (!isExtracting || !activeEpisodeId) return;
+        const poll = setInterval(() => {
+            fetchAssets(activeEpisodeId);
+        }, 4000);
+        return () => clearInterval(poll);
     }, [project?.script_status, activeEpisodeId]);
+
+    // ─── QUICKSTART: REDIRECT TO MOODBOARD WHEN READY ───
+    const moodboardRedirectedRef = useRef(false);
+    useEffect(() => {
+        if (!isQuickstart || !projectId || !project || moodboardRedirectedRef.current) return;
+        // Don't redirect if moodboard already selected (prevent loop)
+        if (project.selected_mood_id) return;
+        // Don't redirect if assets already loaded
+        if (scenes.length > 0 || characters.length > 0) return;
+        // Don't redirect if script is extracting or ready (moodboard phase is done)
+        if (project.script_status === "extracting" || project.script_status === "ready") return;
+
+        const checkMoodboards = async () => {
+            try {
+                const snapshot = await getDocs(collection(db, "projects", projectId, "moodboard_options"));
+                const readyMoods = snapshot.docs.filter(d => d.data().status === "ready");
+                if (readyMoods.length >= 1) {
+                    moodboardRedirectedRef.current = true;
+                    console.log("[Quickstart] Moodboard ready — redirecting");
+                    const epParam = activeEpisodeId ? `&episode_id=${activeEpisodeId}` : "";
+                    router.push(`/project/${projectId}/moodboard?onboarding=true${epParam}`);
+                }
+            } catch (err) {
+                console.error("[Quickstart] Moodboard check failed:", err);
+            }
+        };
+
+        // Check immediately, then poll
+        checkMoodboards();
+        const poll = setInterval(checkMoodboards, 3000);
+        return () => clearInterval(poll);
+    }, [isQuickstart, projectId, project, scenes.length, characters.length, router]);
 
     // ─── EXTRACTION ERROR NOTIFICATION ───
     useEffect(() => {
         if (!project) return;
-        const extractionError = (project as any).extraction_error;
+        const extractionError = project.extraction_error;
         if (extractionError && !extractionErrorToastedRef.current) {
             extractionErrorToastedRef.current = true;
             toast("Character details couldn't be auto-extracted. You can fill them in manually in the Asset Manager.", {
@@ -850,9 +912,14 @@ export default function PreProductionCanvas() {
     const hasScript = (project ? (project.script_status !== "empty" && project.script_status !== "pending" && project.script_status !== undefined) : false) || scenes.length > 0;
     const isCommercial = project?.type === "ad";
 
-    // Auto-approve if returning and we see assets exist
+    // Auto-approve if returning and we see assets exist, OR if quickstart project
     useEffect(() => {
         if (!project) return;
+        // Quickstart projects always auto-approve (skip script form)
+        if ((project as any).is_quickstart) {
+            setIsDraftApproved(true);
+            return;
+        }
         const hasMood = (project as any).moodboard_image_url || (project as any).style_ref_url;
         if (hasMood || characters.length > 0 || scenes.length > 0 || (isCommercial && products.length > 0)) {
             setIsDraftApproved(true);
@@ -864,7 +931,7 @@ export default function PreProductionCanvas() {
     const moodRedirected = useRef(false);
     useEffect(() => {
         if (!project || !hasScript || !isDraftApproved || moodRedirected.current) return;
-        if ((project as any).is_sample) return; // Sample projects bypass moodboard gate
+        if ((project as any).is_sample || (project as any).is_quickstart) return; // Sample & quickstart projects bypass moodboard gate
         const hasMood = (project as any).moodboard_image_url || (project as any).style_ref_url;
         if (!hasMood) {
             moodRedirected.current = true;
@@ -887,30 +954,32 @@ export default function PreProductionCanvas() {
     return (
         <div ref={containerRef} className="fixed inset-0 bg-[#060606] text-white overflow-hidden flex flex-col">
 
-            {/* ── Pre-Production Header ── */}
-            <PreProductionHeader
-                projectTitle={project.title}
-                projectId={projectId}
-                project={project}
-                activeEpisodeId={activeEpisodeId || undefined}
-                hasScript={hasScript}
-                episodes={episodes}
-                onOpenAssets={() => setIsAssetModalOpen(true)}
-                onEditScript={() => setIsScriptModalOpen(true)}
-                onOpenMoodboard={() => router.push(`/project/${projectId}/moodboard?episode_id=${activeEpisodeId || 'main'}`)}
-                onOpenSettings={() => setIsSettingsOpen(true)}
-                onSelectEpisode={(newEpId) => {
-                    setActiveEpisodeId(newEpId);
-                    setNodePositions({});
-                    fetchAssets();
-                }}
-            />
+            {/* ── Pre-Production Header (hidden during quickstart skeleton) ── */}
+            {!(isQuickstart && characters.length === 0 && scenes.length === 0) && (
+                <PreProductionHeader
+                    projectTitle={project.title}
+                    projectId={projectId}
+                    project={project}
+                    activeEpisodeId={activeEpisodeId || undefined}
+                    hasScript={hasScript}
+                    episodes={episodes}
+                    onOpenAssets={() => setIsAssetModalOpen(true)}
+                    onEditScript={() => setIsScriptModalOpen(true)}
+                    onOpenMoodboard={() => router.push(`/project/${projectId}/moodboard?episode_id=${activeEpisodeId || 'main'}`)}
+                    onOpenSettings={() => setIsSettingsOpen(true)}
+                    onSelectEpisode={(newEpId) => {
+                        setActiveEpisodeId(newEpId);
+                        setNodePositions({});
+                        fetchAssets();
+                    }}
+                />
+            )}
 
             {/* ── MAIN CANVAS ── */}
             <div id="tour-preprod-canvas" className="relative flex-1 overflow-hidden" style={{ maxHeight: '100%' }}>
 
 
-                {(!hasScript || (project?.script_status === "ready" && !isDraftApproved)) ? (
+                {(!hasScript || (project?.script_status === "ready" && !isDraftApproved)) && !isQuickstart ? (
                     <div className="absolute inset-0 flex items-center justify-center">
                         <ScriptSection
                             project={project}
@@ -923,7 +992,7 @@ export default function PreProductionCanvas() {
                         />
                     </div>
                 ) : (
-                    project?.script_status === "extracting"
+                    (project?.script_status === "extracting" || (isQuickstart && characters.length === 0 && scenes.length === 0))
                     && characters.length === 0
                     && scenes.length === 0
                 ) ? (
