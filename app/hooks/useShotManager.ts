@@ -89,8 +89,18 @@ export const useShotManager = (
     //   - ai_logs: real-time terminal log updates from the worker
     //   - auto_direct_status: transitions (processing → complete | failed)
     //   - Page refresh resilience: picks up current status on mount
+    //
+    // CRITICAL: We reset isAutoDirecting + terminalLog at the TOP of this
+    // effect so that switching scenes immediately clears stale state from
+    // the previous scene before the new listener's first snapshot arrives.
     useEffect(() => {
         if (!projectId || !episodeId || !activeSceneId) return;
+
+        // Flush stale state from the previous scene immediately.
+        // The first snapshot callback below will set the correct state
+        // for the newly-active scene.
+        setIsAutoDirecting(false);
+        setTerminalLog([]);
 
         const sceneDocRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", activeSceneId);
 
@@ -101,6 +111,8 @@ export const useShotManager = (
             // --- AI Terminal Logs ---
             if (data?.ai_logs && Array.isArray(data.ai_logs)) {
                 setTerminalLog(data.ai_logs);
+            } else {
+                setTerminalLog([]);
             }
 
             // --- Auto-Direct Status (authoritative source of truth) ---
@@ -110,9 +122,7 @@ export const useShotManager = (
                 // Worker is running — ensure loading UI is shown
                 // (covers page refresh during processing)
                 setIsAutoDirecting(true);
-            }
-
-            if (status === "complete") {
+            } else if (status === "complete") {
                 setIsAutoDirecting(false);
 
                 // Toast once per completion — keyed by sceneId to avoid
@@ -123,9 +133,7 @@ export const useShotManager = (
                     const shotCount = data.auto_direct_shot_count || 0;
                     toastSuccess(`${shotCount} shots generated successfully.`);
                 }
-            }
-
-            if (status === "failed") {
+            } else if (status === "failed") {
                 setIsAutoDirecting(false);
 
                 const toastKey = `${activeSceneId}_failed`;
@@ -133,6 +141,9 @@ export const useShotManager = (
                     autoDirectCompleteToasted.current = toastKey;
                     toastError("Shot generation failed. Your credits have been refunded.");
                 }
+            } else {
+                // No status or unknown status (idle scene) — ensure loader is off
+                setIsAutoDirecting(false);
             }
         });
 
