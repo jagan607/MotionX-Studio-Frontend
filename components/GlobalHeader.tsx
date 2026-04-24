@@ -244,8 +244,8 @@ export default function GlobalHeader() {
                     <Link href="/project/new" className={`hidden md:block ${isOnNewProject ? 'pointer-events-none' : ''}`}>
                         <button
                             disabled={isOnNewProject}
-                            className={`flex items-center gap-2 bg-[#1A1A1A] border border-[#222] text-[10px] sm:text-xs font-bold tracking-[2px] text-white px-3 sm:px-5 lg:px-6 py-2 sm:py-2.5 uppercase transition-colors rounded-md
-                                ${isOnNewProject ? 'opacity-30 cursor-not-allowed' : 'hover:bg-[#222] cursor-pointer'}`}
+                            className={`flex items-center gap-2 bg-[#E50914] border border-[#E50914] text-[10px] sm:text-xs font-bold tracking-[2px] text-white px-3 sm:px-5 lg:px-6 py-2 sm:py-2.5 uppercase transition-all rounded-md
+                                ${isOnNewProject ? 'opacity-30 cursor-not-allowed' : 'hover:bg-[#ff1a25] hover:shadow-[0_0_20px_rgba(229,9,20,0.3)] cursor-pointer'}`}
                         >
                             <Plus className="w-3 h-3" strokeWidth={3} /> New Project
                         </button>

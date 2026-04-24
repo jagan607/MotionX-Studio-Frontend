@@ -5,7 +5,7 @@ import { doc, onSnapshot, getDoc, collection, query, where, orderBy, limit, getD
 import { db, auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Plus, Film, Trash2, ArrowRight, Share2, Globe, Users as UsersIcon, Lock, Eye, Rocket, ChevronLeft, ChevronRight, Maximize, Crosshair, FolderOpen, Zap, Copy } from "lucide-react";
+import { Loader2, Plus, Film, Trash2, ArrowRight, Share2, Globe, Users as UsersIcon, Lock, Eye, Rocket, ChevronLeft, ChevronRight, Maximize, Crosshair, Copy } from "lucide-react";
 import ShareProjectModal from "@/components/ShareProjectModal";
 import { DashboardProject, TemplateProject, invalidateDashboardCache, fetchUserProjectsBasic, enrichProjectPreview, fetchTemplateProjects, cloneProject } from "@/lib/api";
 import { toast } from "react-hot-toast";
@@ -120,10 +120,10 @@ export default function Dashboard() {
 
     return (
         <main className="fixed inset-0 bg-[#030303] text-white font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#E50914] selection:text-white">
-            <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-                {/* ═══ LEFT: MONITOR + PROJECTS + TEMPLATES ═══ */}
-                <div className="flex-1 lg:flex-[3] flex flex-col min-w-0 p-3 sm:p-4 lg:p-5 gap-3 overflow-y-auto no-scrollbar">
+                {/* ═══ MAIN CONTENT ═══ */}
+                <div className="flex-1 flex flex-col min-w-0 p-3 sm:p-4 lg:p-5 gap-3 overflow-y-auto no-scrollbar">
 
                     {/* Monitor — cinematic preview (compact) */}
                     <div id="tour-monitor" className="relative bg-black border border-white/[0.06] rounded-xl group overflow-hidden h-[45vh] min-h-[260px] shrink-0 transition-colors hover:border-white/[0.1]">
@@ -426,88 +426,6 @@ export default function Dashboard() {
                             </div>
                         );
                     })()}
-                </div>
-
-                {/* ═══ RIGHT: ACTIONS + TEMPLATES ═══ */}
-                <div className="hidden lg:flex w-[340px] border-l border-white/[0.04] flex-col shrink-0 h-full overflow-hidden">
-                    <div className="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col gap-5">
-
-                        {/* Quick actions */}
-                        <div id="tour-hero-actions">
-                            <span className="text-[9px] font-mono text-white/40 uppercase tracking-[3px] mb-3 block font-bold">Quick Actions</span>
-                            <div className="grid grid-cols-1 gap-2">
-                                {/* New Project — highlighted */}
-                                <Link href="/project/new" className="no-underline group">
-                                    <div className="flex items-center gap-3 px-3 py-3 rounded-xl border border-[#E50914]/30 bg-[#E50914]/[0.08] hover:bg-[#E50914]/[0.15] hover:border-[#E50914]/50 transition-all cursor-pointer">
-                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform bg-[#E50914] border border-[#E50914]">
-                                            <Plus size={14} className="text-white" />
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <span className="text-[11px] font-bold text-white group-hover:text-white transition-colors block">New Project</span>
-                                            <span className="text-[8px] text-white/40 uppercase tracking-wider">Film · Series · Ad</span>
-                                        </div>
-                                        <ArrowRight size={10} className="text-[#E50914]/50 group-hover:text-[#E50914] transition-all shrink-0" />
-                                    </div>
-                                </Link>
-                                {[
-                                    { href: "/playground", icon: Rocket, label: "Playground", sub: "Generate AI images & videos" },
-                                    { href: "/explore", icon: Eye, label: "Explore Gallery", sub: "Community creations" },
-                                ].map(a => (
-                                    <Link key={a.href} href={a.href} className="no-underline group">
-                                        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/[0.04] bg-white/[0.015] hover:border-white/[0.1] hover:bg-white/[0.03] transition-all cursor-pointer">
-                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform bg-white/[0.04] border border-white/[0.06]">
-                                                <a.icon size={14} className="text-white/40 group-hover:text-white/70" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <span className="text-[11px] font-bold text-white/80 group-hover:text-white transition-colors block">{a.label}</span>
-                                                <span className="text-[8px] text-white/30 uppercase tracking-wider">{a.sub}</span>
-                                            </div>
-                                            <ArrowRight size={10} className="text-white/0 group-hover:text-white/25 transition-all shrink-0" />
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-
-
-                        {/* Stats */}
-                        <div className="h-px bg-white/[0.04]" />
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04] flex-1">
-                                <FolderOpen size={11} className="text-white/30" />
-                                <span className="text-[12px] font-bold text-white/70 font-mono">{myProjects.length}</span>
-                                <span className="text-[7px] text-white/30 uppercase tracking-wider">Projects</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04] flex-1">
-                                <Zap size={11} className="text-[#E50914]/50" />
-                                <span className="text-[12px] font-bold text-white/70 font-mono">{credits ?? '—'}</span>
-                                <span className="text-[7px] text-white/30 uppercase tracking-wider">Credits</span>
-                            </div>
-                        </div>
-
-                        {myProjects.length > 0 && (
-                            <button onClick={() => setShowAllProjects(true)}
-                                className="w-full py-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] text-[9px] font-bold text-white/50 uppercase tracking-[2px] hover:text-white hover:border-white/[0.15] transition-all cursor-pointer">
-                                View All Projects ({myProjects.length})
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {/* Mobile quick actions (below film strip) */}
-                <div className="lg:hidden shrink-0 px-3 pb-3 flex gap-2">
-                    {[
-                        { href: "/project/new", icon: Plus, label: "New", color: "#E50914" },
-                        { href: "/playground", icon: Rocket, label: "Play", color: "#D4A843" },
-                        { href: "/explore", icon: Eye, label: "Explore", color: "#3B82F6" },
-                    ].map(a => (
-                        <Link key={a.href} href={a.href} className="no-underline flex-1">
-                            <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.1] transition-all">
-                                <a.icon size={12} style={{ color: a.color }} />
-                                <span className="text-[8px] font-bold text-white/40 uppercase tracking-wider">{a.label}</span>
-                            </div>
-                        </Link>
-                    ))}
                 </div>
             </div>
 
