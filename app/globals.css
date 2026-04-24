@@ -153,6 +153,19 @@ button {
   color: #fff;
 }
 
+/* Prompt overlay textarea: keep selected text invisible so the backdrop
+   highlight layer remains the only visible text.  Without this, the
+   browser's ::selection forces color:#fff on the transparent textarea,
+   creating a visible "ghost" duplicate during drag-select. */
+textarea[style*="color: transparent"]::selection {
+  color: transparent !important;
+  background: rgba(255, 255, 255, 0.15);
+}
+textarea[style*="color: transparent"]::-moz-selection {
+  color: transparent !important;
+  background: rgba(255, 255, 255, 0.15);
+}
+
 /* Hidden scrollbar utility */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

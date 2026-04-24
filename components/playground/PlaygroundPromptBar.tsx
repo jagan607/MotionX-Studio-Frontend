@@ -394,26 +394,32 @@ export default function PlaygroundPromptBar() {
 
     // --- Auto-resize textarea + sync backdrop ---
     const backdropRef = useRef<HTMLDivElement | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
 
     const autoResize = useCallback(() => {
         const el = textareaRef.current;
         if (!el) return;
 
-        // Save and restore scroll / selection so the resize can't
-        // displace the caret or cause visible content jumps.
         const savedScrollTop = el.scrollTop;
 
-        // Reset to auto so scrollHeight reports the true content height
-        // (setting to '0' mid-edit can reflow the caret to a wrong line).
+        // Temporarily set to auto so scrollHeight reports true content height.
         el.style.height = 'auto';
-        const next = Math.min(el.scrollHeight, 120);
+        const contentH = el.scrollHeight;
+        const next = Math.min(contentH, 120);
         el.style.height = next + 'px';
 
         el.scrollTop = savedScrollTop;
 
-        // Pin backdrop height to match
+        // Mirror height on the backdrop so it has the same scrollable area.
         const bd = backdropRef.current;
-        if (bd) bd.style.height = next + 'px';
+        if (bd) {
+            bd.style.height = next + 'px';
+            bd.scrollTop = el.scrollTop;
+        }
+
+        // Set the container height so it wraps both layers correctly.
+        const ct = containerRef.current;
+        if (ct) ct.style.height = next + 'px';
     }, []);
 
     // --- Watch pendingPrompt from context (one-shot reuse) ---
@@ -440,7 +446,9 @@ export default function PlaygroundPromptBar() {
         }
     }, [pendingVideoSettings, setPendingVideoSettings]);
 
-    // Sync scroll between textarea and backdrop
+    // Sync scroll: textarea is the scroll-master, backdrop mirrors it.
+    // The backdrop has overflow:hidden so setting scrollTop still works
+    // (hidden overflow IS scrollable via JS, unlike a div with no overflow).
     const handleScroll = useCallback(() => {
         if (textareaRef.current && backdropRef.current) {
             backdropRef.current.scrollTop = textareaRef.current.scrollTop;
@@ -675,39 +683,88 @@ export default function PlaygroundPromptBar() {
                                     {isEnhancing ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
                                 </button>
 
-                                {/* Grid stack: backdrop + textarea share the same cell */}
-                                <div className="flex-1 grid min-w-0 max-h-[120px] overflow-y-auto no-scrollbar" style={{ gridTemplateColumns: '1fr' }}>
-                                    {/* Backdrop: highlighted text layer behind the textarea */}
+                                {/* ── OVERLAY SYNC PATTERN ──
+                                    Container: position:relative, sized by autoResize.
+                                    Backdrop (z-1): position:absolute, overflow:hidden, scrollTop synced.
+                                    Textarea (z-2): position:relative, owns the scroll + caret.
+                                    BOTH layers share identical inline styles for font, padding,
+                                    border, box-sizing, white-space, word-break so text wraps
+                                    at exactly the same pixel positions. */}
+                                <div
+                                    ref={containerRef}
+                                    className="flex-1 min-w-0"
+                                    style={{ position: 'relative', minHeight: 24, maxHeight: 120 }}
+                                >
+                                    {/* Backdrop: highlighted text behind the textarea */}
                                     <div
                                         ref={backdropRef}
                                         aria-hidden="true"
-                                        className="pointer-events-none whitespace-pre-wrap break-words font-sans text-[13px] leading-relaxed min-h-[24px]"
+                                        className="pointer-events-none no-scrollbar"
                                         style={{
-                                            gridArea: '1 / 1',
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            bottom: 0,
+                                            zIndex: 1,
+                                            overflow: 'hidden',
+                                            // ── Typography (must be identical to textarea) ──
+                                            fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+                                            fontSize: '13px',
+                                            lineHeight: '1.625',
+                                            whiteSpace: 'pre-wrap',
                                             wordWrap: 'break-word',
                                             overflowWrap: 'break-word',
+                                            wordBreak: 'break-word',
+                                            // ── Box-model (must be identical to textarea) ──
+                                            boxSizing: 'border-box',
+                                            padding: 0,
+                                            margin: 0,
+                                            border: 'none',
                                         }}
                                     >
                                         {renderHighlightedText(prompt)}
                                     </div>
 
+                                    {/* Textarea: the actual editable layer on top */}
                                     <textarea
                                         ref={textareaRef}
                                         defaultValue=""
                                         onChange={(e) => {
                                             handlePromptChange(e);
-                                            // Defer resize to next frame so the browser
-                                            // finishes processing the keystroke first —
-                                            // running it synchronously can misplace the
-                                            // caret during backspace / delete.
                                             requestAnimationFrame(autoResize);
                                         }}
                                         onKeyDown={handleKeyDown}
                                         onBlur={() => mentionRef.current.handleBlur()}
                                         onScroll={handleScroll}
                                         placeholder="Describe your scene… Use @ to tag characters, locations, and products"
-                                        className="w-full text-[13px] placeholder:text-[#444] outline-none font-sans resize-none leading-relaxed min-h-[24px]"
-                                        style={{ gridArea: '1 / 1', background: 'transparent', color: 'transparent', caretColor: '#E50914' }}
+                                        className="placeholder:text-[#444] outline-none no-scrollbar"
+                                        style={{
+                                            position: 'relative',
+                                            zIndex: 2,
+                                            display: 'block',
+                                            width: '100%',
+                                            minHeight: 24,
+                                            maxHeight: 120,
+                                            overflowY: 'auto',
+                                            resize: 'none',
+                                            background: 'transparent',
+                                            color: 'transparent',
+                                            caretColor: '#E50914',
+                                            // ── Typography (must be identical to backdrop) ──
+                                            fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+                                            fontSize: '13px',
+                                            lineHeight: '1.625',
+                                            whiteSpace: 'pre-wrap',
+                                            wordWrap: 'break-word',
+                                            overflowWrap: 'break-word',
+                                            wordBreak: 'break-word',
+                                            // ── Box-model (must be identical to backdrop) ──
+                                            boxSizing: 'border-box',
+                                            padding: 0,
+                                            margin: 0,
+                                            border: 'none',
+                                        }}
                                         rows={1}
                                         disabled={isGenerating || isEnhancing}
                                     />
