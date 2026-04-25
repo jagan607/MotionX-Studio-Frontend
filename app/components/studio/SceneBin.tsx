@@ -23,7 +23,7 @@ interface SceneBinProps {
         characters: Asset[];
         locations: Asset[];
     };
-    projectType?: 'movie' | 'ad' | 'music_video';
+    projectType?: 'movie' | 'ad' | 'music_video' | 'trailer';
     onOpenStoryboard: (scene: SceneData) => void;
     onReorder: (newScenes: SceneData[]) => void;
     onEditScene: (scene: SceneData) => void;
