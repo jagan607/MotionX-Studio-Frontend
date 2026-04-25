@@ -7,8 +7,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
 import { ArrowRight, MessageSquare, CheckCircle2, ChevronDown, Film, Image as ImageIcon, Mic, Sparkles } from "lucide-react";
-import { auth, db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
+import { api } from "@/lib/api";
 
 // --- PRICING CONFIGURATION ---
 const PRICING_MAP = {
@@ -16,6 +16,15 @@ const PRICING_MAP = {
     starter: { USD: "$20", INR: "₹1,832" },
     pro: { USD: "$40", INR: "₹3,663" },
     agency: { USD: "$80", INR: "₹7,325" }
+};
+
+const PLAN_WEIGHT: Record<string, number> = { free: 0, starter: 1, pro: 2, agency: 3 };
+
+const getPlanAction = (cardPlan: string, currentPlan: string): "current" | "upgrade" | "downgrade" => {
+    const cardW = PLAN_WEIGHT[cardPlan] ?? 0;
+    const currentW = PLAN_WEIGHT[currentPlan] ?? 0;
+    if (cardW === currentW) return "current";
+    return cardW > currentW ? "upgrade" : "downgrade";
 };
 
 // --- FAQ DATA ---
@@ -58,10 +67,9 @@ export default function PricingPage() {
         const fetchUserPlan = async () => {
             if (!auth.currentUser) return;
             try {
-                const userRef = doc(db, "users", auth.currentUser.uid);
-                const snap = await getDoc(userRef);
-                if (snap.exists() && snap.data().plan) {
-                    setCurrentPlan(snap.data().plan);
+                const res = await api.get("/api/v1/payment/subscription-status");
+                if (res.data?.plan) {
+                    setCurrentPlan(res.data.plan);
                 }
             } catch (error) {
                 console.error("Failed to fetch user plan", error);
@@ -74,14 +82,19 @@ export default function PricingPage() {
         return () => unsubscribe();
     }, []);
 
-    const terminalToast = (message: string, type: "success" | "error") => {
+    const terminalToast = (message: string, type: "success" | "error" | "info") => {
+        const config = {
+            success: { icon: "✓", color: "#00FF00", border: "rgba(0,255,0,0.2)" },
+            error:   { icon: "✕", color: "#E50914", border: "rgba(229,9,20,0.3)" },
+            info:    { icon: "ℹ", color: "#F59E0B", border: "rgba(245,158,11,0.25)" },
+        }[type];
         toast(message, {
-            icon: type === "success" ? "✓" : "✕",
+            icon: config.icon,
             style: {
                 borderRadius: "8px",
                 background: "#0A0A0A",
-                color: type === "success" ? "#00FF00" : "#E50914",
-                border: `1px solid ${type === "success" ? "rgba(0,255,0,0.2)" : "rgba(229,9,20,0.3)"}`,
+                color: config.color,
+                border: `1px solid ${config.border}`,
                 fontFamily: "Inter, sans-serif",
                 fontSize: "12px",
             },
@@ -108,15 +121,26 @@ export default function PricingPage() {
         subscribe({
             planType: plan,
             currency: currency,
-            onSuccess: () => {
+            onSuccess: (data: any) => {
                 setLoading(null);
-                setCurrentPlan(plan);
-                terminalToast(`SYSTEM UPDATE: ${plan.toUpperCase()} ACTIVATED`, "success");
-                // If user came here from the top-up flow, redirect back and open top-up modal
-                const destination = fromTopUp
-                    ? "/dashboard?openTopUp=true"
-                    : "/dashboard";
-                setTimeout(() => router.push(destination), 1500);
+
+                if (data?.status === "downgraded") {
+                    terminalToast("Your plan will change at the end of your current billing cycle.", "info");
+                } else if (data?.status === "already_active") {
+                    terminalToast("You are already on this plan.", "info");
+                } else {
+                    // "upgraded" or new subscription via Razorpay checkout
+                    setCurrentPlan(plan);
+                    terminalToast(`SYSTEM UPDATE: ${plan.toUpperCase()} ACTIVATED`, "success");
+                }
+
+                // Redirect after a short delay (skip for already_active)
+                if (data?.status !== "already_active") {
+                    const destination = fromTopUp
+                        ? "/dashboard?openTopUp=true"
+                        : "/dashboard";
+                    setTimeout(() => router.push(destination), 1500);
+                }
             },
             onError: (err: any) => {
                 console.error("Subscription Failed:", err);
@@ -175,8 +199,7 @@ export default function PricingPage() {
                         notIncluded={["Recurring Credits", "Commercial License", "4K Upscaling", "Private Mode"]}
                         isLoading={false}
                         onClick={() => handleSubscribe("free")}
-                        isActive={currentPlan === "free"} // <--- PASSING ACTIVE STATE
-                        buttonText="DOWNGRADE"
+                        planAction={getPlanAction("free", currentPlan)}
                     />
 
                     <PricingCard
@@ -188,8 +211,7 @@ export default function PricingPage() {
                         notIncluded={["Commercial License", "4K Upscaling", "Private Mode"]}
                         isLoading={loading === "starter"}
                         onClick={() => handleSubscribe("starter")}
-                        isActive={currentPlan === "starter"} // <--- PASSING ACTIVE STATE
-                        buttonText="UPGRADE"
+                        planAction={getPlanAction("starter", currentPlan)}
                     />
 
                     <PricingCard
@@ -197,12 +219,11 @@ export default function PricingPage() {
                         price={PRICING_MAP.pro[currency]}
                         description="Studio Standard"
                         credits="100 CREDITS / MO"
-                        isPopular={true}
+                        isPopular={currentPlan === "free"}
                         features={["100 Images OR 34 Videos", "20 GB Cloud Storage", "5 Active Projects", "High Priority Queue", "Private Mode Enabled", "Commercial License", "4K Upscaling Matrix"]}
                         isLoading={loading === "pro"}
                         onClick={() => handleSubscribe("pro")}
-                        isActive={currentPlan === "pro"} // <--- PASSING ACTIVE STATE
-                        buttonText="UPGRADE"
+                        planAction={getPlanAction("pro", currentPlan)}
                     />
 
                     <PricingCard
@@ -213,8 +234,7 @@ export default function PricingPage() {
                         features={["200 Images OR 67 Videos", "40 GB Cloud Storage", "9 Active Projects", "Turbo Priority Queue", "Private Mode Enabled", "Commercial License", "4K Native Resolution"]}
                         isLoading={loading === "agency"}
                         onClick={() => handleSubscribe("agency")}
-                        isActive={currentPlan === "agency"} // <--- PASSING ACTIVE STATE
-                        buttonText="UPGRADE"
+                        planAction={getPlanAction("agency", currentPlan)}
                     />
                 </div>
 

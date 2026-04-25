@@ -2,6 +2,8 @@
 
 import { Check, X, Loader2 } from "lucide-react";
 
+type PlanAction = "upgrade" | "downgrade" | "current";
+
 interface PricingCardProps {
     title: string;
     price: string;
@@ -12,9 +14,14 @@ interface PricingCardProps {
     isPopular?: boolean;
     isLoading?: boolean;
     onClick: () => void;
-    buttonText?: string;
-    isActive?: boolean; // <--- NEW PROP
+    planAction: PlanAction;
 }
+
+const ACTION_CONFIG = {
+    current:   { label: "CURRENT PLAN", badge: "CURRENT PLAN" },
+    upgrade:   { label: "UPGRADE",      badge: null },
+    downgrade: { label: "DOWNGRADE",    badge: null },
+} as const;
 
 export default function PricingCard({
     title,
@@ -26,9 +33,10 @@ export default function PricingCard({
     isPopular = false,
     isLoading = false,
     onClick,
-    buttonText = "SUBSCRIBE",
-    isActive = false // <--- NEW DEFAULT
+    planAction,
 }: PricingCardProps) {
+    const isActive = planAction === "current";
+    const isDowngrade = planAction === "downgrade";
     return (
         <div
             className={`
@@ -86,25 +94,25 @@ export default function PricingCard({
 
             <button
                 onClick={onClick}
-                disabled={isLoading || isActive} // Disable if loading OR active
+                disabled={isLoading || isActive}
                 className={`
                     w-full py-3 text-[10px] font-bold tracking-[3px] uppercase transition-all rounded-md
                     flex items-center justify-center gap-2
                     ${isActive
                         ? 'bg-[#111] text-[#00FF41] border border-[#00FF41]/30 cursor-default opacity-100'
-                        : isPopular
-                            ? 'bg-[#E50914] text-white border border-[#E50914] hover:bg-[#B91C1C]'
-                            : 'bg-transparent text-[#EDEDED] border border-[#333] hover:border-[#EDEDED] hover:bg-[#EDEDED] hover:text-black'
+                        : isDowngrade
+                            ? 'bg-transparent text-[#888] border border-[#333] hover:border-[#666] hover:text-[#CCC]'
+                            : isPopular
+                                ? 'bg-[#E50914] text-white border border-[#E50914] hover:bg-[#B91C1C]'
+                                : 'bg-transparent text-[#EDEDED] border border-[#333] hover:border-[#EDEDED] hover:bg-[#EDEDED] hover:text-black'
                     }
                     ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
             >
                 {isLoading ? (
                     <Loader2 size={14} className="animate-spin" />
-                ) : isActive ? (
-                    "CURRENT PLAN"
                 ) : (
-                    buttonText
+                    ACTION_CONFIG[planAction].label
                 )}
             </button>
         </div>

@@ -23,6 +23,11 @@ export const getUserCurrency = (): "USD" | "INR" => {
     return "USD"; // Default for everyone else
 };
 
+// Helper to extract the real backend error message from Axios
+const extractError = (error: any): string => {
+    return error.response?.data?.detail || error.message || "An unexpected error occurred";
+};
+
 export const usePayment = () => {
     const [loading, setLoading] = useState(false);
 
@@ -39,8 +44,6 @@ export const usePayment = () => {
         const activeCurrency = currency || getUserCurrency();
 
         try {
-            const token = await auth.currentUser?.getIdToken();
-
             const formData = new FormData();
             formData.append("plan_type", planType);
             formData.append("currency", activeCurrency);
@@ -48,22 +51,37 @@ export const usePayment = () => {
             const res = await api.post("/api/v1/payment/create-subscription", formData);
             const data = res.data;
 
+            // ── Upgrade / Downgrade / Already Active: no checkout needed ──
+            if (data.status === "upgraded" || data.status === "downgraded" || data.status === "already_active") {
+                setLoading(false);
+                if (onSuccess) onSuccess(data);
+                return;
+            }
+
+            // ── New subscription: open Razorpay Checkout ──
             const options = {
                 key: data.key_id,
                 subscription_id: data.subscription_id,
                 name: "Motion X Studio",
                 description: `${planType.toUpperCase()} Subscription`,
+                // Adding prefill here ensures the user doesn't have to re-type their email!
+                prefill: {
+                    email: auth.currentUser?.email || "", 
+                    name: auth.currentUser?.displayName || "",
+                },
                 handler: async (response: any) => {
-                    const verifyRes = await api.post("/api/v1/payment/verify-subscription", {
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_subscription_id: response.razorpay_subscription_id,
-                        razorpay_signature: response.razorpay_signature,
-                        plan_type: planType
-                    });
+                    try {
+                        const verifyRes = await api.post("/api/v1/payment/verify-subscription", {
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_subscription_id: response.razorpay_subscription_id,
+                            razorpay_signature: response.razorpay_signature,
+                            plan_type: planType
+                        });
 
-                    if (verifyRes.status === 200) {
-                        if (onSuccess) onSuccess();
-                    } else {
+                        if (verifyRes.status === 200) {
+                            if (onSuccess) onSuccess();
+                        }
+                    } catch (verifyErr) {
                         if (onError) onError("Verification Failed");
                     }
                 },
@@ -71,7 +89,7 @@ export const usePayment = () => {
                 modal: {
                     ondismiss: () => {
                         setLoading(false);
-                        if (onError) onError("Cancelled");
+                        if (onError) onError("Payment cancelled");
                     }
                 }
             };
@@ -85,7 +103,7 @@ export const usePayment = () => {
 
         } catch (error: any) {
             setLoading(false);
-            if (onError) onError(error.message);
+            if (onError) onError(extractError(error));
         }
     }, []);
 
@@ -103,8 +121,6 @@ export const usePayment = () => {
         const activeCurrency = currency || getUserCurrency();
 
         try {
-            const token = await auth.currentUser?.getIdToken();
-
             const formData = new FormData();
             formData.append("package_id", packageId);
             formData.append("currency", activeCurrency);
@@ -119,6 +135,10 @@ export const usePayment = () => {
                 name: "Motion X Studio",
                 description: data.description,
                 order_id: data.order_id,
+                prefill: {
+                    email: data.user_email || auth.currentUser?.email || "",
+                    name: data.user_name || auth.currentUser?.displayName || "",
+                },
                 handler: async (response: any) => {
                     try {
                         await api.post("/api/v1/payment/verify-payment", {
@@ -137,7 +157,7 @@ export const usePayment = () => {
                 modal: {
                     ondismiss: () => {
                         setLoading(false);
-                        if (onError) onError("Cancelled");
+                        if (onError) onError("Payment cancelled");
                     }
                 }
             };
@@ -151,22 +171,19 @@ export const usePayment = () => {
 
         } catch (error: any) {
             setLoading(false);
-            if (onError) onError(error.message);
+            if (onError) onError(extractError(error));
         }
     }, []);
 
-    // --- 3. CANCEL SUBSCRIPTION (NEW) ---
+    // --- 3. CANCEL SUBSCRIPTION ---
     const cancelSubscription = useCallback(async ({ onSuccess, onError }: any) => {
         setLoading(true);
         try {
-            const token = await auth.currentUser?.getIdToken();
-            const res = await api.post("/api/v1/payment/cancel-subscription");
-            const data = res.data;
-
+            await api.post("/api/v1/payment/cancel-subscription");
             if (onSuccess) onSuccess();
 
         } catch (error: any) {
-            if (onError) onError(error.message);
+            if (onError) onError(extractError(error));
         } finally {
             setLoading(false);
         }
