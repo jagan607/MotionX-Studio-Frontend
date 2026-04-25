@@ -21,7 +21,7 @@ const PRICING_MAP = {
 // --- FAQ DATA ---
 const FAQ_ITEMS = [
     { q: "Can I cancel anytime?", a: "Yes, cancel anytime from your profile. Your credits remain active until the end of your billing period." },
-    { q: "Do credits roll over?", a: "Yes — unused credits from your subscription roll over to the next month as long as your subscription is active." },
+    { q: "Do credits roll over?", a: "No, monthly subscription credits do not roll over. Your credit balance resets to your plan's allotted amount at the beginning of each billing cycle. (However, any separate 'Top-Up' credits you purchase will remain in your account until used)." },
     { q: "What happens when I run out of credits?", a: "You can buy additional credit packs anytime from the Top Up button. Your projects and content remain accessible — only generation requires credits." },
     { q: "Can I use the content commercially?", a: "Commercial license is included with Pro and Agency plans. Free and Starter plan content is for personal use only." },
     { q: "What's the difference between Standard and Turbo queue?", a: "Standard queue processes in order. Pro gets High Priority (faster starts), and Agency gets Turbo Priority (dedicated capacity, 2-3x faster)." },
