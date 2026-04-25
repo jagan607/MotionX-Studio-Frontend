@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-type ProjectType = "movie" | "micro_drama" | "adaptation" | "ad";
+type ProjectType = "movie" | "micro_drama" | "adaptation" | "ad" | "trailer";
 type Phase = "prompt" | "processing" | "complete";
 
 const AMBIENT_VIDEO = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
@@ -26,6 +26,7 @@ const FORMAT_CARDS = [
     { icon: Film, text: 'Feature Film', key: 'film', seed: 'A feature film about ', subtitle: 'Full cinematic narrative', accent: '#E50914' },
     { icon: Tv, text: 'Series', key: 'series', seed: 'A micro drama series about ', subtitle: 'Episodic storytelling', accent: '#3B82F6' },
     { icon: Megaphone, text: 'Commercial', key: 'ad', seed: 'A commercial for ', subtitle: 'Brand films & ads', accent: '#D4A843' },
+    { icon: Clapperboard, text: 'Trailer', key: 'trailer', seed: 'A trailer for ', subtitle: 'Cinematic trailers & teasers', accent: '#9333EA' },
 ];
 
 const PLACEHOLDERS = [
@@ -35,6 +36,7 @@ const PLACEHOLDERS = [
     "A micro drama series about rival food truck owners who secretly fall for each other...",
     "A sci-fi epic where humanity discovers an ancient alien library buried beneath the Sahara...",
     "A horror short — an AI home assistant starts making decisions its owners never asked for...",
+    "An intense trailer for a psychological thriller — quick cuts of empty corridors, a detective's obsession, and a truth that changes everything...",
 ];
 
 /* ═══════════════════════════════════════════════════════════
@@ -526,7 +528,7 @@ export default function NewProjectPage() {
         if (!vision.trim() || isExpanding) return;
         setIsExpanding(true);
         try {
-            const FORMAT_MAP: Record<string, string> = { film: "movie", series: "micro_drama", ad: "ad" };
+            const FORMAT_MAP: Record<string, string> = { film: "movie", series: "micro_drama", ad: "ad", trailer: "trailer" };
             const res = await api.post("/api/v1/script/expand-synopsis", {
                 synopsis: vision.trim(),
                 project_type: FORMAT_MAP[selectedFormat] || "movie",
@@ -566,7 +568,7 @@ export default function NewProjectPage() {
         setIsTransitioning(false);
 
         try {
-            const FORMAT_MAP: Record<string, ProjectType> = { film: "movie", series: "micro_drama", ad: "ad" };
+            const FORMAT_MAP: Record<string, ProjectType> = { film: "movie", series: "micro_drama", ad: "ad", trailer: "trailer" };
             const type = FORMAT_MAP[selectedFormat] || "movie";
             const cleanFilename = (name: string) => name.replace('.pdf', '').replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
             const projectTitle = title.trim() || (vision ? vision.split(/[.\n]/)[0].slice(0, 60).trim() : (scriptFile ? cleanFilename(scriptFile.name) : "Untitled Project"));
@@ -683,7 +685,9 @@ export default function NewProjectPage() {
                             ? 'radial-gradient(ellipse at 40% 40%, rgba(229,9,20,0.06) 0%, transparent 60%)'
                             : selectedFormat === 'series'
                                 ? 'radial-gradient(ellipse at 40% 40%, rgba(59,130,246,0.05) 0%, transparent 60%)'
-                                : 'radial-gradient(ellipse at 40% 40%, rgba(212,168,67,0.05) 0%, transparent 60%)',
+                                : selectedFormat === 'trailer'
+                                    ? 'radial-gradient(ellipse at 40% 40%, rgba(147,51,234,0.05) 0%, transparent 60%)'
+                                    : 'radial-gradient(ellipse at 40% 40%, rgba(212,168,67,0.05) 0%, transparent 60%)',
                     }} />
 
                 {/* Static film grain texture (no animation) */}
@@ -899,7 +903,7 @@ export default function NewProjectPage() {
                     <div style={{ display: expandedScript ? 'none' : undefined }}>
                         <div className="mt-6 mb-5 fade-in-2">
                             <p className="text-[9px] font-mono text-white uppercase tracking-[3px] text-center mb-3">Format</p>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-4 gap-3">
                                 {FORMAT_CARDS.map((card, idx) => {
                                     const isActive = selectedFormat === card.key;
                                     return (
@@ -977,7 +981,10 @@ export default function NewProjectPage() {
                             <div className="min-w-0">
                                 <p className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-2 text-center">Duration</p>
                                 <div className="flex items-center gap-1.5">
-                                    {[{ label: '60s', value: 60 }, { label: '2m', value: 120 }, { label: '5m', value: 300 }, { label: '10m', value: 600 }].map((r) => (
+                                    {(selectedFormat === 'trailer'
+                                    ? [{ label: '30s', value: 30 }, { label: '60s', value: 60 }, { label: '90s', value: 90 }, { label: '150s', value: 150 }]
+                                    : [{ label: '60s', value: 60 }, { label: '2m', value: 120 }, { label: '5m', value: 300 }, { label: '10m', value: 600 }]
+                                ).map((r) => (
                                         <button key={r.value} onClick={() => { setRuntime(r.value); setRuntimeUnit('sec'); }}
                                             className={`px-2.5 py-1.5 rounded-lg text-[10px] font-mono tracking-wider transition-all duration-300 cursor-pointer border
                                                 ${runtime === r.value

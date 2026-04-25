@@ -20,7 +20,7 @@ interface DirectorConsoleProps {
     availableCharacters: { id: string; name: string }[];
     availableLocations?: LocationAsset[];
     availableProducts?: { id: string; name: string }[];
-    projectType?: 'movie' | 'ad' | 'music_video';
+    projectType?: 'movie' | 'ad' | 'music_video' | 'trailer';
     selectedContext: ContextReference[];
     isProcessing: boolean;
     layout?: 'narrow' | 'wide';
