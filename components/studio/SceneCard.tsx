@@ -36,7 +36,7 @@ interface SceneCardProps {
         locations: Asset[];
         products?: Asset[];
     };
-    projectType?: 'movie' | 'ad' | 'music_video';
+    projectType?: 'movie' | 'ad' | 'music_video' | 'trailer';
     onOpenStoryboard: (scene: SceneData) => void;
     onEdit: (scene: SceneData) => void;
     onDelete: (sceneId: string) => void;
