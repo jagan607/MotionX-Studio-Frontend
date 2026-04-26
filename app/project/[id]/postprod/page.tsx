@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
 import { collection, query, orderBy, getDocs, onSnapshot, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
@@ -18,12 +19,13 @@ import { TourOverlay } from "@/components/tour/TourOverlay";
 import { POSTPRODUCTION_TOUR_STEPS } from "@/lib/tourConfigs";
 import { useTour } from "@/hooks/useTour";
 
-import Timeline from "@/components/studio/postprod/Timeline";
-import ShotInspector from "@/components/studio/postprod/ShotInspector";
-import TransportControls from "@/components/studio/postprod/TransportControls";
-import VideoEditOverlay from "@/components/studio/postprod/VideoEditOverlay";
-import ExportPanel from "@/components/studio/postprod/ExportPanel";
-import AudioGenerateBar from "@/components/studio/postprod/AudioGenerateBar";
+// Heavy editor panels — dynamically loaded (only when user navigates to postprod)
+const Timeline = dynamic(() => import("@/components/studio/postprod/Timeline"), { ssr: false });
+const ShotInspector = dynamic(() => import("@/components/studio/postprod/ShotInspector"), { ssr: false });
+const TransportControls = dynamic(() => import("@/components/studio/postprod/TransportControls"), { ssr: false });
+const VideoEditOverlay = dynamic(() => import("@/components/studio/postprod/VideoEditOverlay"), { ssr: false });
+const ExportPanel = dynamic(() => import("@/components/studio/postprod/ExportPanel"), { ssr: false });
+const AudioGenerateBar = dynamic(() => import("@/components/studio/postprod/AudioGenerateBar"), { ssr: false });
 
 import {
     TimelineState,

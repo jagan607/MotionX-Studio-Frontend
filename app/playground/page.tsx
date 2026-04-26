@@ -11,17 +11,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { PlaygroundProvider, usePlayground } from "@/app/context/PlaygroundContext";
 import { PricingProvider } from "@/app/hooks/usePricing";
 import { Loader2, PanelLeftOpen, PanelLeftClose, PanelRightOpen, PanelRightClose } from "lucide-react";
-import PlaygroundGenerationGrid from "@/components/playground/PlaygroundGenerationGrid";
-import PlaygroundPromptBar from "@/components/playground/PlaygroundPromptBar";
-import PlaygroundAssetDrawer from "@/components/playground/PlaygroundAssetDrawer";
-import PlaygroundAnimateModal from "@/components/playground/PlaygroundAnimateModal";
-import PlaygroundTemplatePicker from "@/components/playground/PlaygroundTemplatePicker";
 import { TourOverlay } from "@/components/tour/TourOverlay";
 import { PLAYGROUND_TOUR_STEPS } from "@/lib/tourConfigs";
 import { useTour } from "@/hooks/useTour";
+
+// Heavy components — dynamically loaded (only when user reaches /playground)
+const PlaygroundGenerationGrid = dynamic(() => import("@/components/playground/PlaygroundGenerationGrid"), { ssr: false });
+const PlaygroundPromptBar = dynamic(() => import("@/components/playground/PlaygroundPromptBar"), { ssr: false });
+const PlaygroundAssetDrawer = dynamic(() => import("@/components/playground/PlaygroundAssetDrawer"), { ssr: false });
+const PlaygroundAnimateModal = dynamic(() => import("@/components/playground/PlaygroundAnimateModal"), { ssr: false });
+const PlaygroundTemplatePicker = dynamic(() => import("@/components/playground/PlaygroundTemplatePicker"), { ssr: false });
 
 export default function PlaygroundPage() {
     return (

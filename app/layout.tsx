@@ -2,16 +2,25 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import { Inter, Anton, Roboto_Mono } from "next/font/google";
 import { Suspense } from "react";
+import dynamic from "next/dynamic";
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import GlobalHeader from "@/components/GlobalHeader";
 import { Toaster } from "react-hot-toast";
 import Script from "next/script";
 import { MediaViewerProvider } from "@/app/context/MediaViewerContext";
-import GlobalMediaViewer from "@/app/components/media/GlobalMediaViewer";
-import { ActivityTracker } from "@/components/ActivityTracker";
 import { WorkspaceProvider } from "@/app/context/WorkspaceContext";
 import { CreditsProvider } from "@/hooks/useCredits";
+
+// Lazy-loaded: GlobalMediaViewer is a modal (never visible on initial paint)
+const GlobalMediaViewer = dynamic(
+  () => import("@/app/components/media/GlobalMediaViewer")
+);
+
+// Lazy-loaded: ActivityTracker is a side-effect-only component (presence heartbeat)
+const ActivityTracker = dynamic(
+  () => import("@/components/ActivityTracker").then(mod => ({ default: mod.ActivityTracker }))
+);
 
 const inter = Inter({
   subsets: ["latin"],
@@ -116,6 +125,13 @@ export default function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        {/* Resource hints: eliminate DNS+TLS latency for critical origins */}
+        <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://motionx-api-280948415370.asia-south2.run.app" />
+      </head>
       <body className={inter.className} style={{ backgroundColor: '#030303', color: 'white' }} suppressHydrationWarning={true}>
 
         <Script
