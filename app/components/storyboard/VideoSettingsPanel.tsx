@@ -186,8 +186,23 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const showSoundToggle = isKling26 || isSeedance15;
 
     // Seedance 2.0 engine variant: Official vs Preview (faster/cheaper)
-    const [modelVersion, setModelVersion] = useState<'official' | 'preview'>(initialSettings?.model_version || 'official');
+    // Normalize initialSettings value defensively (Firestore may store variant casings)
+    const [modelVersion, setModelVersionRaw] = useState<'official' | 'preview'>(() => {
+        const raw = initialSettings?.model_version;
+        if (typeof raw === 'string' && raw.toLowerCase().includes('preview')) return 'preview';
+        return 'official';
+    });
     const isPreview = isSeedance2 && modelVersion === 'preview';
+
+    // Wrapped setter: synchronously applies Preview constraints to prevent async race
+    const setModelVersion = React.useCallback((version: 'official' | 'preview') => {
+        setModelVersionRaw(version);
+        // Immediately enforce 480p when switching to Preview — don't wait for useEffect
+        if (version === 'preview' && isSeedance2) {
+            setMode('std');
+            setQuality('fast');
+        }
+    }, [isSeedance2]);
 
     // Pricing provider key: routes cost calculations to the correct pricing table
     const pricingProvider = isPreview ? 'seedance-2-preview' : provider;
@@ -416,6 +431,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
     // Seedance 2.0: resolution is dictated by Draft/Final tier
     // Preview models are locked to 480p (non-VIP PiAPI) — force std mode
+    // NOTE: Preview enforcement also handled imperatively in setModelVersion wrapper above.
+    //       This effect is a safety net for mount-time / provider-switch scenarios.
     React.useEffect(() => {
         if (isSeedance2) {
             if (isPreview) {
@@ -427,6 +444,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             }
         }
     }, [isSeedance2, isPreview, quality]);
+
+    // DEBUG: trace isPreview evaluation (remove after confirming fix)
+    React.useEffect(() => {
+        console.log('[VideoSettings] isPreview=%s, modelVersion=%s, provider=%s, isSeedance2=%s', isPreview, modelVersion, provider, isSeedance2);
+    }, [isPreview, modelVersion, provider, isSeedance2]);
 
     // Seedance 1.5: 1080p not supported — force 720p
     React.useEffect(() => {
