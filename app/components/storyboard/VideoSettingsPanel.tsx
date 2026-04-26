@@ -415,11 +415,18 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     }, [isSeedance2]);
 
     // Seedance 2.0: resolution is dictated by Draft/Final tier
+    // Preview models are locked to 480p (non-VIP PiAPI) — force std mode
     React.useEffect(() => {
         if (isSeedance2) {
-            setMode(quality === 'fast' ? 'std' : 'pro');
+            if (isPreview) {
+                // Preview: backend forces 480p regardless — lock UI to Draft/std
+                setMode('std');
+                setQuality('fast');
+            } else {
+                setMode(quality === 'fast' ? 'std' : 'pro');
+            }
         }
-    }, [isSeedance2, quality]);
+    }, [isSeedance2, isPreview, quality]);
 
     // Seedance 1.5: 1080p not supported — force 720p
     React.useEffect(() => {
@@ -816,24 +823,56 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         )}
                     </div>
 
-                    {/* Quality */}
+                    {/* Quality / Resolution */}
                     <div className="flex gap-1 flex-shrink-0">
-                        <button
-                            type="button"
-                            disabled={isSeedance2 && quality === 'pro'}
-                            onClick={() => setMode('std')}
-                            className={`${pill(mode === 'std')} ${isSeedance2 && quality === 'pro' ? 'opacity-30 !cursor-not-allowed' : ''}`}
-                        >
-                            720p
-                        </button>
-                        <button
-                            type="button"
-                            disabled={(isSeedance2 && quality === 'fast') || isSeedance15}
-                            onClick={() => setMode('pro')}
-                            className={`${pill(mode === 'pro')} ${(isSeedance2 && quality === 'fast') || isSeedance15 ? 'opacity-30 !cursor-not-allowed' : ''}`}
-                        >
-                            1080p
-                        </button>
+                        {isPreview ? (
+                            /* Preview: locked 480p badge + disabled HD buttons */
+                            <>
+                                <div
+                                    className={`flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-md text-[10px] font-semibold text-center select-none
+                                        bg-[#E50914]/15 text-white border border-[#E50914]/60`}
+                                    title="Preview models are limited to 480p resolution"
+                                >
+                                    480p
+                                </div>
+                                <button
+                                    type="button"
+                                    disabled
+                                    className={`${pill(false, true)}`}
+                                    title="HD requires the Official model"
+                                >
+                                    720p
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled
+                                    className={`${pill(false, true)}`}
+                                    title="HD requires the Official model"
+                                >
+                                    1080p
+                                </button>
+                            </>
+                        ) : (
+                            /* Official / other providers: normal resolution toggles */
+                            <>
+                                <button
+                                    type="button"
+                                    disabled={isSeedance2 && quality === 'pro'}
+                                    onClick={() => setMode('std')}
+                                    className={`${pill(mode === 'std')} ${isSeedance2 && quality === 'pro' ? 'opacity-30 !cursor-not-allowed' : ''}`}
+                                >
+                                    720p
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={(isSeedance2 && quality === 'fast') || isSeedance15}
+                                    onClick={() => setMode('pro')}
+                                    className={`${pill(mode === 'pro')} ${(isSeedance2 && quality === 'fast') || isSeedance15 ? 'opacity-30 !cursor-not-allowed' : ''}`}
+                                >
+                                    1080p
+                                </button>
+                            </>
+                        )}
                     </div>
             </div>
 
@@ -858,6 +897,16 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             {/* ── Seedance 2.0 / Omni Features ── */}
             {(isSeedance2 || isOmni) && (
                 <div className="space-y-2">
+                    {/* Preview 480p Resolution Warning */}
+                    {isPreview && (
+                        <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.08]">
+                            <Lock size={10} className="text-neutral-500 mt-0.5 flex-shrink-0" />
+                            <span className="text-[9px] text-neutral-400 leading-relaxed">
+                                HD resolutions (720p/1080p) are only available on the <strong className="text-neutral-300">Official</strong> model.
+                            </span>
+                        </div>
+                    )}
+
                     {/* Peak Hours Warning */}
                     {peakStatus?.is_peak && (
                         <div className="flex items-start gap-2 px-2.5 py-2 rounded-md bg-amber-500/10 border border-amber-500/25">
@@ -870,7 +919,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         </div>
                     )}
                     {/* Draft / Final Toggle (Seedance 2.0 only — Omni uses 720p/1080p) */}
-                    {isSeedance2 && <div className="flex gap-1.5">
+                    {/* Preview: hide Draft/Final since both are forced to Draft (480p) */}
+                    {isSeedance2 && !isPreview && <div className="flex gap-1.5">
                         <button type="button" onClick={() => setQuality('fast')}
                             className={`flex-1 px-2 py-2 rounded-md text-center transition-all cursor-pointer select-none border
                                 ${quality === 'fast'
