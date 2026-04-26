@@ -4,13 +4,19 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import dynamic from "next/dynamic";
 
 import { fetchProject, fetchProjectAssets, fetchEpisodes, fetchUserCredits } from "@/lib/api";
 import { Project, Asset } from "@/lib/types";
 import { SceneData } from "@/components/studio/SceneCard";
 import { collection, query, orderBy, getDocs, onSnapshot } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import { SceneStoryboardContainer } from "@/app/components/studio/SceneStoryboardContainer";
+
+// Heavy component — dynamically loaded (pulls in StoryboardOverlay, VideoSettingsPanel, etc.)
+const SceneStoryboardContainer = dynamic(
+  () => import("@/app/components/studio/SceneStoryboardContainer").then(mod => ({ default: mod.SceneStoryboardContainer })),
+  { ssr: false }
+);
 
 // ═══════════════════════════════════════════════════════════
 //    DIRECT STORYBOARD PAGE

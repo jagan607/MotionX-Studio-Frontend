@@ -1,5 +1,4 @@
-/* 1. GOOGLE FONTS IMPORT */
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600&display=swap');
+/* 1. GOOGLE FONTS — loaded via next/font/google in layout.tsx (no CSS @import needed) */
 
 /* 2. TAILWIND V4 IMPORT */
 @import "tailwindcss";

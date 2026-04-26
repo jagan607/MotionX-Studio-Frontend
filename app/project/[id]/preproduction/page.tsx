@@ -12,16 +12,14 @@ import { toastError, toastSuccess } from "@/lib/toast";
 import { v4 as uuidv4 } from 'uuid';
 import { Project, Scene, CharacterProfile, LocationProfile, ProductProfile } from "@/lib/types";
 import { Loader2 } from "lucide-react";
-import { PreProductionHeader } from "./components/PreProductionHeader";
-import { AssetManagerModal } from "@/app/components/studio/AssetManagerModal";
-import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionModal";
-import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
+import dynamic from "next/dynamic";
 import { toast } from "react-hot-toast";
-import { AssetModal } from "@/components/AssetModal";
 import { TourOverlay } from "@/components/tour/TourOverlay";
 import { PREPRODUCTION_TOUR_STEPS } from "@/lib/tourConfigs";
 import { useTour } from "@/hooks/useTour";
 
+// --- CANVAS COMPONENTS (core render — static imports) ---
+import { PreProductionHeader } from "./components/PreProductionHeader";
 import { CanvasEngine, CanvasTransform, CanvasJumpTo } from "./components/CanvasEngine";
 import { CanvasNode, NodePosition, NodeType } from "./components/CanvasNode";
 import { WireLayer } from "./components/ConnectionWire";
@@ -31,12 +29,44 @@ import { CanvasMinimap } from "./components/CanvasMinimap";
 import { SceneNavigator } from "./components/SceneNavigator";
 import { useMediaViewer, MediaItem } from "@/app/context/MediaViewerContext";
 import { ScriptSection } from "./components/ScriptSection";
-
-import { Phase3Skeleton } from "./components/Phase3Skeleton";
-import { DirectorConsole } from "@/app/components/script/DirectorConsole";
-import { ContextSelectorModal, ContextReference } from "@/app/components/script/ContextSelectorModal";
 import { SceneData } from "@/components/studio/SceneCard";
-import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
+
+// --- MODAL/OVERLAY COMPONENTS (hidden by default — dynamically loaded) ---
+const AssetManagerModal = dynamic(
+  () => import("@/app/components/studio/AssetManagerModal").then(mod => ({ default: mod.AssetManagerModal })),
+  { ssr: false }
+);
+const ScriptIngestionModal = dynamic(
+  () => import("@/app/components/studio/ScriptIngestionModal").then(mod => ({ default: mod.ScriptIngestionModal })),
+  { ssr: false }
+);
+const DeleteConfirmModal = dynamic(
+  () => import("@/components/DeleteConfirmModal").then(mod => ({ default: mod.DeleteConfirmModal })),
+  { ssr: false }
+);
+const AssetModal = dynamic(
+  () => import("@/components/AssetModal").then(mod => ({ default: mod.AssetModal })),
+  { ssr: false }
+);
+const Phase3Skeleton = dynamic(
+  () => import("./components/Phase3Skeleton").then(mod => ({ default: mod.Phase3Skeleton })),
+  { ssr: false }
+);
+const DirectorConsole = dynamic(
+  () => import("@/app/components/script/DirectorConsole").then(mod => ({ default: mod.DirectorConsole })),
+  { ssr: false }
+);
+const ContextSelectorModal = dynamic(
+  () => import("@/app/components/script/ContextSelectorModal").then(mod => ({ default: mod.ContextSelectorModal })),
+  { ssr: false }
+);
+const ProjectSettingsModal = dynamic(
+  () => import("@/app/components/studio/ProjectSettingsModal").then(mod => ({ default: mod.ProjectSettingsModal })),
+  { ssr: false }
+);
+
+// Type-only import (zero runtime cost)
+import type { ContextReference } from "@/app/components/script/ContextSelectorModal";
 
 // ─── TYPES ───────────────────────────────────────────────────
 

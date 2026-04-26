@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { v4 as uuidv4 } from 'uuid';
 import { toastError, toastSuccess } from "@/lib/toast";
+import dynamic from "next/dynamic";
 
 // --- API & TYPES ---
 import {
@@ -25,19 +26,39 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 
-// --- STUDIO COMPONENTS ---
+// --- STUDIO COMPONENTS (always visible — static imports) ---
 import { StudioLayout } from "@/app/components/studio/StudioLayout";
 import { StudioHeader } from "@/app/components/studio/StudioHeader";
 import { ReelSidebar } from "@/app/components/studio/ReelSidebar";
 import { SceneBin } from "@/app/components/studio/SceneBin";
-import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
-import { SceneStoryboardContainer } from "@/app/components/studio/SceneStoryboardContainer";
-import { ScriptIngestionModal } from "@/app/components/studio/ScriptIngestionModal";
-import { AssetManagerModal } from "@/app/components/studio/AssetManagerModal";
-import { ContextSelectorModal, ContextReference } from "@/app/components/script/ContextSelectorModal";
 import { useTour } from "@/hooks/useTour";
 import { TourOverlay } from "@/components/tour/TourOverlay";
 import { STUDIO_TOUR_STEPS } from "@/lib/tourConfigs";
+
+// --- MODAL COMPONENTS (hidden by default — dynamically loaded) ---
+const ProjectSettingsModal = dynamic(
+  () => import("@/app/components/studio/ProjectSettingsModal").then(mod => ({ default: mod.ProjectSettingsModal })),
+  { ssr: false }
+);
+const SceneStoryboardContainer = dynamic(
+  () => import("@/app/components/studio/SceneStoryboardContainer").then(mod => ({ default: mod.SceneStoryboardContainer })),
+  { ssr: false }
+);
+const ScriptIngestionModal = dynamic(
+  () => import("@/app/components/studio/ScriptIngestionModal").then(mod => ({ default: mod.ScriptIngestionModal })),
+  { ssr: false }
+);
+const AssetManagerModal = dynamic(
+  () => import("@/app/components/studio/AssetManagerModal").then(mod => ({ default: mod.AssetManagerModal })),
+  { ssr: false }
+);
+const ContextSelectorModal = dynamic(
+  () => import("@/app/components/script/ContextSelectorModal").then(mod => ({ default: mod.ContextSelectorModal })),
+  { ssr: false }
+);
+
+// Re-export ContextReference type for usage in this file
+import type { ContextReference } from "@/app/components/script/ContextSelectorModal";
 
 export default function StudioPage() {
     const params = useParams();
