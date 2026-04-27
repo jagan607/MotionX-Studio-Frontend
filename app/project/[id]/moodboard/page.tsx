@@ -161,6 +161,7 @@ export default function MoodboardPage() {
             const res = await api.post("/api/v1/shot/generate_moodboard", {
                 project_id: projectId,
                 episode_id: episodeId,
+                is_onboarding: isOnboarding,
             });
             if (res.data.status === "success") {
                 if (res.data.mood_options?.length > 0) {
@@ -182,7 +183,7 @@ export default function MoodboardPage() {
         } finally {
             setIsRegenerating(false);
         }
-    }, [projectId, episodeId]);
+    }, [projectId, episodeId, isOnboarding]);
 
     // --- AUTO-TRIGGER: Only for non-onboarding visits ---
     // During onboarding, the script worker is GUARANTEED to be generating moodboards
@@ -226,6 +227,7 @@ export default function MoodboardPage() {
                 project_id: projectId,
                 episode_id: episodeId,
                 mood_option_id: moodOptionId,
+                is_onboarding: isOnboarding,
             });
             if (res.data.status === "success") {
                 toastSuccess(`Generating variations of "${res.data.archetype || selectedMood?.name}"...`);
@@ -463,7 +465,7 @@ export default function MoodboardPage() {
                         <button onClick={() => generateMoods()} disabled={isRegenerating}
                             className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30">
                             <RefreshCw size={12} className={isRegenerating ? "animate-spin" : ""} />
-                            Regenerate
+                            Regenerate <span className="opacity-50 text-[9px] font-normal tracking-normal normal-case ml-1">· 2 cr</span>
                         </button>
                     )}
 
@@ -529,7 +531,7 @@ export default function MoodboardPage() {
                                     onClick={generateMoods}
                                     className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer"
                                 >
-                                    <Palette size={14} /> Generate Moodboard
+                                    <Palette size={14} /> Generate Moodboard{!isOnboarding && <span className="opacity-50 text-[9px] font-normal tracking-normal normal-case ml-1">· 2 cr</span>}
                                 </button>
                             </>
                         )}
@@ -756,7 +758,7 @@ export default function MoodboardPage() {
                                         {isGeneratingVariations ? (
                                             <><Loader2 size={13} className="animate-spin" /> Generating...</>
                                         ) : (
-                                            <><Sparkles size={13} className="text-white/50" /> Generate More Like This</>
+                                            <><Sparkles size={13} className="text-white/50" /> Generate More Like This{!isOnboarding && <span className="opacity-50 text-[9px] font-normal">· 2 cr</span>}</>
                                         )}
                                     </button>
                                 )}
