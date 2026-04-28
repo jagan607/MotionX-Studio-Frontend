@@ -22,6 +22,11 @@ const ActivityTracker = dynamic(
   () => import("@/components/ActivityTracker").then(mod => ({ default: mod.ActivityTracker }))
 );
 
+// Lazy-loaded: DirectorChat is a global AI assistant panel (hidden by default)
+const DirectorChat = dynamic(
+  () => import("@/components/DirectorChat")
+);
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter"
@@ -165,6 +170,9 @@ export default function RootLayout({
               <main className="flex-1 flex flex-col relative z-0">
                 {children}
               </main>
+
+              {/* Global AI Director assistant */}
+              <DirectorChat />
 
               <Toaster
                 position="bottom-right"

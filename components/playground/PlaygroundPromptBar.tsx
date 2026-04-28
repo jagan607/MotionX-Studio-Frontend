@@ -435,6 +435,23 @@ export default function PlaygroundPromptBar() {
         }
     }, [pendingPrompt, setPendingPrompt, autoResize, writeToTextarea]);
 
+    // --- Listen for Director "paste in playground" events ---
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const promptText = (e as CustomEvent).detail;
+            if (typeof promptText === "string" && promptText.trim()) {
+                writeToTextarea(promptText);
+                requestAnimationFrame(() => {
+                    autoResize();
+                    textareaRef.current?.focus();
+                });
+                toast.success("Prompt pasted!", { id: "director-paste", duration: 1500 });
+            }
+        };
+        window.addEventListener("director-paste-prompt", handler);
+        return () => window.removeEventListener("director-paste-prompt", handler);
+    }, [writeToTextarea, autoResize]);
+
     // --- Watch pendingVideoSettings from context (one-shot from TemplatePicker) ---
     useEffect(() => {
         if (pendingVideoSettings) {

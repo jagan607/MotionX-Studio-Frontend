@@ -303,6 +303,31 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
     // The previous listener here was redundant and also buggy (only activated
     // when isAutoDirecting was true, so it wouldn't work after page refresh).
 
+    // --- 5. DIRECTOR EVENT LISTENERS ---
+    // Allow the AI Director sidebar to switch scenes and open panels programmatically
+    useEffect(() => {
+        const handleNavigateScene = (e: Event) => {
+            const { sceneNumber } = (e as CustomEvent).detail;
+            const targetScene = sceneList.find((s: any) => s.scene_number === sceneNumber);
+            if (targetScene && onSceneChange) {
+                onSceneChange(targetScene);
+            }
+        };
+        const handleOpenPanel = (e: Event) => {
+            const { panel } = (e as CustomEvent).detail;
+            if (panel === "set_design") setShowSetDesign(true);
+            else if (panel === "wardrobe") setShowWardrobe(true);
+            else if (panel === "cinematography") setShowCinematography(true);
+            else if (panel === "script") setShowScript(true);
+            else if (panel === "assets") setShowAssets(true);
+        };
+        window.addEventListener("director-navigate-scene", handleNavigateScene);
+        window.addEventListener("director-open-panel", handleOpenPanel);
+        return () => {
+            window.removeEventListener("director-navigate-scene", handleNavigateScene);
+            window.removeEventListener("director-open-panel", handleOpenPanel);
+        };
+    }, [sceneList, onSceneChange]);
 
     if (!activeSceneId) return null;
 

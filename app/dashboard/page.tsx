@@ -22,7 +22,7 @@ import DailyInspiration from "@/components/dashboard/DailyInspiration";
 import CommandPalette from "@/components/CommandPalette";
 import WelcomeBackModal from "@/components/dashboard/WelcomeBackModal";
 
-const DEFAULT_SHOWREEL = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
+
 
 export default function Dashboard() {
     const [myProjects, setMyProjects] = useState<DashboardProject[]>([]);
@@ -82,7 +82,16 @@ export default function Dashboard() {
     const nav = useCallback((p: DashboardProject) => router.push(`/project/${p.id}`), [router]);
     const handleDelete = async () => {
         if (!projectToDelete) return; setIsDeleting(true);
-        try { await deleteDoc(doc(db, "projects", projectToDelete.id)); if (auth.currentUser) invalidateDashboardCache(auth.currentUser.uid); setMyProjects(p => p.filter(x => x.id !== projectToDelete.id)); }
+        try {
+            await deleteDoc(doc(db, "projects", projectToDelete.id));
+            if (auth.currentUser) invalidateDashboardCache(auth.currentUser.uid);
+            setMyProjects(p => {
+                const updated = p.filter(x => x.id !== projectToDelete.id);
+                // Reset activeIdx to prevent out-of-bounds
+                setActiveIdx(prev => Math.min(prev, Math.max(0, updated.length - 1)));
+                return updated;
+            });
+        }
         catch { } finally { setIsDeleting(false); setProjectToDelete(null); }
     };
 
@@ -135,6 +144,7 @@ export default function Dashboard() {
     );
 
     return (
+        <>
         <main className="fixed inset-0 bg-[#030303] text-white font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#E50914] selection:text-white">
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
@@ -193,7 +203,7 @@ export default function Dashboard() {
                                 ) : activeProject?.previewImage ? (
                                     <div className="w-full h-full bg-cover bg-center opacity-70" style={{ backgroundImage: `url(${activeProject.previewImage})` }} />
                                 ) : (
-                                    <video src={DEFAULT_SHOWREEL} autoPlay loop muted playsInline preload="none" className="w-full h-full object-cover opacity-25 grayscale" />
+                                    <div className="w-full h-full bg-gradient-to-br from-[#0a0000] via-[#0a0a0a] to-[#050505]" />
                                 )
                             )}
                         </div>
@@ -561,17 +571,13 @@ export default function Dashboard() {
             {/* ═══ WELCOME BACK MODAL ═══ */}
             <WelcomeBackModal announcements={allAnn} />
 
-            {/* ═══ MOBILE QUICK CREATE FAB ═══ */}
-            <Link href="/project/new" className="sm:hidden fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center no-underline" style={{ background: 'linear-gradient(135deg, #E50914, #B30710)', boxShadow: '0 8px 32px rgba(229,9,20,0.4)' }}>
-                <Plus size={24} className="text-white" />
-            </Link>
-
-            {/* ═══ CMD+K HINT (desktop) ═══ */}
-            <button onClick={() => setCmdPaletteOpen(true)} className="hidden sm:flex fixed bottom-5 right-5 z-40 items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[9px] font-mono text-white/15 hover:text-white/30 hover:border-white/[0.1] transition-all cursor-pointer">
-                <Command size={10} />K
-            </button>
-
-            <style jsx global>{`@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}`}</style>
         </main>
+
+
+        {/* CMD+K Hint (desktop) */}
+        <button onClick={() => setCmdPaletteOpen(true)} className="hidden sm:flex fixed bottom-5 right-5 z-40 items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[9px] font-mono text-white/15 hover:text-white/30 hover:border-white/[0.1] transition-all cursor-pointer">
+            <Command size={10} />K
+        </button>
+        </>
     );
 }

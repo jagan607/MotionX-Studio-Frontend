@@ -99,11 +99,11 @@ function PlaygroundWorkspace() {
         }
     }, [activeTourStep, drawerOpen, setDrawerOpen]);
 
-    // Read ?idea= query param and pre-fill the prompt bar (one-shot)
+    // Read ?idea= or ?prompt= query param and pre-fill the prompt bar (one-shot)
     const ideaInjectedRef = useRef(false);
     useEffect(() => {
         if (ideaInjectedRef.current) return;
-        const idea = searchParams.get("idea");
+        const idea = searchParams.get("idea") || searchParams.get("prompt");
         if (idea) {
             setPendingPrompt(decodeURIComponent(idea));
             ideaInjectedRef.current = true;

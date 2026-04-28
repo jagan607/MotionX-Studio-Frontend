@@ -8,7 +8,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { Sparkles, Loader2, ArrowRight, Film } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-const HERO_VIDEO = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/WhatsApp%20Video%202026-03-11%20at%2013.55.37.mp4?alt=media&token=4909ea2a-e8e9-4e64-a49a-7e4ec617e1ea";
+const HERO_VIDEO = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/WhatsApp%20Video%202026-03-11%20at%2013.54.06.mp4?alt=media&token=836bc61d-3024-45aa-83d6-c0829b2c7462";
 
 const INSPIRATION = [
     "A detective chasing a rogue android through rain-soaked streets",
