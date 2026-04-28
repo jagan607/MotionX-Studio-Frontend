@@ -5,7 +5,7 @@ import { doc, onSnapshot, getDoc, collection, query, where, orderBy, limit, getD
 import { db, auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Plus, Film, Trash2, ArrowRight, Share2, Globe, Users as UsersIcon, Lock, Eye, Rocket, ChevronLeft, ChevronRight, Maximize, Crosshair, Copy } from "lucide-react";
+import { Loader2, Plus, Film, Trash2, ArrowRight, Share2, Globe, Users as UsersIcon, Lock, Eye, Rocket, ChevronLeft, ChevronRight, Maximize, Crosshair, Copy, Command, Zap } from "lucide-react";
 import ShareProjectModal from "@/components/ShareProjectModal";
 import { DashboardProject, TemplateProject, invalidateDashboardCache, fetchUserProjectsBasic, enrichProjectPreview, fetchTemplateProjects, cloneProject } from "@/lib/api";
 import { toast } from "react-hot-toast";
@@ -15,9 +15,12 @@ import { TourOverlay } from "@/components/tour/TourOverlay";
 import { useTour } from "@/hooks/useTour";
 import { DASHBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
 import { useWorkspace } from "@/app/context/WorkspaceContext";
-// QuickStartTemplates removed — templates are now in the Project Templates section
 import { useCredits } from "@/hooks/useCredits";
 import { useAnnouncements } from "@/components/dashboard/DashboardAnnouncements";
+import EmptyStateHero from "@/components/dashboard/EmptyStateHero";
+import DailyInspiration from "@/components/dashboard/DailyInspiration";
+import CommandPalette from "@/components/CommandPalette";
+import WelcomeBackModal from "@/components/dashboard/WelcomeBackModal";
 
 const DEFAULT_SHOWREEL = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
 
@@ -35,6 +38,7 @@ export default function Dashboard() {
     const [templateFilter, setTemplateFilter] = useState('all');
     const [monitorMode, setMonitorMode] = useState<'project' | 'announcements'>('announcements');
     const [annIdx, setAnnIdx] = useState(0);
+    const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
 
     const { activeWorkspaceSlug, availableWorkspaces } = useWorkspace();
     const activeWs = availableWorkspaces.find(w => w.slug === activeWorkspaceSlug);
@@ -100,6 +104,8 @@ export default function Dashboard() {
 
     useEffect(() => {
         const h = (e: KeyboardEvent) => {
+            // ⌘K / Ctrl+K → toggle command palette
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setCmdPaletteOpen(p => !p); return; }
             if (bootState !== 'ready' || myProjects.length === 0) return;
             if (e.key === 'ArrowLeft') setActiveIdx(p => Math.max(0, p - 1));
             if (e.key === 'ArrowRight') setActiveIdx(p => Math.min(myProjects.length - 1, p + 1));
@@ -110,6 +116,16 @@ export default function Dashboard() {
     const greeting = (() => { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; })();
     const name = auth.currentUser?.displayName?.split(" ")[0] || "Director";
     const activeProject = myProjects[activeIdx];
+    const isEmptyState = myProjects.length === 0;
+    const userGoal = userProfile?.goal;
+
+    // Progress phase helper for project cards
+    const getPhase = (p: DashboardProject) => {
+        if (p.previewVideo) return { label: 'Post-Prod', color: '#22C55E', progress: 90 };
+        if (p.previewImage) return { label: 'Production', color: '#3B82F6', progress: 60 };
+        if ((p as any).script_status === 'processed') return { label: 'Pre-Prod', color: '#F59E0B', progress: 35 };
+        return { label: 'Script', color: '#8B5CF6', progress: 15 };
+    };
 
     if (bootState === 'booting') return (
         <div className="h-screen w-screen bg-[#030303] flex flex-col items-center justify-center">
@@ -125,6 +141,11 @@ export default function Dashboard() {
                 {/* ═══ MAIN CONTENT ═══ */}
                 <div className="flex-1 flex flex-col min-w-0 p-3 sm:p-4 lg:p-5 gap-3 overflow-y-auto no-scrollbar">
 
+                    {/* ═══ EMPTY STATE HERO or MONITOR ═══ */}
+                    {isEmptyState ? (
+                        <EmptyStateHero />
+                    ) : (
+                    <>
                     {/* Monitor — cinematic preview (compact) */}
                     <div id="tour-monitor" className="relative bg-black border border-white/[0.06] rounded-xl group overflow-hidden h-[45vh] min-h-[260px] shrink-0 transition-colors hover:border-white/[0.1]">
                         {/* Viewfinder */}
@@ -259,9 +280,12 @@ export default function Dashboard() {
                             </div>
                         </div>
                     </div>
+                    </> /* end monitor wrapper */
+                    )}
 
 
                     {/* Film strip header */}
+                    {!isEmptyState && (
                     <div className="flex items-center justify-between px-1 shrink-0">
                         <span className="text-[10px] font-bold tracking-[2px] uppercase text-white/50">Your Projects <span className="text-white/20 font-mono">({myProjects.length})</span></span>
                         {myProjects.length > 0 && (
@@ -271,8 +295,10 @@ export default function Dashboard() {
                             </button>
                         )}
                     </div>
+                    )}
 
                     {/* Film strip */}
+                    {!isEmptyState && (
                     <div id="tour-project-grid" className="h-[120px] sm:h-[140px] lg:h-[160px] relative group/strip shrink-0">
                         <button onClick={() => filmStripRef.current?.scrollBy({ left: -280, behavior: 'smooth' })}
                             className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-[#030303] to-transparent z-20 flex items-center justify-center text-white/0 group-hover/strip:text-white/40 transition-all hover:text-[#E50914] cursor-pointer border-none">
@@ -285,14 +311,18 @@ export default function Dashboard() {
                                 <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300 mb-1" />
                                 <span className="text-[8px] font-bold uppercase tracking-[2px]">New Project</span>
                             </Link>
-                            {myProjects.map((p, i) => (
+                            {myProjects.map((p, i) => {
+                                const phase = getPhase(p);
+                                return (
                                 <div key={p.id}
                                     className={`shrink-0 aspect-[16/9] h-full rounded-lg overflow-hidden relative cursor-pointer group/card transition-all duration-300
                                         ${activeIdx === i ? 'border-2 border-[#E50914] shadow-[0_0_15px_rgba(229,9,20,0.15)] scale-[1.02] z-10 opacity-100' : 'border border-white/[0.04] opacity-50 hover:opacity-90 hover:border-white/[0.1]'}`}
                                     onClick={() => { if (activeIdx === i) { nav(p); } else { setActiveIdx(i); setMonitorMode('project'); } }}>
                                     {p.previewImage ? <img src={p.previewImage} alt="" className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full bg-[#080808] flex items-center justify-center"><Film size={14} className="text-white/[0.04]" /></div>}
-                                    <div className="absolute top-1 left-1 z-10">
+                                    <div className="absolute top-1 left-1 z-10 flex items-center gap-1">
                                         {(p as any).is_sample && <span className="bg-[#E50914] text-white text-[5px] font-bold uppercase tracking-widest px-1 py-0.5 rounded">Sample</span>}
+                                        {/* Phase badge */}
+                                        <span className="text-[5px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded backdrop-blur-sm" style={{ background: `${phase.color}25`, color: phase.color, border: `1px solid ${phase.color}30` }}>{phase.label}</span>
                                     </div>
                                     {(!isOrgAccount || isOrgAdmin) && (
                                         <button onClick={(e) => { e.stopPropagation(); setProjectToDelete(p); }}
@@ -300,21 +330,48 @@ export default function Dashboard() {
                                             <Trash2 size={8} />
                                         </button>
                                     )}
-                                    <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-gradient-to-t from-black/70 to-transparent">
-                                        <span className="text-[7px] font-bold text-white uppercase tracking-wider truncate block">{p.title}</span>
+                                    <div className="absolute bottom-0 left-0 right-0">
+                                        {/* Progress bar */}
+                                        <div className="h-[2px] bg-white/[0.04]">
+                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${phase.progress}%`, background: phase.color }} />
+                                        </div>
+                                        <div className="p-1.5 bg-gradient-to-t from-black/70 to-transparent">
+                                            <span className="text-[7px] font-bold text-white uppercase tracking-wider truncate block">{p.title}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                         <button onClick={() => filmStripRef.current?.scrollBy({ left: 280, behavior: 'smooth' })}
                             className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#030303] to-transparent z-20 flex items-center justify-center text-white/0 group-hover/strip:text-white/40 transition-all hover:text-[#E50914] cursor-pointer border-none">
                             <ChevronRight size={20} />
                         </button>
                     </div>
+                    )}
 
 
                     {/* ═══ PROJECT TEMPLATES — cloneable ═══ */}
-                    {projectTemplates.length > 0 && (() => {
+                    {projectTemplates.length === 0 ? (
+                        /* Skeleton loader while templates are fetching */
+                        <div className="shrink-0 mt-2">
+                            <div className="flex items-center gap-2 mb-3 px-1">
+                                <div className="w-3 h-3 rounded bg-white/[0.04] animate-pulse" />
+                                <div className="w-28 h-3 rounded bg-white/[0.04] animate-pulse" />
+                            </div>
+                            <div className="flex gap-2.5 overflow-hidden px-1">
+                                {[...Array(5)].map((_, i) => (
+                                    <div key={i} className="shrink-0 w-[260px] sm:w-[300px] lg:w-[320px] rounded-xl border border-white/[0.03] bg-white/[0.01] overflow-hidden" style={{ animationDelay: `${i * 100}ms` }}>
+                                        <div className="aspect-video bg-white/[0.02] animate-pulse" />
+                                        <div className="p-2.5 space-y-1.5">
+                                            <div className="w-24 h-3 rounded bg-white/[0.03] animate-pulse" />
+                                            <div className="w-16 h-2 rounded bg-white/[0.02] animate-pulse" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (() => {
                         // Smart genre categorization
                         const CATEGORIES: { key: string; label: string; color: string; keywords: string[] }[] = [
                             { key: 'drama', label: 'Drama', color: '#3B82F6', keywords: ['drama'] },
@@ -370,62 +427,105 @@ export default function Dashboard() {
                                         );
                                     })}
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                                    {filtered.map(t => (
-                                        <button
-                                            key={t.id}
-                                            disabled={cloningId === t.id}
-                                            onClick={async () => {
-                                                setCloningId(t.id);
-                                                try {
-                                                    const res = await cloneProject(t.id);
-                                                    toast.success(`Cloned: ${res.title}`);
-                                                    if (auth.currentUser) {
-                                                        invalidateDashboardCache(auth.currentUser.uid);
-                                                        const updated = await fetchUserProjectsBasic(auth.currentUser.uid);
-                                                        setMyProjects(updated);
-                                                    }
-                                                    router.push(`/project/${res.id}`);
-                                                } catch (e: any) {
-                                                    toast.error(e?.response?.data?.detail || 'Clone failed');
-                                                } finally { setCloningId(null); }
-                                            }}
-                                            className="group relative rounded-xl border border-white/[0.04] bg-white/[0.015] overflow-hidden text-left transition-all hover:border-white/[0.1] hover:bg-white/[0.03] cursor-pointer disabled:opacity-50"
-                                        >
-                                            {/* Preview */}
-                                            <div className="aspect-video relative bg-[#080808] overflow-hidden">
-                                                {(t.preview_image || t.moodboard_image_url) ? (
-                                                    <img src={t.preview_image || t.moodboard_image_url || ''} alt="" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-500" loading="lazy" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center"><Film size={16} className="text-white/[0.04]" /></div>
-                                                )}
-                                                <div className="absolute top-1.5 left-1.5">
-                                                    <span className="text-[6px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-black/50 backdrop-blur-sm text-white/60 border border-white/[0.06]">
-                                                        {t.type === 'movie' ? 'Film' : t.type === 'ad' ? 'Ad' : 'Series'}
-                                                    </span>
+                                {/* Netflix-style horizontal scroll */}
+                                <div className="relative group/tstrip">
+                                    <div className="flex gap-2.5 overflow-x-auto no-scrollbar scroll-smooth pb-1 px-1"
+                                        onWheel={e => { const el = e.currentTarget; el.scrollLeft += e.deltaY; }}>
+                                        {filtered.map(t => (
+                                            <button
+                                                key={t.id}
+                                                disabled={cloningId === t.id}
+                                                onClick={async () => {
+                                                    setCloningId(t.id);
+                                                    try {
+                                                        const res = await cloneProject(t.id);
+                                                        toast.success(`Cloned: ${res.title}`);
+                                                        if (auth.currentUser) {
+                                                            invalidateDashboardCache(auth.currentUser.uid);
+                                                            const updated = await fetchUserProjectsBasic(auth.currentUser.uid);
+                                                            setMyProjects(updated);
+                                                        }
+                                                        router.push(`/project/${res.id}`);
+                                                    } catch (e: any) {
+                                                        toast.error(e?.response?.data?.detail || 'Clone failed');
+                                                    } finally { setCloningId(null); }
+                                                }}
+                                                className="group relative shrink-0 w-[260px] sm:w-[300px] lg:w-[320px] rounded-xl border border-white/[0.04] bg-white/[0.015] overflow-hidden text-left transition-all hover:border-white/[0.1] hover:bg-white/[0.03] hover:scale-[1.03] cursor-pointer disabled:opacity-50"
+                                            >
+                                                {/* Preview */}
+                                                <div className="aspect-video relative bg-[#080808] overflow-hidden">
+                                                    {(t.preview_image || t.moodboard_image_url) ? (
+                                                        <img src={t.preview_image || t.moodboard_image_url || ''} alt="" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-[1.05] transition-all duration-500" loading="lazy" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center"><Film size={16} className="text-white/[0.04]" /></div>
+                                                    )}
+                                                    <div className="absolute top-1.5 left-1.5">
+                                                        <span className="text-[6px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-black/50 backdrop-blur-sm text-white/60 border border-white/[0.06]">
+                                                            {t.type === 'movie' ? 'Film' : t.type === 'ad' ? 'Ad' : 'Series'}
+                                                        </span>
+                                                    </div>
+                                                    {cloningId === t.id && (
+                                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center"><Loader2 size={18} className="animate-spin text-[#E50914]" /></div>
+                                                    )}
+                                                    {/* Clone overlay on hover */}
+                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#E50914] text-white text-[8px] font-bold uppercase tracking-wider">
+                                                            <Copy size={9} /> Clone & Start
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                {cloningId === t.id && (
-                                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center"><Loader2 size={18} className="animate-spin text-[#E50914]" /></div>
-                                                )}
-                                            </div>
-                                            {/* Info */}
-                                            <div className="p-2.5">
-                                                <h3 className="text-[10px] font-bold text-white/70 group-hover:text-white transition-colors truncate">{t.title}</h3>
-                                                <div className="flex items-center gap-1.5 mt-1">
-                                                    <span className="text-[7px] text-white/20 font-mono uppercase">{t.genre}</span>
-                                                    {t.scene_count > 0 && <span className="text-[7px] text-white/10">· {t.scene_count} scenes</span>}
+                                                {/* Info */}
+                                                <div className="p-2.5">
+                                                    <h3 className="text-[10px] font-bold text-white/70 group-hover:text-white transition-colors truncate">{t.title}</h3>
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <span className="text-[7px] text-white/20 font-mono uppercase">{t.genre}</span>
+                                                        {t.scene_count > 0 && <span className="text-[7px] text-white/10">· {t.scene_count} scenes</span>}
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Copy size={8} className="text-[#E50914]" />
-                                                    <span className="text-[7px] font-bold text-[#E50914] uppercase tracking-wider">Clone & Start</span>
-                                                </div>
-                                            </div>
-                                        </button>
-                                    ))}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         );
                     })()}
+
+                    {/* ═══ DAILY INSPIRATION (persona-aware placement) ═══ */}
+                    {userGoal === 'explore' ? (
+                        /* Explore users: inspiration first, above templates */
+                        null /* rendered above templates via persona logic */
+                    ) : (
+                        <DailyInspiration />
+                    )}
+
+
+
+                    {/* ═══ PERSONA QUICK LINKS ═══ */}
+                    {userGoal && (
+                        <div className="shrink-0 px-1">
+                            <div className="flex gap-2">
+                                {userGoal === 'social_clips' && (
+                                    <Link href="/playground" className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border border-[#E50914]/15 bg-[#E50914]/[0.04] hover:bg-[#E50914]/[0.08] hover:border-[#E50914]/25 transition-all no-underline group">
+                                        <Zap size={16} className="text-[#E50914]/60 group-hover:text-[#E50914]" />
+                                        <div><span className="text-[10px] font-bold text-white/60 group-hover:text-white block">Quick Create</span><span className="text-[8px] text-white/20">Jump to Playground</span></div>
+                                    </Link>
+                                )}
+                                {userGoal === 'brand_content' && (
+                                    <div className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border border-[#D4A843]/15 bg-[#D4A843]/[0.04] cursor-pointer hover:bg-[#D4A843]/[0.08] transition-all" onClick={() => document.getElementById('tour-templates')?.scrollIntoView({ behavior: 'smooth' })}>
+                                        <Copy size={16} className="text-[#D4A843]/60" />
+                                        <div><span className="text-[10px] font-bold text-white/60 block">Browse Templates</span><span className="text-[8px] text-white/20">Ad & brand content starters</span></div>
+                                    </div>
+                                )}
+                                {userGoal === 'explore' && (
+                                    <Link href="/explore" className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border border-[#10B981]/15 bg-[#10B981]/[0.04] hover:bg-[#10B981]/[0.08] hover:border-[#10B981]/25 transition-all no-underline group">
+                                        <Eye size={16} className="text-[#10B981]/60 group-hover:text-[#10B981]" />
+                                        <div><span className="text-[10px] font-bold text-white/60 group-hover:text-white block">Explore Community</span><span className="text-[8px] text-white/20">See what others are creating</span></div>
+                                    </Link>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             </div>
 
@@ -454,6 +554,23 @@ export default function Dashboard() {
 
             <TourOverlay step={tourStep} steps={DASHBOARD_TOUR_STEPS} onNext={tourNext} onComplete={completeTour} />
             {shareProject && <ShareProjectModal projectId={shareProject.id} projectTitle={shareProject.title} currentTeamIds={shareProject.team_ids || []} currentIsGlobal={shareProject.is_global || false} onClose={() => setShareProject(null)} onSuccess={() => { if (auth.currentUser) { invalidateDashboardCache(auth.currentUser.uid); fetchUserProjectsBasic(auth.currentUser.uid).then(setMyProjects); } }} />}
+
+            {/* ═══ COMMAND PALETTE (⌘K) ═══ */}
+            <CommandPalette projects={myProjects} open={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
+
+            {/* ═══ WELCOME BACK MODAL ═══ */}
+            <WelcomeBackModal announcements={allAnn} />
+
+            {/* ═══ MOBILE QUICK CREATE FAB ═══ */}
+            <Link href="/project/new" className="sm:hidden fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center no-underline" style={{ background: 'linear-gradient(135deg, #E50914, #B30710)', boxShadow: '0 8px 32px rgba(229,9,20,0.4)' }}>
+                <Plus size={24} className="text-white" />
+            </Link>
+
+            {/* ═══ CMD+K HINT (desktop) ═══ */}
+            <button onClick={() => setCmdPaletteOpen(true)} className="hidden sm:flex fixed bottom-5 right-5 z-40 items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[9px] font-mono text-white/15 hover:text-white/30 hover:border-white/[0.1] transition-all cursor-pointer">
+                <Command size={10} />K
+            </button>
+
             <style jsx global>{`@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}`}</style>
         </main>
     );
