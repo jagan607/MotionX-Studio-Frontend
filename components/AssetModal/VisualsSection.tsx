@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Terminal, Loader2, Image as ImageIcon, RefreshCw, CheckSquare, Square, UploadCloud, Wand2, Download } from 'lucide-react';
+import { Upload, Terminal, Loader2, Image as ImageIcon, RefreshCw, CheckSquare, Square, UploadCloud, Wand2, Download, ScanEye } from 'lucide-react';
 
 interface VisualsSectionProps {
     displayImage?: string;
@@ -21,6 +21,9 @@ interface VisualsSectionProps {
     // Inpaint
     onInpaint?: () => void;
 
+    // Vision analysis status
+    visionStatus?: string;
+
     // Optional fallback (unused now but kept for safety)
     onUpload?: (e: any) => void;
     onGenerate?: () => void; // Kept optional as we moved the trigger out
@@ -38,7 +41,8 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
     onToggleUseRef,
     isUploadingRef,
     isUploadingMain,
-    onInpaint
+    onInpaint,
+    visionStatus
 }) => {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, handler: (f: File) => void) => {
@@ -189,6 +193,16 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
                     <div className="text-center text-neutral-700">
                         <RefreshCw size={32} className="mx-auto mb-2 opacity-20" />
                         <div className="text-[10px] font-mono">NO VISUAL GENERATED</div>
+                    </div>
+                )}
+
+                {/* VISION ANALYSIS OVERLAY */}
+                {visionStatus === 'analyzing' && !isProcessing && (
+                    <div className="absolute bottom-2 right-2 z-20 flex items-center gap-2 bg-black/70 backdrop-blur-md border border-cyan-500/30 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <ScanEye size={14} className="text-cyan-400 animate-pulse" />
+                        <span className="text-[9px] font-mono text-cyan-400 tracking-widest uppercase">
+                            Analyzing visual details…
+                        </span>
                     </div>
                 )}
 

@@ -7,6 +7,8 @@ import { api, uploadAssetReference, uploadAssetMain } from '@/lib/api';
 import { constructLocationPrompt, constructCharacterPrompt, constructProductPrompt } from '@/lib/promptUtils';
 import { toast } from 'react-hot-toast';
 import { Asset } from '@/lib/types';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { InpaintEditor } from '@/app/components/storyboard/InpaintEditor';
 import { TourOverlay } from '@/components/tour/TourOverlay';
 import { ASSET_CONFIG_TOUR_STEPS } from '@/lib/tourConfigs';
@@ -65,6 +67,11 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     const [isUploadingRef, setIsUploadingRef] = useState(false);
     const [isUploadingMain, setIsUploadingMain] = useState(false);
     const [hasReceivedFreshImage, setHasReceivedFreshImage] = useState(false);
+
+    // Vision analysis state (real-time from Firestore)
+    const [visionStatus, setVisionStatus] = useState<string | undefined>(
+        (currentData as any).vision_status
+    );
     
     // Explicitly decouple the UI loader from prolonged background extraction/polling
     // As soon as the local generation is complete (hasReceivedFreshImage), dismiss the loader immediately.
@@ -125,6 +132,54 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     useEffect(() => {
         setFilteredVoices(allVoices.filter(v => v.name.toLowerCase().includes(voiceSearch.toLowerCase())));
     }, [voiceSearch, allVoices]);
+
+    // --- REAL-TIME VISION STATUS LISTENER ---
+    // Subscribe to the asset document while the modal is open so we get
+    // instant updates when the background vision worker writes traits.
+    useEffect(() => {
+        if (!isOpen || !props.projectId || !props.assetId || props.assetId === 'new') return;
+
+        const collectionName = assetType === 'character' ? 'characters'
+            : assetType === 'location' ? 'locations'
+            : 'products';
+
+        const docRef = doc(db, 'projects', props.projectId, collectionName, props.assetId);
+
+        const unsub = onSnapshot(docRef, (snap) => {
+            if (!snap.exists()) return;
+            const data = snap.data();
+
+            // Update vision status
+            setVisionStatus(data.vision_status);
+
+            // When vision analysis just completed, refresh the traits in the UI
+            if (data.vision_status === 'ready' && data.visual_traits) {
+                const vt = data.visual_traits;
+                if (assetType === 'character' && typeof vt === 'object' && !Array.isArray(vt)) {
+                    setEditableTraits((prev: any) => ({
+                        ...prev,
+                        age: vt.age || prev.age || "",
+                        ethnicity: vt.ethnicity || prev.ethnicity || "",
+                        build: vt.build || prev.build || "",
+                        hair: vt.hair || prev.hair || "",
+                        clothing: vt.clothing || prev.clothing || "",
+                        distinguishing_features: vt.distinguishing_features || prev.distinguishing_features || "",
+                        vibe: vt.vibe || prev.vibe || "",
+                        visual_traits: vt,
+                    }));
+                } else if (assetType === 'location') {
+                    setEditableTraits((prev: any) => ({
+                        ...prev,
+                        atmosphere: data.atmosphere || vt?.atmosphere || prev.atmosphere || "",
+                        lighting: data.lighting || vt?.lighting || prev.lighting || "",
+                        terrain: data.terrain || vt?.terrain || prev.terrain || "",
+                    }));
+                }
+            }
+        });
+
+        return () => unsub();
+    }, [isOpen, props.projectId, props.assetId, assetType]);
 
     const initializeData = () => {
         let initialData: any = {};
@@ -594,6 +649,8 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                                 onToggleUseRef={() => setUseRefForGen(!useRefForGen)}
 
                                 onInpaint={localDisplayImage ? () => setInpaintData({ src: localDisplayImage }) : undefined}
+
+                                visionStatus={visionStatus}
                             />
                             </div>
 
