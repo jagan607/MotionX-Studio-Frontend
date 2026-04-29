@@ -69,7 +69,6 @@ const TerminalSpinner = () => {
 interface StoryboardOverlayProps {
     activeSceneId: string | null;
     currentScene: any;
-    credits: number | null;
 
     // Data Props
     castMembers: any[];
@@ -116,7 +115,7 @@ interface StoryboardOverlayProps {
 }
 
 export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
-    activeSceneId, currentScene, onClose, credits: _creditsProp, castMembers, locations, products,
+    activeSceneId, currentScene, onClose, castMembers, locations, products,
     seriesName, episodeTitle, initialScript, initialRuntime,
     mood, moodSource, onEditMood,
     seriesId, episodeId,

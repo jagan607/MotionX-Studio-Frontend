@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import dynamic from "next/dynamic";
 
-import { fetchProject, fetchProjectAssets, fetchEpisodes, fetchUserCredits } from "@/lib/api";
+import { fetchProject, fetchProjectAssets, fetchEpisodes } from "@/lib/api";
 import { Project, Asset } from "@/lib/types";
 import { SceneData } from "@/components/studio/SceneCard";
 import { collection, query, orderBy, getDocs, onSnapshot } from "firebase/firestore";
@@ -34,7 +34,7 @@ export default function StoryboardPage() {
     const [episodeId, setEpisodeId] = useState<string>("main");
     const [scenes, setScenes] = useState<SceneData[]>([]);
     const [selectedScene, setSelectedScene] = useState<SceneData | null>(null);
-    const [credits, setCredits] = useState<number>(0);
+
     const [projectAssets, setProjectAssets] = useState<{
         characters: Asset[];
         locations: Asset[];
@@ -46,15 +46,13 @@ export default function StoryboardPage() {
 
         async function init() {
             try {
-                const [proj, assets, creds] = await Promise.all([
+                const [proj, assets] = await Promise.all([
                     fetchProject(projectId),
                     fetchProjectAssets(projectId),
-                    fetchUserCredits(auth.currentUser?.uid || ""),
                 ]);
 
                 setProject(proj);
                 setProjectAssets(assets);
-                setCredits(creds);
 
                 // For series, redirect to studio (they need episode nav)
                 if (proj.type === "micro_drama") {
@@ -168,7 +166,6 @@ export default function StoryboardPage() {
             scene={selectedScene}
             projectAssets={projectAssets}
             seriesTitle={project.title}
-            credits={credits}
         />
     );
 }

@@ -29,7 +29,6 @@ interface SceneStoryboardContainerProps {
         products: Asset[]
     };
     seriesTitle: string;
-    credits: number;
 }
 
 // Helper to sanitize errors so React doesn't crash
@@ -51,7 +50,6 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     scene,
     projectAssets,
     seriesTitle,
-    credits
 }) => {
 
     // Tours — separate toolbar and shot card tours
@@ -225,7 +223,6 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
             <StoryboardOverlay
                 activeSceneId={activeSceneData.id}
                 currentScene={activeSceneData}
-                credits={credits}
                 styles={{}}
                 seriesId={projectId}
                 episodeId={episodeId}

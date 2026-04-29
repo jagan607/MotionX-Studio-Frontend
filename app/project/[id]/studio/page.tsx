@@ -14,7 +14,6 @@ import {
     fetchProject,
     fetchProjectAssets,
     fetchEpisodes,
-    fetchUserCredits,
     checkJobStatus,
     fetchEpisodeScript
 } from "@/lib/api";
@@ -81,7 +80,7 @@ export default function StudioPage() {
     const [selectedScene, setSelectedScene] = useState<SceneData | null>(null);
     const [editingScene, setEditingScene] = useState<SceneData | null>(null);
 
-    const [credits, setCredits] = useState<number>(0);
+
 
     // AI State
     const [isProcessing, setIsProcessing] = useState(false);
@@ -119,15 +118,13 @@ export default function StudioPage() {
 
     const initializeStudio = async () => {
         try {
-            const [projData, assetData, creditsData] = await Promise.all([
+            const [projData, assetData] = await Promise.all([
                 fetchProject(projectId),
                 fetchProjectAssets(projectId),
-                fetchUserCredits(auth.currentUser?.uid || "")
             ]);
 
             setProject(projData);
             setAssets(assetData);
-            setCredits(creditsData);
 
             // Fetch Characters & Locations subcollections
             try {
@@ -790,7 +787,6 @@ export default function StudioPage() {
                     scene={selectedScene}
                     projectAssets={assets}
                     seriesTitle={project.title}
-                    credits={credits}
                 />
             )}
 
