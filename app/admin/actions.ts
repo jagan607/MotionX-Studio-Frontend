@@ -15,12 +15,13 @@ export async function updateUserCredits(formData: FormData) {
 
         // Atomic increment (Safe way to add credits without race conditions)
         await userRef.update({
+            subscription_credits: admin.firestore.FieldValue.increment(amount),
             credits: admin.firestore.FieldValue.increment(amount)
         });
 
         // Log the action
         await adminDb.collection('system_logs').add({
-            action: 'ADMIN_CREDIT_ADJUST',
+            action: 'ADMIN_SUBSCRIPTION_CREDIT_GRANT',
             adminId: 'SYSTEM',
             targetUserId: userId,
             amount: amount,
