@@ -30,6 +30,8 @@ const syncUserToFirestore = async (user: any): Promise<boolean> => {
         photoURL: user.photoURL || "",
         plan: "free",
         credits: 30,
+        subscription_credits: 30,
+        topup_credits: 0,
         credits_granted_at: serverTimestamp(),
         credits_expire_at: Timestamp.fromDate(expireDate),
         free_credits_expired: false,
