@@ -9,7 +9,7 @@ import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import {
     Loader2, Check, Palette, Sun, Layers, CloudFog,
     ChevronRight, ChevronLeft, RefreshCw, AlertCircle,
-    ArrowLeft, Sparkles, Undo2, X, Trash2,
+    ArrowLeft, Sparkles, X, Trash2,
     BrainCircuit
 } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -160,13 +160,14 @@ export default function MoodboardPage() {
     }, [moods, appliedMoodId]);
 
     // --- Generate moods API ---
-    const generateMoods = useCallback(async () => {
+    const generateMoods = useCallback(async (isManualRegeneration = false) => {
         setIsRegenerating(true);
         try {
             const res = await api.post("/api/v1/shot/generate_moodboard", {
                 project_id: projectId,
                 episode_id: episodeId,
                 is_onboarding: isOnboarding,
+                is_manual_regeneration: isManualRegeneration,
             });
             if (res.data.status === "success") {
                 if (res.data.mood_options?.length > 0) {
@@ -473,16 +474,10 @@ export default function MoodboardPage() {
                         </div>
                     )}
 
-                    {isViewingVariations && (
-                        <button onClick={() => generateMoods()} disabled={isRegenerating}
-                            className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30">
-                            <Undo2 size={12} />
-                            Back to Originals
-                        </button>
-                    )}
 
-                    {selectedMood && !isOnboarding && (
-                        <button onClick={() => generateMoods()} disabled={isRegenerating}
+
+                    {selectedMood && (
+                        <button onClick={() => generateMoods(true)} disabled={isRegenerating}
                             className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30">
                             <RefreshCw size={12} className={isRegenerating ? "animate-spin" : ""} />
                             Regenerate <span className="opacity-50 text-[9px] font-normal tracking-normal normal-case ml-1">· 2 cr</span>
