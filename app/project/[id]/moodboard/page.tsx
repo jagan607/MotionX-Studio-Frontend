@@ -778,7 +778,7 @@ export default function MoodboardPage() {
                                         {isGeneratingVariations ? (
                                             <><Loader2 size={13} className="animate-spin" /> Generating...</>
                                         ) : (
-                                            <><Sparkles size={13} className="text-white/50" /> Generate More Like This{!isOnboarding && <span className="opacity-50 text-[9px] font-normal">· 2 cr</span>}</>
+                                            <><Sparkles size={13} className="text-white/50" /> Generate More Like This<span className="opacity-50 text-[9px] font-normal">· 2 cr</span></>
                                         )}
                                     </button>
                                 )}
