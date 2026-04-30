@@ -543,7 +543,7 @@ export default function MoodboardPage() {
                                 <h2 className="text-2xl sm:text-3xl uppercase tracking-wide mb-3 font-display text-white/80">Visual Direction</h2>
                                 <p className="text-[11px] text-white/30 tracking-[2px] uppercase mb-8">No moodboard generated yet</p>
                                 <button
-                                    onClick={generateMoods}
+                                    onClick={() => generateMoods()}
                                     className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer"
                                 >
                                     <Palette size={14} /> Generate Moodboard{!isOnboarding && <span className="opacity-50 text-[9px] font-normal tracking-normal normal-case ml-1">· 2 cr</span>}
