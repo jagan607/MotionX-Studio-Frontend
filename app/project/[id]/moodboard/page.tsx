@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, onSnapshot, QuerySnapshot, DocumentData, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { api } from "@/lib/api";
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import {
     Loader2, Check, Palette, Sun, Layers, CloudFog,
     ChevronRight, ChevronLeft, RefreshCw, AlertCircle,
@@ -84,6 +85,10 @@ export default function MoodboardPage() {
     const totalCount = moods.length;
     const selectedMood = moods[selectedIdx] || null;
     const isApplied = selectedMood && appliedMoodId === selectedMood.id;
+
+    // --- Delete Confirmation ---
+    const [pendingDeleteMoodId, setPendingDeleteMoodId] = useState<string | null>(null);
+    const [isDeletingMood, setIsDeletingMood] = useState(false);
 
     // --- Custom Moodboard Upload ---
     const [showCustomModal, setShowCustomModal] = useState(false);
@@ -280,17 +285,32 @@ export default function MoodboardPage() {
     };
 
     // --- Delete Moodboard Option ---
-    const handleDeleteMood = async (moodId: string, e: React.MouseEvent) => {
+    const handleDeleteMood = (moodId: string, e: React.MouseEvent) => {
         e.stopPropagation();
+        setPendingDeleteMoodId(moodId);
+    };
+
+    const handleConfirmDeleteMood = async () => {
+        if (!pendingDeleteMoodId) return;
+        setIsDeletingMood(true);
         const toastId = toast.loading("Deleting moodboard...");
         try {
             await api.post("/api/v1/shot/delete_moodboard_option", {
                 project_id: projectId,
-                mood_option_id: moodId,
+                mood_option_id: pendingDeleteMoodId,
             });
             toast.success("Moodboard deleted", { id: toastId });
+
+            // Adjust selected index if needed after Firestore removes the doc
+            const deletedIdx = moods.findIndex(m => m.id === pendingDeleteMoodId);
+            if (deletedIdx !== -1 && selectedIdx >= deletedIdx && selectedIdx > 0) {
+                setSelectedIdx(prev => prev - 1);
+            }
         } catch (error: any) {
             toast.error(error.response?.data?.detail || "Failed to delete moodboard", { id: toastId });
+        } finally {
+            setIsDeletingMood(false);
+            setPendingDeleteMoodId(null);
         }
     };
 
@@ -894,6 +914,17 @@ export default function MoodboardPage() {
             )}
 
 
+
+            {/* Delete Confirmation Modal */}
+            {pendingDeleteMoodId && (
+                <DeleteConfirmModal
+                    title="Delete Moodboard"
+                    message="Are you sure you want to delete this moodboard option? This action cannot be undone."
+                    isDeleting={isDeletingMood}
+                    onConfirm={handleConfirmDeleteMood}
+                    onCancel={() => setPendingDeleteMoodId(null)}
+                />
+            )}
 
             {/* Custom Moodboard Modal */}
             <CustomMoodboardModal
