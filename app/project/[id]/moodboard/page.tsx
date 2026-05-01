@@ -82,6 +82,7 @@ export default function MoodboardPage() {
     const failedToastedIds = React.useRef<Set<string>>(new Set());
 
     const readyCount = moods.filter(m => m.status === "ready").length;
+    const resolvedCount = moods.filter(m => m.status === "ready" || m.status === "failed").length;
     const totalCount = moods.length;
     const selectedMood = moods[selectedIdx] || null;
     const isApplied = selectedMood && appliedMoodId === selectedMood.id;
@@ -134,13 +135,20 @@ export default function MoodboardPage() {
                 };
             });
 
-            // Surface per-card failures via toast (once per card, not on every snapshot)
-            options.forEach(opt => {
-                if (opt.status === "failed" && !failedToastedIds.current.has(opt.id)) {
-                    failedToastedIds.current.add(opt.id);
-                    toastError(`Mood "${opt.name || opt.id}" failed to render. You can regenerate.`);
+            // Defer failure notifications until ALL options reach a terminal state.
+            // This prevents alarming red toasts while generation is still in progress.
+            const terminalCount = options.filter(o => o.status === "ready" || o.status === "failed").length;
+            const failedCount = options.filter(o => o.status === "failed").length;
+            if (options.length > 0 && terminalCount === options.length && !failedToastedIds.current.has("__summary__")) {
+                failedToastedIds.current.add("__summary__");
+                if (failedCount === options.length) {
+                    toastError("All mood options failed to generate. Please try regenerating.");
+                } else if (failedCount > 0) {
+                    toast(`${failedCount} of ${options.length} mood options failed. You can regenerate them.`, {
+                        icon: "⚠️", duration: 6000
+                    });
                 }
-            });
+            }
 
             setMoods(options);
             setFirestoreLoaded(true);
@@ -161,6 +169,7 @@ export default function MoodboardPage() {
 
     // --- Generate moods API ---
     const generateMoods = useCallback(async (isManualRegeneration = false) => {
+        failedToastedIds.current = new Set(); // Reset so re-generations get fresh notifications
         setIsRegenerating(true);
         try {
             const res = await api.post("/api/v1/shot/generate_moodboard", {
@@ -222,6 +231,22 @@ export default function MoodboardPage() {
 
         return () => clearTimeout(timer);
     }, [isOnboarding, firestoreLoaded, moods.length, isRegenerating, generateMoods]);
+
+    // --- Safety timeout for moodboard generation (Luma pipeline: 30-120s) ---
+    useEffect(() => {
+        // Only applies when we're waiting with zero resolved moods
+        if (moods.length > 0 || !firestoreLoaded || !isOnboarding) return;
+
+        const timeout = setTimeout(() => {
+            if (moods.length === 0) {
+                toast("Moodboard generation is taking longer than expected. Please wait or try regenerating.", {
+                    icon: "⏳", duration: 8000
+                });
+            }
+        }, 120_000); // 120 seconds
+
+        return () => clearTimeout(timeout);
+    }, [isOnboarding, moods.length, firestoreLoaded]);
 
     // --- Generate variations ("More Like This") ---
     const isViewingVariations = moods.length > 0 && moods.some(m => m.is_variation);
@@ -465,11 +490,11 @@ export default function MoodboardPage() {
 
                 {/* Right: status + actions */}
                 <div className="flex items-center gap-4">
-                    {totalCount > 0 && readyCount < totalCount && (
+                    {totalCount > 0 && resolvedCount < totalCount && (
                         <div className="flex items-center gap-2">
                             <Loader2 size={10} className="animate-spin text-[#E50914]/50" />
                             <span className="text-[9px] font-mono text-white/25 uppercase tracking-wider">
-                                Rendering {readyCount}/{totalCount}
+                                Rendering {resolvedCount}/{totalCount}
                             </span>
                         </div>
                     )}
@@ -561,6 +586,13 @@ export default function MoodboardPage() {
                     <div key={selectedMood.id + (selectedMood.image_url || '')} className="absolute inset-0 z-0" style={{ animation: "heroFade 0.8s ease both" }}>
                         {selectedMood.image_url ? (
                             <img src={selectedMood.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                        ) : selectedMood.status === "failed" ? (
+                            <div className="absolute inset-0 bg-[#050505] flex items-center justify-center">
+                                <div className="flex flex-col items-center gap-3">
+                                    <AlertCircle size={32} className="text-[#E50914]/30" />
+                                    <span className="text-[11px] text-white/20 uppercase tracking-[3px] font-mono">Generation Failed</span>
+                                </div>
+                            </div>
                         ) : (
                             <div className="absolute inset-0 bg-[#050505] overflow-hidden">
                                 <div className="absolute w-[55%] h-[55%] rounded-full bg-[#E50914]/25 blur-[60px]"
@@ -631,10 +663,16 @@ export default function MoodboardPage() {
                             </div>
 
                             {/* Image generating indicator */}
-                            {selectedMood.status !== "ready" && (
+                            {selectedMood.status === "generating" && (
                                 <div className="flex items-center gap-2 mt-6">
                                     <Loader2 size={12} className="animate-spin text-[#E50914]/40" />
                                     <span className="text-[9px] text-white/20 uppercase tracking-[3px] font-mono">Rendering preview...</span>
+                                </div>
+                            )}
+                            {selectedMood.status === "failed" && (
+                                <div className="flex items-center gap-2 mt-6">
+                                    <AlertCircle size={12} className="text-[#E50914]/60" />
+                                    <span className="text-[9px] text-[#E50914]/40 uppercase tracking-[3px] font-mono">Failed to generate</span>
                                 </div>
                             )}
 
@@ -724,10 +762,16 @@ export default function MoodboardPage() {
                                                 ${isMoodApplied ? 'text-emerald-300' : active ? 'text-white' : 'text-white/50'}`}>
                                                 {mood.name}
                                             </span>
-                                            {!hasImage && (
+                                            {!hasImage && mood.status === "generating" && (
                                                 <div className="flex items-center gap-1 mt-0.5">
                                                     <Loader2 size={7} className="animate-spin text-[#E50914]/30" />
                                                     <span className="text-[7px] text-white/15 uppercase tracking-wider font-mono">Rendering</span>
+                                                </div>
+                                            )}
+                                            {mood.status === "failed" && (
+                                                <div className="flex items-center gap-1 mt-0.5">
+                                                    <AlertCircle size={7} className="text-[#E50914]/40" />
+                                                    <span className="text-[7px] text-[#E50914]/30 uppercase tracking-wider font-mono">Failed</span>
                                                 </div>
                                             )}
                                         </div>
@@ -778,7 +822,7 @@ export default function MoodboardPage() {
                                     </button>
                                 )}
                                 <button onClick={handleConfirm}
-                                    disabled={(isApplied && !isOnboarding) || phase !== "select"}
+                                    disabled={(isApplied && !isOnboarding) || phase !== "select" || selectedMood?.status === "failed"}
                                     className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
                                         ${isApplied && !isOnboarding
                                             ? 'bg-emerald-900/30 text-emerald-400/60 border border-emerald-500/20 cursor-default'
