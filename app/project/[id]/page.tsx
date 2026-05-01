@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { db, auth } from "@/lib/firebase";
 import Link from "next/link";
 import {
     Loader2, Clapperboard, Camera, Film,
@@ -34,9 +35,25 @@ export default function ProjectHub() {
 
     useEffect(() => {
         if (!projectId) return;
-        (async () => {
+        let cancelled = false;
+
+        // Wait for Firebase Auth to be fully ready before touching Firestore.
+        // During client-side navigation, auth.currentUser may exist but the
+        // Firestore SDK's internal auth-token pipeline can still be mid-sync,
+        // causing getDoc() to hang indefinitely on the channel connection.
+        const unsubAuth = onAuthStateChanged(auth, async (user) => {
+            if (!user || cancelled) return;
+            unsubAuth(); // Only need the first emission
+
             try {
-                const snap = await getDoc(doc(db, "projects", projectId));
+                // Timeout safety net — if Firestore still hangs, don't spin forever
+                const snap = await Promise.race([
+                    getDoc(doc(db, "projects", projectId)),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error("Firestore getDoc timeout")), 8000)
+                    ),
+                ]);
+                if (cancelled) return;
                 if (!snap.exists()) { router.push("/dashboard"); return; }
                 const projData = snap.data() as ProjectData;
                 setProject(projData);
@@ -54,7 +71,7 @@ export default function ProjectHub() {
                         let shotCount = 0;
                         let generatedCount = 0;
                         let animatedCount = 0;
-                        const epId = projData.script_status === 'empty' ? null : (snap.data().default_episode_id || 'main');
+                        const epId = projData.script_status === 'empty' ? null : (snap.data()?.default_episode_id || 'main');
                         if (epId) {
                             const scenesSnap = await getDocs(collection(db, "projects", projectId, "episodes", epId, "scenes"));
                             sceneCount = scenesSnap.size;
@@ -71,23 +88,30 @@ export default function ProjectHub() {
                             }
                         }
 
-                        setCounts({
-                            characters: charSnap.size,
-                            locations: locSnap.size,
-                            scenes: sceneCount,
-                            shots: shotCount,
-                            generatedShots: generatedCount,
-                            animatedShots: animatedCount,
-                        });
+                        if (!cancelled) {
+                            setCounts({
+                                characters: charSnap.size,
+                                locations: locSnap.size,
+                                scenes: sceneCount,
+                                shots: shotCount,
+                                generatedShots: generatedCount,
+                                animatedShots: animatedCount,
+                            });
+                        }
                     } catch (e) {
                         console.debug("[ProjectHub] Counts fetch (non-critical):", e);
                     }
                 })();
             } catch (e) {
-                console.error("Hub Error", e);
-                router.push("/dashboard");
+                console.error("[ProjectHub] Load failed:", e);
+                if (!cancelled) {
+                    // On timeout or error, redirect to dashboard
+                    router.push("/dashboard");
+                }
             }
-        })();
+        });
+
+        return () => { cancelled = true; unsubAuth(); };
     }, [projectId, router]);
 
     const scriptStatus = project?.script_status || "empty";
