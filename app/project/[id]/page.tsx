@@ -40,50 +40,52 @@ export default function ProjectHub() {
                 if (!snap.exists()) { router.push("/dashboard"); return; }
                 const projData = snap.data() as ProjectData;
                 setProject(projData);
+                setLoading(false); // Show UI immediately — counts load in background
 
-                // Fetch quick counts for progress indicators
-                const [charSnap, locSnap] = await Promise.all([
-                    getDocs(collection(db, "projects", projectId, "characters")),
-                    getDocs(collection(db, "projects", projectId, "locations")),
-                ]);
+                // Background: fetch counts for progress indicators (non-blocking)
+                (async () => {
+                    try {
+                        const [charSnap, locSnap] = await Promise.all([
+                            getDocs(collection(db, "projects", projectId, "characters")),
+                            getDocs(collection(db, "projects", projectId, "locations")),
+                        ]);
 
-                // Fetch scenes + shots for production progress
-                let sceneCount = 0;
-                let shotCount = 0;
-                let generatedCount = 0;
-                let animatedCount = 0;
-                try {
-                    const epId = projData.script_status === 'empty' ? null : (snap.data().default_episode_id || 'main');
-                    if (epId) {
-                        const scenesSnap = await getDocs(collection(db, "projects", projectId, "episodes", epId, "scenes"));
-                        sceneCount = scenesSnap.size;
-                        for (const sceneDoc of scenesSnap.docs) {
-                            const shotsSnap = await getDocs(collection(db, "projects", projectId, "episodes", epId, "scenes", sceneDoc.id, "shots"));
-                            shotCount += shotsSnap.size;
-                            shotsSnap.forEach(s => {
-                                const d = s.data();
-                                if (d.image_url) generatedCount++;
-                                if (d.video_url) animatedCount++;
-                            });
+                        let sceneCount = 0;
+                        let shotCount = 0;
+                        let generatedCount = 0;
+                        let animatedCount = 0;
+                        const epId = projData.script_status === 'empty' ? null : (snap.data().default_episode_id || 'main');
+                        if (epId) {
+                            const scenesSnap = await getDocs(collection(db, "projects", projectId, "episodes", epId, "scenes"));
+                            sceneCount = scenesSnap.size;
+                            const shotSnaps = await Promise.all(
+                                scenesSnap.docs.map(s => getDocs(collection(db, "projects", projectId, "episodes", epId, "scenes", s.id, "shots")))
+                            );
+                            for (const shotsSnap of shotSnaps) {
+                                shotCount += shotsSnap.size;
+                                shotsSnap.forEach(s => {
+                                    const d = s.data();
+                                    if (d.image_url) generatedCount++;
+                                    if (d.video_url) animatedCount++;
+                                });
+                            }
                         }
-                    }
-                } catch (e) {
-                    console.debug("[ProjectHub] Scenes/shots fetch (non-critical):", e);
-                }
 
-                setCounts({
-                    characters: charSnap.size,
-                    locations: locSnap.size,
-                    scenes: sceneCount,
-                    shots: shotCount,
-                    generatedShots: generatedCount,
-                    animatedShots: animatedCount,
-                });
+                        setCounts({
+                            characters: charSnap.size,
+                            locations: locSnap.size,
+                            scenes: sceneCount,
+                            shots: shotCount,
+                            generatedShots: generatedCount,
+                            animatedShots: animatedCount,
+                        });
+                    } catch (e) {
+                        console.debug("[ProjectHub] Counts fetch (non-critical):", e);
+                    }
+                })();
             } catch (e) {
                 console.error("Hub Error", e);
                 router.push("/dashboard");
-            } finally {
-                setLoading(false);
             }
         })();
     }, [projectId, router]);
