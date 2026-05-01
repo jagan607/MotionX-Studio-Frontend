@@ -7,9 +7,12 @@ interface DeleteConfirmModalProps {
     isDeleting: boolean;
     onConfirm: () => void;
     onCancel: () => void;
+    confirmLabel?: string;
+    loadingLabel?: string;
+    hideConfirmIcon?: boolean;
 }
 
-export const DeleteConfirmModal = ({ title, message, isDeleting, onConfirm, onCancel }: DeleteConfirmModalProps) => {
+export const DeleteConfirmModal = ({ title, message, isDeleting, onConfirm, onCancel, confirmLabel = "CONFIRM DELETE", loadingLabel = "ERASING...", hideConfirmIcon = false }: DeleteConfirmModalProps) => {
     return (
         <div style={{
             position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 9999,
@@ -59,8 +62,8 @@ export const DeleteConfirmModal = ({ title, message, isDeleting, onConfirm, onCa
                             borderRadius: '6px', transition: 'all 0.2s ease'
                         }}
                     >
-                        {isDeleting ? <Loader2 className="spin-loader" size={14} /> : <Trash2 size={14} />}
-                        {isDeleting ? "ERASING..." : "CONFIRM DELETE"}
+                        {!hideConfirmIcon && (isDeleting ? <Loader2 className="spin-loader" size={14} /> : <Trash2 size={14} />)}
+                        {isDeleting ? loadingLabel : confirmLabel}
                     </button>
                 </div>
             </div>

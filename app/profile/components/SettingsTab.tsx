@@ -32,6 +32,9 @@ export default function SettingsTab({
                     isDeleting={false}
                     onConfirm={handleLogout}
                     onCancel={() => setShowSignOutConfirm(false)}
+                    confirmLabel="CONFIRM"
+                    loadingLabel="SIGNING OUT..."
+                    hideConfirmIcon
                 />
             )}
             {/* PROFILE CARD */}
