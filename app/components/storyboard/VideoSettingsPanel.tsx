@@ -194,14 +194,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     });
     const isPreview = isSeedance2 && modelVersion === 'preview';
 
-    // Wrapped setter: synchronously applies Preview constraints to prevent async race
+    // Wrapped setter: no longer forces quality/mode — resolution ceiling is handled by useEffect
     const setModelVersion = React.useCallback((version: 'official' | 'preview') => {
         setModelVersionRaw(version);
-        // Immediately enforce 480p when switching to Preview — don't wait for useEffect
-        if (version === 'preview' && isSeedance2) {
-            setMode('std');
-            setQuality('fast');
-        }
+        // Resolution ceiling will be enforced by the quality useEffect.
+        // No forced mode/quality reset — Preview now supports Draft AND Final.
     }, [isSeedance2]);
 
     // Pricing provider key: routes cost calculations to the correct pricing table
@@ -219,6 +216,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     // --- Pricing ---
     const { getVideoCost, getVideoEditRate, getLipSyncCost } = usePricing();
     const [quality, setQuality] = useState<'fast' | 'pro'>(initialSettings?.quality || 'fast');
+
+    // Seedance 2.0: explicit resolution — decoupled from mode/quality
+    const [resolution, setResolution] = useState<'480p' | '720p' | '1080p'>(
+        initialSettings?.resolution || '720p'
+    );
     const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '4:3' | '3:4' | '1:1'>(initialSettings?.aspect_ratio || '16:9');
     const [refMedia, setRefMedia] = useState<RefMediaItem[]>(initialSettings?.reference_media || []);
     const [isUploadingRef, setIsUploadingRef] = useState(false);
@@ -295,7 +297,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
     // Surcharge-aware pricing (must be after state declarations)
     // For Seedance 1.5: Sound toggle determines the pricing TIER (std/pro), not a surcharge
-    const pricingMode = isSeedance15 ? (sound === 'on' ? 'pro' : 'std') : mode;
+    const pricingMode = isSeedance15 ? (sound === 'on' ? 'pro' : 'std') : isSeedance2 ? (quality === 'fast' ? 'std' : 'pro') : mode;
     const refVideoDurations = React.useMemo(
         () => refMedia.filter(r => r.type === 'video' && r.duration != null).map(r => r.duration!),
         [refMedia]
@@ -308,7 +310,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         sound: (isV3 || isOmni) ? sound === 'on' : (!isSeedance15 && showSoundToggle ? sound === 'on' : false),
         multiShot: (isV3 || isOmni) && multiShot,
         hasEndFrame: (isSeedance2 || isV3 || isOmni) && (!!endFrameUrl || (isLinked && !!nextShotImage)),
-        resolution: mode as 'std' | 'pro',
+        resolution: isSeedance2 ? resolution : (mode as 'std' | 'pro'),
         referenceVideoDurations: isSeedance2 ? refVideoDurations : undefined,
     };
     const videoCost = getVideoCost(pricingProvider, pricingMode, duration, surchargeFlags);
@@ -411,39 +413,33 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     React.useEffect(() => {
         if (isSeedance2) {
             setSound('on');
-
-            // Preview models do not support custom audio uploads (audio_urls)
-            if (isPreview) {
-                const audioRefs = refMedia.filter(r => r.type === 'audio');
-                if (audioRefs.length > 0) {
-                    setRefMedia(prev => prev.filter(r => r.type !== 'audio'));
-                    toastError('Custom audio references are not supported in Preview mode.');
-                }
-            }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isSeedance2, isPreview, refMedia]);
+    }, [isSeedance2]);
 
     // Reset modelVersion when switching away from seedance-2
     React.useEffect(() => {
         if (!isSeedance2) setModelVersion('official');
     }, [isSeedance2]);
 
-    // Seedance 2.0: resolution is dictated by Draft/Final tier
-    // Preview models are locked to 480p (non-VIP PiAPI) — force std mode
-    // NOTE: Preview enforcement also handled imperatively in setModelVersion wrapper above.
-    //       This effect is a safety net for mount-time / provider-switch scenarios.
+    // Seedance 2.0: resolution is now an independent state.
+    // When quality changes, enforce the resolution ceiling:
+    //   Draft (fast) → max 720p (if currently 1080p, snap down)
+    //   Final (pro)  → all resolutions available (no snap)
+    // Non-Seedance providers are unaffected — they use mode directly.
+    React.useEffect(() => {
+        if (isSeedance2 && quality === 'fast' && resolution === '1080p') {
+            setResolution('720p');
+        }
+    }, [isSeedance2, quality, resolution]);
+
+    // Seedance 2.0: initialize resolution from mode when switching TO a Seedance provider
     React.useEffect(() => {
         if (isSeedance2) {
-            if (isPreview) {
-                // Preview: backend forces 480p regardless — lock UI to Draft/std
-                setMode('std');
-                setQuality('fast');
-            } else {
-                setMode(quality === 'fast' ? 'std' : 'pro');
-            }
+            setResolution(mode === 'pro' ? '1080p' : '720p');
         }
-    }, [isSeedance2, isPreview, quality]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isSeedance2]);
 
     // DEBUG: trace isPreview evaluation (remove after confirming fix)
     React.useEffect(() => {
@@ -464,7 +460,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
     // Auto-revert to 'new' mode when provider doesn't support video editing, or if in Preview mode
     React.useEffect(() => {
-        if ((!isSeedance2 || isPreview) && generationMode !== 'new') {
+        if (!isSeedance2 && generationMode !== 'new') {
             setGenerationMode('new');
         }
     }, [isSeedance2, isPreview, generationMode]);
@@ -491,7 +487,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     React.useEffect(() => {
         if (!onSettingsChange) return;
         const currentSettings = {
-            provider, duration, mode, quality, aspect_ratio: aspectRatio,
+            provider, duration, mode, quality, resolution, aspect_ratio: aspectRatio,
             reference_media: refMedia,
             end_frame_url: endFrameUrl,
             source_video_url: sourceVideoUrl,
@@ -508,7 +504,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             onSettingsChange(currentSettings);
         }, 500);
         return () => clearTimeout(timer);
-    }, [provider, duration, mode, quality, aspectRatio, refMedia, endFrameUrl, sourceVideoUrl, sourceVideoDuration, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, keepOriginalAudio, modelVersion, onSettingsChange]);
+    }, [provider, duration, mode, quality, resolution, aspectRatio, refMedia, endFrameUrl, sourceVideoUrl, sourceVideoDuration, negativePrompt, cfgScale, sound, watermark, multiShot, shotType, segments, elementList, voiceList, keepOriginalAudio, modelVersion, onSettingsChange]);
 
     // Clear preflight warnings when settings change
     React.useEffect(() => {
@@ -516,7 +512,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             onClearPreflightWarnings();
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [provider, duration, mode, quality, aspectRatio, refMedia, endFrameUrl, sourceVideoUrl, sourceVideoDuration]);
+    }, [provider, duration, mode, quality, aspectRatio, resolution, refMedia, endFrameUrl, sourceVideoUrl, sourceVideoDuration]);
 
     // --- Validation & Options Building ---
     const getTotalSegmentDuration = () => {
@@ -533,7 +529,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const editDuration = rawEditDuration ? Math.max(rawEditDuration, MIN_EDIT_DURATION) : rawEditDuration;
     const isTrimBelowMinimum = generationMode === 'edit' && trimmedDuration > 0 && trimmedDuration < MIN_EDIT_DURATION;
     const videoEditCost = (generationMode === 'edit' && sourceVideoUrl && editDuration)
-        ? Math.round(editDuration * getVideoEditRate(pricingProvider, editMode as 'std' | 'pro') * 10) / 10
+        ? Math.round(editDuration * getVideoEditRate(pricingProvider, editMode as 'std' | 'pro', isSeedance2 ? resolution : mode) * 10) / 10
         : null;
     const displayCost = videoEditCost ?? videoCost;
 
@@ -587,13 +583,16 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
         duration,
         mode,
         aspect_ratio: aspectRatio,
+        // Pass live prompt text so preflight validates against current textarea, not stale Firestore
+        ...(promptText ? { prompt: promptText } : {}),
         ...(isSeedance2 ? {
             sound: hasCustomAudio ? 'off' : 'on',
             quality,
             model_version: modelVersion,
+            resolution,
             ...(refImageUrls.length > 0 ? { reference_image_urls: refImageUrls } : {}),
             ...(refVideoUrls.length > 0 ? { reference_video_urls: refVideoUrls } : {}),
-            ...(!isPreview && refAudioUrls.length > 0 ? { reference_audio_urls: refAudioUrls } : {}),
+            ...(refAudioUrls.length > 0 ? { reference_audio_urls: refAudioUrls } : {}),
             ...(() => {
                 const videoDurations = refMedia
                     .filter(r => r.type === 'video' && r.duration != null)
@@ -679,7 +678,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             extendAction,
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [provider, duration, mode, quality, aspectRatio, endFrameUrl, negativePrompt, cfgScale, sound,
+    }, [provider, duration, mode, quality, aspectRatio, resolution, endFrameUrl, negativePrompt, cfgScale, sound,
         watermark, multiShot, shotType, segments, elementList, voiceList, refMedia,
         hasImage, hasVideo, isBusy, isLinked, isDurationValid, videoCost, displayCost,
         generationMode, sourceVideoUrl, sourceVideoDuration, trimStart, trimEnd, preflightWarnings, hasOnlyAudio, modelVersion]);
@@ -846,50 +845,49 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                     </div>
 
                     {/* Quality / Resolution */}
-                    <div className="flex gap-1 flex-shrink-0">
-                        {isPreview ? (
-                            /* Preview: locked 480p badge + disabled HD buttons */
+                    <div className={`flex gap-1 flex-shrink-0 ${isSeedance2 ? 'min-w-[140px]' : ''}`}>
+                        {isSeedance2 ? (
+                            /* Seedance 2.0: independent resolution pills (480p / 720p / 1080p) */
                             <>
-                                <div
-                                    className={`flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-md text-[10px] font-semibold text-center select-none
-                                        bg-[#E50914]/15 text-white border border-[#E50914]/60`}
-                                    title="Preview models are limited to 480p resolution"
-                                >
-                                    480p
-                                </div>
                                 <button
                                     type="button"
-                                    disabled
-                                    className={`${pill(false, true)}`}
-                                    title="HD requires the Official model"
+                                    onClick={() => setResolution('480p')}
+                                    className={pill(resolution === '480p')}
+                                >
+                                    480p
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setResolution('720p')}
+                                    className={pill(resolution === '720p')}
                                 >
                                     720p
                                 </button>
                                 <button
                                     type="button"
-                                    disabled
-                                    className={`${pill(false, true)}`}
-                                    title="HD requires the Official model"
+                                    disabled={quality === 'fast'}
+                                    onClick={() => setResolution('1080p')}
+                                    className={`${pill(resolution === '1080p')} ${quality === 'fast' ? 'opacity-30 !cursor-not-allowed' : ''}`}
+                                    title={quality === 'fast' ? '1080p requires Final mode' : undefined}
                                 >
                                     1080p
                                 </button>
                             </>
                         ) : (
-                            /* Official / other providers: normal resolution toggles */
+                            /* Kling / Legacy: unchanged resolution toggles */
                             <>
                                 <button
                                     type="button"
-                                    disabled={isSeedance2 && quality === 'pro'}
                                     onClick={() => setMode('std')}
-                                    className={`${pill(mode === 'std')} ${isSeedance2 && quality === 'pro' ? 'opacity-30 !cursor-not-allowed' : ''}`}
+                                    className={pill(mode === 'std')}
                                 >
                                     720p
                                 </button>
                                 <button
                                     type="button"
-                                    disabled={(isSeedance2 && quality === 'fast') || isSeedance15}
+                                    disabled={isSeedance15}
                                     onClick={() => setMode('pro')}
-                                    className={`${pill(mode === 'pro')} ${(isSeedance2 && quality === 'fast') || isSeedance15 ? 'opacity-30 !cursor-not-allowed' : ''}`}
+                                    className={`${pill(mode === 'pro')} ${isSeedance15 ? 'opacity-30 !cursor-not-allowed' : ''}`}
                                 >
                                     1080p
                                 </button>
@@ -919,12 +917,12 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
             {/* ── Seedance 2.0 / Omni Features ── */}
             {(isSeedance2 || isOmni) && (
                 <div className="space-y-2">
-                    {/* Preview 480p Resolution Warning */}
-                    {isPreview && (
+                    {/* Draft 1080p restriction hint (Seedance 2 only) */}
+                    {isSeedance2 && quality === 'fast' && (
                         <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/[0.08]">
                             <Lock size={10} className="text-neutral-500 mt-0.5 flex-shrink-0" />
                             <span className="text-[9px] text-neutral-400 leading-relaxed">
-                                HD resolutions (720p/1080p) are only available on the <strong className="text-neutral-300">Official</strong> model.
+                                1080p is only available in <strong className="text-neutral-300">Final</strong> mode.
                             </span>
                         </div>
                     )}
@@ -940,9 +938,8 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             </div>
                         </div>
                     )}
-                    {/* Draft / Final Toggle (Seedance 2.0 only — Omni uses 720p/1080p) */}
-                    {/* Preview: hide Draft/Final since both are forced to Draft (480p) */}
-                    {isSeedance2 && !isPreview && <div className="flex gap-1.5">
+                    {/* Draft / Final Toggle (Seedance 2.0 — both Official and Preview) */}
+                    {isSeedance2 && <div className="flex gap-1.5">
                         <button type="button" onClick={() => setQuality('fast')}
                             className={`flex-1 px-2 py-2 rounded-md text-center transition-all cursor-pointer select-none border
                                 ${quality === 'fast'
@@ -991,7 +988,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                     </div>
 
                     {/* ── Generation Mode Toggle (3-Way: New / Edit / Extend) ── */}
-                    {shotHasVideo && !isPreview && (
+                    {shotHasVideo && (
                         <div>
                             <label className="text-[9px] font-semibold text-neutral-500 mb-1.5 block">Generation Mode</label>
                             <div className="flex gap-1">
@@ -1167,7 +1164,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <>
                                     <input
                                         type="file"
-                                        accept={(isOmni || isPreview) ? "image/*,video/mp4,video/quicktime" : "image/*,video/mp4,video/quicktime,audio/mpeg,audio/wav"}
+                                        accept={isOmni ? "image/*,video/mp4,video/quicktime" : "image/*,video/mp4,video/quicktime,audio/*,.mp3,.wav,.m4a,.aac,.ogg"}
                                         multiple
                                         className="hidden"
                                         ref={refInputRef}
@@ -1325,8 +1322,9 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                         )}
                                                         {/* Video badge — small icon to add video instead of image */}
                                                         {s.video_url && !isAdded && !isCurrentShot && (
-                                                            <button
-                                                                type="button"
+                                                            <div
+                                                                role="button"
+                                                                tabIndex={0}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     if (refMedia.length >= maxRefMedia) return;
@@ -1336,11 +1334,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                                         name: `Shot ${i + 1} video`,
                                                                     }].slice(0, maxRefMedia));
                                                                 }}
-                                                                className="absolute bottom-0 right-0 p-0.5 bg-purple-900/80 rounded-tl text-purple-300 hover:bg-purple-700/80 transition-colors"
+                                                                className="absolute bottom-0 right-0 p-0.5 bg-purple-900/80 rounded-tl text-purple-300 hover:bg-purple-700/80 transition-colors cursor-pointer"
                                                                 title="Add video as reference"
                                                             >
                                                                 <Video size={7} />
-                                                            </button>
+                                                            </div>
                                                         )}
                                                     </button>
                                                 </div>

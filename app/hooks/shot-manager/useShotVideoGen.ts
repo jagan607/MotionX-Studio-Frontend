@@ -33,6 +33,7 @@ export interface AnimateOptions {
 
     // Seedance 2.0 — Omni-Reference
     quality?: 'fast' | 'pro';                // Draft vs Final
+    resolution?: '480p' | '720p' | '1080p';  // Explicit resolution (Seedance 2 only)
     reference_image_urls?: string[];         // Omni-ref: image URLs
     reference_video_urls?: string[];         // Omni-ref: video URLs
     reference_audio_urls?: string[];         // Omni-ref: audio URLs
@@ -113,6 +114,7 @@ export const useShotVideoGen = (
 
                 // Seedance 2.0 — Omni-Reference
                 if (options.quality) payload.quality = options.quality;
+                if (options.resolution) payload.resolution = options.resolution;
                 if (options.reference_image_urls && options.reference_image_urls.length > 0) {
                     payload.reference_image_urls = options.reference_image_urls;
                 }
