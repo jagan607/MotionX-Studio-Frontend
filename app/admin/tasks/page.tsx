@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { toast } from 'react-hot-toast';
+import TaskDetailDrawer from '@/components/admin/TaskDetailDrawer';
 
 interface FirestoreTimestamp {
   toDate: () => Date;
@@ -21,6 +22,10 @@ interface Task {
   error_details?: string;
   attempt_number?: number;
   metadata?: Record<string, unknown>;
+  model_name?: string;
+  cost_credits?: number;
+  resolution?: string;
+  prompt?: string;
   scheduled_at?: FirestoreTimestamp;
   started_at?: FirestoreTimestamp;
   resolved_at?: FirestoreTimestamp;
@@ -29,6 +34,7 @@ interface Task {
 export default function TaskHistoryPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
@@ -173,7 +179,13 @@ export default function TaskHistoryPage() {
                   <tr key={task.id} className="hover:bg-[#0E0E0E] transition-colors group">
                     <td className="p-4 align-top border-r border-[#222]">
                       <div className="font-mono text-sm text-white flex items-center gap-2">
-                        {task.task_id?.substring(0, 8)}...
+                        <button
+                          onClick={() => setSelectedTask(task)}
+                          className="hover:text-red-500 transition-colors cursor-pointer underline decoration-[#333] underline-offset-2 hover:decoration-red-500"
+                          title="Open task details"
+                        >
+                          {task.task_id?.substring(0, 8)}...
+                        </button>
                         <button onClick={() => copyToClipboard(task.task_id)} className="text-[#444] hover:text-white transition-colors" title="Copy Task ID">⎘</button>
                       </div>
                       <div className="text-[10px] text-blue-400 mt-1">{task.user_email || 'SYSTEM'}</div>
@@ -195,6 +207,27 @@ export default function TaskHistoryPage() {
                               {k}: {String(v)}
                             </span>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Enriched Observability Tags */}
+                      {(task.model_name || task.cost_credits != null || task.resolution) && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {task.model_name && (
+                            <span className="text-[8px] font-mono text-purple-400 bg-purple-400/10 border border-purple-400/20 px-1.5 py-0.5 uppercase tracking-wider">
+                              MODEL: {task.model_name}
+                            </span>
+                          )}
+                          {task.cost_credits != null && (
+                            <span className="text-[8px] font-mono text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 uppercase tracking-wider">
+                              COST: {task.cost_credits}cr
+                            </span>
+                          )}
+                          {task.resolution && (
+                            <span className="text-[8px] font-mono text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 px-1.5 py-0.5 uppercase tracking-wider">
+                              RES: {task.resolution}
+                            </span>
+                          )}
                         </div>
                       )}
                     </td>
@@ -244,6 +277,8 @@ export default function TaskHistoryPage() {
           </table>
         </div>
       )}
+      {/* Task Detail Slide-Over Drawer */}
+      <TaskDetailDrawer task={selectedTask} onClose={() => setSelectedTask(null)} />
     </div>
   );
 }
