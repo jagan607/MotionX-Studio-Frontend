@@ -7,6 +7,7 @@ import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import GlobalHeader from "@/components/GlobalHeader";
 import { Toaster } from "react-hot-toast";
+import { IS_MAINTENANCE_MODE } from "@/lib/maintenance";
 import Script from "next/script";
 import { MediaViewerProvider } from "@/app/context/MediaViewerContext";
 import { WorkspaceProvider } from "@/app/context/WorkspaceContext";
@@ -155,6 +156,33 @@ export default function RootLayout({
               type="application/ld+json"
               dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
+
+            {/* ── MAINTENANCE BANNER (shown on ALL pages when active) ── */}
+            {IS_MAINTENANCE_MODE && (
+              <>
+                <div
+                  className="fixed top-0 left-0 right-0 z-[60] w-full bg-gradient-to-r from-[#1a0a00] via-[#1c0800] to-[#1a0a00] border-b border-amber-900/40"
+                  style={{ animation: 'maintenance-glow 3s ease-in-out infinite' }}
+                >
+                  <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-center gap-3">
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+                    </span>
+                    <p className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] uppercase text-amber-300/90">
+                      Scheduled Maintenance — We&apos;ll be back shortly
+                    </p>
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+                    </span>
+                  </div>
+                </div>
+                {/* Spacer to push content below the fixed banner */}
+                <div className="h-9" />
+              </>
+            )}
+
             <AuthProvider>
               <WorkspaceProvider>
               <CreditsProvider>
@@ -207,6 +235,14 @@ export default function RootLayout({
           </div>
         </MediaViewerProvider>
         <Analytics />
+        {IS_MAINTENANCE_MODE && (
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes maintenance-glow {
+              0%, 100% { box-shadow: 0 2px 20px rgba(245, 158, 11, 0.05); }
+              50% { box-shadow: 0 2px 30px rgba(245, 158, 11, 0.12); }
+            }
+          `}} />
+        )}
       </body>
     </html>
   );

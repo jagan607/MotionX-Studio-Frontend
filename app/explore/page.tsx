@@ -1,5 +1,7 @@
 "use client";
 
+import { IS_MAINTENANCE_MODE } from "@/lib/maintenance";
+
 /**
  * /explore — Cinematic AI showcase gallery.
  *
@@ -200,6 +202,7 @@ export default function ExplorePage() {
 
                                 {/* Hero actions */}
                                 <div className="flex items-center gap-3">
+                                {!IS_MAINTENANCE_MODE && (
                                     <button
                                         onClick={() => router.push("/playground")}
                                         className="flex items-center gap-2 px-6 py-3 rounded-lg text-[10px] font-bold uppercase tracking-[2px] border-none cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98]"
@@ -211,6 +214,7 @@ export default function ExplorePage() {
                                         <Zap size={13} />
                                         Start Creating
                                     </button>
+                                )}
 
                                     {heroShot.prompt && (
                                         <button
@@ -383,19 +387,21 @@ export default function ExplorePage() {
                     scrolled ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
                 }`}
             >
-                <button
-                    onClick={() => router.push("/playground")}
-                    className="flex items-center gap-2 px-6 py-3 rounded-full text-[10px] font-bold uppercase tracking-[2px] border-none cursor-pointer transition-all hover:scale-105 active:scale-[0.98]"
-                    style={{
-                        background: "linear-gradient(135deg, #E50914, #B30710)",
-                        boxShadow: "0 8px 32px rgba(229,9,20,0.4), 0 0 60px rgba(229,9,20,0.15)",
-                        backdropFilter: "blur(10px)",
-                    }}
-                >
-                    <Sparkles size={12} />
-                    Create Your Own
-                    <ArrowRight size={12} />
-                </button>
+                {!IS_MAINTENANCE_MODE && (
+                    <button
+                        onClick={() => router.push("/playground")}
+                        className="flex items-center gap-2 px-6 py-3 rounded-full text-[10px] font-bold uppercase tracking-[2px] border-none cursor-pointer transition-all hover:scale-105 active:scale-[0.98]"
+                        style={{
+                            background: "linear-gradient(135deg, #E50914, #B30710)",
+                            boxShadow: "0 8px 32px rgba(229,9,20,0.4), 0 0 60px rgba(229,9,20,0.15)",
+                            backdropFilter: "blur(10px)",
+                        }}
+                    >
+                        <Sparkles size={12} />
+                        Create Your Own
+                        <ArrowRight size={12} />
+                    </button>
+                )}
             </div>
 
             {/* ── LIGHTBOX MODAL ── */}

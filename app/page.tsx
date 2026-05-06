@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IS_MAINTENANCE_MODE } from "@/lib/maintenance";
 import { useEffect, useState, useRef } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -329,8 +330,8 @@ const HeroSection = () => {
 
   return (
     <section className="relative w-full flex flex-col items-center justify-center overflow-hidden" style={{ minHeight: '100vh' }}>
-      {/* Cross-Fade Background (Video or Image) */}
-      {heroMedia.map((item, i) => (
+      {/* Cross-Fade Background (Video or Image) — hidden during maintenance */}
+      {!IS_MAINTENANCE_MODE && heroMedia.map((item, i) => (
         item.video_url ? (
           <video
             key={i}
@@ -496,12 +497,14 @@ const HeroSection = () => {
 
         {/* CTAs */}
         <div className="animate-fade-up-delay-2 flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 md:mt-10 w-full max-w-sm sm:max-w-none mx-auto">
-          <Link
-            href="/login"
-            className="w-full sm:w-auto justify-center px-8 py-3.5 sm:px-10 sm:py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(229,9,20,0.5)] flex items-center gap-3 backdrop-blur-md"
-          >
-            <Play size={14} fill="currentColor" /> Start Creating Your Film
-          </Link>
+          {!IS_MAINTENANCE_MODE && (
+            <Link
+              href="/login"
+              className="w-full sm:w-auto justify-center px-8 py-3.5 sm:px-10 sm:py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(229,9,20,0.5)] flex items-center gap-3 backdrop-blur-md"
+            >
+              <Play size={14} fill="currentColor" /> Start Creating Your Film
+            </Link>
+          )}
           <a
             href={CALENDLY_URL}
             target="_blank"
@@ -513,7 +516,8 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* ── Horizontal Media Reel ── */}
+      {/* ── Horizontal Media Reel — hidden during maintenance ── */}
+      {!IS_MAINTENANCE_MODE && (
       <div className="relative z-10 w-full mt-12 md:mt-16 overflow-hidden">
         {/* Edge fade masks */}
         <div className="absolute left-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
@@ -555,6 +559,7 @@ const HeroSection = () => {
           ))}
         </div>
       </div>
+      )}
 
       {/* ── Scroll Indicator ── */}
       <div className="relative z-10 flex flex-col items-center gap-2 mt-8 mb-4 pb-8">
@@ -810,7 +815,7 @@ export default function LandingPage() {
       {/* NAVIGATION                                                         */}
       {/* ════════════════════════════════════════════════════════════════════ */}
       <nav
-        className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${scrolled
+        className={`fixed left-0 w-full z-50 transition-all duration-500 ${IS_MAINTENANCE_MODE ? 'top-9' : 'top-0'} ${scrolled
           ? "py-3 bg-[#050505]/80 backdrop-blur-xl border-b border-white/[0.04]"
           : "py-5 bg-transparent"
           }`}
@@ -853,18 +858,22 @@ export default function LandingPage() {
             >
               Pricing
             </Link>
-            <Link
-              href="/login"
-              className="hidden md:flex px-5 py-2 border border-white/20 hover:border-white/40 text-white text-[11px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:bg-white/[0.04]"
-            >
-              Log In
-            </Link>
-            <Link
-              href="/login"
-              className="px-5 py-2 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_20px_rgba(229,9,20,0.3)]"
-            >
-              Start Creating
-            </Link>
+            {!IS_MAINTENANCE_MODE && (
+              <Link
+                href="/login"
+                className="hidden md:flex px-5 py-2 border border-white/20 hover:border-white/40 text-white text-[11px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:bg-white/[0.04]"
+              >
+                Log In
+              </Link>
+            )}
+            {!IS_MAINTENANCE_MODE && (
+              <Link
+                href="/login"
+                className="px-5 py-2 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_20px_rgba(229,9,20,0.3)]"
+              >
+                Start Creating
+              </Link>
+            )}
           </div>
         </div>
       </nav>
@@ -1450,12 +1459,14 @@ export default function LandingPage() {
             From script to final cut — your AI filmmaking studio is ready.
           </motion.p>
           <motion.div variants={fadeUp} custom={2} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 px-10 py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[13px] font-bold tracking-[0.12em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(229,9,20,0.25)]"
-            >
-              Start Creating Your Film <ArrowRight size={16} />
-            </Link>
+            {!IS_MAINTENANCE_MODE && (
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 px-10 py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[13px] font-bold tracking-[0.12em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(229,9,20,0.25)]"
+              >
+                Start Creating Your Film <ArrowRight size={16} />
+              </Link>
+            )}
             <a
               href={CALENDLY_URL}
               target="_blank"
@@ -1532,16 +1543,18 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* STICKY "START CREATING" BUTTON                                     */}
       {/* ════════════════════════════════════════════════════════════════════ */}
-      <Link
-        href="/login"
-        className={`fixed bottom-6 right-6 z-50 px-6 py-3 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold tracking-[0.15em] uppercase rounded-full shadow-lg transition-all duration-500 flex items-center gap-2 ${showSticky
-          ? "translate-y-0 opacity-100"
-          : "translate-y-4 opacity-0 pointer-events-none"
-          }`}
-        style={{ animation: showSticky ? "subtle-glow 3s ease-in-out infinite" : "none" }}
-      >
-        <Play size={12} fill="currentColor" /> Start Creating
-      </Link>
+      {!IS_MAINTENANCE_MODE && (
+        <Link
+          href="/login"
+          className={`fixed bottom-6 right-6 z-50 px-6 py-3 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold tracking-[0.15em] uppercase rounded-full shadow-lg transition-all duration-500 flex items-center gap-2 ${showSticky
+            ? "translate-y-0 opacity-100"
+            : "translate-y-4 opacity-0 pointer-events-none"
+            }`}
+          style={{ animation: showSticky ? "subtle-glow 3s ease-in-out infinite" : "none" }}
+        >
+          <Play size={12} fill="currentColor" /> Start Creating
+        </Link>
+      )}
     </main>
   );
 }
