@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
 
   // Tree-shake named exports from heavy libraries (only include used icons/functions)
   experimental: {
+    turbopackFileSystemCacheForDev: false,
     optimizePackageImports: [
       'lucide-react',
       'framer-motion',
