@@ -11,6 +11,7 @@ import {
 import imageCompression from 'browser-image-compression';
 import type { VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
 import { usePricing } from '@/app/hooks/usePricing';
+import { TokenIcon } from '@/components/ui/TokenIcon';
 import { getErrorUIConfig, executeErrorAction } from '@/lib/errorDictionary';
 
 interface CastMember { id: string; name: string; }
@@ -717,7 +718,7 @@ export const SortableShotCard = ({
                         className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         <Sparkles size={12} /> {hasImage ? "Re-Gen" : "Gen Image"}
-                        <span className="opacity-50 text-[9px] font-normal">· {imageCost} cr</span>
+                        <span className="inline-flex items-center gap-1 opacity-50 text-[9px] font-normal"><TokenIcon size={9} />{imageCost}</span>
                     </button>
                     <button
                         onClick={() => onUpscale(modelTier)}
@@ -731,7 +732,7 @@ export const SortableShotCard = ({
                     >
                         {isUpscaled ? <CheckCircle2 size={12} /> : <Wand2 size={12} />}
                         {isUpscaled ? "4K" : "Upscale 4K"}
-                        {!isUpscaled && !isUpscaling && <span className="opacity-50 text-[9px] font-normal">· {upscaleCost} cr</span>}
+                        {!isUpscaled && !isUpscaling && <span className="inline-flex items-center gap-1 opacity-50 text-[9px] font-normal"><TokenIcon size={9} />{upscaleCost}</span>}
                     </button>
                 </div>
 

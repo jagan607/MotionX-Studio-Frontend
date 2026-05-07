@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     Sparkles, X, Loader2, Save, CloudFog, Building2,
-    ChevronLeft, ChevronRight, Eye, ImagePlus, Pencil, Download, AlertTriangle, Coins, Trash2, Maximize2
+    ChevronLeft, ChevronRight, Eye, ImagePlus, Pencil, Download, AlertTriangle, Trash2, Maximize2
 } from "lucide-react";
+import { TokenIcon } from "@/components/ui/TokenIcon";
 import { generateSetDesign, expandSetLegacy, expandSet360, updateSetDesign, inpaintSetDesign, cloneSetDesign, retrySetAngle, resetSetDesign } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { InpaintEditor } from "./InpaintEditor";
@@ -824,7 +825,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                         className="inline-flex items-center gap-2 bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isGenerating ? "GENERATING..." : "RETRY SET PROPS"}
-                                        {!isGenerating && <span className="inline-flex items-center gap-1 ml-1 text-white/40"><Coins size={10} />0.5</span>}
+                                        {!isGenerating && <span className="inline-flex items-center gap-1 ml-1 text-white/40"><TokenIcon size={10} />0.5</span>}
                                     </button>
                                 )}
 
@@ -836,7 +837,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                         className="inline-flex items-center gap-2 bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isRetryingAngle ? <><Loader2 size={12} className="animate-spin" /> RETRYING...</> : <>RETRY {(ANGLE_LABELS[activeView] || activeView).toUpperCase()}</>}
-                                        {!isRetryingAngle && <span className="inline-flex items-center gap-1 ml-1 text-white/40"><Coins size={10} />0.5</span>}
+                                        {!isRetryingAngle && <span className="inline-flex items-center gap-1 ml-1 text-white/40"><TokenIcon size={10} />0.5</span>}
                                     </button>
                                 )}
 
@@ -848,7 +849,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                         className="inline-flex items-center gap-2 bg-red-600/90 hover:bg-red-600 border border-red-500/60 hover:border-red-400 text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isExpandingLegacy ? <><Loader2 size={12} className="animate-spin" /> BUILDING...</> : <>BUILD SET</>}
-                                        {!isExpandingLegacy && <span className="inline-flex items-center gap-1 ml-1 text-white"><Coins size={10} />1.5</span>}
+                                        {!isExpandingLegacy && <span className="inline-flex items-center gap-1 ml-1 text-white"><TokenIcon size={10} />1.5</span>}
                                     </button>
                                 )}
 
@@ -860,7 +861,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                         className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isExpanding360 ? <><Loader2 size={12} className="animate-spin" /> EXTENDING...</> : <>EXTEND SET WITH SEEDANCE</>}
-                                        {!isExpanding360 && <span className="inline-flex items-center gap-1 ml-1 text-white/40"><Coins size={10} />4</span>}
+                                        {!isExpanding360 && <span className="inline-flex items-center gap-1 ml-1 text-white/40"><TokenIcon size={10} />4</span>}
                                     </button>
                                 )}
                                 */}
@@ -883,7 +884,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                         className="inline-flex items-center gap-2 justify-center bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isGenerating ? "GENERATING..." : hasData ? "OVERHAUL DESIGN" : "GENERATE SET"}
-                                        {!isGenerating && <span className="inline-flex items-center gap-1 ml-1 text-white/40"><Coins size={10} />2</span>}
+                                        {!isGenerating && <span className="inline-flex items-center gap-1 ml-1 text-white/40"><TokenIcon size={10} />2</span>}
                                     </button>
                                 )}
                             </div>

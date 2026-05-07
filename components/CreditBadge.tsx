@@ -1,7 +1,8 @@
 "use client";
 
 import { useCredits } from "@/hooks/useCredits";
-import { Zap, Coins } from "lucide-react";
+import { Zap } from "lucide-react";
+import { TokenIcon } from "@/components/ui/TokenIcon";
 
 export default function CreditBadge() {
     const { credits, loading } = useCredits();
@@ -53,7 +54,7 @@ export default function CreditBadge() {
         <div style={styles.container}>
             {/* Icon Section */}
             <div style={styles.iconBox}>
-                {credits && credits > 0 ? <Coins size={16} /> : <Zap size={16} />}
+                {credits && credits > 0 ? <TokenIcon size={16} /> : <Zap size={16} />}
             </div>
 
             {/* Text Section */}

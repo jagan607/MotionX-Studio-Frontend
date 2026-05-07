@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import {
     Sparkles, X, Loader2, Save, Scissors, Lock, Unlock,
-    Zap, User, ImageIcon
+    User, ImageIcon
 } from "lucide-react";
+import { TokenIcon } from "@/components/ui/TokenIcon";
 import { generateWardrobe, updateWardrobe, generateWardrobePortrait } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 
@@ -526,7 +527,7 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
                             {/* ── Feature 2: Credit cost indicator ── */}
                             <div className="flex items-center gap-1 relative z-10 px-2.5 py-1 rounded-lg"
                                 style={{ backgroundColor: "rgba(251, 191, 36, 0.08)", border: "1px solid rgba(251, 191, 36, 0.15)" }}>
-                                <Zap size={10} className="text-amber-400" />
+                                <TokenIcon size={10} className="text-amber-400" />
                                 <span className="text-[10px] font-mono font-bold text-amber-400/80">1</span>
                             </div>
                         </button>
@@ -575,7 +576,7 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
                                     </span>
                                     <div className="flex items-center gap-1 px-2 py-0.5 rounded-md"
                                         style={{ backgroundColor: "rgba(251, 191, 36, 0.08)", border: "1px solid rgba(251, 191, 36, 0.15)" }}>
-                                        <Zap size={8} className="text-amber-400" />
+                                        <TokenIcon size={8} className="text-amber-400" />
                                         <span className="text-[9px] font-mono font-bold text-amber-400/80">1</span>
                                     </div>
                                 </button>

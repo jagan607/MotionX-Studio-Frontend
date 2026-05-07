@@ -35,6 +35,7 @@ import {
 import { usePromptMention } from "@/app/hooks/usePromptMention";
 import { usePlayground, type PlaygroundMentionItem } from "@/app/context/PlaygroundContext";
 import { usePricing, formatCredits } from "@/app/hooks/usePricing";
+import { TokenIcon } from "@/components/ui/TokenIcon";
 import { useCredits } from "@/hooks/useCredits";
 import { playgroundGenerate, playgroundAnimate, playgroundEnhancePrompt } from "@/lib/playgroundApi";
 import toast from "react-hot-toast";
@@ -1032,7 +1033,7 @@ export default function PlaygroundPromptBar() {
                                 )}
                                 {isGenerating ? "Generating…" : hasInsufficientBalance ? "Low Balance" : generationMode === 'video' ? "Generate Video" : "Generate"}
                                 {!isGenerating && (
-                                    <span className="opacity-50 text-[8px] font-normal">• {formatCredits(finalCost)} cr</span>
+                                    <span className="inline-flex items-center gap-1 opacity-50 text-[8px] font-normal"><TokenIcon size={9} />{formatCredits(finalCost)}</span>
                                 )}
                             </button>
                         </div>

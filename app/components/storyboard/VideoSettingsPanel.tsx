@@ -8,6 +8,7 @@ import {
 import type { VideoProvider, AnimateOptions, PromptSegment } from '@/app/hooks/shot-manager/useShotVideoGen';
 import type { KlingElement } from '@/app/hooks/shot-manager/useElementLibrary';
 import { usePricing, formatCredits } from '@/app/hooks/usePricing';
+import { TokenIcon } from '@/components/ui/TokenIcon';
 import { toastError } from '@/lib/toast';
 
 // ── Omni-Reference Types ──
@@ -950,7 +951,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <FastForward size={10} />
                                 <span className="text-[10px] font-bold">Draft</span>
                             </div>
-                            <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost(pricingProvider, 'std', duration, surchargeFlags))} cr</div>
+                            <div className="text-[8px] mt-0.5 opacity-60 inline-flex items-center justify-center gap-0.5"><TokenIcon size={8} />{formatCredits(getVideoCost(pricingProvider, 'std', duration, surchargeFlags))}</div>
                         </button>
                         <button type="button" onClick={() => setQuality('pro')}
                             className={`flex-1 px-2 py-2 rounded-md text-center transition-all cursor-pointer select-none border
@@ -962,7 +963,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <Film size={10} />
                                 <span className="text-[10px] font-bold">Final</span>
                             </div>
-                            <div className="text-[8px] mt-0.5 opacity-60">{formatCredits(getVideoCost(pricingProvider, 'pro', duration, surchargeFlags))} cr</div>
+                            <div className="text-[8px] mt-0.5 opacity-60 inline-flex items-center justify-center gap-0.5"><TokenIcon size={8} />{formatCredits(getVideoCost(pricingProvider, 'pro', duration, surchargeFlags))}</div>
                         </button>
                     </div>}
 
@@ -2237,19 +2238,19 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     {hasVideo ? 'Animating...' : 'Generating...'}
                                 </>
                             ) : isLinked ? (
-                                <><Link2 size={13} /> Morph to Next {displayCost > 0 && <span className="opacity-60 text-[9px] font-normal">· {formatCredits(displayCost)} cr</span>}</>
+                                <><Link2 size={13} /> Morph to Next {displayCost > 0 && <span className="inline-flex items-center gap-1 opacity-60 text-[9px] font-normal"><TokenIcon size={9} />{formatCredits(displayCost)}</span>}</>
                             ) : generationMode === 'edit' ? (
                                 <>
                                     <Pencil size={13} /> Apply Video Edit
                                     {displayCost > 0 && (
-                                        <span className="opacity-60 text-[9px] font-normal">· {formatCredits(displayCost)} cr</span>
+                                        <span className="inline-flex items-center gap-1 opacity-60 text-[9px] font-normal"><TokenIcon size={9} />{formatCredits(displayCost)}</span>
                                     )}
                                 </>
                             ) : generationMode === 'extend' ? (
                                 <>
                                     <Plus size={13} /> Extend Video
                                     {displayCost > 0 && (
-                                        <span className="opacity-60 text-[9px] font-normal">· {formatCredits(displayCost)} cr</span>
+                                        <span className="inline-flex items-center gap-1 opacity-60 text-[9px] font-normal"><TokenIcon size={9} />{formatCredits(displayCost)}</span>
                                     )}
                                 </>
                             ) : (
@@ -2257,7 +2258,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     {hasVideo ? <RefreshCw size={13} /> : <Film size={13} />}
                                     {hasVideo ? 'Re-Animate' : 'Animate'}
                                     {displayCost > 0 && (
-                                        <span className="opacity-60 text-[9px] font-normal">· {formatCredits(displayCost)} cr</span>
+                                        <span className="inline-flex items-center gap-1 opacity-60 text-[9px] font-normal"><TokenIcon size={9} />{formatCredits(displayCost)}</span>
                                     )}
                                 </>
                             )}

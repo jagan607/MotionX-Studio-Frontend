@@ -10,6 +10,7 @@ import { KlingElement, useElementLibrary } from '@/app/hooks/shot-manager/useEle
 import { AnimateOptions, VideoProvider, PreflightResult } from '@/app/hooks/shot-manager/useShotVideoGen';
 import { usePromptMention, MentionItem } from '@/app/hooks/usePromptMention';
 import { formatCredits } from '@/app/hooks/usePricing';
+import { TokenIcon } from '@/components/ui/TokenIcon';
 import { api } from '@/lib/api';
 import Image from 'next/image';
 import { Shot, VideoHistoryEntry } from '@/lib/types';
@@ -735,7 +736,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                         )}
                                         {animateInfo.label}
                                         {!animateInfo.disabled && animateInfo.cost > 0 && (
-                                            <span className="opacity-60 text-[10px] font-normal">· {formatCredits(animateInfo.cost)} cr</span>
+                                            <span className="inline-flex items-center gap-1 opacity-60 text-[10px] font-normal"><TokenIcon size={9} />{formatCredits(animateInfo.cost)}</span>
                                         )}
                                     </button>
                                 </div>
