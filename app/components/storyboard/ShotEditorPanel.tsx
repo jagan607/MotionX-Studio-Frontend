@@ -555,7 +555,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                                     : 'bg-white/[0.05] text-neutral-400 border border-white/[0.1] hover:bg-white/[0.1] hover:border-white/[0.2] hover:text-white cursor-pointer'}
                                             disabled:opacity-30 disabled:cursor-not-allowed`}
                                     >
-                                        {isEnhancing ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                                        {isEnhancing ? <Loader2 size={11} className="animate-spin" /> : <TokenIcon size={11} />}
                                         {isEnhancing ? 'Enhancing...' : 'Enhance'}
                                         {displayMedia.length > 0 && !isEnhancing && (
                                             <span className="relative flex h-2 w-2">

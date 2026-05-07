@@ -10,6 +10,7 @@ import {
     ArrowRight, ExternalLink, Download, RotateCcw,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { TokenIcon } from "@/components/ui/TokenIcon";
 import { analyzeWorkflow, executeWorkflow, getWorkflowStatus } from "@/lib/api";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
@@ -431,8 +432,8 @@ export default function WorkflowLabPage() {
 
                                                         {/* Credits */}
                                                         <span className="ml-auto flex items-center gap-1 text-[9px] font-mono text-amber-400/60">
-                                                            <CreditCard size={10} />
-                                                            {op.estimated_credits} cr
+                                                            <TokenIcon size={10} />
+                                                            {op.estimated_credits}
                                                         </span>
                                                     </div>
 
@@ -524,7 +525,7 @@ export default function WorkflowLabPage() {
                                         <span className="text-[7px] font-bold text-white/20 uppercase tracking-widest block">Total Cost</span>
                                         <span className="text-xl font-['Anton'] text-amber-400">
                                             {analysis.total_estimated_credits}
-                                            <span className="text-xs text-amber-400/40 ml-1">credits</span>
+                                            <span className="text-xs text-amber-400/40 ml-1 inline-flex items-center"><TokenIcon size={12} /></span>
                                         </span>
                                     </div>
                                     <div>

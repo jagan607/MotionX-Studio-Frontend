@@ -16,6 +16,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Copy, Clock, Cpu, CreditCard, Monitor, FileText, AlertTriangle } from "lucide-react";
+import { TokenIcon } from "@/components/ui/TokenIcon";
 import { toast } from "react-hot-toast";
 
 interface FirestoreTimestamp {
@@ -162,7 +163,7 @@ export default function TaskDetailDrawer({ task, onClose }: TaskDetailDrawerProp
                                     />
                                     <StatCard
                                         label="Cost"
-                                        value={task.cost_credits != null ? `${task.cost_credits} cr` : null}
+                                        value={task.cost_credits != null ? `${task.cost_credits}` : null}
                                         icon={<CreditCard size={12} />}
                                         color="amber"
                                     />

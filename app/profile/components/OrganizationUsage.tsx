@@ -3,7 +3,8 @@
 import { api } from "@/lib/api";
 
 import { useState, useEffect } from "react";
-import { Loader2, TrendingUp, BarChart3, Zap, Clock, User, Cpu } from "lucide-react";
+import { Loader2, TrendingUp, BarChart3, Clock, User, Cpu } from "lucide-react";
+import { TokenIcon } from "@/components/ui/TokenIcon";
 import { auth } from "@/lib/firebase";
 
 interface LeaderboardEntry {
@@ -82,7 +83,7 @@ export default function OrganizationUsage() {
     if (data.total_spent === 0 && data.leaderboard.length === 0) {
         return (
             <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl p-12 text-center">
-                <Zap size={32} className="mx-auto mb-3 text-[#333]" />
+                <TokenIcon size={32} className="mx-auto mb-3 text-[#333]" />
                 <p className="text-[11px] font-bold uppercase tracking-widest text-[#666]">No credits consumed yet</p>
                 <p className="text-[9px] text-[#444] mt-1">No credits have been consumed by your organization yet.</p>
             </div>
@@ -148,8 +149,8 @@ export default function OrganizationUsage() {
                                     </div>
 
                                     {/* Spend */}
-                                    <span className="text-[10px] font-mono text-[#888] shrink-0 tabular-nums">
-                                        {entry.spent.toLocaleString()} cr
+                                    <span className="text-[10px] font-mono text-[#888] shrink-0 tabular-nums inline-flex items-center gap-1">
+                                        <TokenIcon size={10} />{entry.spent.toLocaleString()}
                                     </span>
                                 </div>
                             ))}
