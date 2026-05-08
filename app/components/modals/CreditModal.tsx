@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Zap, ShieldCheck } from "lucide-react";
+import { X, Zap, ShieldCheck } from "@/lib/lucide";
 import { TopUpCard } from "../TopUpCard";
 import { usePayment, getUserCurrency } from "@/lib/payment"; // Import helper
 import { useCredits } from "@/hooks/useCredits";

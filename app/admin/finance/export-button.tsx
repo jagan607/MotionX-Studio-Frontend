@@ -1,6 +1,6 @@
 "use client";
 
-import { Download } from 'lucide-react';
+import { Download } from "@/lib/lucide";
 
 export function ExportButton({ data }: { data: any[] }) {
     const handleExport = () => {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
-import { X, ChevronLeft, ChevronRight, Image as ImageIcon, Film, Mic2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Image as ImageIcon, Film, Mic2 } from "@/lib/lucide";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function GlobalMediaViewer() {

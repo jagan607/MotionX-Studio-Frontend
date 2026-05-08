@@ -1,5 +1,5 @@
 import React, { ButtonHTMLAttributes } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from "@/lib/lucide";
 
 interface MotionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     loading?: boolean;

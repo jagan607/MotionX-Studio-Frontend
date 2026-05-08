@@ -8,7 +8,7 @@
  * Handles loading, empty, and populated states.
  */
 
-import { Loader2, Zap } from "lucide-react";
+import { Loader2, Zap } from "@/lib/lucide";
 import PlaygroundGenerationCard from "@/components/playground/PlaygroundGenerationCard";
 import type { PlaygroundGeneration } from "@/lib/playgroundApi";
 

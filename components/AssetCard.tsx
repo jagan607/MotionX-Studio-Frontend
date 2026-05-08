@@ -2,7 +2,7 @@ import React from "react";
 import {
     Trash2, Loader2, Wand2, Play, Sparkles, Settings,
     Plus, Video, ShoppingBag
-} from "lucide-react";
+} from "@/lib/lucide";
 import { Asset, CharacterProfile, ProductProfile } from "@/lib/types";
 
 interface AssetCardProps {

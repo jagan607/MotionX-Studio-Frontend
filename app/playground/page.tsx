@@ -14,7 +14,7 @@ import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { PlaygroundProvider, usePlayground } from "@/app/context/PlaygroundContext";
 import { PricingProvider } from "@/app/hooks/usePricing";
-import { Loader2, PanelLeftOpen, PanelLeftClose, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { Loader2, PanelLeftOpen, PanelLeftClose, PanelRightOpen, PanelRightClose } from "@/lib/lucide";
 import { TourOverlay } from "@/components/tour/TourOverlay";
 import { PLAYGROUND_TOUR_STEPS } from "@/lib/tourConfigs";
 import { useTour } from "@/hooks/useTour";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Maximize2, Download, Wand2, Image as ImageIcon, PlayCircle, Mic2, Sparkles } from "lucide-react";
+import { Loader2, Maximize2, Download, Wand2, Image as ImageIcon, PlayCircle, Mic2, Sparkles } from "@/lib/lucide";
 
 interface ShotImageProps {
     src: string;

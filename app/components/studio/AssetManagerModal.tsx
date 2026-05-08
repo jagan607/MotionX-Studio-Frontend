@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import {
     X, Users, MapPin, ShoppingBag, Plus, Loader2,
     Search, Sparkles
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
 

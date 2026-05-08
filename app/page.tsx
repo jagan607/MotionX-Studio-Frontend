@@ -3,16 +3,14 @@
 import Link from "next/link";
 import { IS_MAINTENANCE_MODE } from "@/lib/maintenance";
 import { useEffect, useState, useRef } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import {
-  ChevronRight, Play, Aperture, Film, Sparkles, Layers,
+  ChevronRight, Play, Film, Sparkles,
   ArrowRight, Camera, Sun, Palette, LayoutGrid,
-  Clapperboard, Users, Zap, Headphones, TrendingUp,
-  Video, Megaphone, Tv, Target, Clock, DollarSign,
-  CheckCircle2, Building2, Shield, Server, MessageSquare,
+  Clapperboard, Users, Headphones,
+
+  Server,
   Scissors, Eye, UserCheck, Volume2, VolumeX,
-} from "lucide-react";
+} from "@/lib/lucide";
 import { motion, useInView } from "framer-motion";
 import { fetchGlobalFeed } from "@/lib/api";
 
@@ -518,47 +516,47 @@ const HeroSection = () => {
 
       {/* ── Horizontal Media Reel — hidden during maintenance ── */}
       {!IS_MAINTENANCE_MODE && (
-      <div className="relative z-10 w-full mt-12 md:mt-16 overflow-hidden">
-        {/* Edge fade masks */}
-        <div className="absolute left-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-l from-[#050505] to-transparent z-10 pointer-events-none" />
+        <div className="relative z-10 w-full mt-12 md:mt-16 overflow-hidden">
+          {/* Edge fade masks */}
+          <div className="absolute left-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-l from-[#050505] to-transparent z-10 pointer-events-none" />
 
-        {/* Scrolling track: duplicated for seamless loop */}
-        <div
-          className="flex gap-4 items-center"
-          style={{
-            animation: 'marquee-scroll 30s linear infinite',
-            width: 'max-content',
-          }}
-        >
-          {[...heroMedia, ...heroMedia].map((item, i) => (
-            <div
-              key={i}
-              className="flex-shrink-0 w-[280px] md:w-[360px] rounded-xl overflow-hidden border border-white/[0.08] red-glow"
-            >
-              {item.video_url ? (
-                <video
-                  src={item.video_url}
-                  muted
-                  playsInline
-                  loop
-                  autoPlay
-                  preload="metadata"
-                  className="w-full h-auto object-cover"
-                  style={{ aspectRatio: '16/9' }}
-                />
-              ) : (
-                <img
-                  src={item.image_url}
-                  alt=""
-                  className="w-full h-auto object-cover"
-                  style={{ aspectRatio: '16/9' }}
-                />
-              )}
-            </div>
-          ))}
+          {/* Scrolling track: duplicated for seamless loop */}
+          <div
+            className="flex gap-4 items-center"
+            style={{
+              animation: 'marquee-scroll 30s linear infinite',
+              width: 'max-content',
+            }}
+          >
+            {[...heroMedia, ...heroMedia].map((item, i) => (
+              <div
+                key={i}
+                className="flex-shrink-0 w-[280px] md:w-[360px] rounded-xl overflow-hidden border border-white/[0.08] red-glow"
+              >
+                {item.video_url ? (
+                  <video
+                    src={item.video_url}
+                    muted
+                    playsInline
+                    loop
+                    autoPlay
+                    preload="metadata"
+                    className="w-full h-auto object-cover"
+                    style={{ aspectRatio: '16/9' }}
+                  />
+                ) : (
+                  <img
+                    src={item.image_url}
+                    alt=""
+                    className="w-full h-auto object-cover"
+                    style={{ aspectRatio: '16/9' }}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
       )}
 
       {/* ── Scroll Indicator ── */}

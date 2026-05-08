@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Clapperboard, ArrowRight, Plus, Loader2, X } from "lucide-react";
+import { Clapperboard, ArrowRight, Plus, Loader2, X } from "@/lib/lucide";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 import { useRouter } from "next/navigation";
 import {

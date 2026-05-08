@@ -15,7 +15,7 @@
  */
 
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Copy, Clock, Cpu, CreditCard, Monitor, FileText, AlertTriangle } from "lucide-react";
+import { X, Copy, Clock, Cpu, CreditCard, Monitor, FileText, AlertTriangle } from "@/lib/lucide";
 import { TokenIcon } from "@/components/ui/TokenIcon";
 import { toast } from "react-hot-toast";
 

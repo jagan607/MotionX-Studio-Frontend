@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Zap, Clock, ArrowRight, X } from "lucide-react";
+import { Zap, Clock, ArrowRight, X } from "@/lib/lucide";
 import { useCredits } from "@/hooks/useCredits";
 import CreditModal from "@/app/components/modals/CreditModal";
 import Link from "next/link";

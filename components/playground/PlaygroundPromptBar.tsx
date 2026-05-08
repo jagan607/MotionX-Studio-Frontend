@@ -31,7 +31,7 @@ import {
     Search,
     Wand2,
     PlusCircle,
-} from "lucide-react";
+} from "@/lib/lucide";
 import { usePromptMention } from "@/app/hooks/usePromptMention";
 import { usePlayground, type PlaygroundMentionItem } from "@/app/context/PlaygroundContext";
 import { usePricing, formatCredits } from "@/app/hooks/usePricing";
@@ -39,7 +39,7 @@ import { TokenIcon } from "@/components/ui/TokenIcon";
 import { useCredits } from "@/hooks/useCredits";
 import { playgroundGenerate, playgroundAnimate, playgroundEnhancePrompt } from "@/lib/playgroundApi";
 import toast from "react-hot-toast";
-import { Video } from "lucide-react";
+import { Video } from "@/lib/lucide";
 
 // ═══════════════════════════════════════════════════════════════
 //  ASSET ID EXTRACTION

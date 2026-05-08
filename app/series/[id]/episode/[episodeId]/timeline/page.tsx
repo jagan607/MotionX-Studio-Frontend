@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "@/lib/lucide";
 import { TimelineBoard } from "./TimelineBoard";
 import { useEpisodeData } from "../hooks/useEpisodeData";
 // import { useShotManager } from "../hooks/useShotManager";

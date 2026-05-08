@@ -6,7 +6,7 @@ import { DashboardProject } from "@/lib/api";
 import {
     Search, Plus, Compass, Zap, CreditCard, User,
     Film, ArrowRight, Command, CornerDownLeft
-} from "lucide-react";
+} from "@/lib/lucide";
 
 interface Props {
     projects: DashboardProject[];

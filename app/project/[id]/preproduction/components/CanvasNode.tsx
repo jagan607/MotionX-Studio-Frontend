@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback } from "react";
-import { Edit2, Sparkles, Trash2, User, MapPin, Palette, Package, Film, Maximize2, Settings } from "lucide-react";
+import { Edit2, Sparkles, Trash2, User, MapPin, Palette, Package, Film, Maximize2, Settings } from "@/lib/lucide";
 
 export type NodeType = "scene" | "character" | "location" | "moodboard" | "product";
 

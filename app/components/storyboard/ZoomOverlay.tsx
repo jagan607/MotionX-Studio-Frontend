@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mic2, Film } from 'lucide-react';
+import { X, Mic2, Film } from "@/lib/lucide";
 
 interface ZoomOverlayProps {
     media: {

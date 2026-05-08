@@ -16,7 +16,7 @@ import {
 import { db } from "@/lib/firebase";
 import {
     Video, Plus, Pencil, Trash2, Eye, EyeOff, Loader2, Save, X, Upload,
-} from "lucide-react";
+} from "@/lib/lucide";
 import {
     KLING_TEMPLATES as HARDCODED_KLING,
     EMOTION_FAMILIES,

@@ -14,7 +14,7 @@ import {
     Check, Sparkles, Loader2, AlertTriangle,
     Clapperboard, Clock, RectangleHorizontal,
     Video, PenTool, Box
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 
 type ProjectType = "movie" | "micro_drama" | "adaptation" | "ad" | "trailer";

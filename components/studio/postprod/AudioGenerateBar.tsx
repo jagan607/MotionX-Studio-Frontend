@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Waves, Music, Loader2, Sparkles, X } from "lucide-react";
+import { Waves, Music, Loader2, Sparkles, X } from "@/lib/lucide";
 import { generateSfx, generateBgm } from "@/lib/api";
 
 // ═══════════════════════════════════════════════════════════

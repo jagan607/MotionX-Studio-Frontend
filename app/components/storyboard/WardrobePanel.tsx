@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import {
     Sparkles, X, Loader2, Save, Scissors, Lock, Unlock,
     User, ImageIcon
-} from "lucide-react";
+} from "@/lib/lucide";
 import { TokenIcon } from "@/components/ui/TokenIcon";
 import { generateWardrobe, updateWardrobe, generateWardrobePortrait } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";

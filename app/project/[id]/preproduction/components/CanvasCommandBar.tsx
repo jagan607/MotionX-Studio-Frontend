@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Plus, Wand2, RefreshCw, Loader2 } from "lucide-react";
+import { Plus, Wand2, RefreshCw, Loader2 } from "@/lib/lucide";
 
 interface CanvasCommandBarProps {
     onAddScene: () => void;

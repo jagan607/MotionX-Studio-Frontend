@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Film, Eye, EyeOff, Loader2, Search, Check } from "lucide-react";
+import { Film, Eye, EyeOff, Loader2, Search, Check } from "@/lib/lucide";
 
 const TEMPLATE_OWNER_UID = "vzRHwyQfpCbmaHRYtVqFiwvf5zQ2";
 

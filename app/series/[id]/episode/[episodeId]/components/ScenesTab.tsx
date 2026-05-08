@@ -1,5 +1,5 @@
 import React from 'react';
-import { Film, MapPin, User, Clock, Timer } from 'lucide-react';
+import { Film, MapPin, User, Clock, Timer } from "@/lib/lucide";
 
 const formatDuration = (seconds?: number) => {
     if (!seconds) return null;

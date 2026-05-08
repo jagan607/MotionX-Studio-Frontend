@@ -6,7 +6,7 @@ import {
     X, Camera, Upload, Loader2, CheckCircle, Move,
     Clapperboard, ImagePlus, Type, Sparkles, SlidersHorizontal,
     ChevronDown, ChevronUp, Eye, Palette, History, RotateCcw
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";

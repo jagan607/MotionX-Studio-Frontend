@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Video, Music, Lock, ImageIcon } from 'lucide-react';
+import { Video, Music, Lock, ImageIcon } from "@/lib/lucide";
 import type { MentionItem } from '@/app/hooks/usePromptMention';
 
 interface MentionDropdownProps {

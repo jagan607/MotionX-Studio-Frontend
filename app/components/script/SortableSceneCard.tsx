@@ -3,7 +3,7 @@
 import React from "react";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, MapPin, Users, Sparkles, Trash2, Clock, Palette } from "lucide-react";
+import { GripVertical, MapPin, Users, Sparkles, Trash2, Clock, Palette } from "@/lib/lucide";
 import { WorkstationScene } from "./ScriptWorkstation";
 
 interface SortableSceneCardProps {

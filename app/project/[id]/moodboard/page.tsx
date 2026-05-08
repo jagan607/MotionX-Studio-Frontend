@@ -11,7 +11,7 @@ import {
     ChevronRight, ChevronLeft, RefreshCw, AlertCircle,
     ArrowLeft, Sparkles, X, Trash2,
     BrainCircuit
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
 import Link from "next/link";

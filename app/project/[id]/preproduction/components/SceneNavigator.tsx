@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Film, ChevronRight, ChevronLeft, User, MapPin } from "lucide-react";
+import { Film, ChevronRight, ChevronLeft, User, MapPin } from "@/lib/lucide";
 
 interface SceneInfo {
     id: string;

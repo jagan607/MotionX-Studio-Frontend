@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Save, Loader2, Sliders, Palette } from "lucide-react";
+import { X, Save, Loader2, Sliders, Palette } from "@/lib/lucide";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { api } from "@/lib/api";
 import { Project } from "@/lib/types";

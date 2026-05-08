@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { api, invalidateDashboardCache } from "@/lib/api";
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
-import { Sparkles, Loader2, ArrowRight, Film } from "lucide-react";
+import { Sparkles, Loader2, ArrowRight, Film } from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 
 const HERO_VIDEO = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/WhatsApp%20Video%202026-03-11%20at%2013.54.06.mp4?alt=media&token=836bc61d-3024-45aa-83d6-c0829b2c7462";

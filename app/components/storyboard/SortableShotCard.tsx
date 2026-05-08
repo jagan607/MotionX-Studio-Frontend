@@ -7,7 +7,7 @@ import {
     GripVertical, Trash2, Sparkles, Film,
     ImagePlus, Link2, Plus, CheckCircle2,
     Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin, Volume2, AlertTriangle, X
-} from "lucide-react";
+} from "@/lib/lucide";
 import imageCompression from 'browser-image-compression';
 import type { VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
 import { usePricing } from '@/app/hooks/usePricing';

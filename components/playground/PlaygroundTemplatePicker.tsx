@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { Sparkles, Wand2, Play, User, Users, MapPin, Loader2, ImageIcon, Video } from "lucide-react";
+import { Sparkles, Wand2, Play, User, Users, MapPin, Loader2, ImageIcon, Video } from "@/lib/lucide";
 import { usePlayground } from "@/app/context/PlaygroundContext";
 import { collection, query, orderBy, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";

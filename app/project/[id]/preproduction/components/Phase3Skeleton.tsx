@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { BrainCircuit, Sparkles, Layers, User, MapPin, Film, Camera, Palette, Zap, Eye } from "lucide-react";
+import { BrainCircuit, Sparkles, Layers, User, MapPin, Film, Camera, Palette, Zap, Eye } from "@/lib/lucide";
 import { Project } from "@/lib/types";
 
 /* ═══════════════════════════════════════════════════════════

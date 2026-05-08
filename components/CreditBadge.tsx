@@ -2,7 +2,7 @@
 
 import { useCredits } from "@/hooks/useCredits";
 import { formatCredits } from "@/app/hooks/usePricing";
-import { Zap } from "lucide-react";
+import { Zap } from "@/lib/lucide";
 import { TokenIcon } from "@/components/ui/TokenIcon";
 
 export default function CreditBadge() {

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, User, Building, ChevronDown, Check, Zap, Eye } from "lucide-react";
+import { Plus, User, Building, ChevronDown, Check, Zap, Eye } from "@/lib/lucide";
 import { useCredits } from "@/hooks/useCredits";
 import { formatCredits } from "@/app/hooks/usePricing";
 import { useWorkspace } from "@/app/context/WorkspaceContext";

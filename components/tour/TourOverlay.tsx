@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { X } from "@/lib/lucide";
 import { TourStep } from "@/lib/tourConfigs";
 
 interface TourOverlayProps {

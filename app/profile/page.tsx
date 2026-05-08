@@ -6,7 +6,7 @@ import { updateProfile, signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useCredits } from "@/hooks/useCredits";
 import { useWorkspace } from "@/app/context/WorkspaceContext";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/lib/lucide";
 import toast from "react-hot-toast";
 
 // --- COMPONENT IMPORTS ---

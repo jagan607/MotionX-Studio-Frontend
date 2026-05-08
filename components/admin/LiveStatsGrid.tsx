@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Users, DollarSign, Activity, Zap, Crown } from 'lucide-react';
+import { Users, DollarSign, Activity, Zap, Crown } from "@/lib/lucide";
 
 interface LiveStatsGridProps {
     /** Server-computed MRR grouped by currency, e.g. { USD: 150, INR: 8400 } */

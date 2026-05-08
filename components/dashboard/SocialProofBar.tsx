@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Users, Film, Zap } from "lucide-react";
+import { Users, Film, Zap } from "@/lib/lucide";
 
 interface StatItem {
     icon: React.ReactNode;

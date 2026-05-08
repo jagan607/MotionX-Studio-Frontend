@@ -11,7 +11,7 @@ import {
     Egg, Layers, Zap,
     LayoutTemplate, FileText, Eye,
     ArrowRight, Check, Disc, Send, Loader2, Copy
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 
 /* ═══════════════════════════════════════════════

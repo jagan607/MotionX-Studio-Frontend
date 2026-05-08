@@ -5,7 +5,7 @@ import {
     Lock, Unlock, Volume2, VolumeX,
     GripVertical, Plus, Scissors, Trash2, Copy, Gauge, Loader2,
     Music, Waves, ChevronDown, X
-} from "lucide-react";
+} from "@/lib/lucide";
 import {
     pixelsToTime,
     timeToPixels,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { X, Loader2, Mic, Upload, Volume2, Wand2, Play, Pause, Search, ChevronDown, Scissors, RotateCcw } from "lucide-react";
+import { X, Loader2, Mic, Upload, Volume2, Wand2, Play, Pause, Search, ChevronDown, Scissors, RotateCcw } from "@/lib/lucide";
 import { toastError } from "@/lib/toast";
 import { api } from "@/lib/api";
 import { auth } from "@/lib/firebase";

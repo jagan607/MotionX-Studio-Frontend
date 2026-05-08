@@ -5,7 +5,7 @@ import {
     MapPin, Users, Loader2, Sparkles, X,
     Save, Clock, AlertTriangle, Plus, Check, ChevronDown, MessageSquareQuote,
     Palette, Sun, Layers, CloudFog, Play
-} from "lucide-react";
+} from "@/lib/lucide";
 import { SceneData } from "@/components/studio/SceneCard"; // Use unified type
 import { ContextReference } from "./ContextSelectorModal";
 

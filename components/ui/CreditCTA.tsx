@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/lib/lucide";
 import { TokenIcon } from "./TokenIcon";
 import { formatCredits } from "@/app/hooks/usePricing";
 

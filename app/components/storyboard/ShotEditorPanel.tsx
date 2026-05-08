@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2, Film, RefreshCw, Link2, Plus } from 'lucide-react';
+import { X, Image as ImageIcon, ChevronRight, Sparkles, Loader2, Film, RefreshCw, Link2, Plus } from "@/lib/lucide";
 import { VideoHistoryStrip } from './VideoHistoryStrip';
 import { VideoSettingsPanel, RefMediaItem, getMediaTag } from './VideoSettingsPanel';
 import { MentionDropdown } from './MentionDropdown';

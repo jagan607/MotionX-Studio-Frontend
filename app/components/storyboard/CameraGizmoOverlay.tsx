@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Environment, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import { X, Save, Sparkles, RefreshCcw, Camera, Aperture, Focus, Map } from 'lucide-react';
+import { X, Save, Sparkles, RefreshCcw, Camera, Aperture, Focus, Map } from "@/lib/lucide";
 import { CameraTransform } from '@/lib/types';
 
 export const DEFAULT_CAMERA: CameraTransform = { x: 0, y: 1.6, z: 3, rx: 0, ry: 0, fov: 50 };

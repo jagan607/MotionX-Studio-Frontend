@@ -14,7 +14,7 @@ import {
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
 import { api, fetchEpisodes } from "@/lib/api";
-import { CheckCircle2, RefreshCw, Loader2, Palette } from "lucide-react";
+import { CheckCircle2, RefreshCw, Loader2, Palette } from "@/lib/lucide";
 import { v4 as uuidv4 } from 'uuid';
 
 // --- COMPONENTS ---

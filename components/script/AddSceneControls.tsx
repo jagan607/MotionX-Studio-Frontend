@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Plus, Wand2, Loader2, ChevronRight, FilePlus2 } from "lucide-react";
+import { Plus, Wand2, Loader2, ChevronRight, FilePlus2 } from "@/lib/lucide";
 
 interface AddSceneControlsProps {
     onManualAdd: () => void;

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Layers, Film, Plus, Settings } from "lucide-react";
+import { Layers, Film, Plus, Settings } from "@/lib/lucide";
 
 // Define the shape of an Episode object based on your DB
 interface Episode {

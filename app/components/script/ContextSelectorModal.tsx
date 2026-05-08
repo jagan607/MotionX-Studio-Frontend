@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import {
     X, Check, Layers, FileText, Loader2, ChevronRight,
     Search, Database, ArrowRight, AlertCircle, Minus
-} from "lucide-react";
+} from "@/lib/lucide";
 
 // --- TYPES ---
 export interface ContextReference {

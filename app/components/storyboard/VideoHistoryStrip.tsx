@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw } from "@/lib/lucide";
 import { VideoHistoryEntry } from '@/lib/types';
 
 interface VideoHistoryStripProps {

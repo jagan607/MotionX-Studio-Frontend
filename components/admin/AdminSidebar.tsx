@@ -15,7 +15,7 @@ import {
     Film,
     Sparkles,
     Video,
-} from "lucide-react";
+} from "@/lib/lucide";
 
 const NAV_ITEMS = [
     { href: "/admin", icon: LayoutDashboard, label: "Command Center", exact: true },

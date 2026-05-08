@@ -7,7 +7,7 @@ import {
     Terminal, ShieldCheck, Cpu, HardDrive,
     Zap, Clapperboard, Layers, ChevronDown, Film, Plus,
     Loader2, Database
-} from "lucide-react";
+} from "@/lib/lucide";
 import { fetchProject, fetchEpisodes } from "@/lib/api";
 import { Project } from "@/lib/types";
 import { toastError, toastSuccess, toastInfo } from "@/lib/toast";

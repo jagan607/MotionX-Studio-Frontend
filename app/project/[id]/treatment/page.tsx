@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
     ArrowLeft, Loader2, Download, RefreshCw, Sparkles, Edit3, Check, X,
     Lightbulb, Eye, Palette, Users, MapPin, Camera, Music, FileText
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { doc, onSnapshot, collection, getDocs, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";

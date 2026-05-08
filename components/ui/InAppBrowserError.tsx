@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Copy } from "lucide-react";
+import { AlertTriangle, Copy } from "@/lib/lucide";
 import { useState } from "react";
 
 export default function InAppBrowserError() {

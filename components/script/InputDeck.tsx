@@ -5,7 +5,7 @@ import {
     Upload, Terminal, Sparkles, X, Disc, Cpu, Loader2, Lock,
     ChevronDown, ChevronRight, Database, FastForward, ArrowRight, Clock,
     FileText, Clipboard, AlertCircle, CheckCircle2, Check, Plus, Table2
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess, toastInfo } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiErrors";

@@ -7,7 +7,7 @@ import { Toaster } from "react-hot-toast";
 import {
   ArrowLeft, Plus, Loader2, X, Upload, Trash2, FileText,
   Terminal, Sparkles, Disc, Cpu, FileEdit, FileCode
-} from "lucide-react";
+} from "@/lib/lucide";
 import { doc, getDoc, collection, getDocs, deleteDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { api } from "@/lib/api";

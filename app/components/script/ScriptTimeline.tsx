@@ -16,7 +16,7 @@ import {
     verticalListSortingStrategy,
     arrayMove
 } from '@dnd-kit/sortable';
-import { Layers, Scissors, Clock, Film, Plus, ChevronDown } from "lucide-react";
+import { Layers, Scissors, Clock, Film, Plus, ChevronDown } from "@/lib/lucide";
 
 // INTERNAL IMPORTS
 import { SortableSceneCard } from "./SortableSceneCard";

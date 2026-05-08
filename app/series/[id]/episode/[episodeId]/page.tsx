@@ -10,7 +10,7 @@ import { api } from "@/lib/api";
 import { useCredits } from "@/hooks/useCredits";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { Toaster } from "react-hot-toast";
-import { Users, MapPin } from "lucide-react";
+import { Users, MapPin } from "@/lib/lucide";
 
 // --- MODULAR COMPONENTS ---
 import { EpisodeHeader } from "./components/EpisodeHeader";

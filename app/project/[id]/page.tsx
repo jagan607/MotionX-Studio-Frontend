@@ -12,7 +12,7 @@ import {
     Users, MapPin, Palette, FileText,
     Play, Scissors, Workflow, Upload,
     Clock, Layers, MonitorPlay, Zap
-} from "lucide-react";
+} from "@/lib/lucide";
 
 interface ProjectData {
     title: string;

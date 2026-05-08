@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { useRouter, usePathname } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/lib/lucide";
 import { useHeartbeat } from "@/hooks/useHeartbeat";
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {

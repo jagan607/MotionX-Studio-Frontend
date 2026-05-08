@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "@/lib/lucide";
 
 export function PaginationControls({ hasNextPage }: { hasNextPage: boolean }) {
     const searchParams = useSearchParams();

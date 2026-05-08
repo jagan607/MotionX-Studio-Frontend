@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback } from "react";
 import {
     X, Upload, Scan, PenLine, Loader2,
     Palette, Sun, Layers, CloudFog, ImageIcon, Type
-} from "lucide-react";
+} from "@/lib/lucide";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES

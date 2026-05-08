@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download, MoreVertical, Upload, Palette, Camera, Sparkles } from 'lucide-react';
+import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download, MoreVertical, Upload, Palette, Camera, Sparkles } from "@/lib/lucide";
 import JSZip from 'jszip';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors

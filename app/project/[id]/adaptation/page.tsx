@@ -13,7 +13,7 @@ import {
     CheckCircle2, Scan, Zap, Wand2, MousePointer2,
     Maximize2, Download, ChevronRight, Brush, RectangleHorizontal, RectangleVertical, Monitor,
     ImagePlus, Trash2
-} from "lucide-react";
+} from "@/lib/lucide";
 
 
 // Reuse your existing Inpaint Component

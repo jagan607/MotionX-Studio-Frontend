@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     Trash2, ArrowLeftRight, Paintbrush, Wand2,
     Loader2, Sparkles, ArrowRight, ImagePlus, X,
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";

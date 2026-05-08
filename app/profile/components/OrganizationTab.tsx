@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Building, Users, Copy, Shield, RefreshCw, Loader2, UserPlus, X, Info, Trash2, ChevronDown } from "lucide-react";
+import { Building, Users, Copy, Shield, RefreshCw, Loader2, UserPlus, X, Info, Trash2, ChevronDown } from "@/lib/lucide";
 import { auth, db } from "@/lib/firebase";
 import { collection, query, where, limit, onSnapshot } from "firebase/firestore";
 import { toastSuccess, toastError } from "@/lib/toast";

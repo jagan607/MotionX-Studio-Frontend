@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Layers, MapPin, Users, ChevronDown, MonitorPlay, FileText } from "lucide-react"; // Added FileText
+import { ArrowLeft, Layers, MapPin, Users, ChevronDown, MonitorPlay, FileText } from "@/lib/lucide"; // Added FileText
 import { useRouter } from "next/navigation";
 import { Project } from "@/lib/types";
 

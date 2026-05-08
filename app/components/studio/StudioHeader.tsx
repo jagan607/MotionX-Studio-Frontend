@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
     ArrowLeft, Clapperboard,
     Plus, ChevronDown, Check, Wand2, Loader2, FileText, Database, RefreshCw, Palette
-} from "lucide-react";
+} from "@/lib/lucide";
 import { useCredits } from "@/hooks/useCredits";
 import { formatCredits } from "@/app/hooks/usePricing";
 import CreditModal from "@/app/components/modals/CreditModal";

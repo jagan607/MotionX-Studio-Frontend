@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
-import { X, Plus, Trash2, Image as ImageIcon, Upload, Loader2, Search } from 'lucide-react';
+import { X, Plus, Trash2, Image as ImageIcon, Upload, Loader2, Search } from "@/lib/lucide";
 import { KlingElement } from '@/app/hooks/shot-manager/useElementLibrary';
 import Image from 'next/image';
 import { toast } from "react-hot-toast";

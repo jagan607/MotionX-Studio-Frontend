@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
     Play, Pause, ZoomIn, ZoomOut, Download, Wand2,
     Music, Film, Trash2, Volume2, Video, GripVertical, Loader2
-} from "lucide-react";
+} from "@/lib/lucide";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { toastSuccess, toastError } from "@/lib/toast";
 import { db, auth } from "@/lib/firebase";

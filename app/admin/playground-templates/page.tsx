@@ -17,7 +17,7 @@ import { db } from "@/lib/firebase";
 import {
     Sparkles, Plus, Pencil, Trash2, Eye, EyeOff, Loader2, Save, X,
     ChevronDown, Film, Video, Upload,
-} from "lucide-react";
+} from "@/lib/lucide";
 import {
     ALL_TEMPLATES,
     assembleSuperheroPrompt, assembleFightPrompt,

@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Plus, Check, Users, MapPin, Search } from "lucide-react";
+import { X, Plus, Check, Users, MapPin, Search } from "@/lib/lucide";
 import { useState } from "react";
 
 interface LibraryModalProps {

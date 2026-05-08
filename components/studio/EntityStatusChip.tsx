@@ -1,5 +1,5 @@
 import React from "react";
-import { User, MapPin, AlertCircle, CheckCircle2, Package } from "lucide-react";
+import { User, MapPin, AlertCircle, CheckCircle2, Package } from "@/lib/lucide";
 
 // --- FIX HERE: Use relative path to step out of 'studio' and into 'ui' ---
 import {

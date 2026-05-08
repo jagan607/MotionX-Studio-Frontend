@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Play, Pause, Check, Loader2, Music } from 'lucide-react';
+import { Search, Play, Pause, Check, Loader2, Music } from "@/lib/lucide";
 import { Voice } from '@/lib/elevenLabs';
 
 interface VoiceTabProps {

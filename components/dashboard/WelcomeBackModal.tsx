@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Megaphone, Sparkles, Zap, Wrench, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Megaphone, Sparkles, Zap, Wrench, X, ChevronLeft, ChevronRight } from "@/lib/lucide";
 
 const TYPES: Record<string, { icon: any; color: string; label: string }> = {
     feature: { icon: Sparkles, color: '#E50914', label: 'Feature' },

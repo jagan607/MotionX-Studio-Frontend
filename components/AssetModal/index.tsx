@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, User, MapPin, ArrowLeft, Sparkles, ShoppingBag } from 'lucide-react';
+import { X, User, MapPin, ArrowLeft, Sparkles, ShoppingBag } from "@/lib/lucide";
 import { fetchElevenLabsVoices, Voice } from '@/lib/elevenLabs';
 import { api, uploadAssetReference, uploadAssetMain } from '@/lib/api';
 import { constructLocationPrompt, constructCharacterPrompt, constructProductPrompt } from '@/lib/promptUtils';

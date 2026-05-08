@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, memo } from "react";
-import { Film } from "lucide-react";
+import { Film } from "@/lib/lucide";
 
 interface ScriptProcessingLoaderProps {
     logs: string[];
