@@ -12,7 +12,7 @@
  */
 
 import { useState, useRef } from "react";
-import { Loader2, Film, Play, Download, RotateCcw, AlertTriangle, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, Film, Play, Download, RotateCcw, AlertTriangle, RefreshCw, Trash2 } from "@/lib/lucide";
 import type { PlaygroundGeneration } from "@/lib/playgroundApi";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
 import { usePlayground } from "@/app/context/PlaygroundContext";

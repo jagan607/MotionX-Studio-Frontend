@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download, MoreVertical, Upload, Palette, Camera, Sparkles } from 'lucide-react';
+import { ArrowLeft, Wand2, Plus, Film, Layers, Square, Loader2, FileText, Database, Download, MoreVertical, Upload, Palette, Camera, Sparkles } from "@/lib/lucide";
 import JSZip from 'jszip';
 import {
     DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors
@@ -21,6 +21,7 @@ import { SceneContextStrip } from "./SceneContextStrip";
 import { LipSyncModal } from "./LipSyncModal";
 import { DownloadModal } from "./DownloadModal";
 import { ShotEditorPanel } from "./ShotEditorPanel";
+import { ImageConfigurationModal } from "./ImageConfigurationModal";
 import { ShotDivisionModal } from "./ShotDivisionModal";
 import { SetDesignPanel } from "./SetDesignPanel";
 import { WardrobePanel } from "./WardrobePanel";
@@ -158,6 +159,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
     // Camera Gizmo State
     const [activeGizmoShotId, setActiveGizmoShotId] = useState<string | null>(null);
+
+    // Image Configuration Modal State
+    const [imageConfigShotId, setImageConfigShotId] = useState<string | null>(null);
 
     // Scene Selector Dropdown
     const [showSceneDropdown, setShowSceneDropdown] = useState(false);
@@ -1019,6 +1023,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                     onTopUp={() => setShowTopUp(true)}
                                                     onRetryAnimate={() => setEditingShotId(shot.id)}
                                                     onFocusPrompt={() => setEditingShotId(shot.id)}
+                                                    onImageConfig={() => setImageConfigShotId(shot.id)}
                                                 >
                                                     <div style={styles.shotImageContainer}>
                                                         <ShotImage
@@ -1267,6 +1272,27 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         visual_action: s.visual_action,
                     }))}
                 />
+
+                <ImageConfigurationModal
+                    shot={shotMgr.shots.find((s: any) => s.id === imageConfigShotId) || null}
+                    projectId={seriesId}
+                    episodeId={episodeId}
+                    sceneId={activeSceneId!}
+                    isOpen={!!imageConfigShotId}
+                    onClose={() => setImageConfigShotId(null)}
+                    onUpdateShot={shotMgr.updateShot}
+                    onGenerate={(refFile, provider, contRefId, camTransform, camShotType, modelTier) => {
+                        const shot = shotMgr.shots.find((s: any) => s.id === imageConfigShotId);
+                        if (shot) shotMgr.handleRenderShot(shot, currentScene, refFile, provider, contRefId, camTransform, camShotType, modelTier);
+                    }}
+                    isGenerating={imageConfigShotId ? shotMgr.loadingShots.has(imageConfigShotId) : false}
+                    continuityRefId={continuityRefId}
+                    projectAspectRatio={shotMgr.aspectRatio}
+                    castMembers={castMembers}
+                    locations={locations}
+                    products={products}
+                />
+
 
                 {/* Toolbar Tour (always present) */}
                 <TourOverlay step={tourStep} steps={toolbarTourSteps} onNext={onTourNext} onComplete={onTourComplete} />

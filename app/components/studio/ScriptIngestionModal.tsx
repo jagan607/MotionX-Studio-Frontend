@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { X } from "lucide-react";
+import { X } from "@/lib/lucide";
 import { InputDeck } from "@/components/script/InputDeck";
 import { ContextReference } from "@/app/components/script/ContextSelectorModal";
 

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
     Loader2, ArrowLeft, Film, Download, SlidersHorizontal,
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";

@@ -5,7 +5,7 @@ import { signInWithPopup } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { ArrowRight, Activity, Disc, Globe, ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowRight, Activity, Disc, Globe, ArrowLeft, AlertTriangle } from "@/lib/lucide";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 import { API_BASE_URL } from "@/lib/config";

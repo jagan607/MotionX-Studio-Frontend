@@ -10,7 +10,7 @@ import {
     Loader2, Check, Lock, ArrowLeft, AlertCircle,
     RefreshCw, ChevronRight, ChevronDown, Clapperboard, Camera,
     Lightbulb, Palette, Aperture, Zap, Box, Atom, Paintbrush, Timer
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
 import Link from "next/link";

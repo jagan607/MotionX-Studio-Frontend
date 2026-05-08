@@ -4,7 +4,7 @@ import {
     ChevronDown, ChevronUp, Sliders, Plus, Trash2, AlertCircle, Loader2,
     RectangleHorizontal, RectangleVertical, Square, Volume2, FastForward,
     ImagePlus, X, AlertTriangle, Lock, Scissors, Music, Eye, Play, Sparkles
-} from 'lucide-react';
+} from "@/lib/lucide";
 import type { VideoProvider, AnimateOptions, PromptSegment } from '@/app/hooks/shot-manager/useShotVideoGen';
 import type { KlingElement } from '@/app/hooks/shot-manager/useElementLibrary';
 import { usePricing, formatCredits } from '@/app/hooks/usePricing';

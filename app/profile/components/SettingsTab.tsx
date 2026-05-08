@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { User, Loader2, LogOut } from "lucide-react";
+import { User, Loader2, LogOut } from "@/lib/lucide";
 import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 
 interface SettingsTabProps {

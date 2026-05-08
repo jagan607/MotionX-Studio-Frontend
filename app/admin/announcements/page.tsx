@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { adminDb } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
-import { Megaphone, Plus, Trash2, ToggleLeft, ToggleRight, Sparkles, Wrench, Zap, Image as ImageIcon, Film, Mail } from 'lucide-react';
+import { Megaphone, Plus, Trash2, ToggleLeft, ToggleRight, Sparkles, Wrench, Zap, Image as ImageIcon, Film, Mail } from "@/lib/lucide";
 import { AnnouncementForm } from './AnnouncementForm';
 import { EmailBlastForm } from './EmailBlastForm';
 

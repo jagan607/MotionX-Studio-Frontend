@@ -1,4 +1,4 @@
-import { AlertTriangle, Timer, TrendingDown, ArrowUpRight, Gauge, Cpu, Crown, UserMinus } from 'lucide-react';
+import { AlertTriangle, Timer, TrendingDown, ArrowUpRight, Gauge, Cpu, Crown, UserMinus } from "@/lib/lucide";
 
 interface OperationalKpis {
     totalTasks24h: number;

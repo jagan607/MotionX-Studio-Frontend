@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { storage } from "@/lib/firebase";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { Megaphone, Upload, X, Loader2, Image as ImageIcon, Film } from "lucide-react";
+import { Megaphone, Upload, X, Loader2, Image as ImageIcon, Film } from "@/lib/lucide";
 
 interface Props {
     onPublish: (formData: FormData) => void;

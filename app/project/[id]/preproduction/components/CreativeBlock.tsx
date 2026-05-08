@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { Edit2, Sparkles, Trash2, ImagePlus, User, MapPin, Palette } from "lucide-react";
+import { Edit2, Sparkles, Trash2, ImagePlus, User, MapPin, Palette } from "@/lib/lucide";
 
 export type BlockType = "SCRIPT" | "CHARACTER" | "LOCATION" | "MOODBOARD" | "PRODUCT";
 

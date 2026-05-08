@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Zap, AlertTriangle, LayoutGrid, HardDrive, Users, TrendingUp, Settings, XCircle, Loader2, CalendarClock, RefreshCw, AlertCircle, Clock } from "lucide-react";
+import { CheckCircle2, Zap, AlertTriangle, LayoutGrid, HardDrive, Users, TrendingUp, Settings, XCircle, Loader2, CalendarClock, RefreshCw, AlertCircle, Clock } from "@/lib/lucide";
 import { usePayment } from "@/lib/payment";
 import toast from "react-hot-toast";
 import { auth } from "@/lib/firebase";

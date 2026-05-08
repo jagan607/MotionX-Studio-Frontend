@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import {
     X, Download, Smartphone, Settings, Loader2,
     Youtube, Instagram, Tv, CheckCircle, AlertCircle, ExternalLink
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { exportTimeline as exportTimelineAPI } from "@/lib/api";
 import { TimelineState, ExportConfig } from "@/lib/types/postprod";

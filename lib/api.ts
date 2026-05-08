@@ -384,6 +384,25 @@ export const exportTreatmentPdf = async (projectId: string, episodeId: string) =
     return res.data;
 };
 
+// --- 10a. IMAGE HISTORY ---
+
+export const setPrimaryImage = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    shotId: string,
+    imageUrl: string
+) => {
+    const res = await api.post("/api/v1/images/set_primary_image", {
+        project_id: projectId,
+        episode_id: episodeId,
+        scene_id: sceneId,
+        shot_id: shotId,
+        image_url: imageUrl,
+    });
+    return res.data;
+};
+
 // --- 10. 4K UPSCALE ---
 
 export const upscaleShot = async (

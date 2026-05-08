@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import dynamic from "next/dynamic";
 

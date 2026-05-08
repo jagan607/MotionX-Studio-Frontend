@@ -11,7 +11,7 @@
 import { useState } from "react";
 import { collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Loader2, Upload, Check, AlertTriangle } from "lucide-react";
+import { Loader2, Upload, Check, AlertTriangle } from "@/lib/lucide";
 import {
     ALL_TEMPLATES,
     assembleSuperheroPrompt,

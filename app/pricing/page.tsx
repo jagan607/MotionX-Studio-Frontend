@@ -6,7 +6,7 @@ import PricingCard from "@/app/components/PricingCard";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
-import { ArrowRight, MessageSquare, CheckCircle2, ChevronDown, Film, Image as ImageIcon, Mic, Sparkles } from "lucide-react";
+import { ArrowRight, MessageSquare, CheckCircle2, ChevronDown, Film, Image as ImageIcon, Mic, Sparkles } from "@/lib/lucide";
 import { auth } from "@/lib/firebase";
 import { api } from "@/lib/api";
 

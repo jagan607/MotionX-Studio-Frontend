@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Terminal, Loader2, Image as ImageIcon, RefreshCw, CheckSquare, Square, UploadCloud, Wand2, Download, ScanEye } from 'lucide-react';
+import { Upload, Terminal, Loader2, Image as ImageIcon, RefreshCw, CheckSquare, Square, UploadCloud, Wand2, Download, ScanEye } from "@/lib/lucide";
 
 interface VisualsSectionProps {
     displayImage?: string;

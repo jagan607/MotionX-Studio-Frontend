@@ -1,25 +1,24 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
-import { RotateCcw } from "@/lib/lucide";
-import { VideoHistoryEntry } from '@/lib/types';
+import './image-config.css';
 
-interface VideoHistoryStripProps {
-    history: VideoHistoryEntry[];
-    activeVideoUrl?: string;
-    onPreview: (entry: VideoHistoryEntry) => void;
-    onRestore: (entry: VideoHistoryEntry) => void;
+import React, { useState, useRef } from 'react';
+import { CheckCircle2 } from "@/lib/lucide";
+import { ImageHistoryEntry } from '@/lib/types';
+
+interface ImageHistoryStripProps {
+    history: ImageHistoryEntry[];
+    activeImageUrl?: string;
+    onPreview: (entry: ImageHistoryEntry) => void;
+    onSetPrimary: (entry: ImageHistoryEntry) => void;
 }
 
 /** Short provider labels for badges */
 const providerLabel = (provider: string): string => {
     const map: Record<string, string> = {
-        'kling-v3': 'K v3',
-        'kling-v3-omni': 'K Omni',
-        'kling': 'K',
-        'seedance-2': 'S 2.0',
-        'seedance': 'S',
-        'seedance-1.5': 'S 1.5',
+        'gemini': 'Gemini',
+        'seedream': 'Seedream',
+        'luma-uni-1': 'Luma',
     };
     return map[provider] || provider;
 };
@@ -29,27 +28,28 @@ const formatDate = (ts: any): string => {
     try {
         const date = ts?.toDate ? ts.toDate() : new Date(ts);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
-            ' · ' +
+            ' . ' +
             date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     } catch {
         return '';
     }
 };
 
-export const VideoHistoryStrip: React.FC<VideoHistoryStripProps> = ({
+export const ImageHistoryStrip: React.FC<ImageHistoryStripProps> = ({
     history,
-    activeVideoUrl,
+    activeImageUrl,
     onPreview,
-    onRestore,
+    onSetPrimary,
 }) => {
     const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Hide if no meaningful history
-    if (!history || history.length <= 1) return null;
+    // Only show completed entries; hide if no meaningful history
+    const completed = history.filter(e => e.status === 'completed' || e.image_url);
+    if (!completed || completed.length <= 1) return null;
 
     // Sort descending by created_at (newest first)
-    const sorted = [...history].sort((a, b) => {
+    const sorted = [...completed].sort((a, b) => {
         const getTime = (ts: any) => {
             try { return ts?.toDate ? ts.toDate().getTime() : new Date(ts).getTime(); }
             catch { return 0; }
@@ -61,7 +61,7 @@ export const VideoHistoryStrip: React.FC<VideoHistoryStripProps> = ({
         <div className="space-y-1.5">
             <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
-                    History · {sorted.length}
+                    Image History . {sorted.length}
                 </span>
             </div>
 
@@ -71,10 +71,10 @@ export const VideoHistoryStrip: React.FC<VideoHistoryStripProps> = ({
                 style={{ scrollbarWidth: 'thin' }}
             >
                 {sorted.map((entry, idx) => {
-                    const isActive = entry.url === activeVideoUrl;
+                    const isActive = entry.image_url === activeImageUrl;
                     return (
                         <div
-                            key={entry.task_id || idx}
+                            key={entry.id || idx}
                             className="relative flex-shrink-0 group cursor-pointer"
                             style={{ width: 80, height: 80 }}
                             onClick={() => onPreview(entry)}
@@ -82,10 +82,9 @@ export const VideoHistoryStrip: React.FC<VideoHistoryStripProps> = ({
                             onMouseLeave={() => setHoveredIdx(null)}
                         >
                             {/* Thumbnail */}
-                            <video
-                                src={`${entry.url}#t=0.5`}
-                                muted
-                                preload="metadata"
+                            <img
+                                src={entry.image_url}
+                                alt={`History ${idx + 1}`}
                                 className="w-full h-full object-cover rounded-md"
                                 style={{
                                     border: isActive
@@ -111,34 +110,34 @@ export const VideoHistoryStrip: React.FC<VideoHistoryStripProps> = ({
                             {hoveredIdx === idx && (
                                 <div
                                     className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-[#1a1a1a] border border-white/[0.12] rounded-lg shadow-2xl z-50 pointer-events-none"
-                                    style={{ animation: 'fadeIn 0.15s ease' }}
+                                    style={{ animation: 'fadeInImageHist 0.15s ease' }}
                                 >
                                     <p className="text-[10px] text-neutral-300 leading-relaxed line-clamp-3 mb-1.5">
-                                        {entry.prompt || 'No prompt'}
+                                        {entry.prompt_used || 'No prompt'}
                                     </p>
                                     <div className="flex items-center justify-between">
                                         <span className="text-[9px] text-neutral-500">
                                             {formatDate(entry.created_at)}
                                         </span>
                                         <span className="text-[9px] text-neutral-600">
-                                            {entry.duration}s · {entry.aspect_ratio}
+                                            {entry.model_used || entry.provider}{entry.aspect_ratio ? ` . ${entry.aspect_ratio}` : ''}
                                         </span>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Restore overlay on hover (non-active only) */}
+                            {/* Set Primary overlay on hover (non-active only) */}
                             {!isActive && hoveredIdx === idx && (
                                 <div
                                     className="absolute inset-0 bg-black/50 rounded-md flex items-center justify-center"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        onRestore(entry);
+                                        onSetPrimary(entry);
                                     }}
                                 >
                                     <div className="flex items-center gap-1 px-2 py-1 rounded bg-white/[0.12] border border-white/[0.15]">
-                                        <RotateCcw size={10} className="text-white" />
-                                        <span className="text-[8px] font-bold text-white uppercase">Restore</span>
+                                        <CheckCircle2 size={10} className="text-white" />
+                                        <span className="text-[8px] font-bold text-white uppercase">Set Primary</span>
                                     </div>
                                 </div>
                             )}
@@ -146,14 +145,6 @@ export const VideoHistoryStrip: React.FC<VideoHistoryStripProps> = ({
                     );
                 })}
             </div>
-
-            {/* Inline keyframes */}
-            <style jsx>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-                    to { opacity: 1; transform: translateX(-50%) translateY(0); }
-                }
-            `}</style>
         </div>
     );
 };

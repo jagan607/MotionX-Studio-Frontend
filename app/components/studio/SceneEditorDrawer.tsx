@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X } from "lucide-react";
+import { X } from "@/lib/lucide";
 import { DirectorConsole } from "@/app/components/script/DirectorConsole";
 import { ContextSelectorModal, ContextReference } from "@/app/components/script/ContextSelectorModal";
 import { SceneData } from "@/components/studio/SceneCard";

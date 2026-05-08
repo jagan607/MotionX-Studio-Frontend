@@ -6,7 +6,7 @@ import {
     Scissors, ZoomIn, ZoomOut, Maximize2,
     Repeat, Magnet, Undo2, Redo2, Trash2, Copy,
     PenTool,
-} from "lucide-react";
+} from "@/lib/lucide";
 
 // ═══════════════════════════════════════════════════════════
 //   TRANSPORT CONTROLS (v2 — Clipchamp-style toolbar)

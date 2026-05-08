@@ -3,7 +3,7 @@
 import { api } from "@/lib/api";
 
 import { useState, useEffect } from "react";
-import { Loader2, TrendingUp, BarChart3, Clock, User, Cpu } from "lucide-react";
+import { Loader2, TrendingUp, BarChart3, Clock, User, Cpu } from "@/lib/lucide";
 import { TokenIcon } from "@/components/ui/TokenIcon";
 import { auth } from "@/lib/firebase";
 

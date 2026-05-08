@@ -12,7 +12,7 @@
  */
 
 import { useState, useMemo, useEffect } from "react";
-import { Layers, Plus, Loader2, User, MapPin, Package, X } from "lucide-react";
+import { Layers, Plus, Loader2, User, MapPin, Package, X } from "@/lib/lucide";
 import { usePlayground } from "@/app/context/PlaygroundContext";
 import type { PlaygroundAsset } from "@/lib/playgroundApi";
 import PlaygroundAssetCard from "@/components/playground/PlaygroundAssetCard";

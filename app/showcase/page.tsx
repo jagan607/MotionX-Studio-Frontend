@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { ArrowLeft, Play, Pause, Film, Camera, MapPin, Sun, MessageSquare, Move, ChevronDown, ChevronUp, Volume2, VolumeX, X, Sparkles, ArrowRight } from "lucide-react";
+import { ArrowLeft, Play, Pause, Film, Camera, MapPin, Sun, MessageSquare, Move, ChevronDown, ChevronUp, Volume2, VolumeX, X, Sparkles, ArrowRight } from "@/lib/lucide";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
 

@@ -3,7 +3,7 @@
 import { api } from "@/lib/api";
 
 import { useState, useEffect } from "react";
-import { Globe, Users, Loader2, X, Check, ToggleLeft, ToggleRight } from "lucide-react";
+import { Globe, Users, Loader2, X, Check, ToggleLeft, ToggleRight } from "@/lib/lucide";
 import { auth } from "@/lib/firebase";
 import { toastSuccess, toastError } from "@/lib/toast";
 

@@ -5,14 +5,16 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film,
-    ImagePlus, Link2, Plus, CheckCircle2,
-    Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin, Volume2, AlertTriangle, X
-} from "lucide-react";
+    Link2, Plus, CheckCircle2,
+    Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin, Volume2, AlertTriangle, X,
+    ImageIcon, Clapperboard
+} from "@/lib/lucide";
 import imageCompression from 'browser-image-compression';
 import type { VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
 import { usePricing } from '@/app/hooks/usePricing';
 import { TokenIcon } from '@/components/ui/TokenIcon';
 import { getErrorUIConfig, executeErrorAction } from '@/lib/errorDictionary';
+import { SHOT_TYPE_PRESETS, CAMERA_ANGLES } from '@/lib/shot-constants';
 
 interface CastMember { id: string; name: string; }
 interface Location { id: string; name: string; }
@@ -82,6 +84,7 @@ interface SortableShotCardProps {
     onTopUp?: () => void;
     onRetryAnimate?: () => void;
     onFocusPrompt?: () => void;
+    onImageConfig?: () => void;
 }
 
 const normalize = (str: string) => str ? str.toLowerCase().trim() : "";
@@ -112,6 +115,7 @@ export const SortableShotCard = ({
     onTopUp,
     onRetryAnimate,
     onFocusPrompt,
+    onImageConfig,
 }: SortableShotCardProps) => {
 
     const isPinned = continuityRefId === shot.id;
@@ -182,32 +186,8 @@ export const SortableShotCard = ({
         onUpdateShot(shot.id, "products", updated);
     };
 
-    // --- Ref Image Logic ---
-    const [refFile, setRefFile] = useState<File | null>(null);
-    const [refPreviewUrl, setRefPreviewUrl] = useState<string | null>(null);
-    const [isHoveringRef, setIsHoveringRef] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    // --- Upload Image Logic ---
     const mainImageInputRef = useRef<HTMLInputElement>(null);
-    const [isCompressing, setIsCompressing] = useState(false);
-
-    useEffect(() => {
-        if (!refFile) { setRefPreviewUrl(null); return; }
-        const objectUrl = URL.createObjectURL(refFile);
-        setRefPreviewUrl(objectUrl);
-        return () => URL.revokeObjectURL(objectUrl);
-    }, [refFile]);
-
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            setIsCompressing(true);
-            try {
-                const compressed = await imageCompression(e.target.files[0], { maxSizeMB: 1, maxWidthOrHeight: 1500, useWebWorker: true });
-                setRefFile(compressed);
-            } finally {
-                setIsCompressing(false);
-            }
-        }
-    };
 
     const handleMainImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -221,12 +201,6 @@ export const SortableShotCard = ({
         }
     };
 
-    const clearRefImage = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setRefFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = "";
-    };
-
     // Local Buffers
     const [localVisualAction, setLocalVisualAction] = useState(shot.visual_action || "");
     const [localVideoPrompt, setLocalVideoPrompt] = useState(shot.video_prompt || "");
@@ -235,13 +209,12 @@ export const SortableShotCard = ({
     useEffect(() => { setLocalVideoPrompt(shot.video_prompt || ""); }, [shot.video_prompt]);
 
     // Shot Type combo-box state
-    const SHOT_TYPE_PRESETS = ['Wide Shot', 'Medium Shot', 'Close Up', 'Extreme Close Up', 'Medium Close Up', 'Over the Shoulder', 'POV', 'Dutch Angle', 'Aerial / Drone', 'Tracking Shot'];
     const [localShotType, setLocalShotType] = useState(shot.shot_type || "");
-    const [isCustomShotType, setIsCustomShotType] = useState(() => !!shot.shot_type && !SHOT_TYPE_PRESETS.includes(shot.shot_type));
+    const [isCustomShotType, setIsCustomShotType] = useState(() => !!shot.shot_type && !(SHOT_TYPE_PRESETS as readonly string[]).includes(shot.shot_type));
     const customInputRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
         setLocalShotType(shot.shot_type || "");
-        setIsCustomShotType(!!shot.shot_type && !SHOT_TYPE_PRESETS.includes(shot.shot_type));
+        setIsCustomShotType(!!shot.shot_type && !(SHOT_TYPE_PRESETS as readonly string[]).includes(shot.shot_type));
     }, [shot.shot_type]);
 
     // Keep the shot type input scrolled to the start so text is visible from the left
@@ -553,11 +526,7 @@ export const SortableShotCard = ({
                         onChange={(e) => onUpdateShot(shot.id, "location_angle", e.target.value)}
                         className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                        <option value="wide_establishing">Wide (Establishing)</option>
-                        <option value="front">Front</option>
-                        <option value="left">Left</option>
-                        <option value="right">Right</option>
-                        <option value="back">Back</option>
+                        {CAMERA_ANGLES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
                     </select>
                 </div>
             </div>
@@ -601,48 +570,7 @@ export const SortableShotCard = ({
             <div className="mb-3">
                 <div className="flex justify-between items-center mb-1.5">
                     <label className="text-[9px] font-semibold text-neutral-500" id={tourId ? `${tourId}-prompt` : undefined}>Image Prompt</label>
-                    <div className="flex items-center gap-1.5 relative"
-                        onMouseEnter={() => setIsHoveringRef(true)}
-                        onMouseLeave={() => setIsHoveringRef(false)}
-                    >
-                        <input disabled={isMorphedByPrev} type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
-                        <input disabled={isMorphedByPrev || isBusy} type="file" ref={mainImageInputRef} onChange={handleMainImageSelect} className="hidden" accept="image/*" />
-
-                        <button
-                            disabled={isMorphedByPrev || isCompressing}
-                            onClick={() => fileInputRef.current?.click()}
-                            className={`flex items-center gap-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-md transition-all
-                                ${refPreviewUrl
-                                    ? 'text-[#E50914] bg-[#E50914]/10 border border-[#E50914]/30'
-                                    : 'text-neutral-500 hover:text-neutral-300 border-none bg-transparent'
-                                }
-                                ${(isMorphedByPrev || isCompressing) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
-                            `}
-                        >
-                            {isCompressing ? (
-                                <><Loader2 size={9} className="animate-spin" /> Processing</>
-                            ) : refPreviewUrl ? (
-                                <>
-                                    <div className="w-3 h-3 rounded-sm bg-cover bg-center" style={{ backgroundImage: `url(${refPreviewUrl})` }} />
-                                    Ref Active
-                                </>
-                            ) : (
-                                <><ImagePlus size={9} /> Add Ref</>
-                            )}
-                        </button>
-
-                        {refPreviewUrl && !isCompressing && !isMorphedByPrev && (
-                            <button onClick={clearRefImage} className="text-neutral-600 hover:text-red-500 transition-colors p-0.5" title="Remove Reference">
-                                <XCircle size={11} />
-                            </button>
-                        )}
-
-                        {refPreviewUrl && isHoveringRef && !isCompressing && (
-                            <div className="absolute bottom-full right-0 mb-2 w-40 bg-black border border-white/[0.15] rounded-lg overflow-hidden z-[9999] shadow-2xl pointer-events-none">
-                                <img src={refPreviewUrl} alt="Ref Preview" className="w-full h-auto block" />
-                            </div>
-                        )}
-                    </div>
+                    <input disabled={isMorphedByPrev || isBusy} type="file" ref={mainImageInputRef} onChange={handleMainImageSelect} className="hidden" accept="image/*" />
                 </div>
                 <textarea
                     disabled={isMorphedByPrev}
@@ -670,69 +598,26 @@ export const SortableShotCard = ({
             {/* ── Action Footer ── */}
             <div className={`mt-auto pt-3 border-t border-white/[0.06] ${isMorphedByPrev ? 'opacity-30 pointer-events-none' : ''}`}>
 
-                {/* Edit & Animate Button - Triggers Inspector */}
-                <button
-                    id={tourId ? `${tourId}-settings` : undefined}
-                    onClick={onEdit}
-                    disabled={isBusy}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <Settings size={14} className="group-hover:rotate-45 transition-transform text-[#E50914]" />
-                    Shot Settings & Animate
-                </button>
-
-                {/* ── Model Tier Toggle ── */}
-                <div className="flex gap-0 mb-2 rounded-lg overflow-hidden border border-white/[0.08]">
+                {/* Primary Actions -- Generate Image + Animate Video */}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                    {onImageConfig && (
+                        <button
+                            onClick={onImageConfig}
+                            disabled={isBusy}
+                            className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Sparkles size={16} className="text-[#E50914]" />
+                            Generate Image
+                        </button>
+                    )}
                     <button
-                        onClick={() => setModelTier('pro')}
+                        id={tourId ? `${tourId}-settings` : undefined}
+                        onClick={onEdit}
                         disabled={isBusy}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[9px] font-bold transition-all cursor-pointer select-none
-                            ${modelTier === 'pro'
-                                ? 'bg-white/[0.08] text-white border-r border-white/[0.12]'
-                                : 'bg-white/[0.02] text-neutral-500 border-r border-white/[0.08] hover:text-neutral-300'
-                            }
-                            ${isBusy ? '!cursor-not-allowed' : ''}`}
+                        className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Nano Banana 1 Pro
-                    </button>
-                    <button
-                        onClick={() => setModelTier('flash')}
-                        disabled={isBusy}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[9px] font-bold transition-all cursor-pointer select-none
-                            ${modelTier === 'flash'
-                                ? 'bg-white/[0.08] text-white'
-                                : 'bg-white/[0.02] text-neutral-500 hover:text-neutral-300'
-                            }
-                            ${isBusy ? '!cursor-not-allowed' : ''}`}
-                    >
-                        Nano Banana 2
-                    </button>
-                </div>
-
-                {/* Image Rendering Utils */}
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                    <button
-                        id={tourId ? `${tourId}-gen` : undefined}
-                        onClick={() => onRender(refFile, imageProvider, continuityRefId, undefined, undefined, modelTier)}
-                        disabled={isBusy}
-                        className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        <Sparkles size={12} /> {hasImage ? "Re-Gen" : "Gen Image"}
-                        <span className="inline-flex items-center gap-1 opacity-50 text-[9px] font-normal"><TokenIcon size={9} />{imageCost}</span>
-                    </button>
-                    <button
-                        onClick={() => onUpscale(modelTier)}
-                        disabled={!hasImage || isBusy || isUpscaled || isUpscaling}
-                        className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed
-                            ${isUpscaled
-                                ? 'bg-cyan-500/15 text-white border border-cyan-500/60'
-                                : 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
-                            }
-                        `}
-                    >
-                        {isUpscaled ? <CheckCircle2 size={12} /> : <Wand2 size={12} />}
-                        {isUpscaled ? "4K" : "Upscale 4K"}
-                        {!isUpscaled && !isUpscaling && <span className="inline-flex items-center gap-1 opacity-50 text-[9px] font-normal"><TokenIcon size={9} />{upscaleCost}</span>}
+                        <Clapperboard size={16} className="text-[#E50914]" />
+                        Animate
                     </button>
                 </div>
 

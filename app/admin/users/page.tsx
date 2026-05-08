@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { adminDb } from '@/lib/firebase-admin';
-import { Shield, Zap, Plus, HardDrive, RefreshCw } from 'lucide-react';
+import { Shield, Zap, Plus, HardDrive, RefreshCw } from "@/lib/lucide";
 import { updateUserCredits, calculateUserStorage } from '../actions';
 import { UserSearch } from './user-search';
 import { UsersTableSkeleton } from '@/components/admin/AdminSkeletons';

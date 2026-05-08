@@ -5,7 +5,7 @@ import {
     X, Loader2, FileText, Download, RefreshCw, Check,
     Lightbulb, Eye, Palette, Users, MapPin, Camera, Music,
     Sparkles
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { doc, onSnapshot } from "firebase/firestore";

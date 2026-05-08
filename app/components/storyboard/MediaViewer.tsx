@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { X, ChevronLeft, ChevronRight, Image as ImageIcon, Film, Mic2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Image as ImageIcon, Film, Mic2 } from "@/lib/lucide";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
 
 export const MediaViewer = () => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ImageIcon, Maximize2, Settings } from 'lucide-react';
+import { ImageIcon, Maximize2, Settings } from "@/lib/lucide";
 import { LocationProfile } from '@/lib/types';
 
 interface LocationsTabProps {

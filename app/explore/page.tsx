@@ -28,7 +28,7 @@ import {
     Volume2,
     VolumeX,
     Pause,
-} from "lucide-react";
+} from "@/lib/lucide";
 
 /* ═══════════════════════════════════════════════════════════════
    TYPES

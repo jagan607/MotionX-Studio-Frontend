@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, Loader2 } from 'lucide-react';
+import { Play, Pause, Loader2 } from "@/lib/lucide";
 
 interface VoicePreviewBarProps {
     voiceName?: string;

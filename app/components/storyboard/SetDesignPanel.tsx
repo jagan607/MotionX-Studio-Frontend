@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     Sparkles, X, Loader2, Save, CloudFog, Building2,
     ChevronLeft, ChevronRight, Eye, ImagePlus, Pencil, Download, AlertTriangle, Trash2, Maximize2
-} from "lucide-react";
+} from "@/lib/lucide";
 import { TokenIcon } from "@/components/ui/TokenIcon";
 import { generateSetDesign, expandSetLegacy, expandSet360, updateSetDesign, inpaintSetDesign, cloneSetDesign, retrySetAngle, resetSetDesign } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";

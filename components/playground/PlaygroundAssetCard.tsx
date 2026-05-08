@@ -9,7 +9,7 @@
  */
 
 import { useState } from "react";
-import { User, MapPin, Package, Image as ImageIcon, Pencil, Trash2, Loader2, ZoomIn } from "lucide-react";
+import { User, MapPin, Package, Image as ImageIcon, Pencil, Trash2, Loader2, ZoomIn } from "@/lib/lucide";
 import type { PlaygroundAsset } from "@/lib/playgroundApi";
 import { usePlayground } from "@/app/context/PlaygroundContext";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";

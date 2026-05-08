@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShieldCheck, Building, RefreshCw, Activity, X, Info, Mail, Copy } from "lucide-react";
+import { ShieldCheck, Building, RefreshCw, Activity, X, Info, Mail, Copy } from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";

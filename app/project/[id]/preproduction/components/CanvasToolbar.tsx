@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Film, User, MapPin, Palette, Package, Maximize2 } from "lucide-react";
+import { Film, User, MapPin, Palette, Package, Maximize2 } from "@/lib/lucide";
 
 interface CanvasToolbarProps {
     id?: string;

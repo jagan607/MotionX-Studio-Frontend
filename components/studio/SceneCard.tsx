@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Clapperboard, Clock, Timer, Pencil, GripVertical, Trash2 } from "lucide-react";
+import { Clapperboard, Clock, Timer, Pencil, GripVertical, Trash2 } from "@/lib/lucide";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { EntityStatusChip } from "./EntityStatusChip";

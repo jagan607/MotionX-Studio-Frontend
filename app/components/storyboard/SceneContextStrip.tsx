@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, Users, Loader2, Monitor, Palette, FileText, X, Sparkles } from 'lucide-react';
+import { MapPin, Clock, Users, Loader2, Monitor, Palette, FileText, X, Sparkles } from "@/lib/lucide";
 import { SceneMood } from '@/lib/types';
 
 interface SceneContextStripProps {

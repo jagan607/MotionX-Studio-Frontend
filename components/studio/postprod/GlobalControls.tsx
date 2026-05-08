@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Settings2, ChevronDown } from "lucide-react";
+import { Settings2, ChevronDown } from "@/lib/lucide";
 import { GlobalFilmControls } from "@/lib/types/postprod";
 
 // ═══════════════════════════════════════════════════════════

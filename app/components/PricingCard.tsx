@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, X, Loader2 } from "lucide-react";
+import { Check, X, Loader2 } from "@/lib/lucide";
 
 type PlanAction = "upgrade" | "downgrade" | "current";
 

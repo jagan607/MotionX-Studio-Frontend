@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tag, Layers, Palette, Target } from 'lucide-react';
+import { Tag, Layers, Palette, Target } from "@/lib/lucide";
 
 interface ProductTabProps {
     editableName: string;

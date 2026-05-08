@@ -12,7 +12,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { arrayMove } from "@dnd-kit/sortable";
 import {
     ArrowLeft, Save, Sparkles, GripVertical, CheckCircle, Trash2, XCircle, Loader2, FileCode
-} from "lucide-react";
+} from "@/lib/lucide";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toastError, toastSuccess } from "@/lib/toast";

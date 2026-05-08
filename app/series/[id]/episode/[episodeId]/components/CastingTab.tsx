@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Mic, Settings, Maximize2 } from 'lucide-react';
+import { Users, Mic, Settings, Maximize2 } from "@/lib/lucide";
 
 interface Character {
     id: string;

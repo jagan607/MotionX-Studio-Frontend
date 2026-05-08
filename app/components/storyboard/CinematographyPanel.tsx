@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
     Sparkles, X, Loader2, Save, Upload, Palette, Sun, Layers,
     CloudFog, Camera, RefreshCw, AlertTriangle, CheckCircle2, ImageOff
-} from "lucide-react";
+} from "@/lib/lucide";
 import { SceneMood } from "@/lib/types";
 import {
     updateSceneMood, generateStyleReference, uploadStyleReference

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import {
     Sparkles, Send, X, Zap, Clock, Gauge,
     Volume2, Palette, Scissors, Loader2
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { aiEditTimeline } from "@/lib/api";
 import { TimelineState } from "@/lib/types/postprod";

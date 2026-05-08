@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ArrowRight, Loader2, X, Send } from "lucide-react";
+import { Sparkles, ArrowRight, Loader2, X, Send } from "@/lib/lucide";
 import { ProjectTemplate, getTemplatesForGoal } from "@/lib/templates";
 import { api, invalidateDashboardCache } from "@/lib/api";
 import { auth, db } from "@/lib/firebase";

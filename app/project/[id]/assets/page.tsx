@@ -6,7 +6,7 @@ import {
     Users, MapPin, Sparkles, Loader2, Plus,
     Search, ArrowRight, Clapperboard,
     ShoppingBag
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 
 // --- API & TYPES ---

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Scene, Project } from "@/lib/types";
 import { InputDeck } from "@/components/script/InputDeck";
 import { CreativeBlock } from "./CreativeBlock";
-import { GripVertical, Save, X, Check } from "lucide-react";
+import { GripVertical, Save, X, Check } from "@/lib/lucide";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";

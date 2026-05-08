@@ -11,7 +11,7 @@ import {
 import { toastError, toastSuccess } from "@/lib/toast";
 import { v4 as uuidv4 } from 'uuid';
 import { Project, Scene, CharacterProfile, LocationProfile, ProductProfile } from "@/lib/types";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/lib/lucide";
 import dynamic from "next/dynamic";
 import { toast } from "react-hot-toast";
 import { TourOverlay } from "@/components/tour/TourOverlay";

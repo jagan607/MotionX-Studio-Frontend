@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Loader2, Sparkles, Check, Terminal, Activity, ImagePlus, Undo2, Redo2, Zap } from "lucide-react";
+import { X, Loader2, Sparkles, Check, Terminal, Activity, ImagePlus, Undo2, Redo2, Zap } from "@/lib/lucide";
 import { useCredits } from "@/hooks/useCredits";
 import { toastError } from "@/lib/toast";
 

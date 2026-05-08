@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, CreditCard, Settings, Building } from "lucide-react";
+import { ArrowLeft, CreditCard, Settings, Building } from "@/lib/lucide";
 
 interface ProfileHeaderProps {
     user: any;

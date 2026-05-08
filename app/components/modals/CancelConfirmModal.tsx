@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, X, Loader2 } from "lucide-react";
+import { AlertTriangle, X, Loader2 } from "@/lib/lucide";
 
 interface CancelConfirmModalProps {
     isOpen: boolean;

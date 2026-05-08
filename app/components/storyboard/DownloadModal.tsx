@@ -1,5 +1,5 @@
 "use client";
-import { X, Image as ImageIcon, Film, Layers } from "lucide-react";
+import { X, Image as ImageIcon, Film, Layers } from "@/lib/lucide";
 
 interface DownloadModalProps {
     shot: any;

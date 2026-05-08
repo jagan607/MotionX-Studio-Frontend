@@ -4,7 +4,7 @@ import { OverviewChart } from '@/components/admin/OverviewChart';
 import { LiveStatsGrid } from '@/components/admin/LiveStatsGrid';
 import { OperationalKpiGrid, GrowthKpiGrid } from '@/components/admin/KpiGrids';
 import { ChartSkeleton, CmsSkeleton, AuditSkeleton, KpiSkeleton } from '@/components/admin/AdminSkeletons';
-import { Globe, Save, Cpu, TrendingDown } from 'lucide-react';
+import { Globe, Save, Cpu, TrendingDown } from "@/lib/lucide";
 import { adminDb } from '@/lib/firebase-admin';
 import { revalidatePath } from 'next/cache';
 

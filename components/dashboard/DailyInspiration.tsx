@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { fetchCommunityFeed } from "@/lib/api";
-import { Sparkles, ArrowRight, Play, RefreshCw } from "lucide-react";
+import { Sparkles, ArrowRight, Play, RefreshCw } from "@/lib/lucide";
 
 interface CommunityShot {
     id: string;

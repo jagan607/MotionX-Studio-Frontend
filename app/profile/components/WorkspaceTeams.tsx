@@ -3,7 +3,7 @@
 import { api } from "@/lib/api";
 
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, Plus, Pencil, Trash2, X, Users, FolderKanban, Check, ChevronDown, ChevronRight, Globe, Film } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, X, Users, FolderKanban, Check, ChevronDown, ChevronRight, Globe, Film } from "@/lib/lucide";
 import { auth } from "@/lib/firebase";
 import { toastSuccess, toastError } from "@/lib/toast";
 import Link from "next/link";

@@ -8,7 +8,7 @@ import {
     Play, ChevronRight, Sparkles, Zap, Edit3, RefreshCw,
     Image as ImageIcon, Video, Clock, CreditCard, FileJson,
     ArrowRight, ExternalLink, Download, RotateCcw,
-} from "lucide-react";
+} from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { TokenIcon } from "@/components/ui/TokenIcon";
 import { analyzeWorkflow, executeWorkflow, getWorkflowStatus } from "@/lib/api";

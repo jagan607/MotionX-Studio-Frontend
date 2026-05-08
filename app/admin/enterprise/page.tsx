@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building, ArrowRight, Activity, Info, CheckCircle, Copy, Mail, RotateCcw } from "lucide-react";
+import { Building, ArrowRight, Activity, Info, CheckCircle, Copy, Mail, RotateCcw } from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { auth } from "@/lib/firebase";
 import { API_BASE_URL } from "@/lib/config";

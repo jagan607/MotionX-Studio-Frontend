@@ -216,6 +216,19 @@ export interface VideoHistoryEntry {
     task_id: string;
 }
 
+export interface ImageHistoryEntry {
+    id: string;
+    image_url: string;
+    prompt_used: string;
+    provider: string;        // 'gemini' | 'seedream' | 'luma-uni-1'
+    model_used?: string;     // e.g., 'flash' | 'pro'
+    status: string;          // 'completed' | 'failed' | etc.
+    aspect_ratio?: string;
+    credits_charged: number;
+    created_at: any;         // Firestore Timestamp
+    error_message?: string;
+}
+
 export interface Shot {
     id: string;
     shot_type: string;
@@ -235,6 +248,9 @@ export interface Shot {
 
     // [NEW] Video generation history (1:N)
     video_history?: VideoHistoryEntry[];
+
+    // [NEW] Image generation history (1:N)
+    image_history?: ImageHistoryEntry[];
 
     camera_transform?: CameraTransform;
     camera_shot_type?: string;

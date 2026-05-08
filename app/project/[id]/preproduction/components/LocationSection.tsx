@@ -7,7 +7,7 @@ import { api, updateAsset, deleteAsset, triggerAssetGeneration } from "@/lib/api
 import { AssetModal } from "@/components/AssetModal";
 import { useMediaViewer, MediaItem } from "@/app/context/MediaViewerContext";
 import { toast } from "react-hot-toast";
-import { Plus } from "lucide-react";
+import { Plus } from "@/lib/lucide";
 
 interface LocationSectionProps {
     project: Project;

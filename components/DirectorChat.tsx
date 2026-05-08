@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
-import { Bot, Send, Loader2, Sparkles, MessageSquare, X, ChevronRight, Rocket, ExternalLink, Copy, Check, Layers, PanelRight } from "lucide-react";
+import { Bot, Send, Loader2, Sparkles, MessageSquare, X, ChevronRight, Rocket, ExternalLink, Copy, Check, Layers, PanelRight } from "@/lib/lucide";
 import { API_BASE_URL } from "@/lib/config";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";

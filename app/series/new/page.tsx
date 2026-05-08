@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
-import { ArrowLeft, Film, Zap } from "lucide-react";
+import { ArrowLeft, Film, Zap } from "@/lib/lucide";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { toastError } from "@/lib/toast";

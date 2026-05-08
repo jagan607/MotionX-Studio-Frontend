@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, LayoutTemplate, Users, MapPin } from 'lucide-react';
+import { ArrowLeft, LayoutTemplate, Users, MapPin } from "@/lib/lucide";
 
 interface EpisodeHeaderProps {
     seriesId: string;

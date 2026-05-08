@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Upload, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { X, Upload, FileText, Loader2, AlertCircle } from "@/lib/lucide";
 import { doc, writeBatch, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { api } from '@/lib/api';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ExternalLink } from 'lucide-react';
+import { X, ExternalLink } from "@/lib/lucide";
 
 interface LightboxProps {
     imageUrl: string | null;

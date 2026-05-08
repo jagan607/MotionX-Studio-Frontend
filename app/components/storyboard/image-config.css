@@ -1,0 +1,23 @@
+/* ImageConfigurationModal & ImageHistoryStrip keyframes */
+
+@keyframes imgFlowBlob1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30%, 20%) scale(1.2); }
+    66% { transform: translate(-10%, 30%) scale(0.9); }
+}
+
+@keyframes imgFlowBlob2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-30%, -20%) scale(1.1); }
+    66% { transform: translate(10%, -10%) scale(1.3); }
+}
+
+@keyframes imgShimmer {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0.3; }
+}
+
+@keyframes fadeInImageHist {
+    from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}

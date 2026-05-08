@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, Zap } from "lucide-react";
+import { Sparkles, Zap } from "@/lib/lucide";
 
 interface TopUpCardProps {
     id: string;

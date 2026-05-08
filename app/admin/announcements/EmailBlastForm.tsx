@@ -7,7 +7,7 @@ import {
     Mail, Upload, X, Loader2, Image as ImageIcon, Film, Send,
     Eye, EyeOff, ChevronDown, Users, Crown, Building, Gift,
     Plus, LinkIcon, Type, FileText, Palette
-} from "lucide-react";
+} from "@/lib/lucide";
 import { API_BASE_URL } from "@/lib/config";
 
 type Target = "all" | "pro" | "enterprise" | "free" | "custom";

@@ -25,7 +25,7 @@ import {
     Save,
     Wand2,
     ZoomIn,
-} from "lucide-react";
+} from "@/lib/lucide";
 import { usePlayground } from "@/app/context/PlaygroundContext";
 import { useMediaViewer } from "@/app/context/MediaViewerContext";
 import {

@@ -5,7 +5,7 @@ import { doc, onSnapshot, getDoc, collection, query, where, orderBy, limit, getD
 import { db, auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Plus, Film, Trash2, ArrowRight, Share2, Globe, Users as UsersIcon, Lock, Eye, Rocket, ChevronLeft, ChevronRight, Maximize, Crosshair, Copy, Command, Zap } from "lucide-react";
+import { Loader2, Plus, Film, Trash2, ArrowRight, Share2, Globe, Users as UsersIcon, Lock, Eye, Rocket, ChevronLeft, ChevronRight, Maximize, Crosshair, Copy, Command, Zap } from "@/lib/lucide";
 import ShareProjectModal from "@/components/ShareProjectModal";
 import { DashboardProject, TemplateProject, invalidateDashboardCache, fetchUserProjectsBasic, enrichProjectPreview, fetchTemplateProjects, cloneProject } from "@/lib/api";
 import { toast } from "react-hot-toast";
