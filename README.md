@@ -36,3 +36,7 @@ CVV	123
 Card Holder	Any Name (e.g., "Test User")
 
 ## Deploy on Vercel
+
+
+# kill all next dev processes on ports 3000, 3001 and higher
+pkill -f "next dev" 2>/dev/null; lsof -ti:3000,3001,3002,3003,3004,3005,3006,3007,3008,3009 | xargs kill -9 2>/dev/null; rm -f .next/dev/lock; echo "All next dev processes killed"

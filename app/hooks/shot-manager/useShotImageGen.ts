@@ -17,7 +17,7 @@ export const useShotImageGen = (
         shot: any,
         aspectRatio: string,
         referenceFile?: File | null,
-        provider: 'gemini' | 'seedream' = 'gemini',
+        provider: 'gemini' | 'seedream' | 'luma-uni-1' = 'gemini',
         continuityRefId?: string | null,
         cameraTransform?: any,
         cameraShotType?: string,

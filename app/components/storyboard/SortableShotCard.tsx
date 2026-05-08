@@ -6,7 +6,8 @@ import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film,
     ImagePlus, Link2, Plus, CheckCircle2,
-    Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin, Volume2, AlertTriangle, X
+    Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin, Volume2, AlertTriangle, X,
+    ImageIcon
 } from "@/lib/lucide";
 import imageCompression from 'browser-image-compression';
 import type { VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
@@ -82,6 +83,7 @@ interface SortableShotCardProps {
     onTopUp?: () => void;
     onRetryAnimate?: () => void;
     onFocusPrompt?: () => void;
+    onImageConfig?: () => void;
 }
 
 const normalize = (str: string) => str ? str.toLowerCase().trim() : "";
@@ -112,6 +114,7 @@ export const SortableShotCard = ({
     onTopUp,
     onRetryAnimate,
     onFocusPrompt,
+    onImageConfig,
 }: SortableShotCardProps) => {
 
     const isPinned = continuityRefId === shot.id;
@@ -735,6 +738,17 @@ export const SortableShotCard = ({
                         {!isUpscaled && !isUpscaling && <span className="inline-flex items-center gap-1 opacity-50 text-[9px] font-normal"><TokenIcon size={9} />{upscaleCost}</span>}
                     </button>
                 </div>
+
+                {/* Image Configuration Button */}
+                {onImageConfig && (
+                    <button
+                        onClick={onImageConfig}
+                        disabled={isBusy}
+                        className="w-full flex items-center justify-center gap-1.5 py-2 mb-2 rounded-lg text-[10px] font-bold bg-white/[0.06] text-white border border-white/[0.1] hover:border-[#E50914]/40 hover:bg-[#E50914]/10 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <ImageIcon size={12} /> Gen Image
+                    </button>
+                )}
 
                 {/* Lip Sync — only when video exists */}
                 {hasVideo && onLipSync && (
