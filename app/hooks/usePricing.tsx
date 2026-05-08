@@ -63,8 +63,12 @@ interface PricingContextValue {
 // --- Formatting Helper ---
 export const formatCredits = (n: number | null | undefined): string => {
     if (n === null || n === undefined) return '---';
-    if (n % 1 === 0) return n.toLocaleString();
-    return n.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    if (!n) return '0';
+    // Round to max 1 decimal place, then drop trailing .0
+    const cleaned = parseFloat(n.toFixed(1));
+    // Use locale formatting for thousands separators on large numbers
+    if (cleaned >= 1000) return cleaned.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+    return String(cleaned);
 };
 
 // --- Default fallback pricing (used before API responds) ---

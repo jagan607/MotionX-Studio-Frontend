@@ -1,6 +1,7 @@
 "use client";
 
 import { useCredits } from "@/hooks/useCredits";
+import { formatCredits } from "@/app/hooks/usePricing";
 import { Zap } from "lucide-react";
 import { TokenIcon } from "@/components/ui/TokenIcon";
 
@@ -61,7 +62,7 @@ export default function CreditBadge() {
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
                 <span style={styles.label}>Aval. Credits</span>
                 <span style={styles.value}>
-                    {credits !== null ? credits : 0}
+                    {credits !== null ? formatCredits(credits) : 0}
                 </span>
             </div>
 

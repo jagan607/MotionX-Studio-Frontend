@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, User, Building, ChevronDown, Check, Zap, Eye } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
+import { formatCredits } from "@/app/hooks/usePricing";
 import { useWorkspace } from "@/app/context/WorkspaceContext";
 import CreditModal from "@/app/components/modals/CreditModal";
 import { invalidateDashboardCache } from "@/lib/api";
@@ -190,7 +191,7 @@ export default function GlobalHeader() {
                                 {isEnterprise && <Building size={8} className="text-[#E50914]" />}
                                 {isEnterprise ? 'Org Credits' : 'Credits'}
                             </span>
-                            <div className={`text-xs sm:text-[13px] font-bold font-mono tracking-[0.5px] ${credits !== null && credits < 5 ? 'text-[#E50914]' : 'text-white'}`}>{credits !== null ? credits : '---'}</div>
+                            <div className={`text-xs sm:text-[13px] font-bold font-mono tracking-[0.5px] ${credits !== null && credits < 5 ? 'text-[#E50914]' : 'text-white'}`}>{credits !== null ? formatCredits(credits) : '---'}</div>
                             {/* Expiry countdown for free users */}
                             {plan === "free" && creditsExpireAt && !freeCreditsExpired && credits !== null && credits > 0 && (() => {
                                 const now = new Date();
