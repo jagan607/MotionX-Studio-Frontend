@@ -36,6 +36,7 @@ interface ImageConfigurationModalProps {
     ) => void;
     isGenerating?: boolean;
     continuityRefId?: string | null;
+    projectAspectRatio?: string;
 }
 
 /** Hardcoded Luma cost -- will be made dynamic later */
@@ -61,11 +62,14 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
     onGenerate,
     isGenerating = false,
     continuityRefId,
+    projectAspectRatio,
 }) => {
     // --- State ---
     const [imageProvider, setImageProvider] = useState<ImageProvider>('gemini');
     const [modelTier, setModelTier] = useState<'flash' | 'pro'>('pro');
-    const [aspectRatio, setAspectRatio] = useState<string>('16:9');
+    const [aspectRatio, setAspectRatio] = useState<string>(
+        projectAspectRatio || '16:9'
+    );
     const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
     const [isSettingPrimary, setIsSettingPrimary] = useState(false);
 
@@ -334,8 +338,8 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                     </div>
                                 </div>
 
-                                {/* Model Tier Toggle -- hidden for Luma (not applicable) */}
-                                {imageProvider !== 'luma-uni-1' && (
+                                {/* Model Tier Toggle -- only for Gemini (Seedream/Luma ignore tier) */}
+                                {imageProvider === 'gemini' && (
                                     <div className="space-y-1.5">
                                         <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Model Tier</label>
                                         <div className="flex gap-0 rounded-lg overflow-hidden border border-white/[0.08]">
@@ -438,14 +442,6 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                     )}
                                 </div>
 
-                                {/* Cost Display */}
-                                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                                    <span className="text-[10px] text-neutral-500 font-semibold">Estimated Cost</span>
-                                    <span className="flex items-center gap-1.5 text-[12px] font-bold text-white">
-                                        <TokenIcon size={12} />
-                                        {formatCredits(imageCost)}
-                                    </span>
-                                </div>
 
                                 {/* Luma Native Audio Disclaimer */}
                                 {imageProvider === 'luma-uni-1' && (

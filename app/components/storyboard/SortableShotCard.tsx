@@ -673,82 +673,28 @@ export const SortableShotCard = ({
             {/* ── Action Footer ── */}
             <div className={`mt-auto pt-3 border-t border-white/[0.06] ${isMorphedByPrev ? 'opacity-30 pointer-events-none' : ''}`}>
 
-                {/* Edit & Animate Button - Triggers Inspector */}
-                <button
-                    id={tourId ? `${tourId}-settings` : undefined}
-                    onClick={onEdit}
-                    disabled={isBusy}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <Settings size={14} className="group-hover:rotate-45 transition-transform text-[#E50914]" />
-                    Shot Settings & Animate
-                </button>
-
-                {/* ── Model Tier Toggle ── */}
-                <div className="flex gap-0 mb-2 rounded-lg overflow-hidden border border-white/[0.08]">
+                {/* Primary Actions -- Generate Image + Animate Video */}
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                    {onImageConfig && (
+                        <button
+                            onClick={onImageConfig}
+                            disabled={isBusy}
+                            className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <ImageIcon size={14} className="text-[#E50914]" />
+                            Generate Image
+                        </button>
+                    )}
                     <button
-                        onClick={() => setModelTier('pro')}
+                        id={tourId ? `${tourId}-settings` : undefined}
+                        onClick={onEdit}
                         disabled={isBusy}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[9px] font-bold transition-all cursor-pointer select-none
-                            ${modelTier === 'pro'
-                                ? 'bg-white/[0.08] text-white border-r border-white/[0.12]'
-                                : 'bg-white/[0.02] text-neutral-500 border-r border-white/[0.08] hover:text-neutral-300'
-                            }
-                            ${isBusy ? '!cursor-not-allowed' : ''}`}
+                        className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Nano Banana 1 Pro
-                    </button>
-                    <button
-                        onClick={() => setModelTier('flash')}
-                        disabled={isBusy}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[9px] font-bold transition-all cursor-pointer select-none
-                            ${modelTier === 'flash'
-                                ? 'bg-white/[0.08] text-white'
-                                : 'bg-white/[0.02] text-neutral-500 hover:text-neutral-300'
-                            }
-                            ${isBusy ? '!cursor-not-allowed' : ''}`}
-                    >
-                        Nano Banana 2
+                        <Settings size={14} className="group-hover:rotate-45 transition-transform text-[#E50914]" />
+                        Animate Video
                     </button>
                 </div>
-
-                {/* Image Rendering Utils */}
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                    <button
-                        id={tourId ? `${tourId}-gen` : undefined}
-                        onClick={() => onRender(refFile, imageProvider, continuityRefId, undefined, undefined, modelTier)}
-                        disabled={isBusy}
-                        className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        <Sparkles size={12} /> {hasImage ? "Re-Gen" : "Gen Image"}
-                        <span className="inline-flex items-center gap-1 opacity-50 text-[9px] font-normal"><TokenIcon size={9} />{imageCost}</span>
-                    </button>
-                    <button
-                        onClick={() => onUpscale(modelTier)}
-                        disabled={!hasImage || isBusy || isUpscaled || isUpscaling}
-                        className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed
-                            ${isUpscaled
-                                ? 'bg-cyan-500/15 text-white border border-cyan-500/60'
-                                : 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
-                            }
-                        `}
-                    >
-                        {isUpscaled ? <CheckCircle2 size={12} /> : <Wand2 size={12} />}
-                        {isUpscaled ? "4K" : "Upscale 4K"}
-                        {!isUpscaled && !isUpscaling && <span className="inline-flex items-center gap-1 opacity-50 text-[9px] font-normal"><TokenIcon size={9} />{upscaleCost}</span>}
-                    </button>
-                </div>
-
-                {/* Image Configuration Button */}
-                {onImageConfig && (
-                    <button
-                        onClick={onImageConfig}
-                        disabled={isBusy}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 mb-2 rounded-lg text-[10px] font-bold bg-white/[0.06] text-white border border-white/[0.1] hover:border-[#E50914]/40 hover:bg-[#E50914]/10 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        <ImageIcon size={12} /> Gen Image
-                    </button>
-                )}
 
                 {/* Lip Sync — only when video exists */}
                 {hasVideo && onLipSync && (

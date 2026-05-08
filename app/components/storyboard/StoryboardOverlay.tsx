@@ -1287,6 +1287,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                     }}
                     isGenerating={imageConfigShotId ? shotMgr.loadingShots.has(imageConfigShotId) : false}
                     continuityRefId={continuityRefId}
+                    projectAspectRatio={shotMgr.aspectRatio}
                 />
 
 
