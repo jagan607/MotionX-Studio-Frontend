@@ -5,7 +5,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
     GripVertical, Trash2, Sparkles, Film,
-    ImagePlus, Link2, Plus, CheckCircle2,
+    Link2, Plus, CheckCircle2,
     Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin, Volume2, AlertTriangle, X,
     ImageIcon
 } from "@/lib/lucide";
@@ -185,32 +185,8 @@ export const SortableShotCard = ({
         onUpdateShot(shot.id, "products", updated);
     };
 
-    // --- Ref Image Logic ---
-    const [refFile, setRefFile] = useState<File | null>(null);
-    const [refPreviewUrl, setRefPreviewUrl] = useState<string | null>(null);
-    const [isHoveringRef, setIsHoveringRef] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    // --- Upload Image Logic ---
     const mainImageInputRef = useRef<HTMLInputElement>(null);
-    const [isCompressing, setIsCompressing] = useState(false);
-
-    useEffect(() => {
-        if (!refFile) { setRefPreviewUrl(null); return; }
-        const objectUrl = URL.createObjectURL(refFile);
-        setRefPreviewUrl(objectUrl);
-        return () => URL.revokeObjectURL(objectUrl);
-    }, [refFile]);
-
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            setIsCompressing(true);
-            try {
-                const compressed = await imageCompression(e.target.files[0], { maxSizeMB: 1, maxWidthOrHeight: 1500, useWebWorker: true });
-                setRefFile(compressed);
-            } finally {
-                setIsCompressing(false);
-            }
-        }
-    };
 
     const handleMainImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) {
@@ -222,12 +198,6 @@ export const SortableShotCard = ({
                 onUploadImage(e.target.files[0]);
             }
         }
-    };
-
-    const clearRefImage = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setRefFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     // Local Buffers
@@ -604,48 +574,7 @@ export const SortableShotCard = ({
             <div className="mb-3">
                 <div className="flex justify-between items-center mb-1.5">
                     <label className="text-[9px] font-semibold text-neutral-500" id={tourId ? `${tourId}-prompt` : undefined}>Image Prompt</label>
-                    <div className="flex items-center gap-1.5 relative"
-                        onMouseEnter={() => setIsHoveringRef(true)}
-                        onMouseLeave={() => setIsHoveringRef(false)}
-                    >
-                        <input disabled={isMorphedByPrev} type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" />
-                        <input disabled={isMorphedByPrev || isBusy} type="file" ref={mainImageInputRef} onChange={handleMainImageSelect} className="hidden" accept="image/*" />
-
-                        <button
-                            disabled={isMorphedByPrev || isCompressing}
-                            onClick={() => fileInputRef.current?.click()}
-                            className={`flex items-center gap-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-md transition-all
-                                ${refPreviewUrl
-                                    ? 'text-[#E50914] bg-[#E50914]/10 border border-[#E50914]/30'
-                                    : 'text-neutral-500 hover:text-neutral-300 border-none bg-transparent'
-                                }
-                                ${(isMorphedByPrev || isCompressing) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
-                            `}
-                        >
-                            {isCompressing ? (
-                                <><Loader2 size={9} className="animate-spin" /> Processing</>
-                            ) : refPreviewUrl ? (
-                                <>
-                                    <div className="w-3 h-3 rounded-sm bg-cover bg-center" style={{ backgroundImage: `url(${refPreviewUrl})` }} />
-                                    Ref Active
-                                </>
-                            ) : (
-                                <><ImagePlus size={9} /> Add Ref</>
-                            )}
-                        </button>
-
-                        {refPreviewUrl && !isCompressing && !isMorphedByPrev && (
-                            <button onClick={clearRefImage} className="text-neutral-600 hover:text-red-500 transition-colors p-0.5" title="Remove Reference">
-                                <XCircle size={11} />
-                            </button>
-                        )}
-
-                        {refPreviewUrl && isHoveringRef && !isCompressing && (
-                            <div className="absolute bottom-full right-0 mb-2 w-40 bg-black border border-white/[0.15] rounded-lg overflow-hidden z-[9999] shadow-2xl pointer-events-none">
-                                <img src={refPreviewUrl} alt="Ref Preview" className="w-full h-auto block" />
-                            </div>
-                        )}
-                    </div>
+                    <input disabled={isMorphedByPrev || isBusy} type="file" ref={mainImageInputRef} onChange={handleMainImageSelect} className="hidden" accept="image/*" />
                 </div>
                 <textarea
                     disabled={isMorphedByPrev}
