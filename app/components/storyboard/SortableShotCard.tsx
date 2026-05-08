@@ -7,13 +7,14 @@ import {
     GripVertical, Trash2, Sparkles, Film,
     Link2, Plus, CheckCircle2,
     Wand2, Loader2, Palette, XCircle, Upload, Settings, Pin, Volume2, AlertTriangle, X,
-    ImageIcon
+    ImageIcon, Clapperboard
 } from "@/lib/lucide";
 import imageCompression from 'browser-image-compression';
 import type { VideoProvider } from '@/app/hooks/shot-manager/useShotVideoGen';
 import { usePricing } from '@/app/hooks/usePricing';
 import { TokenIcon } from '@/components/ui/TokenIcon';
 import { getErrorUIConfig, executeErrorAction } from '@/lib/errorDictionary';
+import { SHOT_TYPE_PRESETS, CAMERA_ANGLES } from '@/lib/shot-constants';
 
 interface CastMember { id: string; name: string; }
 interface Location { id: string; name: string; }
@@ -208,13 +209,12 @@ export const SortableShotCard = ({
     useEffect(() => { setLocalVideoPrompt(shot.video_prompt || ""); }, [shot.video_prompt]);
 
     // Shot Type combo-box state
-    const SHOT_TYPE_PRESETS = ['Wide Shot', 'Medium Shot', 'Close Up', 'Extreme Close Up', 'Medium Close Up', 'Over the Shoulder', 'POV', 'Dutch Angle', 'Aerial / Drone', 'Tracking Shot'];
     const [localShotType, setLocalShotType] = useState(shot.shot_type || "");
-    const [isCustomShotType, setIsCustomShotType] = useState(() => !!shot.shot_type && !SHOT_TYPE_PRESETS.includes(shot.shot_type));
+    const [isCustomShotType, setIsCustomShotType] = useState(() => !!shot.shot_type && !(SHOT_TYPE_PRESETS as readonly string[]).includes(shot.shot_type));
     const customInputRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
         setLocalShotType(shot.shot_type || "");
-        setIsCustomShotType(!!shot.shot_type && !SHOT_TYPE_PRESETS.includes(shot.shot_type));
+        setIsCustomShotType(!!shot.shot_type && !(SHOT_TYPE_PRESETS as readonly string[]).includes(shot.shot_type));
     }, [shot.shot_type]);
 
     // Keep the shot type input scrolled to the start so text is visible from the left
@@ -526,11 +526,7 @@ export const SortableShotCard = ({
                         onChange={(e) => onUpdateShot(shot.id, "location_angle", e.target.value)}
                         className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[11px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                        <option value="wide_establishing">Wide (Establishing)</option>
-                        <option value="front">Front</option>
-                        <option value="left">Left</option>
-                        <option value="right">Right</option>
-                        <option value="back">Back</option>
+                        {CAMERA_ANGLES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
                     </select>
                 </div>
             </div>
@@ -610,7 +606,7 @@ export const SortableShotCard = ({
                             disabled={isBusy}
                             className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <ImageIcon size={14} className="text-[#E50914]" />
+                            <Sparkles size={16} className="text-[#E50914]" />
                             Generate Image
                         </button>
                     )}
@@ -620,8 +616,8 @@ export const SortableShotCard = ({
                         disabled={isBusy}
                         className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Settings size={14} className="group-hover:rotate-45 transition-transform text-[#E50914]" />
-                        Animate Video
+                        <Clapperboard size={16} className="text-[#E50914]" />
+                        Animate
                     </button>
                 </div>
 
