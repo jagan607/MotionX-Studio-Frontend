@@ -235,9 +235,8 @@ export default function VoiceDirector() {
                         const aspect_ratio = (action.args.aspect_ratio as string) || "16:9";
                         const runtime_seconds = (action.args.runtime_seconds as number) || 60;
 
-                        toast.success("Let me set that up for you...", {
+                        toast.loading("🎬 Setting up your project...", {
                             id: "voice-create",
-                            duration: 3000,
                         });
 
                         const payload = {
@@ -377,17 +376,51 @@ export default function VoiceDirector() {
                         if (action.args.rewrite_instruction) edits.rewrite_instruction = action.args.rewrite_instruction;
                         if (action.args.cast_updates) edits.cast_updates = action.args.cast_updates;
 
+                        const isRewrite = !!edits.rewrite_instruction;
+                        const changeDesc = edits.rewrite_instruction || edits.header || edits.time || "updated";
+                        const toastId = `voice-edit-scene-${sceneNum}`;
+
+                        // Show loading toast — stays until the action completes
+                        toast.loading(
+                            isRewrite
+                                ? `✍️ Rewriting Scene ${sceneNum}...`
+                                : `📝 Updating Scene ${sceneNum}...`,
+                            { id: toastId }
+                        );
+
+                        // Emit processing state so the draft page can show per-scene spinners
                         window.dispatchEvent(
-                            new CustomEvent("director-edit-scene", {
-                                detail: { sceneNumber: sceneNum, edits },
+                            new CustomEvent("voice-scene-processing", {
+                                detail: { sceneNumber: sceneNum, processing: true },
                             })
                         );
 
-                        const changeDesc = edits.rewrite_instruction || edits.header || edits.time || "updated";
-                        toast.success(`Editing Scene ${sceneNum}...`, {
-                            id: "voice-edit",
-                            duration: 2000,
-                        });
+                        // Dispatch the actual edit — listen for completion
+                        window.dispatchEvent(
+                            new CustomEvent("director-edit-scene", {
+                                detail: {
+                                    sceneNumber: sceneNum,
+                                    edits,
+                                    onComplete: () => {
+                                        toast.success(`✅ Scene ${sceneNum} updated!`, { id: toastId, duration: 3000 });
+                                        window.dispatchEvent(
+                                            new CustomEvent("voice-scene-processing", {
+                                                detail: { sceneNumber: sceneNum, processing: false },
+                                            })
+                                        );
+                                    },
+                                    onError: (msg: string) => {
+                                        toast.error(`❌ Scene ${sceneNum}: ${msg}`, { id: toastId, duration: 4000 });
+                                        window.dispatchEvent(
+                                            new CustomEvent("voice-scene-processing", {
+                                                detail: { sceneNumber: sceneNum, processing: false },
+                                            })
+                                        );
+                                    },
+                                },
+                            })
+                        );
+
                         sendFeedback(`✅ Applied edit to Scene ${sceneNum}: ${changeDesc}`);
                         break;
                     }
@@ -401,10 +434,12 @@ export default function VoiceDirector() {
                                 detail: { moodIndex, moodName, confirm: confirm || false },
                             })
                         );
-                        toast.success(
-                            confirm ? "Applying mood..." : "Selecting mood...",
-                            { id: "voice-mood", duration: 2000 }
-                        );
+                        if (confirm) {
+                            toast.loading("🎨 Applying visual mood...", { id: "voice-mood" });
+                            setTimeout(() => toast.success("✅ Mood applied!", { id: "voice-mood", duration: 3000 }), 4000);
+                        } else {
+                            toast.success("🎨 Mood selected for preview", { id: "voice-mood", duration: 2000 });
+                        }
                         sendFeedback(confirm ? "✅ Mood applied" : "✅ Mood selected for preview");
                         break;
                     }
@@ -441,9 +476,8 @@ export default function VoiceDirector() {
                                     );
                                 }
                             });
-                            toast.success("Generating all shots...", {
+                            toast.loading("🎬 Generating all shots...", {
                                 id: "voice-gen",
-                                duration: 3000,
                             });
                         } else {
                             window.dispatchEvent(
@@ -451,9 +485,9 @@ export default function VoiceDirector() {
                                     detail: { shotNumber: genShotNum, type: genType },
                                 })
                             );
-                            toast.success(
-                                `${genType === "video" ? "Animating" : "Generating"} Shot ${genShotNum}...`,
-                                { id: "voice-gen", duration: 3000 }
+                            toast.loading(
+                                `${genType === "video" ? "🎥 Animating" : "🖼️ Generating"} Shot ${genShotNum}...`,
+                                { id: "voice-gen" }
                             );
                         }
                         sendFeedback(`✅ ${genType === "video" ? "Animation" : "Generation"} triggered`);
@@ -531,9 +565,8 @@ export default function VoiceDirector() {
                         const label = genAll || !assetName
                             ? `all ${assetType}s`
                             : assetName;
-                        toast.success(`Generating ${label}...`, {
+                        toast.loading(`🎨 Generating ${label}...`, {
                             id: "voice-gen-asset",
-                            duration: 3000,
                         });
                         sendFeedback(`✅ Triggered ${assetType} generation for ${label}`);
                         break;

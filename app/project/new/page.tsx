@@ -381,6 +381,9 @@ function NewProjectPageInner() {
         const { concept, title: paramTitle, genre: paramGenre, format: paramFormat, aspect_ratio, runtime_seconds } = detail;
         const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
 
+        // Dismiss the loading toast from VoiceDirector and show progress
+        toast.success("✨ Auto-filling your project...", { id: "voice-create", duration: 5000 });
+
         // ── Step 1: Set format ──
         console.log("[VoiceCreate] Step 1: Setting format");
         await wait(400);

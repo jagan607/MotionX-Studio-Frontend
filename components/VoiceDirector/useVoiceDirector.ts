@@ -512,6 +512,22 @@ export function useVoiceDirector(options: UseVoiceDirectorOptions = {}) {
         if (h1?.textContent) parts.push(`Page heading: ${h1.textContent.trim()}`);
 
         // ════════════════════════════════════════════════════════════
+        //  DRAFT REVIEW — scene list from data attributes
+        // ════════════════════════════════════════════════════════════
+        const draftEl = document.querySelector("[data-draft-scenes]");
+        if (draftEl) {
+            try {
+                const draftScenes = JSON.parse((draftEl as HTMLElement).dataset.draftScenes || "[]");
+                if (draftScenes.length > 0) {
+                    const sceneSummaries = draftScenes.map((s: any) =>
+                        `  Scene ${s.n}: ${s.h || "No header"}${s.t ? ` (${s.t})` : ""}${s.c ? ` | Cast: ${s.c}` : ""}${s.s ? `\n    → ${s.s}` : ""}`
+                    );
+                    parts.push(`DRAFT SCENES (${draftScenes.length} total — use scene_number 1 to ${draftScenes.length}):\n${sceneSummaries.join("\n")}`);
+                }
+            } catch { /* ignore parse errors */ }
+        }
+
+        // ════════════════════════════════════════════════════════════
         //  PREPRODUCTION CANVAS — scenes, characters, locations
         // ════════════════════════════════════════════════════════════
         const sceneNodes = document.querySelectorAll("[data-node-type='scene']");

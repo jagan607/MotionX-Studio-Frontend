@@ -61,9 +61,12 @@ export default function DraftPage() {
     }, [isLoading, scenes, activeSceneId]);
 
     // ══════ VOICE DIRECTOR: EDIT SCENE HANDLER ══════
+    const [processingScenes, setProcessingScenes] = useState<Set<number>>(new Set());
+
     useEffect(() => {
         const handleDirectorEdit = async (e: Event) => {
-            const { sceneNumber, edits } = (e as CustomEvent).detail as {
+            const detail = (e as CustomEvent).detail;
+            const { sceneNumber, edits, onComplete, onError } = detail as {
                 sceneNumber: number;
                 edits: {
                     header?: string;
@@ -72,64 +75,84 @@ export default function DraftPage() {
                     rewrite_instruction?: string;
                     cast_updates?: Record<string, string>;
                 };
+                onComplete?: () => void;
+                onError?: (msg: string) => void;
             };
 
             // Find the scene by number
             const scene = scenes.find(s => s.scene_number === sceneNumber);
             if (!scene) {
                 toast.error(`Scene ${sceneNumber} not found`);
+                onError?.(`Scene ${sceneNumber} not found`);
                 return;
             }
 
             // Select the scene visually
             setActiveSceneId(scene.id);
 
-            // Build direct property updates
-            const directUpdates: Partial<WorkstationScene> = {};
-            if (edits.header) directUpdates.header = edits.header;
-            if (edits.time) {
-                directUpdates.time = edits.time;
-                // Also update the header if time changed but header wasn't explicitly set
-                if (!edits.header && scene.header) {
-                    // Replace time in slugline: "INT. ROOM - DAY" → "INT. ROOM - NIGHT"
-                    const timePattern = /\b(DAY|NIGHT|DAWN|DUSK|LATER|CONTINUOUS|MORNING|EVENING)\b/i;
-                    directUpdates.header = scene.header.replace(timePattern, edits.time);
+            try {
+                // Build direct property updates
+                const directUpdates: Partial<WorkstationScene> = {};
+                if (edits.header) directUpdates.header = edits.header;
+                if (edits.time) {
+                    directUpdates.time = edits.time;
+                    if (!edits.header && scene.header) {
+                        const timePattern = /\b(DAY|NIGHT|DAWN|DUSK|LATER|CONTINUOUS|MORNING|EVENING)\b/i;
+                        directUpdates.header = scene.header.replace(timePattern, edits.time);
+                    }
                 }
-            }
-            if (edits.action) directUpdates.summary = edits.action;
+                if (edits.action) directUpdates.summary = edits.action;
 
-            // Handle cast name changes
-            if (edits.cast_updates && Object.keys(edits.cast_updates).length > 0) {
-                let newCast = [...(scene.cast_ids || scene.characters || [])];
-                let newSummary = scene.summary || "";
+                // Handle cast name changes
+                if (edits.cast_updates && Object.keys(edits.cast_updates).length > 0) {
+                    let newCast = [...(scene.cast_ids || scene.characters || [])];
+                    let newSummary = scene.summary || "";
 
-                for (const [oldName, newName] of Object.entries(edits.cast_updates)) {
-                    // Replace in cast list
-                    newCast = newCast.map(c =>
-                        c.toUpperCase() === oldName.toUpperCase() ? newName.toUpperCase() : c
-                    );
-                    // Replace in action text
-                    const nameRegex = new RegExp(oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-                    newSummary = newSummary.replace(nameRegex, newName);
+                    for (const [oldName, newName] of Object.entries(edits.cast_updates)) {
+                        newCast = newCast.map(c =>
+                            c.toUpperCase() === oldName.toUpperCase() ? newName.toUpperCase() : c
+                        );
+                        const nameRegex = new RegExp(oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                        newSummary = newSummary.replace(nameRegex, newName);
+                    }
+                    directUpdates.cast_ids = newCast;
+                    directUpdates.characters = newCast;
+                    if (newSummary !== scene.summary) directUpdates.summary = newSummary;
                 }
-                directUpdates.cast_ids = newCast;
-                directUpdates.characters = newCast;
-                if (newSummary !== scene.summary) directUpdates.summary = newSummary;
-            }
 
-            // Apply direct updates if any
-            if (Object.keys(directUpdates).length > 0) {
-                await handleUpdateScene(scene.id, directUpdates);
-            }
+                // Apply direct updates if any
+                if (Object.keys(directUpdates).length > 0) {
+                    await handleUpdateScene(scene.id, directUpdates);
+                }
 
-            // Handle AI rewrite instruction
-            if (edits.rewrite_instruction) {
-                await handleRewrite(scene.id, edits.rewrite_instruction);
+                // Handle AI rewrite instruction
+                if (edits.rewrite_instruction) {
+                    await handleRewrite(scene.id, edits.rewrite_instruction);
+                }
+
+                onComplete?.();
+            } catch (err: any) {
+                onError?.(err.message || "Failed to update scene");
             }
         };
 
+        // Listen for per-scene processing state
+        const handleProcessing = (e: Event) => {
+            const { sceneNumber, processing } = (e as CustomEvent).detail;
+            setProcessingScenes(prev => {
+                const next = new Set(prev);
+                if (processing) next.add(sceneNumber);
+                else next.delete(sceneNumber);
+                return next;
+            });
+        };
+
         window.addEventListener("director-edit-scene", handleDirectorEdit);
-        return () => window.removeEventListener("director-edit-scene", handleDirectorEdit);
+        window.addEventListener("voice-scene-processing", handleProcessing);
+        return () => {
+            window.removeEventListener("director-edit-scene", handleDirectorEdit);
+            window.removeEventListener("voice-scene-processing", handleProcessing);
+        };
     }, [scenes]); // Re-bind when scenes change
 
     // FALLBACK: Extract locations from scene headers when Firestore collection is empty
@@ -622,7 +645,17 @@ export default function DraftPage() {
         </div>
     );
 
+    // Build scene metadata for voice director scraping
+    const draftSceneMeta = scenes.map(s => ({
+        n: s.scene_number,
+        h: (s.header || s.slugline || "").slice(0, 80),
+        t: s.time || "",
+        c: (s.cast_ids || s.characters || []).join(", "),
+        s: (s.summary || "").slice(0, 120),
+    }));
+
     return (
+        <div data-draft-scenes={JSON.stringify(draftSceneMeta)} data-draft-scene-count={scenes.length}>
         <ScriptWorkstation
             title="SEQUENCE EDITOR"
             backLink={`/project/${projectId}/script`}
@@ -660,5 +693,6 @@ export default function DraftPage() {
             isProcessing={isProcessing}
             isCommitting={isCommitting}
         />
+        </div>
     );
 }
