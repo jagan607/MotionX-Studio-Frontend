@@ -97,13 +97,15 @@ export default function MoodboardPage() {
     const [isCustomSubmitting, setIsCustomSubmitting] = useState(false);
     const filmstripRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll filmstrip to keep the active thumbnail visible
+    // Paginated filmstrip: show max 5 thumbnails at a time
+    const FILMSTRIP_PAGE_SIZE = 5;
+    const [filmstripPage, setFilmstripPage] = useState(0);
+    const totalFilmstripPages = Math.ceil((moods.length + 1) / FILMSTRIP_PAGE_SIZE); // +1 for Custom cell
+
+    // Auto-advance filmstrip page when selectedIdx changes
     useEffect(() => {
-        if (!filmstripRef.current) return;
-        const active = filmstripRef.current.querySelector(`[data-filmstrip-idx="${selectedIdx}"]`) as HTMLElement | null;
-        if (active) {
-            active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
+        const targetPage = Math.floor(selectedIdx / FILMSTRIP_PAGE_SIZE);
+        setFilmstripPage(targetPage);
     }, [selectedIdx]);
 
     // --- Fetch project doc for title & applied mood ---
@@ -484,8 +486,6 @@ export default function MoodboardPage() {
                     0%, 100% { opacity: 0.5; }
                     50% { opacity: 0.25; }
                 }
-                /* Hide filmstrip scrollbar across all browsers */
-                .filmstrip-scroll::-webkit-scrollbar { display: none; }
             `}</style>
 
             {/* ══════════════════════ TOP BAR — always visible ══════════════════════ */}
@@ -525,7 +525,7 @@ export default function MoodboardPage() {
                     {/* Close — back to pre-production (hidden during onboarding) */}
                     {!isOnboarding && (
                         <Link href={preproductionUrl}
-                            className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all no-underline">
+                            className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/90 uppercase tracking-[1px] border border-white/[0.2] rounded-md hover:text-white hover:border-white/40 hover:bg-white/[0.08] transition-all no-underline">
                             <X size={12} />
                             Close
                         </Link>
@@ -708,7 +708,7 @@ export default function MoodboardPage() {
                         </div>
                     )}
 
-                    {/* ── BOTTOM FILMSTRIP ── */}
+                    {/* ── BOTTOM FILMSTRIP (paginated, max 5 visible) ── */}
                     <div className="absolute bottom-0 left-0 right-0 z-40">
                         {/* Filmstrip perforations */}
                         <div className="flex items-center justify-center gap-[6px] mb-1.5 opacity-15">
@@ -717,102 +717,138 @@ export default function MoodboardPage() {
                             ))}
                         </div>
 
-                        <div
-                            ref={filmstripRef}
-                            className="flex h-[130px] border-t border-white/[0.04] bg-[#020202]/80 backdrop-blur-md overflow-x-auto filmstrip-scroll"
-                            style={{ scrollSnapType: 'x mandatory', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                        >
-                            {moods.map((mood, idx) => {
-                                const active = idx === selectedIdx;
-                                const hasImage = mood.status === "ready" && mood.image_url;
-                                const isMoodApplied = !isOnboarding && mood.id === appliedMoodId;
-                                return (
-                                    <button key={mood.id}
-                                        data-filmstrip-idx={idx}
-                                        onClick={() => setSelectedIdx(idx)}
-                                        className={`relative shrink-0 overflow-hidden transition-all duration-500 cursor-pointer group
-                                            ${idx > 0 ? 'border-l border-white/[0.03]' : ''}
-                                            ${isMoodApplied ? 'opacity-100 ring-1 ring-emerald-500/50' : active ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
-                                        style={{ scrollSnapAlign: 'center', width: active || isMoodApplied ? 180 : 140, minWidth: 120 }}
-                                    >
-                                        {hasImage ? (
-                                            <img src={mood.image_url!} alt={mood.name}
-                                                className={`absolute inset-0 w-full h-full object-cover transition-all duration-700
-                                                    ${isMoodApplied ? 'scale-100 brightness-[0.85]' : active ? 'scale-100 brightness-90' : 'scale-110 brightness-50 group-hover:brightness-75 group-hover:scale-105'}`}
-                                            />
-                                        ) : (
-                                            <div className="absolute inset-0 bg-[#060606] overflow-hidden">
-                                                <div className="absolute w-[70%] h-[70%] rounded-full bg-[#E50914]/20 blur-[25px]"
-                                                    style={{ animation: 'mbFlowBlob1 4s ease-in-out infinite', top: '5%', left: '10%' }} />
-                                                <div className="absolute w-[50%] h-[50%] rounded-full bg-[#ff4d4d]/10 blur-[20px]"
-                                                    style={{ animation: 'mbFlowBlob2 5s ease-in-out infinite', bottom: '5%', right: '5%' }} />
-                                                <div className="absolute inset-0 backdrop-blur-xl bg-white/[0.02]" />
-                                            </div>
-                                        )}
+                        <div className="relative h-[130px] border-t border-white/[0.04] bg-[#020202]/80 backdrop-blur-md">
+                            {/* Left arrow */}
+                            {filmstripPage > 0 && (
+                                <button
+                                    onClick={() => setFilmstripPage(p => Math.max(0, p - 1))}
+                                    className="absolute left-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-r from-black/80 to-transparent hover:from-black transition-all cursor-pointer group"
+                                >
+                                    <ChevronLeft size={16} className="text-white/50 group-hover:text-white transition-colors" />
+                                </button>
+                            )}
 
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
+                            {/* Right arrow */}
+                            {filmstripPage < totalFilmstripPages - 1 && (
+                                <button
+                                    onClick={() => setFilmstripPage(p => Math.min(totalFilmstripPages - 1, p + 1))}
+                                    className="absolute right-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-l from-black/80 to-transparent hover:from-black transition-all cursor-pointer group"
+                                >
+                                    <ChevronRight size={16} className="text-white/50 group-hover:text-white transition-colors" />
+                                </button>
+                            )}
 
-                                        {/* Active indicator — red line */}
-                                        {active && <div className="absolute top-0 inset-x-0 h-[2px] bg-[#E50914] shadow-[0_0_8px_rgba(229,9,20,0.5)]" />}
-
-                                        {/* Applied indicator — emerald glow line + badge */}
-                                        {isMoodApplied && (
-                                            <>
-                                                <div className="absolute top-0 inset-x-0 h-[2px] bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.6)]" />
-                                                <div className="absolute bottom-0 inset-x-0 h-[2px] bg-emerald-400/40" />
-                                                <div className="absolute top-2 right-2 flex items-center gap-1 bg-emerald-500/30 border border-emerald-400/50 rounded-full px-2 py-0.5 backdrop-blur-sm">
-                                                    <Check size={8} className="text-emerald-300" />
-                                                    <span className="text-[7px] font-bold text-emerald-300 uppercase tracking-wider">Selected</span>
-                                                </div>
-                                            </>
-                                        )}
-
-                                        {/* Delete button — hover-visible, hidden for applied */}
-                                        {!isMoodApplied && (
-                                            <div
-                                                onClick={(e) => handleDeleteMood(mood.id, e)}
-                                                className="absolute top-2 left-2 z-50 p-1.5 rounded-md bg-black/40 backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:border-red-500/50 transition-all cursor-pointer"
+                            {/* Windowed carousel viewport */}
+                            <div ref={filmstripRef} className="h-full overflow-hidden">
+                                <div
+                                    className="flex h-full transition-transform duration-500 ease-in-out"
+                                    style={{ transform: `translateX(-${filmstripPage * 100}%)` }}
+                                >
+                                    {/* All mood cells + Custom cell rendered in a sliding track */}
+                                    {moods.map((mood, idx) => {
+                                        const active = idx === selectedIdx;
+                                        const hasImage = mood.status === "ready" && mood.image_url;
+                                        const isMoodApplied = !isOnboarding && mood.id === appliedMoodId;
+                                        return (
+                                            <button key={mood.id}
+                                                data-filmstrip-idx={idx}
+                                                onClick={() => setSelectedIdx(idx)}
+                                                className={`relative shrink-0 overflow-hidden transition-all duration-500 cursor-pointer group
+                                                    ${idx > 0 ? 'border-l border-white/[0.03]' : ''}
+                                                    ${isMoodApplied ? 'opacity-100 ring-1 ring-emerald-500/50' : active ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
+                                                style={{ width: `${100 / FILMSTRIP_PAGE_SIZE}%` }}
                                             >
-                                                <Trash2 size={12} className="text-white/60 hover:text-red-400 transition-colors" />
-                                            </div>
-                                        )}
+                                                {hasImage ? (
+                                                    <img src={mood.image_url!} alt={mood.name}
+                                                        className={`absolute inset-0 w-full h-full object-cover transition-all duration-700
+                                                            ${isMoodApplied ? 'scale-100 brightness-[0.85]' : active ? 'scale-100 brightness-90' : 'scale-110 brightness-50 group-hover:brightness-75 group-hover:scale-105'}`}
+                                                    />
+                                                ) : (
+                                                    <div className="absolute inset-0 bg-[#060606] overflow-hidden">
+                                                        <div className="absolute w-[70%] h-[70%] rounded-full bg-[#E50914]/20 blur-[25px]"
+                                                            style={{ animation: 'mbFlowBlob1 4s ease-in-out infinite', top: '5%', left: '10%' }} />
+                                                        <div className="absolute w-[50%] h-[50%] rounded-full bg-[#ff4d4d]/10 blur-[20px]"
+                                                            style={{ animation: 'mbFlowBlob2 5s ease-in-out infinite', bottom: '5%', right: '5%' }} />
+                                                        <div className="absolute inset-0 backdrop-blur-xl bg-white/[0.02]" />
+                                                    </div>
+                                                )}
 
-                                        {/* Label */}
-                                        <div className="absolute bottom-0 inset-x-0 p-2.5">
-                                            <span className={`text-[9px] font-bold uppercase tracking-wider block truncate
-                                                ${isMoodApplied ? 'text-emerald-300' : active ? 'text-white' : 'text-white/50'}`}>
-                                                {mood.name}
-                                            </span>
-                                            {!hasImage && mood.status === "generating" && (
-                                                <div className="flex items-center gap-1 mt-0.5">
-                                                    <Loader2 size={7} className="animate-spin text-[#E50914]/30" />
-                                                    <span className="text-[7px] text-white/15 uppercase tracking-wider font-mono">Rendering</span>
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
+
+                                                {/* Active indicator — red line */}
+                                                {active && <div className="absolute top-0 inset-x-0 h-[2px] bg-[#E50914] shadow-[0_0_8px_rgba(229,9,20,0.5)]" />}
+
+                                                {/* Applied indicator — emerald glow line + badge */}
+                                                {isMoodApplied && (
+                                                    <>
+                                                        <div className="absolute top-0 inset-x-0 h-[2px] bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.6)]" />
+                                                        <div className="absolute bottom-0 inset-x-0 h-[2px] bg-emerald-400/40" />
+                                                        <div className="absolute top-2 right-2 flex items-center gap-1 bg-emerald-500/30 border border-emerald-400/50 rounded-full px-2 py-0.5 backdrop-blur-sm">
+                                                            <Check size={8} className="text-emerald-300" />
+                                                            <span className="text-[7px] font-bold text-emerald-300 uppercase tracking-wider">Selected</span>
+                                                        </div>
+                                                    </>
+                                                )}
+
+                                                {/* Delete button — hover-visible, hidden for applied */}
+                                                {!isMoodApplied && (
+                                                    <div
+                                                        onClick={(e) => handleDeleteMood(mood.id, e)}
+                                                        className="absolute top-2 left-2 z-50 p-1.5 rounded-md bg-black/40 backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:border-red-500/50 transition-all cursor-pointer"
+                                                    >
+                                                        <Trash2 size={12} className="text-white/60 hover:text-red-400 transition-colors" />
+                                                    </div>
+                                                )}
+
+                                                {/* Label */}
+                                                <div className="absolute bottom-0 inset-x-0 p-2.5">
+                                                    <span className={`text-[9px] font-bold uppercase tracking-wider block truncate
+                                                        ${isMoodApplied ? 'text-emerald-300' : active ? 'text-white' : 'text-white/50'}`}>
+                                                        {mood.name}
+                                                    </span>
+                                                    {!hasImage && mood.status === "generating" && (
+                                                        <div className="flex items-center gap-1 mt-0.5">
+                                                            <Loader2 size={7} className="animate-spin text-[#E50914]/30" />
+                                                            <span className="text-[7px] text-white/15 uppercase tracking-wider font-mono">Rendering</span>
+                                                        </div>
+                                                    )}
+                                                    {mood.status === "failed" && (
+                                                        <div className="flex items-center gap-1 mt-0.5">
+                                                            <AlertCircle size={7} className="text-[#E50914]/40" />
+                                                            <span className="text-[7px] text-[#E50914]/30 uppercase tracking-wider font-mono">Failed</span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                            {mood.status === "failed" && (
-                                                <div className="flex items-center gap-1 mt-0.5">
-                                                    <AlertCircle size={7} className="text-[#E50914]/40" />
-                                                    <span className="text-[7px] text-[#E50914]/30 uppercase tracking-wider font-mono">Failed</span>
-                                                </div>
-                                            )}
+                                            </button>
+                                        );
+                                    })}
+
+                                    {/* ── Custom Upload Cell ── */}
+                                    <button
+                                        onClick={() => setShowCustomModal(true)}
+                                        className="relative shrink-0 overflow-hidden border-l border-white/[0.03] transition-all duration-500 cursor-pointer group opacity-70 hover:opacity-100"
+                                        style={{ width: `${100 / FILMSTRIP_PAGE_SIZE}%` }}
+                                    >
+                                        <div className="absolute inset-0 bg-[#0a0a0a] flex flex-col items-center justify-center gap-1.5 border border-dashed border-white/20 m-1 rounded group-hover:border-white/40 transition-all">
+                                            <div className="w-6 h-6 rounded-full border border-white/50 flex items-center justify-center group-hover:border-white group-hover:bg-white/10 transition-all">
+                                                <span className="text-white/70 text-sm font-light group-hover:text-white transition-colors">+</span>
+                                            </div>
+                                            <span className="text-[8px] text-white/60 uppercase tracking-[2px] font-bold group-hover:text-white transition-colors">Custom</span>
                                         </div>
                                     </button>
-                                );
-                            })}
-
-                            {/* ── Custom Upload Cell ── */}
-                            <button
-                                onClick={() => setShowCustomModal(true)}
-                                className="relative shrink-0 w-[90px] min-w-[80px] overflow-hidden border-l border-white/[0.03] transition-all duration-500 cursor-pointer group opacity-70 hover:opacity-100"
-                                style={{ scrollSnapAlign: 'end' }}
-                            >
-                                <div className="absolute inset-0 bg-[#0a0a0a] flex flex-col items-center justify-center gap-1.5 border border-dashed border-white/20 m-1 rounded group-hover:border-white/40 transition-all">
-                                    <div className="w-6 h-6 rounded-full border border-white/50 flex items-center justify-center group-hover:border-white group-hover:bg-white/10 transition-all">
-                                        <span className="text-white/70 text-sm font-light group-hover:text-white transition-colors">+</span>
-                                    </div>
-                                    <span className="text-[8px] text-white/60 uppercase tracking-[2px] font-bold group-hover:text-white transition-colors">Custom</span>
                                 </div>
-                            </button>
+                            </div>
+
+                            {/* Page indicator dots */}
+                            {totalFilmstripPages > 1 && (
+                                <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+                                    {Array.from({ length: totalFilmstripPages }).map((_, i) => (
+                                        <button key={i} onClick={() => setFilmstripPage(i)}
+                                            className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${i === filmstripPage ? 'bg-[#E50914] w-4' : 'bg-white/20 hover:bg-white/40'}`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Filmstrip bottom perforations */}
@@ -831,7 +867,7 @@ export default function MoodboardPage() {
                             </div>
                             <div className="flex items-center gap-3">
                                 <CreditCTA
-                                    label="Regenerate"
+                                    label="Generate New Options"
                                     cost={2}
                                     icon={<RefreshCw size={12} className={isRegenerating ? "animate-spin" : ""} />}
                                     onClick={() => generateMoods(true)}
