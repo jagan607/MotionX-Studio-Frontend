@@ -10,7 +10,7 @@ import {
     Loader2, Check, Palette, Sun, Layers, CloudFog,
     ChevronRight, ChevronLeft, RefreshCw, AlertCircle,
     ArrowLeft, Sparkles, X, Trash2,
-    BrainCircuit
+    BrainCircuit, Upload
 } from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -100,7 +100,7 @@ export default function MoodboardPage() {
     // Paginated filmstrip: show max 5 thumbnails at a time
     const FILMSTRIP_PAGE_SIZE = 5;
     const [filmstripPage, setFilmstripPage] = useState(0);
-    const totalFilmstripPages = Math.ceil((moods.length + 1) / FILMSTRIP_PAGE_SIZE); // +1 for Custom cell
+    const totalFilmstripPages = Math.max(1, Math.ceil(moods.length / FILMSTRIP_PAGE_SIZE));
 
     // Auto-advance filmstrip page when selectedIdx changes
     useEffect(() => {
@@ -823,19 +823,6 @@ export default function MoodboardPage() {
                                         );
                                     })}
 
-                                    {/* ── Custom Upload Cell ── */}
-                                    <button
-                                        onClick={() => setShowCustomModal(true)}
-                                        className="relative shrink-0 overflow-hidden border-l border-white/[0.03] transition-all duration-500 cursor-pointer group opacity-70 hover:opacity-100"
-                                        style={{ width: `${100 / FILMSTRIP_PAGE_SIZE}%` }}
-                                    >
-                                        <div className="absolute inset-0 bg-[#0a0a0a] flex flex-col items-center justify-center gap-1.5 border border-dashed border-white/20 m-1 rounded group-hover:border-white/40 transition-all">
-                                            <div className="w-6 h-6 rounded-full border border-white/50 flex items-center justify-center group-hover:border-white group-hover:bg-white/10 transition-all">
-                                                <span className="text-white/70 text-sm font-light group-hover:text-white transition-colors">+</span>
-                                            </div>
-                                            <span className="text-[8px] text-white/60 uppercase tracking-[2px] font-bold group-hover:text-white transition-colors">Custom</span>
-                                        </div>
-                                    </button>
                                 </div>
                             </div>
 
@@ -860,10 +847,17 @@ export default function MoodboardPage() {
 
                         {/* CTA bar */}
                         <div className="flex items-center justify-between px-8 py-3 bg-[#020202]">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                                 <span className="text-[8px] font-mono text-white/10 uppercase tracking-[3px]">
                                     ← → Navigate • Enter to Apply
                                 </span>
+                                <button
+                                    onClick={() => setShowCustomModal(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-bold text-white/40 uppercase tracking-[1px] border border-dashed border-white/[0.15] rounded-md hover:text-white/70 hover:border-white/30 hover:bg-white/[0.04] transition-all cursor-pointer"
+                                >
+                                    <Upload size={11} />
+                                    Upload Custom
+                                </button>
                             </div>
                             <div className="flex items-center gap-3">
                                 <CreditCTA
