@@ -847,19 +847,19 @@ export default function MoodboardPage() {
 
                         {/* CTA bar */}
                         <div className="flex items-center justify-between px-8 py-3 bg-[#020202]">
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                                 <span className="text-[8px] font-mono text-white/10 uppercase tracking-[3px]">
                                     ← → Navigate • Enter to Apply
                                 </span>
-                                <button
-                                    onClick={() => setShowCustomModal(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-bold text-white/40 uppercase tracking-[1px] border border-dashed border-white/[0.15] rounded-md hover:text-white/70 hover:border-white/30 hover:bg-white/[0.04] transition-all cursor-pointer"
-                                >
-                                    <Upload size={11} />
-                                    Upload Custom
-                                </button>
                             </div>
                             <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setShowCustomModal(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-white/90 uppercase tracking-[1px] border border-dashed border-white/[0.2] rounded-md hover:text-white hover:border-white/40 hover:bg-white/[0.06] transition-all cursor-pointer"
+                                >
+                                    <Upload size={11} />
+                                    Upload Custom Moodboard
+                                </button>
                                 <CreditCTA
                                     label="Generate New Options"
                                     cost={2}
