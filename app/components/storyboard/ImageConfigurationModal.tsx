@@ -110,6 +110,13 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
         ? LUMA_IMAGE_COST
         : getImageCost(imageProvider as 'gemini' | 'seedream', modelTier, 'shot');
 
+    // Reset modelTier when switching away from Gemini (Seedream/Luma use a single flat-rate tier)
+    useEffect(() => {
+        if (imageProvider !== 'gemini') {
+            setModelTier('flash');
+        }
+    }, [imageProvider]);
+
     // Derived state
     const hasImage = Boolean(shot?.image_url);
     const isBusy = isGenerating || shot?.status === 'generating';
@@ -175,7 +182,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
 
     const handleGenerate = () => {
         onGenerate(
-            refFile,
+            imageProvider === 'luma-uni-1' ? null : refFile,
             imageProvider,
             continuityRefId,
             undefined,
@@ -504,7 +511,11 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => setImageProvider('luma-uni-1')}
+                                            onClick={() => {
+                                                setImageProvider('luma-uni-1');
+                                                setRefFile(null);
+                                                if (fileInputRef.current) fileInputRef.current.value = '';
+                                            }}
                                             className={pill(imageProvider === 'luma-uni-1')}
                                         >
                                             Luma (uni-1)
@@ -567,54 +578,56 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                     </div>
                                 </div>
 
-                                {/* Reference Image */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Reference Image</label>
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        onChange={handleFileSelect}
-                                        className="hidden"
-                                        accept="image/*"
-                                    />
+                                {/* Reference Image -- hidden for Luma (text-only model) */}
+                                {imageProvider !== 'luma-uni-1' && (
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Reference Image</label>
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            onChange={handleFileSelect}
+                                            className="hidden"
+                                            accept="image/*"
+                                        />
 
-                                    {refPreviewUrl ? (
-                                        <div className="relative rounded-lg overflow-hidden border border-[#E50914]/30 bg-white/[0.02]">
-                                            <img
-                                                src={refPreviewUrl}
-                                                alt="Reference"
-                                                className="w-full h-28 object-cover"
-                                            />
-                                            <button
-                                                onClick={clearRefImage}
-                                                className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center bg-black/60 hover:bg-red-500/60 text-white transition-colors cursor-pointer"
-                                            >
-                                                <XCircle size={12} />
-                                            </button>
-                                            <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/60 backdrop-blur-sm">
-                                                <span className="text-[9px] font-bold text-[#E50914]">Reference Active</span>
+                                        {refPreviewUrl ? (
+                                            <div className="relative rounded-lg overflow-hidden border border-[#E50914]/30 bg-white/[0.02]">
+                                                <img
+                                                    src={refPreviewUrl}
+                                                    alt="Reference"
+                                                    className="w-full h-28 object-cover"
+                                                />
+                                                <button
+                                                    onClick={clearRefImage}
+                                                    className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center bg-black/60 hover:bg-red-500/60 text-white transition-colors cursor-pointer"
+                                                >
+                                                    <XCircle size={12} />
+                                                </button>
+                                                <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/60 backdrop-blur-sm">
+                                                    <span className="text-[9px] font-bold text-[#E50914]">Reference Active</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <button
-                                            onClick={() => fileInputRef.current?.click()}
-                                            disabled={isCompressing}
-                                            className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border border-dashed border-white/[0.1] bg-white/[0.02] text-neutral-500 hover:border-white/[0.2] hover:text-neutral-300 transition-all cursor-pointer disabled:cursor-wait"
-                                        >
-                                            {isCompressing ? (
-                                                <>
-                                                    <Loader2 size={14} className="animate-spin" />
-                                                    <span className="text-[10px] font-semibold">Compressing...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <ImagePlus size={14} />
-                                                    <span className="text-[10px] font-semibold">Add Reference Image</span>
-                                                </>
-                                            )}
-                                        </button>
-                                    )}
-                                </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => fileInputRef.current?.click()}
+                                                disabled={isCompressing}
+                                                className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border border-dashed border-white/[0.1] bg-white/[0.02] text-neutral-500 hover:border-white/[0.2] hover:text-neutral-300 transition-all cursor-pointer disabled:cursor-wait"
+                                            >
+                                                {isCompressing ? (
+                                                    <>
+                                                        <Loader2 size={14} className="animate-spin" />
+                                                        <span className="text-[10px] font-semibold">Compressing...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <ImagePlus size={14} />
+                                                        <span className="text-[10px] font-semibold">Add Reference Image</span>
+                                                    </>
+                                                )}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
 
 
                                 {/* Luma Native Audio Disclaimer */}
