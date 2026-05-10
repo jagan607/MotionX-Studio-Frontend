@@ -16,6 +16,7 @@ import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
 import Link from "next/link";
 import CustomMoodboardModal, { CustomMoodboardResult } from "./CustomMoodboardModal";
+import { CreditCTA } from "@/components/ui/CreditCTA";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -94,6 +95,16 @@ export default function MoodboardPage() {
     // --- Custom Moodboard Upload ---
     const [showCustomModal, setShowCustomModal] = useState(false);
     const [isCustomSubmitting, setIsCustomSubmitting] = useState(false);
+    const filmstripRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll filmstrip to keep the active thumbnail visible
+    useEffect(() => {
+        if (!filmstripRef.current) return;
+        const active = filmstripRef.current.querySelector(`[data-filmstrip-idx="${selectedIdx}"]`) as HTMLElement | null;
+        if (active) {
+            active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+    }, [selectedIdx]);
 
     // --- Fetch project doc for title & applied mood ---
     useEffect(() => {
@@ -180,9 +191,15 @@ export default function MoodboardPage() {
             });
             if (res.data.status === "success") {
                 if (res.data.mood_options?.length > 0) {
-                    setMoods(res.data.mood_options.map((m: any) => ({
+                    const incoming = res.data.mood_options.map((m: any) => ({
                         ...m, status: m.status || (m.image_url ? "ready" : "generating"),
-                    })));
+                    }));
+                    // Append new moods to existing history instead of overwriting
+                    setMoods(prev => {
+                        const existingIds = new Set(prev.map(p => p.id));
+                        const newOnly = incoming.filter((m: MoodOption) => !existingIds.has(m.id));
+                        return [...prev, ...newOnly];
+                    });
                 }
                 toastSuccess("Generating moods...");
             } else {
@@ -467,6 +484,8 @@ export default function MoodboardPage() {
                     0%, 100% { opacity: 0.5; }
                     50% { opacity: 0.25; }
                 }
+                /* Hide filmstrip scrollbar across all browsers */
+                .filmstrip-scroll::-webkit-scrollbar { display: none; }
             `}</style>
 
             {/* ══════════════════════ TOP BAR — always visible ══════════════════════ */}
@@ -501,13 +520,7 @@ export default function MoodboardPage() {
 
 
 
-                    {selectedMood && (
-                        <button onClick={() => generateMoods(true)} disabled={isRegenerating}
-                            className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30">
-                            <RefreshCw size={12} className={isRegenerating ? "animate-spin" : ""} />
-                            Regenerate <span className="opacity-50 text-[9px] font-normal tracking-normal normal-case ml-1">· 2 cr</span>
-                        </button>
-                    )}
+
 
                     {/* Close — back to pre-production (hidden during onboarding) */}
                     {!isOnboarding && (
@@ -567,12 +580,14 @@ export default function MoodboardPage() {
                                 <Palette size={36} className="text-[#E50914]/30 mb-6" />
                                 <h2 className="text-2xl sm:text-3xl uppercase tracking-wide mb-3 font-display text-white/80">Visual Direction</h2>
                                 <p className="text-[11px] text-white/30 tracking-[2px] uppercase mb-8">No moodboard generated yet</p>
-                                <button
+                                <CreditCTA
+                                    label="Generate Moodboard"
+                                    cost={isOnboarding ? undefined : 2}
+                                    icon={<Palette size={14} />}
                                     onClick={() => generateMoods()}
-                                    className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer"
-                                >
-                                    <Palette size={14} /> Generate Moodboard{!isOnboarding && <span className="opacity-50 text-[9px] font-normal tracking-normal normal-case ml-1">· 2 cr</span>}
-                                </button>
+                                    variant="primary"
+                                    size="md"
+                                />
                             </>
                         )}
                     </div>
@@ -702,17 +717,23 @@ export default function MoodboardPage() {
                             ))}
                         </div>
 
-                        <div className="flex h-[130px] border-t border-white/[0.04] bg-[#020202]/80 backdrop-blur-md">
+                        <div
+                            ref={filmstripRef}
+                            className="flex h-[130px] border-t border-white/[0.04] bg-[#020202]/80 backdrop-blur-md overflow-x-auto filmstrip-scroll"
+                            style={{ scrollSnapType: 'x mandatory', scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                        >
                             {moods.map((mood, idx) => {
                                 const active = idx === selectedIdx;
                                 const hasImage = mood.status === "ready" && mood.image_url;
                                 const isMoodApplied = !isOnboarding && mood.id === appliedMoodId;
                                 return (
                                     <button key={mood.id}
+                                        data-filmstrip-idx={idx}
                                         onClick={() => setSelectedIdx(idx)}
-                                        className={`relative flex-1 overflow-hidden transition-all duration-500 cursor-pointer group
+                                        className={`relative shrink-0 overflow-hidden transition-all duration-500 cursor-pointer group
                                             ${idx > 0 ? 'border-l border-white/[0.03]' : ''}
-                                            ${isMoodApplied ? 'flex-[1.6] opacity-100 ring-1 ring-emerald-500/50' : active ? 'flex-[1.8] opacity-100' : 'opacity-40 hover:opacity-70'}`}
+                                            ${isMoodApplied ? 'opacity-100 ring-1 ring-emerald-500/50' : active ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
+                                        style={{ scrollSnapAlign: 'center', width: active || isMoodApplied ? 180 : 140, minWidth: 120 }}
                                     >
                                         {hasImage ? (
                                             <img src={mood.image_url!} alt={mood.name}
@@ -782,7 +803,8 @@ export default function MoodboardPage() {
                             {/* ── Custom Upload Cell ── */}
                             <button
                                 onClick={() => setShowCustomModal(true)}
-                                className="relative flex-1 min-w-[80px] overflow-hidden border-l border-white/[0.03] transition-all duration-500 cursor-pointer group opacity-70 hover:opacity-100"
+                                className="relative shrink-0 w-[90px] min-w-[80px] overflow-hidden border-l border-white/[0.03] transition-all duration-500 cursor-pointer group opacity-70 hover:opacity-100"
+                                style={{ scrollSnapAlign: 'end' }}
                             >
                                 <div className="absolute inset-0 bg-[#0a0a0a] flex flex-col items-center justify-center gap-1.5 border border-dashed border-white/20 m-1 rounded group-hover:border-white/40 transition-all">
                                     <div className="w-6 h-6 rounded-full border border-white/50 flex items-center justify-center group-hover:border-white group-hover:bg-white/10 transition-all">
@@ -807,19 +829,30 @@ export default function MoodboardPage() {
                                     ← → Navigate • Enter to Apply
                                 </span>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-3">
+                                <CreditCTA
+                                    label="Regenerate"
+                                    cost={2}
+                                    icon={<RefreshCw size={12} className={isRegenerating ? "animate-spin" : ""} />}
+                                    onClick={() => generateMoods(true)}
+                                    disabled={isRegenerating}
+                                    loading={isRegenerating}
+                                    loadingLabel="Regenerating..."
+                                    variant="default"
+                                    size="sm"
+                                />
                                 {selectedMood.status === "ready" && (
-                                    <button
+                                    <CreditCTA
+                                        label="Generate More Like This"
+                                        cost={2}
+                                        icon={<Sparkles size={12} />}
                                         onClick={() => generateVariations(selectedMood.id)}
                                         disabled={isGeneratingVariations}
-                                        className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-[2px] border border-white/10 bg-white/5 text-white/70 hover:text-white hover:border-white/30 hover:bg-white/10 transition-all cursor-pointer disabled:opacity-30"
-                                    >
-                                        {isGeneratingVariations ? (
-                                            <><Loader2 size={13} className="animate-spin" /> Generating...</>
-                                        ) : (
-                                            <><Sparkles size={13} className="text-white/50" /> Generate More Like This<span className="opacity-50 text-[9px] font-normal">· 2 cr</span></>
-                                        )}
-                                    </button>
+                                        loading={isGeneratingVariations}
+                                        loadingLabel="Generating..."
+                                        variant="default"
+                                        size="sm"
+                                    />
                                 )}
                                 <button onClick={handleConfirm}
                                     disabled={(isApplied && !isOnboarding) || phase !== "select" || selectedMood?.status === "failed"}
