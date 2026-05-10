@@ -855,46 +855,46 @@ export default function MoodboardPage() {
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => setShowCustomModal(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-white/90 uppercase tracking-[1px] border border-dashed border-white/[0.2] rounded-md hover:text-white hover:border-white/40 hover:bg-white/[0.06] transition-all cursor-pointer"
+                                    className="flex items-center gap-2 px-4 py-2 text-[11px] font-bold text-white/90 uppercase tracking-[1px] border border-dashed border-white/[0.2] rounded-lg hover:text-white hover:border-white/40 hover:bg-white/[0.06] transition-all cursor-pointer"
                                 >
-                                    <Upload size={11} />
+                                    <Upload size={14} />
                                     Upload Custom Moodboard
                                 </button>
                                 <CreditCTA
                                     label="Generate New Options"
                                     cost={2}
-                                    icon={<RefreshCw size={12} className={isRegenerating ? "animate-spin" : ""} />}
+                                    icon={<RefreshCw size={14} className={isRegenerating ? "animate-spin" : ""} />}
                                     onClick={() => generateMoods(true)}
                                     disabled={isRegenerating}
                                     loading={isRegenerating}
                                     loadingLabel="Regenerating..."
                                     variant="default"
-                                    size="sm"
+                                    size="md"
                                 />
                                 {selectedMood.status === "ready" && (
                                     <CreditCTA
                                         label="Generate More Like This"
                                         cost={2}
-                                        icon={<Sparkles size={12} />}
+                                        icon={<Sparkles size={14} />}
                                         onClick={() => generateVariations(selectedMood.id)}
                                         disabled={isGeneratingVariations}
                                         loading={isGeneratingVariations}
                                         loadingLabel="Generating..."
                                         variant="default"
-                                        size="sm"
+                                        size="md"
                                     />
                                 )}
                                 <button onClick={handleConfirm}
                                     disabled={(isApplied && !isOnboarding) || phase !== "select" || selectedMood?.status === "failed"}
-                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
+                                    className={`flex items-center gap-2 px-8 py-3 rounded-lg text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
                                         ${isApplied && !isOnboarding
                                             ? 'bg-emerald-900/30 text-emerald-400/60 border border-emerald-500/20 cursor-default'
                                             : 'bg-[#E50914] hover:bg-[#ff1a25] text-white shadow-[0_0_20px_rgba(229,9,20,0.2)] hover:shadow-[0_0_30px_rgba(229,9,20,0.4)]'}`}
                                     style={!(isApplied && !isOnboarding) ? { animation: "pulseGlow 2.5s ease-in-out infinite" } : undefined}>
                                     {isApplied && !isOnboarding ? (
-                                        <><Check size={13} /> Applied</>
+                                        <><Check size={14} /> Applied</>
                                     ) : (
-                                        <>Apply This Mood <ChevronRight size={13} /></>
+                                        <>Apply This Mood <ChevronRight size={14} /></>
                                     )}
                                 </button>
                             </div>
