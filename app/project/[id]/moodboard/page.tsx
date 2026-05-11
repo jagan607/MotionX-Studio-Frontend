@@ -563,9 +563,6 @@ export default function MoodboardPage() {
 
 
 
-<<<<<<< HEAD
-
-=======
                     {selectedMood && (
                         <button onClick={() => generateMoods(true)} disabled={isRegenerating}
                             data-agent="regenerate-moods"
@@ -574,8 +571,6 @@ export default function MoodboardPage() {
                             Regenerate <span className="opacity-50 text-[9px] font-normal tracking-normal normal-case ml-1">· 2 cr</span>
                         </button>
                     )}
->>>>>>> 0da27c7 (Updated the agent)
-
                     {/* Close — back to pre-production (hidden during onboarding) */}
                     {!isOnboarding && (
                         <Link href={preproductionUrl}
@@ -634,15 +629,11 @@ export default function MoodboardPage() {
                                 <Palette size={36} className="text-[#E50914]/30 mb-6" />
                                 <h2 className="text-2xl sm:text-3xl uppercase tracking-wide mb-3 font-display text-white/80">Visual Direction</h2>
                                 <p className="text-[11px] text-white/30 tracking-[2px] uppercase mb-8">No moodboard generated yet</p>
-<<<<<<< HEAD
                                 <CreditCTA
+                                    data-agent="generate-moodboard"
                                     label="Generate Moodboard"
                                     cost={isOnboarding ? undefined : 2}
                                     icon={<Palette size={14} />}
-=======
-                                <button
-                                    data-agent="generate-moodboard"
->>>>>>> 0da27c7 (Updated the agent)
                                     onClick={() => generateMoods()}
                                     variant="primary"
                                     size="md"
@@ -776,7 +767,6 @@ export default function MoodboardPage() {
                             ))}
                         </div>
 
-<<<<<<< HEAD
                         <div className="relative h-[130px] border-t border-white/[0.04] bg-[#020202]/80 backdrop-blur-md">
                             {/* Left arrow */}
                             {filmstripPage > 0 && (
@@ -787,40 +777,6 @@ export default function MoodboardPage() {
                                     <ChevronLeft size={16} className="text-white/50 group-hover:text-white transition-colors" />
                                 </button>
                             )}
-=======
-                        <div className="flex h-[130px] border-t border-white/[0.04] bg-[#020202]/80 backdrop-blur-md">
-                            {moods.map((mood, idx) => {
-                                const active = idx === selectedIdx;
-                                const hasImage = mood.status === "ready" && mood.image_url;
-                                const isMoodApplied = !isOnboarding && mood.id === appliedMoodId;
-                                return (
-                                    <button key={mood.id}
-                                        data-mood-name={mood.name}
-                                        data-mood-selected={active ? "true" : "false"}
-                                        data-mood-status={mood.status || "unknown"}
-                                        data-mood-applied={isMoodApplied ? "true" : "false"}
-                                        data-mood-atmosphere={mood.atmosphere || ""}
-                                        data-agent={`mood-option-${idx + 1}`}
-                                        onClick={() => setSelectedIdx(idx)}
-                                        className={`relative flex-1 overflow-hidden transition-all duration-500 cursor-pointer group
-                                            ${idx > 0 ? 'border-l border-white/[0.03]' : ''}
-                                            ${isMoodApplied ? 'flex-[1.6] opacity-100 ring-1 ring-emerald-500/50' : active ? 'flex-[1.8] opacity-100' : 'opacity-40 hover:opacity-70'}`}
-                                    >
-                                        {hasImage ? (
-                                            <img src={mood.image_url!} alt={mood.name}
-                                                className={`absolute inset-0 w-full h-full object-cover transition-all duration-700
-                                                    ${isMoodApplied ? 'scale-100 brightness-[0.85]' : active ? 'scale-100 brightness-90' : 'scale-110 brightness-50 group-hover:brightness-75 group-hover:scale-105'}`}
-                                            />
-                                        ) : (
-                                            <div className="absolute inset-0 bg-[#060606] overflow-hidden">
-                                                <div className="absolute w-[70%] h-[70%] rounded-full bg-[#E50914]/20 blur-[25px]"
-                                                    style={{ animation: 'mbFlowBlob1 4s ease-in-out infinite', top: '5%', left: '10%' }} />
-                                                <div className="absolute w-[50%] h-[50%] rounded-full bg-[#ff4d4d]/10 blur-[20px]"
-                                                    style={{ animation: 'mbFlowBlob2 5s ease-in-out infinite', bottom: '5%', right: '5%' }} />
-                                                <div className="absolute inset-0 backdrop-blur-xl bg-white/[0.02]" />
-                                            </div>
-                                        )}
->>>>>>> 0da27c7 (Updated the agent)
 
                             {/* Right arrow */}
                             {filmstripPage < totalFilmstripPages - 1 && (
@@ -851,6 +807,7 @@ export default function MoodboardPage() {
                                                 data-mood-applied={isMoodApplied ? "true" : "false"}
                                                 data-mood-atmosphere={mood.atmosphere || ""}
                                                 data-filmstrip-idx={idx}
+                                                data-agent={`mood-option-${idx + 1}`}
                                                 onClick={() => setSelectedIdx(idx)}
                                                 className={`relative shrink-0 overflow-hidden transition-all duration-500 cursor-pointer group
                                                     ${idx > 0 ? 'border-l border-white/[0.03]' : ''}
