@@ -374,6 +374,7 @@ export default function AssetManagerPage() {
                             icon={<Users size={13} />}
                             label="Cast"
                             count={assets.characters.length}
+                            dataAgent="tab-cast"
                         />
                         <TabButton
                             active={activeTab === 'locations'}
@@ -381,6 +382,7 @@ export default function AssetManagerPage() {
                             icon={<MapPin size={13} />}
                             label="Locations"
                             count={assets.locations.length}
+                            dataAgent="tab-locations"
                         />
                         {(project?.type === 'ad' || assets.products.length > 0) && (
                             <TabButton
@@ -389,6 +391,7 @@ export default function AssetManagerPage() {
                                 icon={<ShoppingBag size={13} />}
                                 label="Products"
                                 count={assets.products.length}
+                                dataAgent="tab-products"
                             />
                         )}
                     </div>
@@ -426,6 +429,7 @@ export default function AssetManagerPage() {
 
                         {/* Generate All */}
                         <button
+                            data-agent="generate-all-assets"
                             onClick={handleGenerateAll}
                             className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/[0.06] hover:border-[#E50914]/50 hover:bg-[#E50914]/10 text-neutral-500 hover:text-[#ff6b6b] text-[9px] font-bold tracking-widest uppercase transition-all rounded cursor-pointer"
                         >
@@ -516,11 +520,12 @@ export default function AssetManagerPage() {
 }
 
 // ── Tab Button ──
-const TabButton = ({ active, onClick, icon, label, count }: {
-    active: boolean; onClick: () => void; icon: React.ReactNode; label: string; count: number;
+const TabButton = ({ active, onClick, icon, label, count, dataAgent }: {
+    active: boolean; onClick: () => void; icon: React.ReactNode; label: string; count: number; dataAgent?: string;
 }) => (
     <button
         onClick={onClick}
+        data-agent={dataAgent}
         className={`flex items-center gap-2 px-4 py-2 text-[10px] font-bold tracking-widest uppercase transition-all rounded-md cursor-pointer
             ${active
                 ? "bg-white/[0.06] text-white border border-white/[0.1]"

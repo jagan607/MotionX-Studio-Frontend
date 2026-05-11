@@ -80,6 +80,7 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
             if (activeWorkspaceSlug) {
                 // Enterprise Wallet
                 setIsEnterprise(true);
+                setPlan("enterprise");
                 setCreditsExpireAt(null);
                 setFreeCreditsExpired(false);
                 const orgQuery = query(

@@ -560,7 +560,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/90 z-[200] flex items-center justify-center backdrop-blur-sm" role="dialog" data-agent-modal={`${assetType}-config`} data-agent-modal-title={editableName || assetName}>
             <style>{`.modal-scroll::-webkit-scrollbar { width: 6px; } .modal-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }`}</style>
 
             <div className="bg-[#090909] border border-[#222] rounded-xl w-[880px] max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
@@ -579,7 +579,9 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                             </div>
                         </div>
                     </div>
-                    <X size={20} className="cursor-pointer text-neutral-500 hover:text-white" onClick={handleCloseRequest} />
+                    <button data-agent="close-modal" onClick={handleCloseRequest} className="p-1 cursor-pointer text-neutral-500 hover:text-white">
+                        <X size={20} />
+                    </button>
                 </div>
 
                 {/* CONTENT */}
@@ -672,6 +674,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                 {!isVoiceMode && (
                     <div className="p-5 border-t border-[#222] bg-[#0a0a0a] shrink-0 grid grid-cols-2 gap-3" id="tour-assetcfg-actions">
                         <button
+                            data-agent="save-asset-config"
                             onClick={handleSaveOnly}
                             disabled={isSaveDisabled}
                             className="w-full py-3.5 bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 hover:border-neutral-700 text-neutral-300 font-bold text-sm tracking-widest rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -680,6 +683,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
                         </button>
 
                         <button
+                            data-agent="generate-asset"
                             onClick={handleGenerateClick}
                             disabled={isSaveDisabled}
                             className="w-full py-3.5 bg-white hover:bg-neutral-200 text-black font-bold text-sm tracking-widest rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"

@@ -142,6 +142,7 @@ function PlaygroundWorkspace() {
                             {/* Left drawer toggle */}
                             {drawerOpen ? (
                                 <button
+                                    data-agent="toggle-assets-drawer"
                                     onClick={() => setDrawerOpen(false)}
                                     className="p-1.5 rounded-md text-[#555] hover:text-white hover:bg-white/[0.06] transition-all cursor-pointer"
                                     title="Hide assets"
@@ -150,6 +151,7 @@ function PlaygroundWorkspace() {
                                 </button>
                             ) : (
                                 <button
+                                    data-agent="toggle-assets-drawer"
                                     onClick={() => setDrawerOpen(true)}
                                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E50914]/30 bg-[#E50914]/10 text-[#E50914] text-[9px] font-bold uppercase tracking-[2px] hover:bg-[#E50914]/20 hover:border-[#E50914]/50 transition-all cursor-pointer"
                                     title="Show assets"
@@ -169,6 +171,7 @@ function PlaygroundWorkspace() {
                             {/* Right template sidebar toggle */}
                             {templateSidebarOpen ? (
                                 <button
+                                    data-agent="toggle-templates-sidebar"
                                     onClick={() => setTemplateSidebarOpen(false)}
                                     className="p-1.5 rounded-md text-[#555] hover:text-white hover:bg-white/[0.06] transition-all cursor-pointer"
                                     title="Hide templates"
@@ -177,6 +180,7 @@ function PlaygroundWorkspace() {
                                 </button>
                             ) : (
                                 <button
+                                    data-agent="toggle-templates-sidebar"
                                     onClick={() => setTemplateSidebarOpen(true)}
                                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#D4A843]/30 bg-[#D4A843]/10 text-[#D4A843] text-[9px] font-bold uppercase tracking-[2px] hover:bg-[#D4A843]/20 hover:border-[#D4A843]/50 transition-all cursor-pointer"
                                     title="Show templates"

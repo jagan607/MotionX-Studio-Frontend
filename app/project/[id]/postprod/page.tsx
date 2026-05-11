@@ -1356,6 +1356,7 @@ export default function PostProdPage() {
             <header className="h-12 border-b border-[#1a1a1a] bg-[#080808] flex items-center justify-between px-4 shrink-0 z-50">
                 <div className="flex items-center gap-3">
                     <button
+                        data-agent="nav-storyboard"
                         onClick={() => router.push(`/project/${projectId}/storyboard`)}
                         className="flex items-center gap-1.5 text-[9px] font-bold tracking-[2px] text-neutral-500 hover:text-white transition-colors"
                     >
@@ -1377,6 +1378,7 @@ export default function PostProdPage() {
                     </div>
                     <div className="h-3 w-px bg-[#333]" />
                     <button
+                        data-agent="toggle-inspector"
                         onClick={() => {
                             if (showShotInspector) {
                                 setShowShotInspector(false);
@@ -1407,6 +1409,7 @@ export default function PostProdPage() {
                         <SlidersHorizontal size={11} /> INSPECTOR
                     </button>
                     <button
+                        data-agent="toggle-export"
                         id="tour-postprod-export"
                         onClick={() => setShowExport(!showExport)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-[9px] font-bold tracking-widest transition-all ${

@@ -887,12 +887,14 @@ function NewProjectPageInner() {
                         <div>
                             <label className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-1.5 block">Project Name</label>
                             <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); if (validationErrors.title) setValidationErrors(v => ({ ...v, title: false })); }}
+                                data-agent="project-title-input"
                                 className={`w-full bg-white/[0.03] rounded-lg px-3.5 py-2.5 text-[14px] text-white placeholder-neutral-600 focus:outline-none tracking-[0.5px] caret-[#E50914] border transition-all duration-300 ${validationErrors.title ? 'border-[#E50914]/60 placeholder-[#E50914]/40' : 'border-white/[0.06] focus:border-[#E50914]/30 focus:bg-white/[0.04]'}`}
                                 placeholder="e.g. The Last Frontier" autoComplete="off" />
                         </div>
                         <div>
                             <label className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-1.5 block">Genre</label>
                             <input type="text" value={genre} onChange={(e) => { setGenre(e.target.value); if (validationErrors.genre) setValidationErrors(v => ({ ...v, genre: false })); }}
+                                data-agent="project-genre-input"
                                 className={`w-full bg-white/[0.03] rounded-lg px-3.5 py-2.5 text-[14px] text-white placeholder-neutral-600 focus:outline-none tracking-[0.5px] caret-[#E50914] border transition-all duration-300 ${validationErrors.genre ? 'border-[#E50914]/60 placeholder-[#E50914]/40' : 'border-white/[0.06] focus:border-[#E50914]/30 focus:bg-white/[0.04]'}`}
                                 placeholder="Thriller, Sci-Fi, Drama..." autoComplete="off" />
                         </div>
@@ -905,6 +907,7 @@ function NewProjectPageInner() {
                             {/* Editable textarea with expansion overlay */}
                             <div className="relative">
                                 <textarea ref={textareaRef} autoFocus value={vision}
+                                    data-agent="project-concept-input"
                                     onChange={(e) => { setVision(e.target.value); setScriptApplied(false); setExpandedScript(null); if (validationErrors.vision) setValidationErrors(v => ({ ...v, vision: false })); }} onKeyDown={handleKeyDown}
                                     disabled={isExpanding}
                                     className={`w-full bg-transparent text-[15px] text-white focus:outline-none resize-none leading-[1.7] caret-[#E50914] min-h-[80px] transition-opacity duration-300 ${isExpanding ? 'opacity-30' : ''}`}
@@ -964,6 +967,7 @@ function NewProjectPageInner() {
                                     {/* Generate Script CTA — RED when text-only (no file), ghost otherwise */}
                                     {vision.trim().length > 0 && !scriptFile && !breakdownFile && !expandedScript && !isExpanding && (
                                         <button onClick={handleExpandSynopsis}
+                                            data-agent="generate-script"
                                             disabled={isExpanding || !vision.trim()}
                                             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[9px] font-semibold tracking-[1px] transition-all duration-300
                                                 ${isExpanding
@@ -977,6 +981,7 @@ function NewProjectPageInner() {
                                     {/* Create Project CTA — RED when file attached, ghost when text-only */}
                                     {(vision.trim().length > 0 || scriptFile || breakdownFile) && !expandedScript && !isExpanding && (
                                         <button onClick={() => handleCreate()}
+                                            data-agent="create-project"
                                             disabled={isSubmitting || phase !== 'prompt'}
                                             className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-semibold tracking-[1px] transition-all duration-300 cursor-pointer
                                                 ${isSubmitting || phase !== 'prompt'
@@ -1041,6 +1046,7 @@ function NewProjectPageInner() {
                                     const isActive = selectedFormat === card.key;
                                     return (
                                         <button key={card.key}
+                                            data-agent={`format-${card.key}`}
                                             onClick={() => { setSelectedFormat(card.key); textareaRef.current?.focus(); }}
                                             className={`group relative rounded-xl border p-4 text-left transition-all duration-500 cursor-pointer overflow-hidden
                                                 ${isActive

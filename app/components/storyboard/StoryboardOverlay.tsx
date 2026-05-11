@@ -691,6 +691,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         {/* SCENE SELECTOR */}
                         <div id="tour-sb-scene-selector" className="relative" ref={sceneDropdownRef}>
                             <button
+                                data-agent="scene-selector"
                                 onClick={() => setShowSceneDropdown(!showSceneDropdown)}
                                 style={{
                                     height: '40px', padding: '0 16px', backgroundColor: '#1A1A1A', color: '#EEE',
@@ -726,6 +727,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                             <button
                                                 key={scene.id}
                                                 data-scene-number={scene.scene_number}
+                                                data-agent={`scene-option-${scene.scene_number}`}
                                                 onClick={() => {
                                                     if (onSceneChange) onSceneChange(scene);
                                                     setShowSceneDropdown(false);
@@ -756,6 +758,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         {!isExterior && (
                         <button
                             data-panel-target="set_design"
+                            data-agent="panel-set-design"
                             onClick={() => setShowSetDesign(true)}
                             style={{
                                 height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
@@ -772,6 +775,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
                         {/* UPLOAD SHOTS */}
                         <button
+                            data-agent="upload-shots"
                             onClick={() => setShowShotDivision(true)}
                             style={{
                                 height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
@@ -812,6 +816,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         {/* AUTO DIRECT */}
                         <button
                             id="tour-sb-autodirect"
+                            data-agent="auto-direct"
                             onClick={() => handleSafeAutoDirect()}
                             disabled={shotMgr.isAutoDirecting || shotMgr.isGeneratingAll || shotMgr.isStopping}
                             style={{
@@ -828,6 +833,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         {/* ADD SHOT */}
                         <button
                             id="tour-sb-add-shot"
+                            data-agent="add-shot"
                             onClick={() => { shotMgr.handleAddShot(currentScene); toastSuccess("Shot added"); }}
                             style={{
                                 height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
@@ -843,6 +849,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
                         {/* SCRIPT */}
                         <button
+                            data-agent="open-script"
                             onClick={() => setShowScript(true)}
                             style={{
                                 height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
@@ -858,6 +865,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
                         {/* ASSETS */}
                         <button
+                            data-agent="open-assets"
                             onClick={() => setShowAssets(true)}
                             style={{
                                 height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
@@ -874,6 +882,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                         {/* THREE-DOT MORE MENU */}
                         <div className="relative" ref={moreMenuRef}>
                             <button
+                                data-agent="open-more-menu"
                                 data-nav-target="more-menu"
                                 onClick={() => setShowMoreMenu(!showMoreMenu)}
                                 style={{
@@ -907,6 +916,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     {/* WARDROBE */}
                                     <button
                                         data-panel-target="wardrobe"
+                                        data-agent="panel-wardrobe"
                                         onClick={() => { setShowMoreMenu(false); setShowWardrobe(true); }}
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
                                     >
@@ -916,6 +926,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     {/* SCENE MOOD */}
                                     <button
                                         data-panel-target="cinematography"
+                                        data-agent="panel-cinematography"
                                         onClick={() => { setShowMoreMenu(false); setShowCinematography(true); }}
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
                                     >

@@ -206,6 +206,18 @@ export function useVoiceDirector(options: UseVoiceDirectorOptions = {}) {
                     });
                     break;
 
+                case "agent_progress":
+                    // Progress update during long tool chains — route as synthetic action
+                    onActionRef.current?.({
+                        action: "agent_progress",
+                        args: {
+                            message: msg.message || "Working...",
+                            round: msg.round,
+                            max_rounds: msg.max_rounds,
+                        },
+                    });
+                    break;
+
                 case "response_done":
                     // Director finished speaking
                     if (assistantTextRef.current) {
@@ -245,7 +257,7 @@ export function useVoiceDirector(options: UseVoiceDirectorOptions = {}) {
 
     // ── Connect ──────────────────────────────────────────────────────
 
-    const connect = useCallback(async () => {
+    const connect = useCallback(async (voiceName?: string) => {
         if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
         setState("connecting");
@@ -271,6 +283,9 @@ export function useVoiceDirector(options: UseVoiceDirectorOptions = {}) {
                 project_id: projectId,
                 context_hint: contextHint,
             });
+            if (voiceName) {
+                params.append("voice", voiceName);
+            }
 
             const url = `${WS_BASE}/ws/voice-director?${params.toString()}`;
             const ws = new WebSocket(url);
@@ -626,6 +641,9 @@ export function useVoiceDirector(options: UseVoiceDirectorOptions = {}) {
                 `  Stats: ${withImage} rendered, ${withVideo} animated, ${generating} in progress, ${errors} failed, ${upscaled} upscaled to 4K\n` +
                 shotSummaries.join("\n")
             );
+        } else if (pathname.includes("/storyboard")) {
+            // Empty storyboard — crucial info for the agent
+            parts.push("STORYBOARD IS EMPTY — no shots have been created yet. The user should click AUTO-DIRECT to generate shots from the scene breakdown, or add shots manually.");
         }
 
         // ════════════════════════════════════════════════════════════
@@ -695,6 +713,28 @@ export function useVoiceDirector(options: UseVoiceDirectorOptions = {}) {
         const scriptModal = document.querySelector("[data-script-modal-open='true']");
         if (scriptModal) parts.push("SCRIPT EDITOR is open");
 
+        // ════════════════════════════════════════════════════════════
+        //  AVAILABLE UI ELEMENTS — what the agent can click/interact with
+        // ════════════════════════════════════════════════════════════
+        const agentElements = document.querySelectorAll("[data-agent]");
+        if (agentElements.length > 0) {
+            const available = Array.from(agentElements)
+                .map((el) => {
+                    const htmlEl = el as HTMLElement;
+                    const agentId = htmlEl.dataset.agent || "";
+                    const text = htmlEl.textContent?.trim().slice(0, 40) || "";
+                    const tag = htmlEl.tagName.toLowerCase();
+                    const isVisible = htmlEl.offsetHeight > 0 && htmlEl.offsetWidth > 0;
+                    const isDisabled = htmlEl.hasAttribute("disabled") || htmlEl.getAttribute("aria-disabled") === "true";
+                    if (!isVisible) return null;
+                    return `  [data-agent='${agentId}'] ${tag} "${text}"${isDisabled ? " (disabled)" : ""}`;
+                })
+                .filter(Boolean);
+            if (available.length > 0) {
+                parts.push(`Available UI elements (use click_element with these selectors):\n${available.join("\n")}`);
+            }
+        }
+
         return parts.join("\n");
     }, []);
 
@@ -741,6 +781,27 @@ export function useVoiceDirector(options: UseVoiceDirectorOptions = {}) {
         }
     }, []);
 
+    // ── Send tool execution result back to backend ──
+    const sendActionResult = useCallback((success: boolean, message: string) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+                type: "action_result",
+                success,
+                message,
+            }));
+        }
+    }, []);
+
+    // ── Send text message (skip audio/STT, go straight to LLM) ──
+    const sendTextMessage = useCallback((text: string) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+                type: "text_input",
+                text,
+            }));
+        }
+    }, []);
+
     return {
         state,
         assistantText,
@@ -751,6 +812,8 @@ export function useVoiceDirector(options: UseVoiceDirectorOptions = {}) {
         startTalking,
         stopTalking,
         sendContext,
+        sendActionResult,
+        sendTextMessage,
         isConnected: state !== "idle" && state !== "error",
     };
 }

@@ -33,6 +33,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                     <div className="space-y-2">
                         <label className="text-[10px] uppercase text-neutral-400 font-mono">Product Name</label>
                         <input
+                            data-agent="product-name"
                             value={editableName}
                             onChange={(e) => onNameChange(e.target.value)}
                             className="w-full bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
@@ -42,6 +43,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                     <div className="space-y-2">
                         <label className="text-[10px] uppercase text-neutral-400 font-mono">Brand Name</label>
                         <input
+                            data-agent="product-brand"
                             value={brandName}
                             onChange={(e) => onChange('brandName', e.target.value)}
                             className="w-full bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
@@ -52,6 +54,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase text-neutral-400 font-mono">Category</label>
                     <input
+                        data-agent="product-category"
                         value={category}
                         onChange={(e) => onChange('category', e.target.value)}
                         className="w-full bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
@@ -61,6 +64,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase text-neutral-400 font-mono">Description <span className="text-neutral-600">(visual sourcing detail)</span></label>
                     <textarea
+                        data-agent="product-description"
                         value={description}
                         onChange={(e) => onChange('description', e.target.value)}
                         className="w-full h-20 bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors resize-none"
@@ -77,6 +81,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase text-neutral-400 font-mono">Materials (Comma Separated)</label>
                     <input
+                        data-agent="product-materials"
                         value={materials}
                         onChange={(e) => onChange('materials', e.target.value)}
                         className="w-full bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
@@ -86,6 +91,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase text-neutral-400 font-mono">Brand Colors (Hex or Name)</label>
                     <input
+                        data-agent="product-colors"
                         value={colors}
                         onChange={(e) => onChange('colors', e.target.value)}
                         className="w-full bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
@@ -102,6 +108,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                 <div className="space-y-2">
                     <label className="text-[10px] uppercase text-neutral-400 font-mono">Key Features (Comma Separated)</label>
                     <textarea
+                        data-agent="product-features"
                         value={features}
                         onChange={(e) => onChange('features', e.target.value)}
                         className="w-full h-24 bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors resize-none"

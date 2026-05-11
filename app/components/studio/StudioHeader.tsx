@@ -163,6 +163,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                             <div id="tour-studio-ctas" className="flex items-center gap-2">
                                 {onManualAdd && (
                                     <button
+                                        data-agent="add-scene"
                                         onClick={onManualAdd}
                                         disabled={isExtending}
                                         className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md disabled:opacity-50"
@@ -172,6 +173,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                 )}
                                 {onAutoExtend && (
                                     <button
+                                        data-agent="auto-extend"
                                         onClick={onAutoExtend}
                                         disabled={isExtending}
                                         className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md disabled:opacity-50"
@@ -182,6 +184,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                 )}
                                 {onEditScript && (
                                     <button
+                                        data-agent="edit-script"
                                         onClick={onEditScript}
                                         className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md"
                                     >
@@ -190,6 +193,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                 )}
                                 {onRegenerateScenes && (
                                     <button
+                                        data-agent="regenerate-scenes"
                                         onClick={onRegenerateScenes}
                                         disabled={isRegenerating || isExtending}
                                         className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-amber-600/50 text-[12px] font-semibold text-[#EEE] hover:text-amber-400 uppercase tracking-wide transition-colors rounded-md disabled:opacity-50"
@@ -200,6 +204,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                                     </button>
                                 )}
                                 <Link
+                                    data-agent="nav-preproduction"
                                     href={`/project/${projectId}/preproduction`}
                                     className="flex items-center gap-2 h-10 px-5 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[12px] font-semibold text-[#EEE] hover:text-[#D4A843] uppercase tracking-wide transition-colors rounded-md no-underline"
                                     title="Go back to Pre-Production Canvas (Script, Cast, Locations)"

@@ -140,6 +140,7 @@ export function ProductSection({ project, products, onRefresh }: ProductSectionP
                 ) : (
                     <>
                         <div
+                            data-agent="add-product"
                             onClick={handleCreateNew}
                             className="group relative w-[240px] h-full min-h-[280px] flex flex-col items-center justify-center bg-[#080808]/50 border border-dashed border-white/[0.08] rounded-xl cursor-pointer hover:bg-white/[0.02] hover:border-white/[0.2] transition-colors"
                         >
@@ -150,6 +151,7 @@ export function ProductSection({ project, products, onRefresh }: ProductSectionP
                         </div>
                         {products.map(prod => (
                             <CreativeBlock
+                                data-agent={`product-${prod.id}`}
                                 key={prod.id}
                                 type="PRODUCT"
                                 title={prod.name}

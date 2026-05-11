@@ -462,14 +462,14 @@ export default function TreatmentPage() {
 
                 <div className="flex items-center gap-3">
                     {hasContent && (
-                        <button onClick={handleGenerate} disabled={isGenerating}
+                        <button data-agent="regenerate-treatment" onClick={handleGenerate} disabled={isGenerating}
                             className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/30 uppercase tracking-[1px] border border-white/[0.06] rounded-lg hover:text-white hover:border-white/15 hover:bg-white/[0.03] transition-all cursor-pointer disabled:opacity-30">
                             <RefreshCw size={12} className={isGenerating ? "animate-spin" : ""} />
                             Regenerate
                         </button>
                     )}
                     {hasContent && (
-                        <button onClick={handleExportPdf} disabled={isExporting}
+                        <button data-agent="export-treatment-pdf" onClick={handleExportPdf} disabled={isExporting}
                             className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/30 uppercase tracking-[1px] border border-white/[0.06] rounded-lg hover:text-white hover:border-white/15 hover:bg-white/[0.03] transition-all cursor-pointer disabled:opacity-30">
                             {isExporting ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
                             Export PDF
@@ -512,7 +512,7 @@ export default function TreatmentPage() {
                                 Generate a comprehensive treatment with visuals, cast notes, location design, and shot philosophy — all from your project data.
                             </p>
 
-                            <button onClick={handleGenerate} disabled={isGenerating}
+                            <button data-agent="generate-treatment" onClick={handleGenerate} disabled={isGenerating}
                                 className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-[#B91C1C] to-[#E50914] hover:from-[#DC2626] hover:to-[#EF4444] text-white text-[11px] font-bold tracking-[3px] uppercase rounded-xl transition-all shadow-[0_0_60px_rgba(229,9,20,0.12)] hover:shadow-[0_0_80px_rgba(229,9,20,0.25)] cursor-pointer disabled:opacity-50">
                                 {isGenerating ? <><Loader2 size={16} className="animate-spin" /> Generating...</> : <><Sparkles size={16} /> Generate Treatment</>}
                             </button>

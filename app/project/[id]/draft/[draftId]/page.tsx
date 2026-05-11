@@ -619,6 +619,7 @@ export default function DraftPage() {
                     </div>
                 )}
                 <button
+                    data-agent="regenerate-scenes"
                     onClick={handleRegenerate}
                     disabled={isRegenerating || isCommitting || isProcessing}
                     className="flex items-center gap-2 h-9 px-4 text-[11px] font-medium text-white/40 tracking-wide border border-white/[0.08] rounded-lg hover:text-white/80 hover:border-white/15 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
@@ -630,6 +631,7 @@ export default function DraftPage() {
                     )}
                 </button>
                 <button
+                    data-agent="approve-sequence"
                     onClick={handleCommit}
                     disabled={isCommitting || isProcessing || isRegenerating}
                     className="flex items-center gap-2 h-9 px-6 text-[11px] font-semibold tracking-wide bg-white text-[#111] rounded-lg hover:bg-white/90 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.06)]"

@@ -156,6 +156,7 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
                     <span className="text-[10px] font-mono text-green-500/70 tracking-widest uppercase">Prompt Terminal</span>
                 </div>
                 <textarea
+                    data-agent="prompt-terminal"
                     value={genPrompt}
                     onChange={(e) => setGenPrompt(e.target.value)}
                     className="w-full bg-transparent text-sm font-mono text-neutral-300 p-3 outline-none resize-y min-h-[80px] selection:bg-green-900/30 placeholder-neutral-700"

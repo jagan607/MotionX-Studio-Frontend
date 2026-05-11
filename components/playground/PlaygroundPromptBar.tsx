@@ -746,6 +746,7 @@ export default function PlaygroundPromptBar() {
 
                                     {/* Textarea: the actual editable layer on top */}
                                     <textarea
+                                        data-agent="pg-prompt-input"
                                         ref={textareaRef}
                                         defaultValue=""
                                         onChange={(e) => {
@@ -888,6 +889,7 @@ export default function PlaygroundPromptBar() {
                                 {/* Mode toggle: Image / Video */}
                                 <div className="flex gap-0 bg-white/[0.03] rounded-md border border-white/[0.06] overflow-hidden">
                                     <button
+                                        data-agent="pg-mode-image"
                                         onClick={() => setGenerationMode('image')}
                                         className={`flex items-center gap-1 px-2 py-1.5 text-[8px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border-none ${
                                             generationMode === 'image' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/50'
@@ -897,6 +899,7 @@ export default function PlaygroundPromptBar() {
                                         Image
                                     </button>
                                     <button
+                                        data-agent="pg-mode-video"
                                         onClick={() => setGenerationMode('video')}
                                         className={`flex items-center gap-1 px-2 py-1.5 text-[8px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border-none ${
                                             generationMode === 'video' ? 'bg-[#E50914]/15 text-[#E50914]' : 'text-white/30 hover:text-white/50'
@@ -1018,6 +1021,7 @@ export default function PlaygroundPromptBar() {
 
                             {/* Right: Generate */}
                             <button
+                                data-agent="pg-generate"
                                 onClick={handleGenerate}
                                 disabled={!prompt.trim() || isGenerating || hasInsufficientBalance}
                                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-[2px] transition-all border whitespace-nowrap ${

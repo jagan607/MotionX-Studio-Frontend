@@ -137,7 +137,7 @@ export default function Dashboard() {
     };
 
     if (bootState === 'booting') return (
-        <div className="h-screen w-screen bg-[#030303] flex flex-col items-center justify-center">
+        <div className="h-full w-full bg-[#030303] flex flex-col items-center justify-center">
             <div className="relative"><div className="w-16 h-16 rounded-full border-2 border-[#E50914]/20 border-t-[#E50914] animate-spin" /><Film size={20} className="text-[#E50914] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" /></div>
             <span className="text-[10px] font-mono text-white/15 uppercase tracking-[4px] mt-6">Loading Studio</span>
         </div>
@@ -145,7 +145,7 @@ export default function Dashboard() {
 
     return (
         <>
-        <main className="fixed inset-0 bg-[#030303] text-white font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#E50914] selection:text-white">
+        <main className="w-full h-full bg-[#030303] text-white font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#E50914] selection:text-white">
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
                 {/* ═══ MAIN CONTENT ═══ */}
@@ -316,7 +316,7 @@ export default function Dashboard() {
                         </button>
                         <div ref={filmStripRef} className="h-full flex gap-2 overflow-x-auto no-scrollbar scroll-smooth items-center px-1"
                             onWheel={e => { if (filmStripRef.current) filmStripRef.current.scrollLeft += e.deltaY; }}>
-                            <Link id="tour-new-series-target" href="/project/new" data-nav-target="new-project"
+                            <Link id="tour-new-series-target" href="/project/new" data-nav-target="new-project" data-agent="new-project"
                                 className="shrink-0 aspect-[16/9] h-full border-2 border-dashed border-[#E50914]/30 bg-[#E50914]/[0.04] rounded-lg flex flex-col items-center justify-center text-[#E50914]/70 hover:text-[#E50914] hover:border-[#E50914]/50 hover:bg-[#E50914]/[0.08] transition-all group no-underline">
                                 <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300 mb-1" />
                                 <span className="text-[8px] font-bold uppercase tracking-[2px]">New Project</span>
@@ -516,7 +516,7 @@ export default function Dashboard() {
                         <div className="shrink-0 px-1">
                             <div className="flex gap-2">
                                 {userGoal === 'social_clips' && (
-                                    <Link href="/playground" className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border border-[#E50914]/15 bg-[#E50914]/[0.04] hover:bg-[#E50914]/[0.08] hover:border-[#E50914]/25 transition-all no-underline group">
+                                    <Link href="/playground" data-agent="nav-playground" className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border border-[#E50914]/15 bg-[#E50914]/[0.04] hover:bg-[#E50914]/[0.08] hover:border-[#E50914]/25 transition-all no-underline group">
                                         <Zap size={16} className="text-[#E50914]/60 group-hover:text-[#E50914]" />
                                         <div><span className="text-[10px] font-bold text-white/60 group-hover:text-white block">Quick Create</span><span className="text-[8px] text-white/20">Jump to Playground</span></div>
                                     </Link>
@@ -576,7 +576,7 @@ export default function Dashboard() {
 
 
         {/* CMD+K Hint (desktop) */}
-        <button onClick={() => setCmdPaletteOpen(true)} className="hidden sm:flex fixed bottom-5 right-5 z-40 items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[9px] font-mono text-white/15 hover:text-white/30 hover:border-white/[0.1] transition-all cursor-pointer">
+        <button onClick={() => setCmdPaletteOpen(true)} className="hidden sm:flex fixed bottom-5 left-5 z-40 items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[9px] font-mono text-white/15 hover:text-white/30 hover:border-white/[0.1] transition-all cursor-pointer">
             <Command size={10} />K
         </button>
         </>

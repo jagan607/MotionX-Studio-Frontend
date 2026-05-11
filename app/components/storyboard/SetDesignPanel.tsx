@@ -614,6 +614,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                     style={{ transform: isVisible ? "translateX(0)" : "translateX(40px)", opacity: isVisible ? 1 : 0, transition: "all 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s" }}>
 
                     <button onClick={handleClose}
+                        data-agent="close-set-panel"
                         className="absolute top-0 right-0 z-30 w-12 h-12 flex items-center justify-center text-white/40 hover:text-white transition-all cursor-pointer bg-black/40 backdrop-blur-xl rounded-full border border-white/10 pointer-events-auto hover:bg-white/10 hover:scale-105">
                         <X size={18} />
                     </button>
@@ -844,6 +845,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                 {/* 4. BUILD SET — legacy grid expansion (visible during anchor review) */}
                                 {isAnchorReady && !showGlobalRenderOverlay && !showAngleRenderOverlay && (
                                     <button
+                                        data-agent="build-set"
                                         onClick={handleExpandLegacy}
                                         disabled={isExpandingLegacy || isExpanding360}
                                         className="inline-flex items-center gap-2 bg-red-600/90 hover:bg-red-600 border border-red-500/60 hover:border-red-400 text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -869,6 +871,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                 {/* OVERHAUL / GENERATE — visible when NOT in anchor review */}
                                 {!isAnchorReady && !showGlobalRenderOverlay && !showAngleRenderOverlay && !isRetryingAngle && (
                                     <button
+                                        data-agent="generate-set"
                                         onClick={() => {
                                             if (hasData) {
                                                 setConfirmAction({

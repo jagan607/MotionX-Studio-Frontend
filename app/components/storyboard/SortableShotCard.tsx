@@ -616,6 +616,7 @@ export const SortableShotCard = ({
                         <button
                             onClick={onImageConfig}
                             disabled={isBusy}
+                            data-agent={`generate-image-shot-${index + 1}`}
                             className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Sparkles size={16} className="text-[#E50914]" />
@@ -626,6 +627,7 @@ export const SortableShotCard = ({
                         id={tourId ? `${tourId}-settings` : undefined}
                         onClick={onEdit}
                         disabled={isBusy}
+                        data-agent={`animate-shot-${index + 1}`}
                         className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Clapperboard size={16} className="text-[#E50914]" />

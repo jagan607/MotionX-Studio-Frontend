@@ -149,8 +149,7 @@ export default function RootLayout({
         <MediaViewerProvider>
           <GlobalMediaViewer />
 
-          {/* CHANGED: Removed 'h-screen w-screen'. Used 'min-h-screen' so pages can scroll if needed. */}
-          <div className="min-h-screen flex flex-col relative">
+          <div className="h-screen flex flex-col relative overflow-hidden">
             <Script
               id="json-ld"
               type="application/ld+json"
@@ -194,13 +193,17 @@ export default function RootLayout({
                 <GlobalHeader />
               </Suspense>
 
-              {/* MAIN CONTENT: flex-1 ensures it fills space, but doesn't force clipping */}
-              <main className="flex-1 flex flex-col relative z-0">
-                {children}
-              </main>
+              {/* MAIN CONTENT + AI DIRECTOR: flex row so panel pushes content */}
+              <div className="flex-1 flex flex-row relative z-0 min-h-0">
+                <main className="flex-1 flex flex-col relative min-w-0 overflow-y-auto" style={{ transform: 'translateZ(0)' }}>
+                  {children}
+                </main>
 
-              {/* Global Voice AI Director */}
-              <VoiceDirector />
+                {/* AI Director Panel — part of the layout, not overlaying */}
+                <Suspense fallback={null}>
+                  <VoiceDirector />
+                </Suspense>
+              </div>
 
               <Toaster
                 position="bottom-right"
