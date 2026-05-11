@@ -256,6 +256,18 @@ export const SortableShotCard = ({
             ref={setNodeRef}
             id={tourId}
             style={dragStyle}
+            data-shot-id={shot.id}
+            data-shot-index={index + 1}
+            data-shot-type={shot.shot_type || "unset"}
+            data-shot-status={isGenerating ? "generating" : isAnimating ? "animating" : isUpscaling ? "upscaling" : hasError ? "error" : hasVideo ? "video_ready" : hasImage ? "image_ready" : "empty"}
+            data-shot-has-image={hasImage ? "true" : "false"}
+            data-shot-has-video={hasVideo ? "true" : "false"}
+            data-shot-location={shot.location || ""}
+            data-shot-prompt={localVisualAction?.slice(0, 120) || ""}
+            data-shot-characters={Array.isArray(shot.characters) ? shot.characters.join(",") : ""}
+            data-shot-is-linked={isLinked ? "true" : "false"}
+            data-shot-is-pinned={isPinned ? "true" : "false"}
+            data-shot-is-upscaled={isUpscaled ? "true" : "false"}
             className={`relative flex flex-col rounded-xl p-4
                 ${isDragging ? 'opacity-60 scale-[1.02]' : 'opacity-100'}
                 ${isUpscaled ? 'bg-white/[0.04] border border-white/20' : 'bg-[#0A0A0A] border border-white/[0.08]'}

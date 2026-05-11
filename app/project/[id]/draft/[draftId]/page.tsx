@@ -60,6 +60,78 @@ export default function DraftPage() {
         }
     }, [isLoading, scenes, activeSceneId]);
 
+    // ══════ VOICE DIRECTOR: EDIT SCENE HANDLER ══════
+    useEffect(() => {
+        const handleDirectorEdit = async (e: Event) => {
+            const { sceneNumber, edits } = (e as CustomEvent).detail as {
+                sceneNumber: number;
+                edits: {
+                    header?: string;
+                    time?: string;
+                    action?: string;
+                    rewrite_instruction?: string;
+                    cast_updates?: Record<string, string>;
+                };
+            };
+
+            // Find the scene by number
+            const scene = scenes.find(s => s.scene_number === sceneNumber);
+            if (!scene) {
+                toast.error(`Scene ${sceneNumber} not found`);
+                return;
+            }
+
+            // Select the scene visually
+            setActiveSceneId(scene.id);
+
+            // Build direct property updates
+            const directUpdates: Partial<WorkstationScene> = {};
+            if (edits.header) directUpdates.header = edits.header;
+            if (edits.time) {
+                directUpdates.time = edits.time;
+                // Also update the header if time changed but header wasn't explicitly set
+                if (!edits.header && scene.header) {
+                    // Replace time in slugline: "INT. ROOM - DAY" → "INT. ROOM - NIGHT"
+                    const timePattern = /\b(DAY|NIGHT|DAWN|DUSK|LATER|CONTINUOUS|MORNING|EVENING)\b/i;
+                    directUpdates.header = scene.header.replace(timePattern, edits.time);
+                }
+            }
+            if (edits.action) directUpdates.summary = edits.action;
+
+            // Handle cast name changes
+            if (edits.cast_updates && Object.keys(edits.cast_updates).length > 0) {
+                let newCast = [...(scene.cast_ids || scene.characters || [])];
+                let newSummary = scene.summary || "";
+
+                for (const [oldName, newName] of Object.entries(edits.cast_updates)) {
+                    // Replace in cast list
+                    newCast = newCast.map(c =>
+                        c.toUpperCase() === oldName.toUpperCase() ? newName.toUpperCase() : c
+                    );
+                    // Replace in action text
+                    const nameRegex = new RegExp(oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                    newSummary = newSummary.replace(nameRegex, newName);
+                }
+                directUpdates.cast_ids = newCast;
+                directUpdates.characters = newCast;
+                if (newSummary !== scene.summary) directUpdates.summary = newSummary;
+            }
+
+            // Apply direct updates if any
+            if (Object.keys(directUpdates).length > 0) {
+                await handleUpdateScene(scene.id, directUpdates);
+            }
+
+            // Handle AI rewrite instruction
+            if (edits.rewrite_instruction) {
+                await handleRewrite(scene.id, edits.rewrite_instruction);
+            }
+        };
+
+        window.addEventListener("director-edit-scene", handleDirectorEdit);
+        return () => window.removeEventListener("director-edit-scene", handleDirectorEdit);
+    }, [scenes]); // Re-bind when scenes change
+
     // FALLBACK: Extract locations from scene headers when Firestore collection is empty
     const effectiveLocations = useMemo(() => {
         // If Firestore locations exist, use them

@@ -291,7 +291,7 @@ export default function ProjectHub() {
                 </div>
 
                 {/* Title */}
-                <h1 className="text-6xl md:text-8xl font-['Anton'] uppercase tracking-tight text-white leading-[0.85] mb-4 text-center">
+                <h1 data-project-title={project.title} className="text-6xl md:text-8xl font-['Anton'] uppercase tracking-tight text-white leading-[0.85] mb-4 text-center">
                     {project.title}
                 </h1>
 
@@ -393,6 +393,7 @@ function WorkspaceCard({ workspace: ws, index }: WorkspaceProps) {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             disabled={!ws.available}
+            data-nav-target={ws.id}
             className={`
                 hub-card group relative w-[280px] min-h-[320px] rounded-2xl text-left flex flex-col overflow-hidden
                 ${ws.available ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'}

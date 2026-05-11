@@ -227,6 +227,7 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
                         {onOpenMoodboard && (
                             <button
                                 id="tour-preprod-moodboard-btn"
+                                data-nav-target="moodboard"
                                 onClick={onOpenMoodboard}
                                 className="flex items-center gap-2 h-9 px-4 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[11px] font-semibold text-[#EEE] hover:text-white uppercase tracking-wide transition-colors rounded-md cursor-pointer"
                             >
@@ -249,6 +250,7 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
                         {hasScript && (
                             <Link
                                 id="tour-preprod-production-btn"
+                                data-nav-target="production"
                                 href={productionUrl}
                                 className="flex items-center gap-2 h-9 px-4 bg-[#1A1A1A] border border-[#333] hover:border-[#555] text-[11px] font-semibold text-[#EEE] hover:text-[#D4A843] uppercase tracking-wide transition-colors rounded-md no-underline cursor-pointer"
                                 title="Go to Production"
