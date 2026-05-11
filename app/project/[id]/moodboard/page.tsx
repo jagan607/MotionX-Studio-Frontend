@@ -460,6 +460,49 @@ export default function MoodboardPage() {
         return () => window.removeEventListener("keydown", handler);
     }, [phase, selectedIdx, moods.length]);
 
+    // ══════ VOICE DIRECTOR: MOODBOARD SELECTION ══════
+    useEffect(() => {
+        const handleDirectorSelect = (e: Event) => {
+            const { moodIndex, moodName, confirm: shouldConfirm } = (e as CustomEvent).detail as {
+                moodIndex?: number; moodName?: string; confirm: boolean;
+            };
+
+            let targetIdx = -1;
+
+            // Find by index (1-based → 0-based)
+            if (moodIndex && moodIndex > 0 && moodIndex <= moods.length) {
+                targetIdx = moodIndex - 1;
+            }
+            // Find by name (partial case-insensitive match)
+            else if (moodName) {
+                const searchLower = moodName.toLowerCase();
+                targetIdx = moods.findIndex(m =>
+                    m.name.toLowerCase().includes(searchLower) ||
+                    (m.atmosphere && m.atmosphere.toLowerCase().includes(searchLower))
+                );
+            }
+
+            if (targetIdx >= 0) {
+                setSelectedIdx(targetIdx);
+                // Visually click the moodboard card
+                const cards = document.querySelectorAll("[data-mood-name]");
+                if (cards[targetIdx]) {
+                    (cards[targetIdx] as HTMLElement).click();
+                }
+            }
+
+            // Auto-confirm if requested (after a short delay to let the selection render)
+            if (shouldConfirm) {
+                setTimeout(() => {
+                    if (phase === "select") handleConfirm();
+                }, 500);
+            }
+        };
+
+        window.addEventListener("director-select-moodboard", handleDirectorSelect);
+        return () => window.removeEventListener("director-select-moodboard", handleDirectorSelect);
+    }, [moods, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // ─────────────────────────────────────────────────────────────────────────
     // RENDER
     // ─────────────────────────────────────────────────────────────────────────
@@ -751,6 +794,11 @@ export default function MoodboardPage() {
                                         const isMoodApplied = !isOnboarding && mood.id === appliedMoodId;
                                         return (
                                             <button key={mood.id}
+                                                data-mood-name={mood.name}
+                                                data-mood-selected={active ? "true" : "false"}
+                                                data-mood-status={mood.status || "unknown"}
+                                                data-mood-applied={isMoodApplied ? "true" : "false"}
+                                                data-mood-atmosphere={mood.atmosphere || ""}
                                                 data-filmstrip-idx={idx}
                                                 onClick={() => setSelectedIdx(idx)}
                                                 className={`relative shrink-0 overflow-hidden transition-all duration-500 cursor-pointer group
@@ -981,9 +1029,8 @@ export default function MoodboardPage() {
                                     <div key={step.label}
                                         className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-700 ${active ? "bg-white/[0.03]" : ""}`}
                                         style={{ opacity: done || active ? 1 : 0.4, transition: "all 0.7s ease" }}>
-                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 border transition-all duration-700 ${
-                                            done ? "border-emerald-500/40 bg-emerald-500/10" : active ? "border-[#E50914]/40 bg-[#E50914]/10" : "border-white/[0.06]"
-                                        }`}>
+                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 border transition-all duration-700 ${done ? "border-emerald-500/40 bg-emerald-500/10" : active ? "border-[#E50914]/40 bg-[#E50914]/10" : "border-white/[0.06]"
+                                            }`}>
                                             {done ? (
                                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                             ) : active ? (
@@ -992,9 +1039,8 @@ export default function MoodboardPage() {
                                                 <div className="w-1 h-1 rounded-full bg-white/10" />
                                             )}
                                         </div>
-                                        <span className={`text-[10px] tracking-[1.5px] uppercase font-mono transition-colors duration-700 ${
-                                            done ? "text-emerald-400/50" : active ? "text-white/80" : "text-neutral-700"
-                                        }`}>{step.label}</span>
+                                        <span className={`text-[10px] tracking-[1.5px] uppercase font-mono transition-colors duration-700 ${done ? "text-emerald-400/50" : active ? "text-white/80" : "text-neutral-700"
+                                            }`}>{step.label}</span>
                                         {active && (
                                             <div className="ml-auto w-16 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
                                                 <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent"

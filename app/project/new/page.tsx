@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
@@ -302,8 +302,9 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
 /* ═══════════════════════════════════════════════════════════
    MAIN PAGE
    ═══════════════════════════════════════════════════════════ */
-export default function NewProjectPage() {
+function NewProjectPageInner() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [currentUser, setCurrentUser] = useState<User | null>(null);
 
     // ══════ PHASE STATE ══════
@@ -339,7 +340,6 @@ export default function NewProjectPage() {
     const [createdProjectId, setCreatedProjectId] = useState("");
     const [detectedArchetype, setDetectedArchetype] = useState("");
     const [isTransitioning, setIsTransitioning] = useState(false);
-
     // Refs for listener cleanup
     const unsubJobRef = useRef<(() => void) | null>(null);
     const unsubProjectRef = useRef<(() => void) | null>(null);
@@ -359,6 +359,122 @@ export default function NewProjectPage() {
             unsubProjectRef.current?.();
         };
     }, []);
+
+    // ══════ VOICE DIRECTOR VISUAL AUTOMATION ══════
+    // Reads a pending creation payload from sessionStorage (set by VoiceDirector
+    // before navigating here). Runs a visual scripted sequence on mount.
+    // Also listens for voice-create-project event (when already on /project/new).
+    const autostartTriggered = useRef(false);
+    const handleCreateRef = useRef<((o?: { title: string; genre: string; vision: string; format: string; aspectRatio: string; runtime: number }) => void) | null>(null);
+
+    const runVoiceAutoFill = useCallback(async (detail: {
+        concept: string; title: string; genre: string;
+        format: string; aspect_ratio: string; runtime_seconds: number;
+    }) => {
+        if (autostartTriggered.current) {
+            console.log("[VoiceCreate] Already running, skipping duplicate trigger");
+            return;
+        }
+        autostartTriggered.current = true;
+        console.log("[VoiceCreate] Starting auto-create with:", detail);
+
+        const { concept, title: paramTitle, genre: paramGenre, format: paramFormat, aspect_ratio, runtime_seconds } = detail;
+        const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+        // ── Step 1: Set format ──
+        console.log("[VoiceCreate] Step 1: Setting format");
+        await wait(400);
+        setSelectedFormat(paramFormat);
+
+        // ── Step 2: Set aspect ratio and runtime ──
+        await wait(300);
+        if (["16:9", "21:9", "9:16", "4:5", "1:1"].includes(aspect_ratio)) {
+            setAspectRatio(aspect_ratio as any);
+        }
+        if (runtime_seconds > 0) setRuntime(runtime_seconds);
+
+        // ── Step 3: Type the concept into the textarea with typewriter effect ──
+        await wait(400);
+        let typed = "";
+        for (let i = 0; i < concept.length; i++) {
+            typed += concept[i];
+            setVision(typed);
+            if (textareaRef.current) {
+                textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+            }
+            await wait(concept[i] === " " ? 15 : 25);
+        }
+
+        // ── Step 4: Fill title field ──
+        await wait(500);
+        setTitle(paramTitle);
+
+        // ── Step 5: Fill genre field ──
+        await wait(300);
+        setGenre(paramGenre);
+
+        // ── Step 6: Expand synopsis into full screenplay ──
+        await wait(600);
+        const FORMAT_MAP: Record<string, string> = { film: "movie", series: "micro_drama", ad: "ad", trailer: "trailer" };
+        const projectType = FORMAT_MAP[paramFormat] || "movie";
+
+        let finalVision = concept;
+        try {
+            setIsExpanding(true);
+            const expandRes = await api.post("/api/v1/script/expand-synopsis", {
+                synopsis: concept,
+                project_type: projectType,
+                runtime_mins: Math.max(1, Math.round(runtime_seconds / 60)),
+                genre: paramGenre || undefined,
+            });
+            const fullScript = expandRes.data?.script_text;
+            if (fullScript) {
+                finalVision = fullScript;
+                setVision(fullScript);
+                setScriptApplied(true);
+            }
+        } catch (e: any) {
+            console.warn("[VoiceCreate] Synopsis expansion failed, using raw concept:", e);
+        } finally {
+            setIsExpanding(false);
+        }
+
+        // ── Step 7: Click CREATE ──
+        await wait(500);
+        console.log("[VoiceCreate] Triggering handleCreate with:", { title: paramTitle, genre: paramGenre });
+        handleCreateRef.current?.({
+            title: paramTitle,
+            genre: paramGenre,
+            vision: finalVision,
+            format: paramFormat,
+            aspectRatio: aspect_ratio,
+            runtime: runtime_seconds,
+        });
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Listen for sessionStorage payload on mount
+    useEffect(() => {
+        let raw: string | null = null;
+        try { raw = sessionStorage.getItem("__mx_voice_create"); } catch {}
+        console.log("[VoiceCreate] sessionStorage check:", { raw: raw?.slice(0, 50), alreadyTriggered: autostartTriggered.current });
+        if (!raw || autostartTriggered.current) return;
+        try { sessionStorage.removeItem("__mx_voice_create"); } catch {}
+        const detail = JSON.parse(raw);
+        runVoiceAutoFill(detail);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Listen for voice-create-project event (when already on /project/new)
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            console.log("[VoiceCreate] Received voice-create-project event:", detail);
+            try { sessionStorage.removeItem("__mx_voice_create"); } catch {}
+            autostartTriggered.current = false; // Reset so it can run again
+            runVoiceAutoFill(detail);
+        };
+        window.addEventListener("voice-create-project", handler);
+        return () => window.removeEventListener("voice-create-project", handler);
+    }, [runVoiceAutoFill]);
 
     // ══════ TYPEWRITER ══════
     useEffect(() => {
@@ -548,12 +664,21 @@ export default function NewProjectPage() {
     };
 
     // ══════ CREATE PROJECT ══════
-    const handleCreate = async () => {
+    // Accepts optional overrides for voice-director autostart (bypasses stale React state)
+    const handleCreate = async (overrides?: { title: string; genre: string; vision: string; format: string; aspectRatio: string; runtime: number }) => {
+        // Use overrides if provided (autostart path), otherwise use React state
+        const _title = overrides?.title ?? title;
+        const _genre = overrides?.genre ?? genre;
+        const _vision = overrides?.vision ?? vision;
+        const _format = overrides?.format ?? selectedFormat;
+        const _aspect = overrides?.aspectRatio ?? aspectRatio;
+        const _runtime = overrides?.runtime ?? runtime;
+
         // Validate required fields
         const errors: { title?: boolean; genre?: boolean; vision?: boolean } = {};
-        if (!title.trim()) errors.title = true;
-        if (!genre.trim()) errors.genre = true;
-        if (!vision.trim() && !scriptFile && !breakdownFile) errors.vision = true;
+        if (!_title.trim()) errors.title = true;
+        if (!_genre.trim()) errors.genre = true;
+        if (!_vision.trim() && !scriptFile && !breakdownFile) errors.vision = true;
         if (errors.title || errors.genre || errors.vision) {
             setValidationErrors(errors);
             const missing = [errors.title && 'Project Name', errors.genre && 'Genre', errors.vision && 'Synopsis or Script'].filter(Boolean).join(', ');
@@ -569,31 +694,33 @@ export default function NewProjectPage() {
 
         try {
             const FORMAT_MAP: Record<string, ProjectType> = { film: "movie", series: "micro_drama", ad: "ad", trailer: "trailer" };
-            const type = FORMAT_MAP[selectedFormat] || "movie";
+            const type = FORMAT_MAP[_format] || "movie";
             const cleanFilename = (name: string) => name.replace('.pdf', '').replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
-            const projectTitle = title.trim() || (vision ? vision.split(/[.\n]/)[0].slice(0, 60).trim() : (scriptFile ? cleanFilename(scriptFile.name) : "Untitled Project"));
+            const projectTitle = _title.trim() || (_vision ? _vision.split(/[.\n]/)[0].slice(0, 60).trim() : (scriptFile ? cleanFilename(scriptFile.name) : "Untitled Project"));
 
             setProcessingStatus("Creating project...");
             const res = await api.post("/api/v1/project/create", {
-                title: projectTitle, genre: genre.trim() || "Drama",
-                type, aspect_ratio: aspectRatio, style: selectedStyle,
-                runtime_seconds: runtime,
+                title: projectTitle, genre: _genre.trim() || "Drama",
+                type, aspect_ratio: _aspect, style: selectedStyle,
+                runtime_seconds: _runtime,
             });
             const projectId = res.data.id;
             setCreatedProjectId(projectId);
+            // Cache for voice director navigation (resolves /project/CURRENT/... while on /project/new)
+            try { localStorage.setItem("__mx_last_project_id", projectId); } catch {}
             if (auth.currentUser) invalidateDashboardCache(auth.currentUser.uid);
 
             const formData = new FormData();
             formData.append("project_id", projectId);
             formData.append("script_title", projectTitle);
-            formData.append("runtime_seconds", String(runtime));
+            formData.append("runtime_seconds", String(_runtime));
 
             if (scriptFile) {
                 setProcessingStatus("Uploading script...");
                 formData.append("file", scriptFile);
             } else if (!breakdownFile) {
                 setProcessingStatus("Loading script into AI memory...");
-                const blob = new Blob([vision], { type: "text/plain" });
+                const blob = new Blob([_vision], { type: "text/plain" });
                 formData.append("file", new File([blob], "script.txt"));
             }
 
@@ -638,6 +765,9 @@ export default function NewProjectPage() {
             setIsSubmitting(false);
         }
     };
+
+    // Keep ref in sync for voice director autostart
+    handleCreateRef.current = handleCreate;
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey && phase === "prompt") { e.preventDefault(); handleCreate(); }
@@ -843,7 +973,7 @@ export default function NewProjectPage() {
 
                                     {/* Create Project CTA — RED when file attached, ghost when text-only */}
                                     {(vision.trim().length > 0 || scriptFile || breakdownFile) && !expandedScript && !isExpanding && (
-                                        <button onClick={handleCreate}
+                                        <button onClick={() => handleCreate()}
                                             disabled={isSubmitting || phase !== 'prompt'}
                                             className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-semibold tracking-[1px] transition-all duration-300 cursor-pointer
                                                 ${isSubmitting || phase !== 'prompt'
@@ -1034,5 +1164,14 @@ export default function NewProjectPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+// Wrapper with Suspense boundary required by useSearchParams
+export default function NewProjectPage() {
+    return (
+        <Suspense>
+            <NewProjectPageInner />
+        </Suspense>
     );
 }

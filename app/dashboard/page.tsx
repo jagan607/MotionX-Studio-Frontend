@@ -316,7 +316,7 @@ export default function Dashboard() {
                         </button>
                         <div ref={filmStripRef} className="h-full flex gap-2 overflow-x-auto no-scrollbar scroll-smooth items-center px-1"
                             onWheel={e => { if (filmStripRef.current) filmStripRef.current.scrollLeft += e.deltaY; }}>
-                            <Link id="tour-new-series-target" href="/project/new"
+                            <Link id="tour-new-series-target" href="/project/new" data-nav-target="new-project"
                                 className="shrink-0 aspect-[16/9] h-full border-2 border-dashed border-[#E50914]/30 bg-[#E50914]/[0.04] rounded-lg flex flex-col items-center justify-center text-[#E50914]/70 hover:text-[#E50914] hover:border-[#E50914]/50 hover:bg-[#E50914]/[0.08] transition-all group no-underline">
                                 <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300 mb-1" />
                                 <span className="text-[8px] font-bold uppercase tracking-[2px]">New Project</span>
@@ -325,6 +325,7 @@ export default function Dashboard() {
                                 const phase = getPhase(p);
                                 return (
                                 <div key={p.id}
+                                    data-project-card-title={p.title}
                                     className={`shrink-0 aspect-[16/9] h-full rounded-lg overflow-hidden relative cursor-pointer group/card transition-all duration-300
                                         ${activeIdx === i ? 'border-2 border-[#E50914] shadow-[0_0_15px_rgba(229,9,20,0.15)] scale-[1.02] z-10 opacity-100' : 'border border-white/[0.04] opacity-50 hover:opacity-90 hover:border-white/[0.1]'}`}
                                     onClick={() => { if (activeIdx === i) { nav(p); } else { setActiveIdx(i); setMonitorMode('project'); } }}>

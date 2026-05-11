@@ -612,6 +612,108 @@ export default function PreProductionCanvas() {
         finally { setGeneratingMap(prev => ({ ...prev, [assetId]: false })); }
     };
 
+    // ══════ VOICE DIRECTOR: STABLE REFS ══════
+    // Event listener closures capture stale function references. Use refs to
+    // always call the latest version of these handlers.
+    const handleNodeClickRef = useRef<Function>(() => {});
+    const handleGenerateAssetRef = useRef<Function>(handleGenerateAsset);
+    useEffect(() => { handleGenerateAssetRef.current = handleGenerateAsset; });
+
+    // ══════ VOICE DIRECTOR: OPEN NODE ══════
+    useEffect(() => {
+        const handleDirectorOpenNode = (e: Event) => {
+            const { nodeType, nodeTitle, sceneNumber } = (e as CustomEvent).detail as {
+                nodeType: string; nodeTitle?: string; sceneNumber?: number;
+            };
+
+            let targetNode: CanvasNodeData | undefined;
+
+            if (sceneNumber) {
+                targetNode = canvasNodes.find(n =>
+                    n.nodeType === "scene" && (n.raw as any)?.scene_number === sceneNumber
+                );
+            } else if (nodeTitle) {
+                const searchLower = nodeTitle.toLowerCase();
+                targetNode = canvasNodes.find(n =>
+                    n.nodeType === nodeType &&
+                    n.title.toLowerCase().includes(searchLower)
+                );
+            } else {
+                targetNode = canvasNodes.find(n => n.nodeType === nodeType);
+            }
+
+            if (targetNode) {
+                handleNodeClickRef.current(targetNode);
+            }
+        };
+
+        window.addEventListener("director-open-node", handleDirectorOpenNode);
+        return () => window.removeEventListener("director-open-node", handleDirectorOpenNode);
+    }, [canvasNodes]);
+
+    // ══════ VOICE DIRECTOR: GENERATE ASSET ══════
+    useEffect(() => {
+        const handleDirectorGenerate = (e: Event) => {
+            const { assetType, assetName, all: genAll } = (e as CustomEvent).detail as {
+                assetType: string; assetName?: string; all: boolean;
+            };
+
+            console.log("[VoiceDirector] generate_asset event received:", { assetType, assetName, genAll });
+            console.log("[VoiceDirector] canvasNodes count:", canvasNodes.length, "types:", canvasNodes.map(n => n.nodeType));
+
+            // Find matching nodes
+            const matchingNodes = canvasNodes.filter(n => {
+                if (n.nodeType !== assetType) return false;
+                if (!genAll && assetName) {
+                    return n.title.toLowerCase().includes(assetName.toLowerCase());
+                }
+                return true; // Generate all of this type
+            });
+
+            console.log("[VoiceDirector] matchingNodes:", matchingNodes.length, matchingNodes.map(n => n.title));
+
+            if (matchingNodes.length === 0) {
+                toast.error(`No ${assetType} nodes found on canvas`);
+                return;
+            }
+
+            // Generate for each matching node
+            matchingNodes.forEach(node => {
+                const raw = node.raw;
+                const type = node.nodeType;
+                let prompt = '';
+
+                if (type === 'character') {
+                    const traits = raw.visual_traits || {};
+                    const charType = raw.type || 'human';
+                    const parts: string[] = [];
+                    if (charType !== 'human') parts.push(`${charType} character`);
+                    if (traits.age) parts.push(traits.age);
+                    if (traits.ethnicity) parts.push(traits.ethnicity);
+                    if (traits.build) parts.push(traits.build);
+                    if (traits.hair) parts.push(traits.hair);
+                    if (traits.clothing) parts.push(`wearing ${traits.clothing}`);
+                    if (traits.distinguishing_features) parts.push(traits.distinguishing_features);
+                    if (traits.vibe) parts.push(traits.vibe);
+                    const traitStr = parts.filter(Boolean).join(', ');
+                    prompt = `Cinematic portrait of ${node.title}${traitStr ? `, ${traitStr}` : ''}. Dramatic lighting, sharp focus, high quality, 8k, photorealistic.`;
+                } else if (type === 'location') {
+                    prompt = `Cinematic establishing shot of ${node.title}. High quality, 8k, photorealistic.`;
+                } else {
+                    prompt = `Product photography of ${node.title}. High quality, 8k, photorealistic.`;
+                }
+
+                console.log("[VoiceDirector] Calling handleGenerateAsset for:", node.title, "prompt:", prompt.slice(0, 80));
+                handleGenerateAssetRef.current(type, raw.id, prompt);
+            });
+
+            toast.success(`Generating ${matchingNodes.length} ${assetType}(s)...`);
+        };
+
+        window.addEventListener("director-generate-asset", handleDirectorGenerate);
+        return () => window.removeEventListener("director-generate-asset", handleDirectorGenerate);
+    }, [canvasNodes]);
+
     // ─── NODE CLICK HANDLERS ───
     const handleNodeClick = (node: CanvasNodeData) => {
         if (node.nodeType === "scene") {
@@ -628,6 +730,8 @@ export default function PreProductionCanvas() {
             });
         }
     };
+    // Keep ref in sync for voice director event listeners
+    useEffect(() => { handleNodeClickRef.current = handleNodeClick; });
 
     const handleSaveScene = async () => {
         if (!editingScene || !activeEpisodeId) return;

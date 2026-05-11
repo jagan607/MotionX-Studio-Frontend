@@ -23,9 +23,9 @@ const ActivityTracker = dynamic(
   () => import("@/components/ActivityTracker").then(mod => ({ default: mod.ActivityTracker }))
 );
 
-// Lazy-loaded: DirectorChat is a global AI assistant panel (hidden by default)
-const DirectorChat = dynamic(
-  () => import("@/components/DirectorChat")
+// Lazy-loaded: VoiceDirector is the global AI voice assistant (floating mic orb)
+const VoiceDirector = dynamic(
+  () => import("@/components/VoiceDirector/VoiceDirector")
 );
 
 const inter = Inter({
@@ -199,8 +199,8 @@ export default function RootLayout({
                 {children}
               </main>
 
-              {/* Global AI Director assistant */}
-              <DirectorChat />
+              {/* Global Voice AI Director */}
+              <VoiceDirector />
 
               <Toaster
                 position="bottom-right"
