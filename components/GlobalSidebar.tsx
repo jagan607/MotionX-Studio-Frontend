@@ -7,14 +7,15 @@ import { Command, Plus, Globe, Zap, Rocket, ChevronLeft, ChevronRight, FolderOpe
 
 export default function GlobalSidebar() {
     const pathname = usePathname();
-    const isPublicPage = pathname?.startsWith("/public");
+    const PUBLIC_ROUTES = ["/", "/login", "/onboarding", "/pricing", "/showcase", "/explore"];
+    const isPublicPage = pathname?.startsWith("/public") || pathname?.startsWith("/share/") || PUBLIC_ROUTES.includes(pathname || "");
     const [isCollapsed, setIsCollapsed] = useState(pathname !== "/dashboard");
 
     React.useEffect(() => {
         setIsCollapsed(pathname !== "/dashboard");
     }, [pathname]);
 
-    if (isPublicPage || pathname === "/") return null;
+    if (isPublicPage) return null;
 
     return (
         <aside className={`${isCollapsed ? 'w-[70px]' : 'w-[220px] lg:w-[250px]'} shrink-0 border-r border-white/[0.08] bg-[#111111]/70 backdrop-blur-2xl flex flex-col z-[40] shadow-[4px_0_32px_rgba(0,0,0,0.5)] transition-all duration-300 relative group`}>
