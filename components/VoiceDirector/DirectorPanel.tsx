@@ -289,7 +289,7 @@ export default function DirectorPanel({
                         </p>
                         {!isConnected && (
                             <button
-                                onClick={isLocked ? onUpgradeClick : onConnect}
+                                onClick={isLocked ? onUpgradeClick : () => onConnect()}
                                 className="mt-4 px-4 py-2 rounded-lg text-[11px] font-medium transition-all cursor-pointer"
                                 style={{
                                     background: "linear-gradient(135deg, rgba(229,9,20,0.2), rgba(229,9,20,0.08))",

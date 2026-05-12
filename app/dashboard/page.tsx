@@ -15,7 +15,6 @@ import { TourOverlay } from "@/components/tour/TourOverlay";
 import { useTour } from "@/hooks/useTour";
 import { DASHBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
 import { useWorkspace } from "@/app/context/WorkspaceContext";
-import { useCredits } from "@/hooks/useCredits";
 import { useAnnouncements } from "@/components/dashboard/DashboardAnnouncements";
 import EmptyStateHero from "@/components/dashboard/EmptyStateHero";
 import DailyInspiration from "@/components/dashboard/DailyInspiration";
@@ -47,7 +46,6 @@ export default function Dashboard() {
 
     const { all: allAnn } = useAnnouncements();
     const { step: tourStep, nextStep: tourNext, completeTour } = useTour("dashboard_tour");
-    const { credits } = useCredits();
     const router = useRouter();
     const videoRefs = useRef<{ [k: string]: HTMLVideoElement | null }>({});
     const filmStripRef = useRef<HTMLDivElement>(null);
@@ -285,9 +283,7 @@ export default function Dashboard() {
                                 <div className="w-1 h-1 bg-[#00FF41] rounded-full animate-pulse" />
                                 {greeting}, {name}
                             </div>
-                            <div className="px-2 py-1.5 rounded-lg bg-black/40 backdrop-blur-xl border border-white/[0.05] text-[9px] font-mono text-white/35">
-                                ⚡{credits ?? '—'}
-                            </div>
+
                         </div>
                     </div>
                     </> /* end monitor wrapper */
