@@ -256,6 +256,18 @@ export const SortableShotCard = ({
             ref={setNodeRef}
             id={tourId}
             style={dragStyle}
+            data-shot-id={shot.id}
+            data-shot-index={index + 1}
+            data-shot-type={shot.shot_type || "unset"}
+            data-shot-status={isGenerating ? "generating" : isAnimating ? "animating" : isUpscaling ? "upscaling" : hasError ? "error" : hasVideo ? "video_ready" : hasImage ? "image_ready" : "empty"}
+            data-shot-has-image={hasImage ? "true" : "false"}
+            data-shot-has-video={hasVideo ? "true" : "false"}
+            data-shot-location={shot.location || ""}
+            data-shot-prompt={localVisualAction?.slice(0, 120) || ""}
+            data-shot-characters={Array.isArray(shot.characters) ? shot.characters.join(",") : ""}
+            data-shot-is-linked={isLinked ? "true" : "false"}
+            data-shot-is-pinned={isPinned ? "true" : "false"}
+            data-shot-is-upscaled={isUpscaled ? "true" : "false"}
             className={`relative flex flex-col rounded-xl p-4
                 ${isDragging ? 'opacity-60 scale-[1.02]' : 'opacity-100'}
                 ${isUpscaled ? 'bg-white/[0.04] border border-white/20' : 'bg-[#0A0A0A] border border-white/[0.08]'}
@@ -604,6 +616,7 @@ export const SortableShotCard = ({
                         <button
                             onClick={onImageConfig}
                             disabled={isBusy}
+                            data-agent={`generate-image-shot-${index + 1}`}
                             className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Sparkles size={16} className="text-[#E50914]" />
@@ -614,6 +627,7 @@ export const SortableShotCard = ({
                         id={tourId ? `${tourId}-settings` : undefined}
                         onClick={onEdit}
                         disabled={isBusy}
+                        data-agent={`animate-shot-${index + 1}`}
                         className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#E50914]/10 hover:bg-[#E50914]/20 border border-[#E50914]/40 text-xs font-semibold text-white transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Clapperboard size={16} className="text-[#E50914]" />

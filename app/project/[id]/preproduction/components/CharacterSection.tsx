@@ -148,6 +148,7 @@ export function CharacterSection({ project, characters, onRefresh }: CharacterSe
                 ) : (
                     <>
                         <div
+                            data-agent="add-character"
                             onClick={handleCreateNew}
                             className="group relative w-[240px] h-full min-h-[280px] flex flex-col items-center justify-center bg-[#080808]/50 border border-dashed border-white/[0.08] rounded-xl cursor-pointer hover:bg-white/[0.02] hover:border-white/[0.2] transition-colors"
                         >
@@ -158,6 +159,7 @@ export function CharacterSection({ project, characters, onRefresh }: CharacterSe
                         </div>
                         {characters.map(char => (
                             <CreativeBlock
+                                data-agent={`character-${char.id}`}
                                 key={char.id}
                                 type="CHARACTER"
                                 title={char.name}

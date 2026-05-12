@@ -127,6 +127,7 @@ export { default as Play } from "lucide-react/dist/esm/icons/play";
 export { default as PlayCircle } from "lucide-react/dist/esm/icons/circle-play";
 export { default as Plus } from "lucide-react/dist/esm/icons/plus";
 export { default as PlusCircle } from "lucide-react/dist/esm/icons/circle-plus";
+export { default as Quote } from "lucide-react/dist/esm/icons/quote";
 export { default as RectangleHorizontal } from "lucide-react/dist/esm/icons/rectangle-horizontal";
 export { default as RectangleVertical } from "lucide-react/dist/esm/icons/rectangle-vertical";
 export { default as Redo2 } from "lucide-react/dist/esm/icons/redo-2";

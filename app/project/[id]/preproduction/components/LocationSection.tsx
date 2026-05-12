@@ -136,6 +136,7 @@ export function LocationSection({ project, locations, onRefresh }: LocationSecti
                 ) : (
                     <>
                         <div
+                            data-agent="add-location"
                             onClick={handleCreateNew}
                             className="group relative w-[240px] h-full min-h-[280px] flex flex-col items-center justify-center bg-[#080808]/50 border border-dashed border-white/[0.08] rounded-xl cursor-pointer hover:bg-white/[0.02] hover:border-white/[0.2] transition-colors"
                         >
@@ -146,6 +147,7 @@ export function LocationSection({ project, locations, onRefresh }: LocationSecti
                         </div>
                         {locations.map(loc => (
                             <CreativeBlock
+                                data-agent={`location-${loc.id}`}
                                 key={loc.id}
                                 type="LOCATION"
                                 title={loc.name}

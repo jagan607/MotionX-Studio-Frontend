@@ -61,7 +61,7 @@ export default function GlobalHeader() {
     );
 
 
-    if (pathname === "/login" || pathname === "/" || pathname === "/pricing" || pathname === "/onboarding" || isEditorPage) {
+    if (pathname === "/login" || pathname === "/" || pathname === "/pricing" || pathname === "/onboarding" || isEditorPage || pathname.startsWith("/share")) {
         return null;
     }
 

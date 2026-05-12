@@ -12,6 +12,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const router = useRouter();
   const pathname = usePathname();
 
+  const publicPaths = ["/", "/login", "/pricing"];
+  const isPublicPath = publicPaths.includes(pathname || "") || (pathname || "").startsWith("/share");
+
   // Heartbeat: writes to active_sessions/{uid} every 60s for admin dashboard
   useHeartbeat();
 
@@ -54,9 +57,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!authCheckComplete) return;
 
-    const publicPaths = ["/", "/login", "/pricing"];
-    const isPublicPath = publicPaths.includes(pathname);
-
     // If no user & trying to access protected route -> Go Home
     if (!user && !isPublicPath) {
       router.push("/");
@@ -77,8 +77,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   // B. Logged-in redirect from /login is handled by login/page.tsx itself
 
   // C. User is NOT logged in, but on Protected Page (Wait for redirect)
-  const publicPaths = ["/", "/login", "/pricing"];
-  if (!user && !publicPaths.includes(pathname)) {
+  if (!user && !isPublicPath) {
     return <FullScreenLoader />;
   }
 

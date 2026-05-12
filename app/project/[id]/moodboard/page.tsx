@@ -460,6 +460,49 @@ export default function MoodboardPage() {
         return () => window.removeEventListener("keydown", handler);
     }, [phase, selectedIdx, moods.length]);
 
+    // ══════ VOICE DIRECTOR: MOODBOARD SELECTION ══════
+    useEffect(() => {
+        const handleDirectorSelect = (e: Event) => {
+            const { moodIndex, moodName, confirm: shouldConfirm } = (e as CustomEvent).detail as {
+                moodIndex?: number; moodName?: string; confirm: boolean;
+            };
+
+            let targetIdx = -1;
+
+            // Find by index (1-based → 0-based)
+            if (moodIndex && moodIndex > 0 && moodIndex <= moods.length) {
+                targetIdx = moodIndex - 1;
+            }
+            // Find by name (partial case-insensitive match)
+            else if (moodName) {
+                const searchLower = moodName.toLowerCase();
+                targetIdx = moods.findIndex(m =>
+                    m.name.toLowerCase().includes(searchLower) ||
+                    (m.atmosphere && m.atmosphere.toLowerCase().includes(searchLower))
+                );
+            }
+
+            if (targetIdx >= 0) {
+                setSelectedIdx(targetIdx);
+                // Visually click the moodboard card
+                const cards = document.querySelectorAll("[data-mood-name]");
+                if (cards[targetIdx]) {
+                    (cards[targetIdx] as HTMLElement).click();
+                }
+            }
+
+            // Auto-confirm if requested (after a short delay to let the selection render)
+            if (shouldConfirm) {
+                setTimeout(() => {
+                    if (phase === "select") handleConfirm();
+                }, 500);
+            }
+        };
+
+        window.addEventListener("director-select-moodboard", handleDirectorSelect);
+        return () => window.removeEventListener("director-select-moodboard", handleDirectorSelect);
+    }, [moods, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // ─────────────────────────────────────────────────────────────────────────
     // RENDER
     // ─────────────────────────────────────────────────────────────────────────
@@ -520,8 +563,14 @@ export default function MoodboardPage() {
 
 
 
-
-
+                    {selectedMood && (
+                        <button onClick={() => generateMoods(true)} disabled={isRegenerating}
+                            data-agent="regenerate-moods"
+                            className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30">
+                            <RefreshCw size={12} className={isRegenerating ? "animate-spin" : ""} />
+                            Regenerate <span className="opacity-50 text-[9px] font-normal tracking-normal normal-case ml-1">· 2 cr</span>
+                        </button>
+                    )}
                     {/* Close — back to pre-production (hidden during onboarding) */}
                     {!isOnboarding && (
                         <Link href={preproductionUrl}
@@ -581,6 +630,7 @@ export default function MoodboardPage() {
                                 <h2 className="text-2xl sm:text-3xl uppercase tracking-wide mb-3 font-display text-white/80">Visual Direction</h2>
                                 <p className="text-[11px] text-white/30 tracking-[2px] uppercase mb-8">No moodboard generated yet</p>
                                 <CreditCTA
+                                    data-agent="generate-moodboard"
                                     label="Generate Moodboard"
                                     cost={isOnboarding ? undefined : 2}
                                     icon={<Palette size={14} />}
@@ -751,7 +801,13 @@ export default function MoodboardPage() {
                                         const isMoodApplied = !isOnboarding && mood.id === appliedMoodId;
                                         return (
                                             <button key={mood.id}
+                                                data-mood-name={mood.name}
+                                                data-mood-selected={active ? "true" : "false"}
+                                                data-mood-status={mood.status || "unknown"}
+                                                data-mood-applied={isMoodApplied ? "true" : "false"}
+                                                data-mood-atmosphere={mood.atmosphere || ""}
                                                 data-filmstrip-idx={idx}
+                                                data-agent={`mood-option-${idx + 1}`}
                                                 onClick={() => setSelectedIdx(idx)}
                                                 className={`relative shrink-0 overflow-hidden transition-all duration-500 cursor-pointer group
                                                     ${idx > 0 ? 'border-l border-white/[0.03]' : ''}
@@ -885,6 +941,7 @@ export default function MoodboardPage() {
                                     />
                                 )}
                                 <button onClick={handleConfirm}
+                                    data-agent="confirm-mood"
                                     disabled={(isApplied && !isOnboarding) || phase !== "select" || selectedMood?.status === "failed"}
                                     className={`flex items-center gap-2 px-8 py-3 rounded-lg text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
                                         ${isApplied && !isOnboarding
@@ -981,9 +1038,8 @@ export default function MoodboardPage() {
                                     <div key={step.label}
                                         className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-700 ${active ? "bg-white/[0.03]" : ""}`}
                                         style={{ opacity: done || active ? 1 : 0.4, transition: "all 0.7s ease" }}>
-                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 border transition-all duration-700 ${
-                                            done ? "border-emerald-500/40 bg-emerald-500/10" : active ? "border-[#E50914]/40 bg-[#E50914]/10" : "border-white/[0.06]"
-                                        }`}>
+                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 border transition-all duration-700 ${done ? "border-emerald-500/40 bg-emerald-500/10" : active ? "border-[#E50914]/40 bg-[#E50914]/10" : "border-white/[0.06]"
+                                            }`}>
                                             {done ? (
                                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                             ) : active ? (
@@ -992,9 +1048,8 @@ export default function MoodboardPage() {
                                                 <div className="w-1 h-1 rounded-full bg-white/10" />
                                             )}
                                         </div>
-                                        <span className={`text-[10px] tracking-[1.5px] uppercase font-mono transition-colors duration-700 ${
-                                            done ? "text-emerald-400/50" : active ? "text-white/80" : "text-neutral-700"
-                                        }`}>{step.label}</span>
+                                        <span className={`text-[10px] tracking-[1.5px] uppercase font-mono transition-colors duration-700 ${done ? "text-emerald-400/50" : active ? "text-white/80" : "text-neutral-700"
+                                            }`}>{step.label}</span>
                                         {active && (
                                             <div className="ml-auto w-16 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
                                                 <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent"

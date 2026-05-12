@@ -11,8 +11,10 @@ import {
     ArrowLeft, ChevronRight, Lock, Sparkles,
     Users, MapPin, Palette, FileText,
     Play, Scissors, Workflow, Upload,
-    Clock, Layers, MonitorPlay, Zap
+    Clock, Layers, MonitorPlay, Zap, Share2, Check, Globe
 } from "@/lib/lucide";
+import { toast } from "react-hot-toast";
+import { api } from "@/lib/api";
 
 interface ProjectData {
     title: string;
@@ -23,6 +25,7 @@ interface ProjectData {
     script_status?: string;
     created_at?: any;
     thumbnail_url?: string;
+    is_public?: boolean;
 }
 
 export default function ProjectHub() {
@@ -31,6 +34,8 @@ export default function ProjectHub() {
     const projectId = params.id as string;
     const [project, setProject] = useState<ProjectData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isSharing, setIsSharing] = useState(false);
+    const [copied, setCopied] = useState(false);
     const [counts, setCounts] = useState({ characters: 0, locations: 0, scenes: 0, shots: 0, generatedShots: 0, animatedShots: 0 });
 
     useEffect(() => {
@@ -145,6 +150,45 @@ export default function ProjectHub() {
         if (counts.animatedShots === 0) return 0;
         return 10; // Base progress when there are animated shots to edit
     }, [counts]);
+
+    const handleShare = async () => {
+        if (!project) return;
+        setIsSharing(true);
+        try {
+            const token = await auth.currentUser?.getIdToken();
+            
+            // If project is not public, make it public
+            if (!project.is_public) {
+                const res = await api.patch(`/api/v1/project/${projectId}`, { is_public: true });
+                
+                if (res.status >= 200 && res.status < 300) {
+                    setProject(prev => prev ? { ...prev, is_public: true } : null);
+                    toast.success("Project made public!");
+                } else {
+                    toast.error("Failed to make project public");
+                    return;
+                }
+            }
+            
+            // Copy link to clipboard
+            const url = `${window.location.origin}/share/${projectId}`;
+            try {
+                await navigator.clipboard.writeText(url);
+                setCopied(true);
+                toast.success("Public link copied to clipboard!");
+                setTimeout(() => setCopied(false), 3000);
+            } catch (clipboardErr) {
+                console.error("Clipboard copy failed:", clipboardErr);
+                toast.success("Project is public! You can share the link.");
+            }
+            
+        } catch (err) {
+            console.error("Share error:", err);
+            toast.error("Something went wrong while making the project public.");
+        } finally {
+            setIsSharing(false);
+        }
+    };
 
     if (loading || !project) {
         return (
@@ -273,6 +317,34 @@ export default function ProjectHub() {
                         <Sparkles size={11} className="text-white/25" />
                         <span className="text-[9px] font-mono text-white/30 uppercase tracking-[2px]">{project.style || 'realistic'}</span>
                     </div>
+                    
+                    <button 
+                        onClick={handleShare}
+                        disabled={isSharing}
+                        className={`ml-2 flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[2px] transition-all border ${
+                            copied 
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                                : project.is_public 
+                                    ? 'bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20'
+                                    : 'bg-[#E50914] border-[#E50914] text-white hover:bg-[#ff1a25]'
+                        }`}
+                    >
+                        {isSharing ? (
+                            <Loader2 size={12} className="animate-spin" />
+                        ) : copied ? (
+                            <>
+                                <Check size={12} /> Copied!
+                            </>
+                        ) : project.is_public ? (
+                            <>
+                                <Globe size={12} /> Copy Public Link
+                            </>
+                        ) : (
+                            <>
+                                <Share2 size={12} /> Share Project
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
 
@@ -291,7 +363,7 @@ export default function ProjectHub() {
                 </div>
 
                 {/* Title */}
-                <h1 className="text-6xl md:text-8xl font-['Anton'] uppercase tracking-tight text-white leading-[0.85] mb-4 text-center">
+                <h1 data-project-title={project.title} className="text-6xl md:text-8xl font-['Anton'] uppercase tracking-tight text-white leading-[0.85] mb-4 text-center">
                     {project.title}
                 </h1>
 
@@ -393,6 +465,8 @@ function WorkspaceCard({ workspace: ws, index }: WorkspaceProps) {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             disabled={!ws.available}
+            data-nav-target={ws.id}
+            data-agent={`nav-${ws.id}`}
             className={`
                 hub-card group relative w-[280px] min-h-[320px] rounded-2xl text-left flex flex-col overflow-hidden
                 ${ws.available ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'}

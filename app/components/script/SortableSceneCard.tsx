@@ -49,6 +49,13 @@ export const SortableSceneCard: React.FC<SortableSceneCardProps> = ({
             ref={setNodeRef}
             style={style}
             onClick={onEdit}
+            data-draft-scene
+            data-draft-scene-number={index + 1}
+            data-draft-scene-header={formattedHeader}
+            data-draft-scene-time={scene.time || ""}
+            data-draft-scene-cast={castList.join(", ")}
+            data-draft-scene-action={scene.summary?.slice(0, 200) || ""}
+            data-draft-scene-active={isActive ? "true" : "false"}
             className={`group relative flex w-full transition-all duration-200 cursor-pointer rounded-lg overflow-hidden
                 ${isActive
                     ? 'bg-[#1A0A0A] border border-red-500/30 border-l-[3px] border-l-red-500 shadow-[0_0_20px_rgba(229,9,20,0.08)] z-10'

@@ -25,6 +25,7 @@ export const AddSceneControls: React.FC<AddSceneControlsProps> = ({
 
                 {/* 1. MANUAL ADD BUTTON */}
                 <button
+                    data-agent="add-scene"
                     onClick={onManualAdd}
                     disabled={disabled || isExtending}
                     className="group flex-1 h-14 bg-neutral-900/50 border border-neutral-800 hover:border-neutral-600 rounded-lg flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -45,6 +46,7 @@ export const AddSceneControls: React.FC<AddSceneControlsProps> = ({
 
                 {/* 2. AUTO-EXTEND BUTTON (AI) */}
                 <button
+                    data-agent="auto-extend"
                     onClick={onAutoExtend}
                     disabled={disabled || isExtending}
                     className={`group flex-[1.5] h-14 relative overflow-hidden rounded-lg border flex items-center justify-center gap-4 transition-all disabled:opacity-50 disabled:cursor-not-allowed

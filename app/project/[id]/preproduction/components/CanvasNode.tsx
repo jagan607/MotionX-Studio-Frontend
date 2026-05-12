@@ -83,6 +83,13 @@ export function CanvasNode({
 
     return (
         <div
+            data-node-type={type}
+            data-node-title={title}
+            data-node-id={id}
+            data-node-scene-number={sceneNumber || ""}
+            data-node-subtitle={subtitle || ""}
+            data-node-has-image={imageUrl ? "true" : "false"}
+            data-node-is-generating={isGenerating ? "true" : "false"}
             className={`absolute group/node ${isDragging ? 'z-50 cursor-grabbing' : 'z-10 cursor-grab'}`}
             style={{
                 left: position.x,
