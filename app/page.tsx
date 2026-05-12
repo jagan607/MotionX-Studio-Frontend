@@ -231,14 +231,14 @@ const AnimatedCounter = ({ target, suffix = "" }: { target: number; suffix?: str
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ROTATING_TAGLINES = [
-  "Direct your film without a crew",
-  "Visualize scenes before production",
-  "Edit your footage with AI",
-  "Maintain consistency across every shot",
+  "Your script. Your vision. AI-powered production.",
+  "No cameras. No crews. No compromise.",
+  "Full creative control — from frame one to final cut.",
+  "Consistent characters, sets, and cinematography — every shot.",
 ];
 
 const HeroSection = () => {
-  const headline = "Script to Film";
+  const headline = "Direct the Impossible";
   const [countdownDone, setCountdownDone] = useState(false);
   const [countdownNum, setCountdownNum] = useState(3);
   const { displayText, isComplete } = useTypingEffect(headline, 65, countdownDone ? 400 : 99999);
@@ -444,7 +444,7 @@ const HeroSection = () => {
         <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#D40A12]/30 bg-[#D40A12]/10 backdrop-blur-md mb-6">
           <div className="w-1.5 h-1.5 rounded-full bg-[#D40A12]" style={{ animation: "pulse-dot 2s ease-in-out infinite" }} />
           <span className="text-[11px] font-bold tracking-[0.25em] uppercase text-white drop-shadow-lg">
-            AI Filmmaking Engine
+            AI-Powered Film Studio
           </span>
         </div>
 
@@ -489,8 +489,8 @@ const HeroSection = () => {
 
         {/* Static Subheadline */}
         <p className="animate-fade-up-delay text-sm md:text-base mt-3 max-w-2xl mx-auto font-sans text-neutral-500 leading-relaxed tracking-wide drop-shadow-xl">
-          From script to final film — all in one studio. MotionX is an AI-native filmmaking engine that lets you{" "}
-          <span className="text-neutral-300 font-medium">direct, generate, and edit</span> films in a single workflow.
+          The world&apos;s first AI film studio. Write your script, design your world, generate cinematic footage, and{" "}
+          <span className="text-neutral-300 font-medium">deliver a finished film</span> — all in one workspace.
         </p>
 
         {/* CTAs */}
@@ -500,7 +500,7 @@ const HeroSection = () => {
               href="/login"
               className="w-full sm:w-auto justify-center px-8 py-3.5 sm:px-10 sm:py-4 bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(212,10,18,0.5)] flex items-center gap-3 backdrop-blur-md"
             >
-              <Play size={14} fill="currentColor" /> Start Creating Your Film
+              <Play size={14} fill="currentColor" /> Start Directing
             </Link>
           )}
           <a
@@ -886,14 +886,14 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════════════════════════════════ */}
       <Section className="py-20 px-6 md:px-10 border-y border-white/[0.04]">
         <div className="max-w-[1200px] mx-auto">
-          <motion.p variants={fadeUp} className="text-center text-[11px] font-semibold tracking-[0.25em] uppercase text-neutral-600 mb-12">
-            Trusted by independent filmmakers and creative studios
+          <motion.p variants={fadeUp} className="text-center text-[11px] font-semibold tracking-[0.25em] uppercase text-neutral-500 mb-12">
+            Trusted by filmmakers, studios, and creative teams worldwide
           </motion.p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             {[
-              { value: 300, suffix: "+", label: "Minutes of film produced monthly", sub: "by filmmakers & studios" },
+              { value: 500, suffix: "+", label: "Minutes of cinema produced monthly", sub: "across shorts, series & features" },
               { value: 10, suffix: "x", label: "Faster than traditional production", sub: "from script to final cut" },
-              { value: 90, suffix: "%", label: "Lower cost than crew-based shoots", sub: "no cameras, crews, or delays" },
+              { value: 90, suffix: "%", label: "Lower cost than crew-based shoots", sub: "no cameras, crews, or locations" },
             ].map((stat, i) => (
               <motion.div key={i} variants={fadeUp} custom={i} className="text-center">
                 <div
@@ -910,7 +910,7 @@ export default function LandingPage() {
 
           {/* Content types produced */}
           <motion.div variants={fadeUp} custom={3} className="mt-14 flex flex-wrap items-center justify-center gap-3">
-            {["Short Films", "Feature Films", "Series & Episodes", "Music Videos", "Branded Cinema"].map((tag) => (
+            {["Short Films", "Feature Films", "Series & Episodes", "Music Videos", "Branded Content", "Micro-Dramas"].map((tag) => (
               <span
                 key={tag}
                 className="px-4 py-2 rounded-full border border-white/[0.06] bg-white/[0.02] text-[11px] tracking-wider uppercase text-neutral-500"
@@ -923,8 +923,8 @@ export default function LandingPage() {
           {/* Powered by */}
           <motion.div variants={fadeUp} custom={4} className="mt-8 flex items-center justify-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-[#D40A12]" />
-            <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-neutral-600">
-              Powered by Seedance 2.0
+            <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-neutral-500">
+              Powered by Seedance 2.0 · Gemini · Wan2.1
             </span>
           </motion.div>
         </div>
@@ -950,7 +950,7 @@ export default function LandingPage() {
             style={{ fontFamily: "Anton, sans-serif" }}
             className="text-4xl md:text-7xl uppercase tracking-tight leading-[0.95]"
           >
-            MotionX doesn&apos;t generate videos.
+            MotionX doesn&apos;t generate clips.
           </motion.h2>
           <motion.h2
             variants={blurIn}
@@ -958,15 +958,15 @@ export default function LandingPage() {
             style={{ fontFamily: "Anton, sans-serif" }}
             className="text-4xl md:text-7xl uppercase tracking-tight leading-[0.95] shimmer-text mt-2"
           >
-            It helps you make films.
+            It directs cinema.
           </motion.h2>
           <motion.p
             variants={fadeUp}
             custom={3}
             className="text-lg md:text-xl text-neutral-500 mt-8 max-w-2xl mx-auto leading-relaxed"
           >
-            We don&apos;t help you make more videos faster. We give filmmakers a new way to make films —
-            with AI as your crew, your camera, and your editing suite.
+            Other tools generate random content. MotionX gives filmmakers full directorial control —
+            your vision drives every shot, scene, and cut. AI is your crew, not your replacement.
           </motion.p>
         </div>
       </Section>
@@ -996,7 +996,7 @@ export default function LandingPage() {
               {
                 icon: Clapperboard,
                 title: "Direct Without a Crew",
-                desc: "Go from script to screen with AI as your production team. No scheduling, no logistics, no delays.",
+                desc: "Go from script to screen with AI as your entire production team. No scheduling, no logistics, no compromises.",
                 accent: "🎬",
               },
               {
@@ -1055,11 +1055,11 @@ export default function LandingPage() {
               style={{ fontFamily: "Anton, sans-serif" }}
               className="text-4xl md:text-6xl uppercase leading-[0.95] tracking-tight mb-6"
             >
-              Not just AI generation, {" "}
-              <span className="text-[#D40A12]">real filmmaking control</span>
+              Not random AI clips — {" "}
+              <span className="text-[#D40A12]">full directorial control</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-lg text-neutral-500 leading-relaxed mb-8">
-              MotionX is built around how directors think. Instead of generating random clips, you control every creative decision.
+              MotionX is built around how directors think. You control framing, lighting, pacing, and performance — AI handles the execution.
             </motion.p>
             <motion.p variants={fadeUp} custom={2} className="text-base text-neutral-400 leading-relaxed">
               This allows filmmakers to produce <span className="text-white font-medium">cohesive, cinematic content</span> — not just isolated AI clips.
@@ -1450,11 +1450,11 @@ export default function LandingPage() {
             style={{ fontFamily: "Anton, sans-serif" }}
             className="text-4xl md:text-7xl uppercase tracking-tight mb-6"
           >
-            Start making{" "}
-            <span className="text-[#D40A12]">your film</span>
+            Your film starts{" "}
+            <span className="text-[#D40A12]">here</span>
           </motion.h2>
           <motion.p variants={fadeUp} custom={1} className="text-neutral-500 text-lg mb-10 max-w-lg mx-auto">
-            From script to final cut — your AI filmmaking studio is ready.
+            From script to final cut — your AI production crew is standing by.
           </motion.p>
           <motion.div variants={fadeUp} custom={2} className="flex flex-col sm:flex-row items-center justify-center gap-4">
             {!IS_MAINTENANCE_MODE && (
@@ -1462,7 +1462,7 @@ export default function LandingPage() {
                 href="/login"
                 className="inline-flex items-center gap-2 px-10 py-4 bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[13px] font-bold tracking-[0.12em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(212,10,18,0.25)]"
               >
-                Start Creating Your Film <ArrowRight size={16} />
+                Start Directing <ArrowRight size={16} />
               </Link>
             )}
             <a
@@ -1485,7 +1485,7 @@ export default function LandingPage() {
           {/* Positioning Line */}
           <div className="mb-16 max-w-2xl">
             <p className="text-[14px] text-neutral-600 leading-relaxed italic">
-              MotionX doesn&apos;t generate videos. It helps you make films.
+              MotionX doesn&apos;t generate clips. It directs cinema.
             </p>
           </div>
 
