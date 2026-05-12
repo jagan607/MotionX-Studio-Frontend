@@ -46,10 +46,19 @@ export default function StoryboardPage() {
 
         async function init() {
             try {
+                console.log("[Storyboard] 🔄 Init starting for project:", projectId);
+                
                 const [proj, assets] = await Promise.all([
                     fetchProject(projectId),
                     fetchProjectAssets(projectId),
                 ]);
+
+                console.log("[Storyboard] ✅ Project loaded:", proj?.title, "| Type:", proj?.type);
+                console.log("[Storyboard] ✅ Assets loaded:", {
+                    characters: assets?.characters?.length || 0,
+                    locations: assets?.locations?.length || 0,
+                    products: assets?.products?.length || 0,
+                });
 
                 setProject(proj);
                 setProjectAssets(assets);
@@ -62,23 +71,38 @@ export default function StoryboardPage() {
 
                 // Resolve episode ID (episodes endpoint may 404 for non-series)
                 let epId = proj.default_episode_id || "main";
+                console.log("[Storyboard] 📦 Default episode ID:", epId);
+                
                 try {
                     const epsData = await fetchEpisodes(projectId);
                     const eps = Array.isArray(epsData) ? epsData : (epsData.episodes || []);
+                    console.log("[Storyboard] 📦 Episodes fetched:", eps.length, eps.map((e: any) => e.id));
                     const targetEp = eps.find((e: any) => e.id === epId) || eps[0];
                     if (targetEp?.id) epId = targetEp.id;
                 } catch {
                     // Films/ads may not have episodes — use default
-                    console.warn("Episodes not found, using default:", epId);
+                    console.warn("[Storyboard] ⚠️ Episodes not found, using default:", epId);
                 }
                 setEpisodeId(epId);
+                console.log("[Storyboard] 📦 Final episode ID:", epId);
 
                 // Load scenes
+                const scenesPath = `projects/${projectId}/episodes/${epId}/scenes`;
+                console.log("[Storyboard] 🔍 Querying Firestore:", scenesPath);
+                
                 const q = query(
                     collection(db, "projects", projectId, "episodes", epId, "scenes"),
                     orderBy("scene_number", "asc")
                 );
                 const snap = await getDocs(q);
+                console.log("[Storyboard] 📋 Scenes query result:", snap.size, "docs found");
+                
+                if (snap.empty) {
+                    console.warn("[Storyboard] ⚠️ NO SCENES FOUND at path:", scenesPath);
+                    console.warn("[Storyboard] Check: Is the user authenticated?", !!auth.currentUser?.uid);
+                    console.warn("[Storyboard] Auth UID:", auth.currentUser?.uid);
+                }
+                
                 const sceneList: SceneData[] = snap.docs.map(d => {
                     const data = d.data();
                     const slugline = data.slugline || data.header || data.scene_header || "UNKNOWN SCENE";
@@ -102,13 +126,17 @@ export default function StoryboardPage() {
                 });
                 sceneList.sort((a, b) => a.scene_number - b.scene_number);
                 setScenes(sceneList);
+                console.log("[Storyboard] ✅ Scenes parsed:", sceneList.length, sceneList.map(s => `${s.scene_number}: ${s.slugline}`));
 
                 // Auto-select first scene
                 if (sceneList.length > 0) {
                     setSelectedScene(sceneList[0]);
+                    console.log("[Storyboard] 🎬 Selected scene:", sceneList[0].id, sceneList[0].slugline);
+                } else {
+                    console.error("[Storyboard] ❌ No scenes to select! The storyboard will show empty.");
                 }
             } catch (e) {
-                console.error("Storyboard Load Error:", e);
+                console.error("[Storyboard] ❌ Load Error:", e);
                 toast.error("Failed to load storyboard");
             } finally {
                 setLoading(false);
@@ -158,14 +186,16 @@ export default function StoryboardPage() {
     }
 
     return (
-        <SceneStoryboardContainer
-            isOpen={true}
-            onClose={() => router.push(`/project/${projectId}`)}
-            projectId={projectId}
-            episodeId={episodeId}
-            scene={selectedScene}
-            projectAssets={projectAssets}
-            seriesTitle={project.title}
-        />
+        <div className="fixed inset-0 bg-[#111111] z-50">
+            <SceneStoryboardContainer
+                isOpen={true}
+                onClose={() => router.push(`/project/${projectId}`)}
+                projectId={projectId}
+                episodeId={episodeId}
+                scene={selectedScene}
+                projectAssets={projectAssets}
+                seriesTitle={project.title}
+            />
+        </div>
     );
 }

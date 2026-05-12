@@ -585,14 +585,19 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
     return (
         <PricingProvider>
-            <div style={styles.sbOverlay}
+            <div style={{
+                    ...styles.sbOverlay,
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: '#111111',
+                    zIndex: 50,
+                }}
                 data-active-scene-id={activeSceneId}
                 data-active-scene-number={currentScene?.scene_number || ""}
                 data-active-scene-slugline={currentScene?.slugline || currentScene?.header || ""}
                 data-active-scene-location={sceneLoc || ""}
                 data-active-scene-cast={charDisplay || ""}
             >
-
 
                 {/* MODALS */}
                 <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
