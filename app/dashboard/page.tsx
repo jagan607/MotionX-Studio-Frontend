@@ -147,7 +147,7 @@ export default function Dashboard() {
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
                 {/* ═══ MAIN CONTENT ═══ */}
-                <div className="flex-1 flex flex-col min-w-0 p-3 sm:p-4 lg:p-5 gap-3 overflow-y-auto no-scrollbar">
+                <div className="flex-1 flex flex-col min-w-0 px-3 pb-3 pt-1 sm:px-4 sm:pb-4 sm:pt-1 lg:px-5 lg:pb-5 lg:pt-1.5 gap-3 overflow-y-auto no-scrollbar">
 
                     {/* ═══ EMPTY STATE HERO or MONITOR ═══ */}
                     {isEmptyState ? (
