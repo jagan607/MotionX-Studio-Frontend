@@ -617,9 +617,9 @@ export default function PlaygroundPromptBar() {
     return (
         <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none">
             {/* Gradient fade */}
-            <div className="h-8 bg-gradient-to-t from-[#030303] to-transparent" />
+            <div className="h-8 bg-gradient-to-t from-[#111111] to-transparent" />
 
-            <div className="bg-[#030303] px-4 pb-4 pt-1 pointer-events-auto">
+            <div className="bg-[#111111] px-4 pb-4 pt-1 pointer-events-auto">
                 <div className="max-w-4xl mx-auto relative">
 
                     {/* ── REFERENCE IMAGE PREVIEWS (files + dropped URLs) ── */}
@@ -660,8 +660,8 @@ export default function PlaygroundPromptBar() {
                     <div
                         className={`relative border rounded-2xl transition-all duration-300 ${
                             isDragOver
-                                ? "border-[#E50914]/50 shadow-[0_0_30px_rgba(229,9,20,0.15)]"
-                                : "border-white/[0.08] hover:border-white/[0.14] focus-within:border-[#E50914]/30 shadow-[0_4px_30px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.03)] focus-within:shadow-[0_4px_40px_rgba(229,9,20,0.08),0_0_0_1px_rgba(229,9,20,0.12)]"
+                                ? "border-[#D40A12]/50 shadow-[0_0_30px_rgba(212,10,18,0.15)]"
+                                : "border-white/[0.08] hover:border-white/[0.14] focus-within:border-[#D40A12]/30 shadow-[0_4px_30px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.03)] focus-within:shadow-[0_4px_40px_rgba(212,10,18,0.08),0_0_0_1px_rgba(212,10,18,0.12)]"
                         }`}
                         style={{ background: 'linear-gradient(180deg, #161616 0%, #0e0e0e 100%)' }}
                         onDragEnter={handleDragEnter}
@@ -672,8 +672,8 @@ export default function PlaygroundPromptBar() {
                         {/* Drop zone overlay — prominent, full-coverage */}
                         {isDragOver && (
                             <div className="absolute inset-0 z-40 rounded-xl bg-black/80 backdrop-blur-sm border-2 border-dashed border-white/30 flex flex-col items-center justify-center gap-3 pointer-events-none" style={{ animation: 'fadeIn 0.15s ease-out' }}>
-                                <div className="w-14 h-14 rounded-2xl bg-[#E50914]/15 border border-[#E50914]/30 flex items-center justify-center animate-pulse">
-                                    <ImagePlus size={24} className="text-[#E50914]" />
+                                <div className="w-14 h-14 rounded-2xl bg-[#D40A12]/15 border border-[#D40A12]/30 flex items-center justify-center animate-pulse">
+                                    <ImagePlus size={24} className="text-[#D40A12]" />
                                 </div>
                                 <div className="text-center">
                                     <p className="text-[11px] font-bold text-white/90 uppercase tracking-[2px]">Drop image to use as reference</p>
@@ -769,7 +769,7 @@ export default function PlaygroundPromptBar() {
                                             resize: 'none',
                                             background: 'transparent',
                                             color: 'transparent',
-                                            caretColor: '#E50914',
+                                            caretColor: '#D40A12',
                                             // ── Typography (must be identical to backdrop) ──
                                             fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
                                             fontSize: '13px',
@@ -852,12 +852,12 @@ export default function PlaygroundPromptBar() {
                                                             onClick={() => mention.insertTag(item.tag)}
                                                             className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors cursor-pointer border-none ${
                                                                 isActive
-                                                                    ? "bg-[#E50914]/10"
+                                                                    ? "bg-[#D40A12]/10"
                                                                     : "bg-transparent hover:bg-white/[0.04]"
                                                             }`}
                                                         >
                                                             {/* Asset thumbnail */}
-                                                            <div className="w-8 h-8 rounded-md border border-[#222] overflow-hidden shrink-0 flex items-center justify-center bg-[#111]">
+                                                            <div className="w-8 h-8 rounded-md border border-[#222] overflow-hidden shrink-0 flex items-center justify-center bg-[#1a1a1a]">
                                                                 {pgItem.url ? (
                                                                     <img src={pgItem.url} alt="" className="w-full h-full object-cover" />
                                                                 ) : (
@@ -902,7 +902,7 @@ export default function PlaygroundPromptBar() {
                                         data-agent="pg-mode-video"
                                         onClick={() => setGenerationMode('video')}
                                         className={`flex items-center gap-1 px-2 py-1.5 text-[8px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border-none ${
-                                            generationMode === 'video' ? 'bg-[#E50914]/15 text-[#E50914]' : 'text-white/30 hover:text-white/50'
+                                            generationMode === 'video' ? 'bg-[#D40A12]/15 text-[#D40A12]' : 'text-white/30 hover:text-white/50'
                                         }`}
                                     >
                                         <Video size={10} />
@@ -938,7 +938,7 @@ export default function PlaygroundPromptBar() {
                                     onClick={() => fileInputRef.current?.click()}
                                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[9px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border ${
                                         referenceImages.length > 0
-                                            ? "border-[#E50914]/30 bg-[#E50914]/10 text-[#E50914]"
+                                            ? "border-[#D40A12]/30 bg-[#D40A12]/10 text-[#D40A12]"
                                             : "border-white/[0.08] bg-transparent text-white/70 hover:text-white hover:border-white/20"
                                     }`}
                                     title="Attach reference image"
@@ -952,7 +952,7 @@ export default function PlaygroundPromptBar() {
                                     onClick={() => setShowSettings(!showSettings)}
                                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[9px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border ${
                                         showSettings
-                                            ? "border-[#E50914]/30 bg-[#E50914]/10 text-[#E50914]"
+                                            ? "border-[#D40A12]/30 bg-[#D40A12]/10 text-[#D40A12]"
                                             : "border-white/[0.08] bg-transparent text-white/70 hover:text-white hover:border-white/20"
                                     }`}
                                 >
@@ -1027,7 +1027,7 @@ export default function PlaygroundPromptBar() {
                                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-[2px] transition-all border whitespace-nowrap ${
                                     !prompt.trim() || isGenerating || hasInsufficientBalance
                                         ? "border-white/[0.06] bg-white/[0.02] text-[#444] cursor-not-allowed"
-                                        : "border-[#E50914]/40 bg-[#E50914]/15 text-white hover:bg-[#E50914]/25 hover:border-[#E50914] hover:shadow-[0_0_20px_rgba(229,9,20,0.2)] cursor-pointer"
+                                        : "border-[#D40A12]/40 bg-[#D40A12]/15 text-white hover:bg-[#D40A12]/25 hover:border-[#D40A12] hover:shadow-[0_0_20px_rgba(212,10,18,0.2)] cursor-pointer"
                                 }`}
                             >
                                 {isGenerating ? (
@@ -1142,7 +1142,7 @@ function QuickSelect({
             style={{ minWidth: 54 }}
         >
             {options.map((opt) => (
-                <option key={opt.value} value={opt.value} className="bg-[#0a0a0a] text-white">
+                <option key={opt.value} value={opt.value} className="bg-[#1a1a1a] text-white">
                     {opt.label}
                 </option>
             ))}
@@ -1170,10 +1170,10 @@ function SettingsField({
             <select
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="w-full bg-[#111] border border-[#222] rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-white/80 outline-none cursor-pointer hover:border-[#444] transition-colors"
+                className="w-full bg-[#1a1a1a] border border-[#222] rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-white/80 outline-none cursor-pointer hover:border-[#444] transition-colors"
             >
                 {options.map((opt) => (
-                    <option key={opt.value} value={opt.value} className="bg-[#0a0a0a]">
+                    <option key={opt.value} value={opt.value} className="bg-[#1a1a1a]">
                         {opt.label}
                     </option>
                 ))}
@@ -1204,7 +1204,7 @@ function SettingsTextInput({
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full bg-[#111] border border-[#222] rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-white/80 outline-none hover:border-[#444] focus:border-[#E50914]/40 transition-colors placeholder:text-[#444]"
+                className="w-full bg-[#1a1a1a] border border-[#222] rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-white/80 outline-none hover:border-[#444] focus:border-[#D40A12]/40 transition-colors placeholder:text-[#444]"
             />
         </div>
     );
@@ -1228,7 +1228,7 @@ function BatchSelector({
                     onClick={() => onChange(size)}
                     className={`px-2.5 py-1.5 text-[9px] font-bold font-mono uppercase tracking-[1px] transition-all cursor-pointer border-none ${
                         value === size
-                            ? "bg-[#E50914]/15 text-[#E50914]"
+                            ? "bg-[#D40A12]/15 text-[#D40A12]"
                             : "bg-transparent text-[#555] hover:text-white"
                     }`}
                 >

@@ -49,7 +49,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
     // 3. Render Brutalist Admin Interface
     return (
-        <div className="min-h-screen bg-[#050505] text-[#EDEDED] font-sans flex selection:bg-red-500 selection:text-white">
+        <div className="min-h-screen bg-[#111111] text-[#EDEDED] font-sans flex selection:bg-red-500 selection:text-white">
 
             {/* SIDEBAR — Client component with active route detection */}
             <AdminSidebar />

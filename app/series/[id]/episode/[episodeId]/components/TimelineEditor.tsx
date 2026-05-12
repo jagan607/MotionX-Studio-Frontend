@@ -287,7 +287,7 @@ export const TimelineEditor = ({ shots, onClose }: TimelineEditorProps) => {
         <div className="fixed inset-0 z-[60] bg-[#090909] flex flex-col font-sans select-none text-white">
 
             {/* HEADER */}
-            <div className="h-14 border-b border-[#222] bg-[#050505] flex items-center px-4 justify-between">
+            <div className="h-14 border-b border-[#222] bg-[#111111] flex items-center px-4 justify-between">
                 <div className="flex items-center gap-4">
                     <button onClick={onClose} className="text-[#666] hover:text-white flex items-center gap-2 text-xs font-bold">
                         <X size={16} /> EXIT
@@ -340,7 +340,7 @@ export const TimelineEditor = ({ shots, onClose }: TimelineEditorProps) => {
                                     setDraggedAsset(asset);
                                     e.dataTransfer.effectAllowed = "copy";
                                 }}
-                                className="flex gap-3 p-2 bg-[#111] border border-[#222] rounded hover:border-[#444] cursor-grab active:cursor-grabbing group"
+                                className="flex gap-3 p-2 bg-[#1a1a1a] border border-[#222] rounded hover:border-[#444] cursor-grab active:cursor-grabbing group"
                             >
                                 <div className="w-12 h-8 bg-black rounded flex items-center justify-center relative overflow-hidden">
                                     {asset.type === 'video' ? (
@@ -360,14 +360,14 @@ export const TimelineEditor = ({ shots, onClose }: TimelineEditorProps) => {
                 </div>
 
                 {/* 2. EDITOR */}
-                <div className="flex-1 flex flex-col bg-[#050505]">
+                <div className="flex-1 flex flex-col bg-[#111111]">
 
                     {/* PLAYER */}
                     <div className="flex-1 relative flex items-center justify-center border-b border-[#222] bg-black">
                         <video ref={videoRef} className="max-h-[90%] max-w-[90%] shadow-2xl" />
 
                         {/* Playback Controls Overlay */}
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[#111]/80 backdrop-blur px-4 py-2 rounded-full border border-[#333]">
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[#1a1a1a]/80 backdrop-blur px-4 py-2 rounded-full border border-[#333]">
                             <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-green-400">
                                 {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
                             </button>

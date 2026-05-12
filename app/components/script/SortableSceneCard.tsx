@@ -58,8 +58,8 @@ export const SortableSceneCard: React.FC<SortableSceneCardProps> = ({
             data-draft-scene-active={isActive ? "true" : "false"}
             className={`group relative flex w-full transition-all duration-200 cursor-pointer rounded-lg overflow-hidden
                 ${isActive
-                    ? 'bg-[#1A0A0A] border border-red-500/30 border-l-[3px] border-l-red-500 shadow-[0_0_20px_rgba(229,9,20,0.08)] z-10'
-                    : 'bg-[#0C0C0C] border border-[#1E1E1E] hover:border-[#333] hover:bg-[#111]'}`}
+                    ? 'bg-[#1A0A0A] border border-red-500/30 border-l-[3px] border-l-red-500 shadow-[0_0_20px_rgba(212,10,18,0.08)] z-10'
+                    : 'bg-[#0C0C0C] border border-[#1E1E1E] hover:border-[#333] hover:bg-[#1a1a1a]'}`}
         >
             {/* 1. DRAG HANDLE */}
             <div

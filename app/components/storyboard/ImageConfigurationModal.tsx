@@ -214,7 +214,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
     const pill = (active: boolean, disabled = false) =>
         `flex-1 px-2 py-1.5 text-[10px] font-semibold rounded-md text-center transition-all cursor-pointer select-none
         ${active
-            ? 'bg-[#E50914]/15 text-white border border-[#E50914]/60'
+            ? 'bg-[#D40A12]/15 text-white border border-[#D40A12]/60'
             : 'bg-white/[0.03] text-neutral-500 border border-white/[0.08] hover:border-white/20 hover:text-neutral-300'
         }
         ${disabled ? 'opacity-30 !cursor-not-allowed' : ''}`;
@@ -235,7 +235,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
             {/* Centered Modal */}
             <div className="fixed inset-0 z-[201] flex items-center justify-center pointer-events-none">
                 <div
-                    className="pointer-events-auto w-[95%] max-w-6xl h-[90vh] bg-[#111] rounded-2xl border border-white/[0.08] shadow-2xl flex flex-col overflow-hidden"
+                    className="pointer-events-auto w-[95%] max-w-6xl h-[90vh] bg-[#1a1a1a] rounded-2xl border border-white/[0.08] shadow-2xl flex flex-col overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
@@ -287,7 +287,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                 {isBusy && (
                                     <div className="absolute inset-0 z-10 overflow-hidden rounded-xl">
                                         <div className="absolute inset-0 bg-black/40">
-                                            <div className="absolute w-[60%] h-[60%] rounded-full bg-[#E50914]/30 blur-[40px]"
+                                            <div className="absolute w-[60%] h-[60%] rounded-full bg-[#D40A12]/30 blur-[40px]"
                                                 style={{ animation: 'imgFlowBlob1 4s ease-in-out infinite', top: '10%', left: '10%' }} />
                                             <div className="absolute w-[50%] h-[50%] rounded-full bg-[#ff4d4d]/15 blur-[40px]"
                                                 style={{ animation: 'imgFlowBlob2 5s ease-in-out infinite', top: '40%', right: '5%' }} />
@@ -328,7 +328,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                                     onBlur={() => { if (shot && localShotType !== shot.shot_type) onUpdateShot(shot.id, 'shot_type', localShotType); }}
                                                     onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                                                     placeholder="Custom shot type..."
-                                                    className="flex-1 bg-white/[0.03] border border-[#E50914]/40 text-neutral-200 text-[12px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/60 transition-colors"
+                                                    className="flex-1 bg-white/[0.03] border border-[#D40A12]/40 text-neutral-200 text-[12px] px-2.5 py-2 rounded-lg outline-none focus:border-[#D40A12]/60 transition-colors"
                                                 />
                                                 <button
                                                     onClick={() => {
@@ -354,7 +354,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                                         if (shot) onUpdateShot(shot.id, 'shot_type', e.target.value);
                                                     }
                                                 }}
-                                                className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[12px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 transition-colors cursor-pointer"
+                                                className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[12px] px-2.5 py-2 rounded-lg outline-none focus:border-[#D40A12]/40 transition-colors cursor-pointer"
                                             >
                                                 {SHOT_TYPE_PRESETS.map(st => <option key={st} value={st}>{st}</option>)}
                                                 <option value="__custom__">Custom...</option>
@@ -374,7 +374,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                         <select
                                             value={shot?.location || ''}
                                             onChange={(e) => { if (shot) onUpdateShot(shot.id, 'location', e.target.value); }}
-                                            className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[12px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 transition-colors cursor-pointer"
+                                            className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[12px] px-2.5 py-2 rounded-lg outline-none focus:border-[#D40A12]/40 transition-colors cursor-pointer"
                                         >
                                             <option value="">NONE</option>
                                             {shot?.location && !locations.find(l => l.name === shot.location) && (
@@ -391,7 +391,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                     <select
                                         value={(shot as any)?.location_angle || 'front'}
                                         onChange={(e) => { if (shot) onUpdateShot(shot.id, 'location_angle', e.target.value); }}
-                                        className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[12px] px-2.5 py-2 rounded-lg outline-none focus:border-[#E50914]/40 transition-colors cursor-pointer"
+                                        className="w-full bg-white/[0.03] border border-white/[0.08] text-neutral-200 text-[12px] px-2.5 py-2 rounded-lg outline-none focus:border-[#D40A12]/40 transition-colors cursor-pointer"
                                     >
                                         {CAMERA_ANGLES.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
                                     </select>
@@ -417,7 +417,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                                         }}
                                                         className={`px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-all cursor-pointer select-none
                                                             ${isActive
-                                                                ? 'bg-[#E50914]/15 text-white border-[#E50914]/40'
+                                                                ? 'bg-[#D40A12]/15 text-white border-[#D40A12]/40'
                                                                 : 'bg-white/[0.03] text-neutral-500 border-white/[0.08] hover:border-white/20 hover:text-neutral-300'
                                                             }`}
                                                     >
@@ -454,7 +454,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                                         }}
                                                         className={`px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-all cursor-pointer select-none
                                                             ${isActive
-                                                                ? 'bg-[#E50914]/15 text-white border-[#E50914]/40'
+                                                                ? 'bg-[#D40A12]/15 text-white border-[#D40A12]/40'
                                                                 : 'bg-white/[0.03] text-neutral-500 border-white/[0.08] hover:border-white/20 hover:text-neutral-300'
                                                             }`}
                                                     >
@@ -479,7 +479,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                     onBlur={() => { isPromptFocusedRef.current = false; }}
                                     placeholder="Describe the visual for this shot..."
                                     className="w-full h-40 px-3 py-3 text-[13px] outline-none resize-none leading-relaxed
-                                        bg-[#0a0a0a] border border-white/[0.1] rounded-lg text-neutral-200
+                                        bg-[#1a1a1a] border border-white/[0.1] rounded-lg text-neutral-200
                                         placeholder:text-neutral-600 focus:border-white/[0.3] transition-all"
                                 />
                             </div>
@@ -567,7 +567,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                                 onClick={() => setAspectRatio(value)}
                                                 className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-md border transition-all cursor-pointer select-none
                                                     ${aspectRatio === value
-                                                        ? 'bg-[#E50914]/15 text-white border-[#E50914]/60'
+                                                        ? 'bg-[#D40A12]/15 text-white border-[#D40A12]/60'
                                                         : 'bg-white/[0.03] text-neutral-500 border-white/[0.08] hover:border-white/20 hover:text-neutral-300'
                                                     }`}
                                             >
@@ -591,7 +591,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                         />
 
                                         {refPreviewUrl ? (
-                                            <div className="relative rounded-lg overflow-hidden border border-[#E50914]/30 bg-white/[0.02]">
+                                            <div className="relative rounded-lg overflow-hidden border border-[#D40A12]/30 bg-white/[0.02]">
                                                 <img
                                                     src={refPreviewUrl}
                                                     alt="Reference"
@@ -604,7 +604,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                                     <XCircle size={12} />
                                                 </button>
                                                 <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/60 backdrop-blur-sm">
-                                                    <span className="text-[9px] font-bold text-[#E50914]">Reference Active</span>
+                                                    <span className="text-[9px] font-bold text-[#D40A12]">Reference Active</span>
                                                 </div>
                                             </div>
                                         ) : (
@@ -641,7 +641,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                             </div>
 
                             {/* Sticky CTA Footer */}
-                            <div className="px-4 py-3 border-t border-white/[0.08] bg-[#111] flex-shrink-0 space-y-2">
+                            <div className="px-4 py-3 border-t border-white/[0.08] bg-[#1a1a1a] flex-shrink-0 space-y-2">
                                 <button
                                     onClick={handleGenerate}
                                     disabled={isBusy}

@@ -103,7 +103,7 @@ export function ScriptSection({ project, scenes, activeEpisodeId, onUpdateProjec
                             key={scene.id}
                             type="SCRIPT"
                             title={`Scene ${scene.scene_number}`}
-                            className={`bg-[#111] border-white/[0.05] ${editingSceneId === scene.id ? '!border-motion-red shadow-[0_0_30px_rgba(229,9,20,0.15)]' : ''}`}
+                            className={`bg-[#1a1a1a] border-white/[0.05] ${editingSceneId === scene.id ? '!border-motion-red shadow-[0_0_30px_rgba(212,10,18,0.15)]' : ''}`}
                             onEdit={() => startEdit(scene)}
                         >
                             <div className="mt-3 flex flex-col gap-3">
@@ -171,7 +171,7 @@ export function ScriptSection({ project, scenes, activeEpisodeId, onUpdateProjec
                             </p>
                             <button
                                 onClick={onApproveDraft}
-                                className="px-8 py-4 bg-motion-red text-white text-[12px] font-bold uppercase tracking-[2px] rounded-lg hover:bg-red-700 transition-all shadow-[0_0_20px_rgba(229,9,20,0.3)] hover:shadow-[0_0_40px_rgba(229,9,20,0.5)] flex items-center gap-3 cursor-pointer group"
+                                className="px-8 py-4 bg-motion-red text-white text-[12px] font-bold uppercase tracking-[2px] rounded-lg hover:bg-red-700 transition-all shadow-[0_0_20px_rgba(212,10,18,0.3)] hover:shadow-[0_0_40px_rgba(212,10,18,0.5)] flex items-center gap-3 cursor-pointer group"
                             >
                                 <Check size={16} className="text-white group-hover:scale-110 transition-transform" /> 
                                 Approve & Continue
@@ -184,7 +184,7 @@ export function ScriptSection({ project, scenes, activeEpisodeId, onUpdateProjec
                             {/* Skeleton scene cards */}
                             <div className="flex flex-wrap gap-6 w-full justify-center">
                                 {[...Array(4)].map((_, i) => (
-                                    <div key={i} className="w-[240px] rounded-xl border border-white/[0.06] bg-[#0a0a0a] overflow-hidden"
+                                    <div key={i} className="w-[240px] rounded-xl border border-white/[0.06] bg-[#1a1a1a] overflow-hidden"
                                         style={{ animation: `fadeUp 0.5s ease ${i * 0.1}s both` }}>
                                         {/* Shimmer header bar */}
                                         <div className="h-8 bg-gradient-to-r from-white/[0.02] via-white/[0.06] via-white/[0.02] to-white/[0.02] bg-[length:200%_100%]"
@@ -216,7 +216,7 @@ export function ScriptSection({ project, scenes, activeEpisodeId, onUpdateProjec
                             <div className="flex items-center gap-3">
                                 <div className="relative w-4 h-4">
                                     <div className="absolute inset-0 rounded-full border border-white/[0.08]" />
-                                    <div className="absolute inset-0 rounded-full border border-transparent border-t-[#E50914]/50 animate-spin" />
+                                    <div className="absolute inset-0 rounded-full border border-transparent border-t-[#D40A12]/50 animate-spin" />
                                 </div>
                                 <span className="text-[9px] font-mono text-white/20 uppercase tracking-[3px]">
                                     Loading scenes

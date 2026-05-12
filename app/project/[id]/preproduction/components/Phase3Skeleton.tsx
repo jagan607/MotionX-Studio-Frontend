@@ -87,14 +87,14 @@ export function Phase3Skeleton({ project }: Phase3SkeletonProps) {
         <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
 
             {/* ── Background layers ── */}
-            <div className="absolute inset-0 bg-[#050505]" />
+            <div className="absolute inset-0 bg-[#111111]" />
 
             {/* Wireframe grid — drifting */}
             <div className="absolute inset-0 opacity-[0.025]"
                 style={{
                     backgroundImage: `
-                        linear-gradient(rgba(229,9,20,0.08) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(229,9,20,0.08) 1px, transparent 1px)
+                        linear-gradient(rgba(212,10,18,0.08) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(212,10,18,0.08) 1px, transparent 1px)
                     `,
                     backgroundSize: "100px 100px",
                     animation: "skeletonGridDrift 25s linear infinite",
@@ -104,7 +104,7 @@ export function Phase3Skeleton({ project }: Phase3SkeletonProps) {
             <div className="absolute inset-0 pointer-events-none"
                 style={{ animation: "skeletonOrbitGlow 15s linear infinite" }}>
                 <div className="absolute top-[30%] left-[40%] w-[600px] h-[400px] rounded-full blur-[180px]"
-                    style={{ background: "radial-gradient(circle, rgba(229,9,20,0.08) 0%, transparent 70%)" }} />
+                    style={{ background: "radial-gradient(circle, rgba(212,10,18,0.08) 0%, transparent 70%)" }} />
             </div>
             <div className="absolute inset-0 pointer-events-none"
                 style={{ animation: "skeletonOrbitGlow 20s linear infinite reverse" }}>
@@ -120,7 +120,7 @@ export function Phase3Skeleton({ project }: Phase3SkeletonProps) {
                         top: p.top,
                         width: p.size,
                         height: p.size,
-                        background: i % 3 === 0 ? "#E50914" : i % 3 === 1 ? "#D4A843" : "white",
+                        background: i % 3 === 0 ? "#D40A12" : i % 3 === 1 ? "#D4A843" : "white",
                         opacity: p.opacity,
                         animation: `skeletonFloat ${p.duration}s ease-in-out ${p.delay}s infinite`,
                     }} />
@@ -141,18 +141,18 @@ export function Phase3Skeleton({ project }: Phase3SkeletonProps) {
                 <div className="relative w-24 h-24 mb-8 flex items-center justify-center">
                     {/* Outer ring */}
                     <svg className="absolute inset-0 w-full h-full" style={{ animation: "spin 8s linear infinite" }}>
-                        <circle cx="48" cy="48" r="44" fill="none" stroke="rgba(229,9,20,0.08)" strokeWidth="1" />
-                        <circle cx="48" cy="48" r="44" fill="none" stroke="#E50914" strokeWidth="1.5"
+                        <circle cx="48" cy="48" r="44" fill="none" stroke="rgba(212,10,18,0.08)" strokeWidth="1" />
+                        <circle cx="48" cy="48" r="44" fill="none" stroke="#D40A12" strokeWidth="1.5"
                             strokeDasharray="276.46" strokeDashoffset={276.46 - (progress / 100) * 276.46}
                             strokeLinecap="round" className="transition-all duration-1000" />
                     </svg>
                     {/* Middle ring */}
                     <svg className="absolute inset-2 w-[calc(100%-16px)] h-[calc(100%-16px)]" style={{ animation: "spin 6s linear infinite reverse" }}>
-                        <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(229,9,20,0.05)" strokeWidth="0.5" strokeDasharray="4 8" />
+                        <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(212,10,18,0.05)" strokeWidth="0.5" strokeDasharray="4 8" />
                     </svg>
                     {/* Center icon */}
                     <div className="relative">
-                        <BrainCircuit size={26} className="text-[#E50914]"
+                        <BrainCircuit size={26} className="text-[#D40A12]"
                             style={{ animation: "skeletonBreathe 3s ease-in-out infinite" }} />
                     </div>
                 </div>
@@ -183,11 +183,11 @@ export function Phase3Skeleton({ project }: Phase3SkeletonProps) {
                             <div key={i} className="flex items-center gap-2">
                                 <div className={`w-2 h-2 rounded-full transition-all duration-700 ${
                                     isDone ? "bg-emerald-400 scale-100" :
-                                    isActive ? "bg-[#E50914] scale-125" :
+                                    isActive ? "bg-[#D40A12] scale-125" :
                                     "bg-white/10 scale-100"
                                 }`}
                                     style={{
-                                        boxShadow: isActive ? "0 0 12px rgba(229,9,20,0.5)" :
+                                        boxShadow: isActive ? "0 0 12px rgba(212,10,18,0.5)" :
                                                    isDone ? "0 0 8px rgba(52,211,153,0.3)" : "none",
                                     }}
                                 />
@@ -235,11 +235,11 @@ export function Phase3Skeleton({ project }: Phase3SkeletonProps) {
                 {/* ── Cinema fun fact ── */}
                 <div className={`w-full rounded-xl border border-white/[0.05] bg-white/[0.015] px-5 py-4 transition-all duration-300 ${factFading ? "opacity-0 translate-y-1" : "opacity-100 translate-y-0"}`}>
                     <div className="flex items-start gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-[#E50914]/[0.06] border border-[#E50914]/10 flex items-center justify-center shrink-0 mt-0.5">
-                            <currentFact.icon size={13} className="text-[#E50914]/60" />
+                        <div className="w-7 h-7 rounded-lg bg-[#D40A12]/[0.06] border border-[#D40A12]/10 flex items-center justify-center shrink-0 mt-0.5">
+                            <currentFact.icon size={13} className="text-[#D40A12]/60" />
                         </div>
                         <div>
-                            <p className="text-[8px] text-[#E50914]/40 tracking-[2px] uppercase font-mono mb-1">Did you know?</p>
+                            <p className="text-[8px] text-[#D40A12]/40 tracking-[2px] uppercase font-mono mb-1">Did you know?</p>
                             <p className="text-[11px] text-white/35 leading-relaxed">{currentFact.text}</p>
                         </div>
                     </div>

@@ -243,13 +243,13 @@ export function EmailBlastForm() {
                     <div className="space-y-1.5">
                         <label className="text-[9px] font-mono uppercase text-[#666] tracking-widest flex items-center gap-2">
                             <Mail size={10} />
-                            Email Subject <span className="text-[#E50914]">*</span>
+                            Email Subject <span className="text-[#D40A12]">*</span>
                         </label>
                         <input
                             value={subject}
                             onChange={e => setSubject(e.target.value)}
                             placeholder="e.g. New Feature: 4K Upscaling"
-                            className="w-full bg-[#111] border border-[#333] text-white p-3 font-anton text-lg tracking-wide focus:border-[#E50914] outline-none transition-colors"
+                            className="w-full bg-[#1a1a1a] border border-[#333] text-white p-3 font-anton text-lg tracking-wide focus:border-[#D40A12] outline-none transition-colors"
                         />
                     </div>
 
@@ -257,13 +257,13 @@ export function EmailBlastForm() {
                     <div className="space-y-1.5">
                         <label className="text-[9px] font-mono uppercase text-[#666] tracking-widest flex items-center gap-2">
                             <Type size={10} />
-                            Heading <span className="text-[#E50914]">*</span>
+                            Heading <span className="text-[#D40A12]">*</span>
                         </label>
                         <input
                             value={heading}
                             onChange={e => setHeading(e.target.value)}
                             placeholder="e.g. 4K Upscaling is Here"
-                            className="w-full bg-[#111] border border-[#333] text-white p-3 text-sm font-semibold focus:border-[#E50914] outline-none transition-colors"
+                            className="w-full bg-[#1a1a1a] border border-[#333] text-white p-3 text-sm font-semibold focus:border-[#D40A12] outline-none transition-colors"
                         />
                     </div>
 
@@ -271,7 +271,7 @@ export function EmailBlastForm() {
                     <div className="space-y-1.5">
                         <label className="text-[9px] font-mono uppercase text-[#666] tracking-widest flex items-center gap-2">
                             <FileText size={10} />
-                            Body <span className="text-[#E50914]">*</span>
+                            Body <span className="text-[#D40A12]">*</span>
                             <span className="text-[#444] font-normal ml-1">(separate paragraphs with blank lines)</span>
                         </label>
                         <textarea
@@ -279,7 +279,7 @@ export function EmailBlastForm() {
                             onChange={e => setBody(e.target.value)}
                             rows={5}
                             placeholder={"We've just launched 4K video upscaling powered by AI.\n\nAll Pro users get 5 free upscales this month."}
-                            className="w-full bg-[#111] border border-[#333] text-[#CCC] p-3 text-sm font-mono focus:border-[#E50914] outline-none transition-colors resize-none leading-relaxed"
+                            className="w-full bg-[#1a1a1a] border border-[#333] text-[#CCC] p-3 text-sm font-mono focus:border-[#D40A12] outline-none transition-colors resize-none leading-relaxed"
                         />
                         {paragraphs.length > 0 && (
                             <span className="text-[8px] text-[#555] font-mono">{paragraphs.length} paragraph{paragraphs.length > 1 ? "s" : ""}</span>
@@ -297,7 +297,7 @@ export function EmailBlastForm() {
                                 value={ctaText}
                                 onChange={e => setCtaText(e.target.value)}
                                 placeholder='e.g. Try It Now →'
-                                className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-[#E50914] outline-none transition-colors"
+                                className="w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-[#D40A12] outline-none transition-colors"
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -309,7 +309,7 @@ export function EmailBlastForm() {
                                 value={ctaUrl}
                                 onChange={e => setCtaUrl(e.target.value)}
                                 placeholder="https://studio.motionx.in"
-                                className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-[#E50914] outline-none transition-colors"
+                                className="w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-[#D40A12] outline-none transition-colors"
                             />
                         </div>
                     </div>
@@ -325,7 +325,7 @@ export function EmailBlastForm() {
                             <select
                                 value={tag}
                                 onChange={e => setTag(e.target.value)}
-                                className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-[#E50914] outline-none transition-colors h-[46px]"
+                                className="w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-[#D40A12] outline-none transition-colors h-[46px]"
                             >
                                 {TAG_OPTIONS.map(t => (
                                     <option key={t} value={t}>{t}</option>
@@ -342,7 +342,7 @@ export function EmailBlastForm() {
                             <select
                                 value={target}
                                 onChange={e => setTarget(e.target.value as Target)}
-                                className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-[#E50914] outline-none transition-colors h-[46px]"
+                                className="w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-[#D40A12] outline-none transition-colors h-[46px]"
                             >
                                 {TARGET_OPTIONS.map(t => (
                                     <option key={t.value} value={t.value}>
@@ -357,7 +357,7 @@ export function EmailBlastForm() {
                     {target === "custom" && (
                         <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
                             <label className="text-[9px] font-mono uppercase text-[#666] tracking-widest">
-                                Recipient Emails <span className="text-[#E50914]">*</span>
+                                Recipient Emails <span className="text-[#D40A12]">*</span>
                                 <span className="text-[#444] font-normal ml-1">(comma or newline separated)</span>
                             </label>
                             <textarea
@@ -365,7 +365,7 @@ export function EmailBlastForm() {
                                 onChange={e => setCustomRecipients(e.target.value)}
                                 rows={3}
                                 placeholder={"user1@example.com\nuser2@example.com"}
-                                className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-[#E50914] outline-none transition-colors resize-none"
+                                className="w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-[#D40A12] outline-none transition-colors resize-none"
                             />
                             {customRecipients && (
                                 <span className="text-[8px] text-[#555] font-mono">
@@ -388,7 +388,7 @@ export function EmailBlastForm() {
                                 type="button"
                                 onClick={() => imageInputRef.current?.click()}
                                 disabled={uploading}
-                                className="flex items-center gap-2 bg-[#111] border border-[#333] hover:border-[#555] px-4 py-2.5 text-[10px] font-mono text-[#888] uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50"
+                                className="flex items-center gap-2 bg-[#1a1a1a] border border-[#333] hover:border-[#555] px-4 py-2.5 text-[10px] font-mono text-[#888] uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50"
                             >
                                 <ImageIcon size={14} /> Add Image
                             </button>
@@ -399,7 +399,7 @@ export function EmailBlastForm() {
                                 type="button"
                                 onClick={() => videoInputRef.current?.click()}
                                 disabled={uploading || !!videoUrl}
-                                className="flex items-center gap-2 bg-[#111] border border-[#333] hover:border-[#555] px-4 py-2.5 text-[10px] font-mono text-[#888] uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50"
+                                className="flex items-center gap-2 bg-[#1a1a1a] border border-[#333] hover:border-[#555] px-4 py-2.5 text-[10px] font-mono text-[#888] uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50"
                             >
                                 <Film size={14} /> {videoUrl ? "Video Added" : "Add Video"}
                             </button>
@@ -412,7 +412,7 @@ export function EmailBlastForm() {
                                         type="button"
                                         onClick={() => videoThumbInputRef.current?.click()}
                                         disabled={uploading || !!videoThumbnailUrl}
-                                        className="flex items-center gap-2 bg-[#111] border border-[#333] hover:border-[#555] px-4 py-2.5 text-[10px] font-mono text-[#888] uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50"
+                                        className="flex items-center gap-2 bg-[#1a1a1a] border border-[#333] hover:border-[#555] px-4 py-2.5 text-[10px] font-mono text-[#888] uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50"
                                     >
                                         <ImageIcon size={14} /> {videoThumbnailUrl ? "Thumbnail Set" : "Video Thumbnail"}
                                     </button>
@@ -425,7 +425,7 @@ export function EmailBlastForm() {
                                 type="button"
                                 onClick={() => bannerInputRef.current?.click()}
                                 disabled={uploading || !!bannerUrl}
-                                className="flex items-center gap-2 bg-[#111] border border-[#333] hover:border-[#555] px-4 py-2.5 text-[10px] font-mono text-[#888] uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50"
+                                className="flex items-center gap-2 bg-[#1a1a1a] border border-[#333] hover:border-[#555] px-4 py-2.5 text-[10px] font-mono text-[#888] uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50"
                             >
                                 <Palette size={14} /> {bannerUrl ? "Banner Set" : "Add Banner"}
                             </button>
@@ -434,12 +434,12 @@ export function EmailBlastForm() {
                         {/* Upload Progress */}
                         {uploading && (
                             <div className="flex items-center gap-3">
-                                <Loader2 size={14} className="animate-spin text-[#E50914]" />
+                                <Loader2 size={14} className="animate-spin text-[#D40A12]" />
                                 <span className="text-[10px] font-mono text-[#666] uppercase tracking-widest">
                                     Uploading {uploadType}… {uploadProgress}%
                                 </span>
                                 <div className="flex-1 h-1 bg-[#222] rounded overflow-hidden">
-                                    <div className="h-full bg-[#E50914] transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                                    <div className="h-full bg-[#D40A12] transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
                                 </div>
                             </div>
                         )}
@@ -449,7 +449,7 @@ export function EmailBlastForm() {
                             <div className="flex flex-wrap gap-2 pt-1">
                                 {bannerUrl && (
                                     <div className="relative group/media">
-                                        <div className="w-32 h-16 rounded border border-[#333] overflow-hidden bg-[#111]">
+                                        <div className="w-32 h-16 rounded border border-[#333] overflow-hidden bg-[#1a1a1a]">
                                             <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
                                         </div>
                                         <button
@@ -464,7 +464,7 @@ export function EmailBlastForm() {
                                 )}
                                 {images.map((img, idx) => (
                                     <div key={idx} className="relative group/media">
-                                        <div className="w-20 h-14 rounded border border-[#333] overflow-hidden bg-[#111]">
+                                        <div className="w-20 h-14 rounded border border-[#333] overflow-hidden bg-[#1a1a1a]">
                                             <img src={img.url} alt="" className="w-full h-full object-cover" />
                                         </div>
                                         <button
@@ -479,7 +479,7 @@ export function EmailBlastForm() {
                                 ))}
                                 {videoUrl && (
                                     <div className="relative group/media">
-                                        <div className="w-20 h-14 rounded border border-[#333] overflow-hidden bg-[#111]">
+                                        <div className="w-20 h-14 rounded border border-[#333] overflow-hidden bg-[#1a1a1a]">
                                             <video src={videoUrl} muted playsInline className="w-full h-full object-cover" />
                                         </div>
                                         <button
@@ -494,7 +494,7 @@ export function EmailBlastForm() {
                                 )}
                                 {videoThumbnailUrl && (
                                     <div className="relative group/media">
-                                        <div className="w-20 h-14 rounded border border-[#333] overflow-hidden bg-[#111]">
+                                        <div className="w-20 h-14 rounded border border-[#333] overflow-hidden bg-[#1a1a1a]">
                                             <img src={videoThumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
                                         </div>
                                         <button
@@ -529,7 +529,7 @@ export function EmailBlastForm() {
                         <button
                             type="button"
                             onClick={() => setShowPreview(!showPreview)}
-                            className="flex items-center gap-2 bg-[#111] border border-[#333] hover:border-[#555] text-[#AAA] hover:text-white px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer"
+                            className="flex items-center gap-2 bg-[#1a1a1a] border border-[#333] hover:border-[#555] text-[#AAA] hover:text-white px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer"
                         >
                             {showPreview ? <EyeOff size={14} /> : <Eye size={14} />}
                             {showPreview ? "Hide Preview" : "Preview Email"}
@@ -538,7 +538,7 @@ export function EmailBlastForm() {
                             type="button"
                             onClick={handleSend}
                             disabled={sending || uploading || !subject.trim() || !heading.trim() || !body.trim()}
-                            className="flex items-center gap-2 bg-[#E50914] text-white hover:bg-[#ff1a25] px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                            className="flex items-center gap-2 bg-[#D40A12] text-white hover:bg-[#ff1a25] px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                         >
                             {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                             {sending ? "Sending…" : "Send Blast"}
@@ -563,13 +563,13 @@ export function EmailBlastForm() {
                                     style={{
                                         backgroundImage: bannerUrl
                                             ? `url(${bannerUrl})`
-                                            : "linear-gradient(135deg, #1a0000 0%, #0a0a0a 50%, #1a0000 100%)",
+                                            : "linear-gradient(135deg, #1a0000 0%, #1a1a1a 50%, #1a0000 100%)",
                                     }}
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] to-transparent" />
                                     <div className="absolute bottom-3 left-4">
                                         {tag && (
-                                            <span className="bg-[#E50914] text-white text-[7px] font-bold uppercase tracking-widest px-2 py-0.5 rounded">
+                                            <span className="bg-[#D40A12] text-white text-[7px] font-bold uppercase tracking-widest px-2 py-0.5 rounded">
                                                 {tag}
                                             </span>
                                         )}
@@ -611,7 +611,7 @@ export function EmailBlastForm() {
                                                 <video src={videoUrl} muted playsInline className="w-full h-full object-cover opacity-60" />
                                             )}
                                             <div className="absolute inset-0 flex items-center justify-center">
-                                                <div className="w-12 h-12 rounded-full bg-[#E50914] flex items-center justify-center shadow-lg">
+                                                <div className="w-12 h-12 rounded-full bg-[#D40A12] flex items-center justify-center shadow-lg">
                                                     <div className="w-0 h-0 border-l-[10px] border-l-white border-y-[6px] border-y-transparent ml-1" />
                                                 </div>
                                             </div>
@@ -621,7 +621,7 @@ export function EmailBlastForm() {
                                     {/* CTA Button */}
                                     {ctaText && (
                                         <div className="pt-2">
-                                            <div className="inline-block bg-[#E50914] text-white text-[11px] font-bold uppercase tracking-widest px-6 py-3 rounded cursor-default">
+                                            <div className="inline-block bg-[#D40A12] text-white text-[11px] font-bold uppercase tracking-widest px-6 py-3 rounded cursor-default">
                                                 {ctaText}
                                             </div>
                                         </div>
@@ -629,7 +629,7 @@ export function EmailBlastForm() {
                                 </div>
 
                                 {/* Footer */}
-                                <div className="px-5 py-3 border-t border-[#222] bg-[#111]">
+                                <div className="px-5 py-3 border-t border-[#222] bg-[#1a1a1a]">
                                     <div className="flex items-center justify-between">
                                         <span className="text-[8px] text-[#444] font-mono uppercase tracking-widest">MotionX Studio</span>
                                         <div className="flex items-center gap-1.5">
@@ -643,7 +643,7 @@ export function EmailBlastForm() {
                             </div>
 
                             {/* Subject line preview */}
-                            <div className="bg-[#111] border border-[#222] rounded p-3">
+                            <div className="bg-[#1a1a1a] border border-[#222] rounded p-3">
                                 <span className="text-[8px] text-[#555] font-mono uppercase tracking-widest block mb-1">Subject Line</span>
                                 <span className="text-[12px] text-[#CCC]">{subject || "Your subject line here…"}</span>
                             </div>

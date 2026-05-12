@@ -178,7 +178,7 @@ export function CanvasNode({
                             </div>
                         )}
                         <div className="absolute top-1 right-1 z-40 flex gap-0.5 opacity-0 group-hover/node:opacity-100 transition-opacity">
-                            {onGenerate && <button onClick={e => { e.stopPropagation(); onGenerate(); }} className="p-1 bg-black/50 text-white/70 hover:text-[#E50914] rounded transition-all"><Sparkles size={10} /></button>}
+                            {onGenerate && <button onClick={e => { e.stopPropagation(); onGenerate(); }} className="p-1 bg-black/50 text-white/70 hover:text-[#D40A12] rounded transition-all"><Sparkles size={10} /></button>}
                             {onDelete && <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-1 bg-black/50 text-white/70 hover:text-red-400 rounded transition-all"><Trash2 size={10} /></button>}
                         </div>
                         {/* Center action buttons */}
@@ -237,7 +237,7 @@ export function CanvasNode({
                                     </div>
                                 )}
                                 <div className="absolute top-1 right-1 z-40 flex gap-0.5 opacity-0 group-hover/node:opacity-100 transition-opacity">
-                                    {onGenerate && <button onClick={e => { e.stopPropagation(); onGenerate(); }} className="p-1 bg-black/50 text-white/70 hover:text-[#E50914] rounded transition-all"><Sparkles size={10} /></button>}
+                                    {onGenerate && <button onClick={e => { e.stopPropagation(); onGenerate(); }} className="p-1 bg-black/50 text-white/70 hover:text-[#D40A12] rounded transition-all"><Sparkles size={10} /></button>}
                                     {onDelete && <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-1 bg-black/50 text-white/70 hover:text-red-400 rounded transition-all"><Trash2 size={10} /></button>}
                                 </div>
                                 {/* Center action buttons */}
@@ -282,7 +282,7 @@ export function CanvasNode({
                         <div className="w-3 h-6 rounded-full border-2 border-[#10B981]/50 bg-transparent" />
                     </div>
                     <div className={`rounded-lg overflow-hidden border ${isSelected ? 'border-[#10B981]/40' : 'border-white/[0.06] hover:border-[#10B981]/20'}`} style={{ background: "linear-gradient(180deg, #111, #0A0A0A)" }}>
-                        <div className="relative w-full aspect-square overflow-hidden bg-[#080808]">
+                        <div className="relative w-full aspect-square overflow-hidden bg-[#161616]">
                             {imageUrl ? (
                                 <img src={imageUrl} alt={title} className="absolute inset-0 w-full h-full object-cover" />
                             ) : (
@@ -296,7 +296,7 @@ export function CanvasNode({
                                 </div>
                             )}
                             <div className="absolute top-1 right-1 z-40 flex gap-0.5 opacity-0 group-hover/node:opacity-100 transition-opacity">
-                                {onGenerate && <button onClick={e => { e.stopPropagation(); onGenerate(); }} className="p-1 bg-black/50 text-white/70 hover:text-[#E50914] rounded transition-all"><Sparkles size={10} /></button>}
+                                {onGenerate && <button onClick={e => { e.stopPropagation(); onGenerate(); }} className="p-1 bg-black/50 text-white/70 hover:text-[#D40A12] rounded transition-all"><Sparkles size={10} /></button>}
                                 {onDelete && <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-1 bg-black/50 text-white/70 hover:text-red-400 rounded transition-all"><Trash2 size={10} /></button>}
                             </div>
                             {/* Center action buttons */}
@@ -332,10 +332,10 @@ export function CanvasNode({
 
             {/* ── MOODBOARD: Color swatch board ── */}
             {type === "moodboard" && (
-                <div className={`rounded-lg overflow-hidden border ${isSelected ? 'border-[#E50914]/40' : 'border-white/[0.06] hover:border-[#E50914]/20'}`} style={{ background: "linear-gradient(180deg, #141010, #0A0808)" }}>
+                <div className={`rounded-lg overflow-hidden border ${isSelected ? 'border-[#D40A12]/40' : 'border-white/[0.06] hover:border-[#D40A12]/20'}`} style={{ background: "linear-gradient(180deg, #141010, #0A0808)" }}>
                     <div className="px-3 pt-3 pb-1 flex items-center gap-2">
-                        <Palette size={10} className="text-[#E50914]/50" />
-                        <span className="text-[8px] font-bold tracking-[2.5px] uppercase text-[#E50914]/40">Visual Style</span>
+                        <Palette size={10} className="text-[#D40A12]/50" />
+                        <span className="text-[8px] font-bold tracking-[2.5px] uppercase text-[#D40A12]/40">Visual Style</span>
                     </div>
                     <div className="relative mx-3 mb-2 aspect-[16/10] overflow-hidden rounded bg-[#0A0808] border border-white/[0.04]">
                         {imageUrl ? (

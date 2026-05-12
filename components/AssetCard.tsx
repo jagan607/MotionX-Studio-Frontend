@@ -40,9 +40,9 @@ export const AssetCard: React.FC<AssetCardProps> = ({
             <div
                 id={tourId}
                 onClick={onCreate}
-                className="aspect-[4/3] border border-dashed border-white/[0.08] rounded-lg bg-white/[0.02] flex flex-col items-center justify-center p-4 hover:border-[#E50914]/40 hover:bg-[#E50914]/5 transition-all cursor-pointer group"
+                className="aspect-[4/3] border border-dashed border-white/[0.08] rounded-lg bg-white/[0.02] flex flex-col items-center justify-center p-4 hover:border-[#D40A12]/40 hover:bg-[#D40A12]/5 transition-all cursor-pointer group"
             >
-                <div className="w-11 h-11 rounded-full bg-white/[0.04] flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-[#E50914] group-hover:text-white transition-all border border-white/[0.06]">
+                <div className="w-11 h-11 rounded-full bg-white/[0.04] flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-[#D40A12] group-hover:text-white transition-all border border-white/[0.06]">
                     <Plus size={22} />
                 </div>
                 <span className="text-[9px] font-bold tracking-[0.2em] text-neutral-600 group-hover:text-white transition-colors uppercase">
@@ -96,7 +96,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                         className="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.03]"
                     />
                 ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-[#080808]">
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-[#161616]">
                         {!isGenerating && (
                             <>
                                 <Wand2 className="text-neutral-700 mb-2" size={22} />
@@ -189,7 +189,7 @@ export const AssetCard: React.FC<AssetCardProps> = ({
                         <button
                             onClick={(e) => { e.stopPropagation(); onGenerate && onGenerate(asset); }}
                             disabled={isGenerating}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white/[0.06] hover:bg-[#E50914] text-white/70 hover:text-white rounded text-[8px] font-bold tracking-wider uppercase transition-all disabled:opacity-30 cursor-pointer"
+                            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-white/[0.06] hover:bg-[#D40A12] text-white/70 hover:text-white rounded text-[8px] font-bold tracking-wider uppercase transition-all disabled:opacity-30 cursor-pointer"
                         >
                             <Sparkles size={9} /> {asset.image_url ? "Regen" : "Generate"}
                         </button>

@@ -428,7 +428,7 @@ export default function SceneManagerPage() {
 
     if (isLoading) {
         return (
-            <div className="fixed inset-0 bg-[#050505] flex items-center justify-center text-white font-mono text-xs gap-3">
+            <div className="fixed inset-0 bg-[#111111] flex items-center justify-center text-white font-mono text-xs gap-3">
                 <div className="w-2 h-2 bg-red-600 animate-pulse rounded-full"></div>
                 LOADING SCENE DATA...
             </div>

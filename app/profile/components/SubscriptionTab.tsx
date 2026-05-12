@@ -404,7 +404,7 @@ export default function SubscriptionTab({ credits: realtimeCredits }: Subscripti
                                     setShowTopUpModal(true);
                                 }
                             }}
-                            className="text-[10px] font-semibold text-[#E50914] hover:text-white transition-colors bg-transparent border-none cursor-pointer"
+                            className="text-[10px] font-semibold text-[#D40A12] hover:text-white transition-colors bg-transparent border-none cursor-pointer"
                         >
                             + Top Up
                         </button>
@@ -420,7 +420,7 @@ export default function SubscriptionTab({ credits: realtimeCredits }: Subscripti
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-[11px] text-[#A0A0A0]">
-                            <thead className="bg-[#111] border-b border-[#1a1a1a] uppercase tracking-[1px] text-[9px]">
+                            <thead className="bg-[#1a1a1a] border-b border-[#1a1a1a] uppercase tracking-[1px] text-[9px]">
                                 <tr>
                                     <th className="px-5 py-4 font-medium">Date</th>
                                     <th className="px-5 py-4 font-medium">Description</th>
@@ -451,7 +451,7 @@ export default function SubscriptionTab({ credits: realtimeCredits }: Subscripti
                                         </td>
                                         <td className="px-5 py-4 whitespace-nowrap">
                                             {tx.type === 'payment_failed' ? (
-                                                <span className="flex items-center gap-1.5 text-[#E50914] font-medium">
+                                                <span className="flex items-center gap-1.5 text-[#D40A12] font-medium">
                                                     <AlertCircle size={12} /> Failed
                                                 </span>
                                             ) : tx.type === 'subscription_cancel_requested' ? (

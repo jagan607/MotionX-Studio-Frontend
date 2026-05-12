@@ -723,7 +723,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
     const pill = (active: boolean, disabled = false) =>
         `flex-1 px-2 py-1.5 text-[10px] font-semibold rounded-md text-center transition-all cursor-pointer select-none
         ${active
-            ? 'bg-[#E50914]/15 text-white border border-[#E50914]/60'
+            ? 'bg-[#D40A12]/15 text-white border border-[#D40A12]/60'
             : 'bg-white/[0.03] text-neutral-500 border border-white/[0.08] hover:border-white/20 hover:text-neutral-300'
         }
         ${disabled ? 'opacity-30 !cursor-not-allowed' : ''}`;
@@ -772,7 +772,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         onClick={() => setModelVersion('official')}
                         className={`flex-1 px-2 py-1.5 rounded-md text-[10px] font-semibold text-center transition-all cursor-pointer select-none
                             ${modelVersion === 'official'
-                                ? 'bg-[#E50914]/15 text-white shadow-sm'
+                                ? 'bg-[#D40A12]/15 text-white shadow-sm'
                                 : 'text-neutral-500 hover:text-neutral-300'}`}
                     >
                         Official
@@ -782,7 +782,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         onClick={() => setModelVersion('preview')}
                         className={`flex-1 px-2 py-1.5 rounded-md text-[10px] font-semibold text-center transition-all cursor-pointer select-none
                             ${modelVersion === 'preview'
-                                ? 'bg-[#E50914]/15 text-white shadow-sm'
+                                ? 'bg-[#D40A12]/15 text-white shadow-sm'
                                 : 'text-neutral-500 hover:text-neutral-300'}`}
                     >
                         Preview <span className="opacity-50 font-normal">(Best for Faces)</span>
@@ -828,7 +828,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     step="1"
                                     value={duration}
                                     onChange={(e) => setDuration(e.target.value)}
-                                    className="flex-1 h-1 bg-white/[0.08] rounded-full appearance-none cursor-pointer accent-[#E50914] min-w-[60px]"
+                                    className="flex-1 h-1 bg-white/[0.08] rounded-full appearance-none cursor-pointer accent-[#D40A12] min-w-[60px]"
                                 />
                             </div>
                         ) : (
@@ -956,7 +956,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         <button type="button" onClick={() => setQuality('pro')}
                             className={`flex-1 px-2 py-2 rounded-md text-center transition-all cursor-pointer select-none border
                                 ${quality === 'pro'
-                                    ? 'bg-[#E50914]/15 text-white border-[#E50914]/60'
+                                    ? 'bg-[#D40A12]/15 text-white border-[#D40A12]/60'
                                     : 'bg-white/[0.03] text-neutral-500 border-white/[0.08] hover:border-white/20'}`}
                         >
                             <div className="flex items-center justify-center gap-1.5">
@@ -979,7 +979,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             <button key={ar.value} type="button" onClick={() => setAspectRatio(ar.value)}
                                 className={`flex-1 flex flex-col items-center gap-1 py-1.5 rounded-md border transition-all cursor-pointer select-none
                                     ${aspectRatio === ar.value
-                                        ? 'bg-[#E50914]/15 text-white border-[#E50914]/60'
+                                        ? 'bg-[#D40A12]/15 text-white border-[#D40A12]/60'
                                         : 'bg-white/[0.03] text-neutral-500 border-white/[0.08] hover:border-white/20 hover:text-neutral-300'}`}
                             >
                                 {ar.icon}
@@ -1522,7 +1522,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             <span>
                                 End Frame
                                 {isLinked && nextShotImage
-                                    ? <span className="text-[#E50914] font-normal ml-1">· Linked</span>
+                                    ? <span className="text-[#D40A12] font-normal ml-1">· Linked</span>
                                     : <span className="text-neutral-600 font-normal ml-1">(optional)</span>
                                 }
                             </span>
@@ -1538,11 +1538,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         </label>
 
                         {isLinked && nextShotImage ? (
-                            <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-[#E50914]/30 bg-black">
+                            <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-[#D40A12]/30 bg-black">
                                 <img src={nextShotImage} alt="Next Shot (Linked)" className="w-full h-full object-cover" />
                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2.5 py-2">
                                     <div className="flex items-center gap-1.5">
-                                        <Link2 size={9} className="text-[#E50914]" />
+                                        <Link2 size={9} className="text-[#D40A12]" />
                                         <span className="text-[8px] text-neutral-300">Linked to next shot — morph target</span>
                                     </div>
                                 </div>
@@ -1839,7 +1839,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         `}
                         >
                             <span className="flex items-center gap-1.5">
-                                <Sliders size={11} className={showAdvanced ? "text-[#E50914]" : ""} />
+                                <Sliders size={11} className={showAdvanced ? "text-[#D40A12]" : ""} />
                                 Advanced Settings
                             </span>
                             {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -1854,7 +1854,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         value={negativePrompt}
                                         onChange={(e) => setNegativePrompt(e.target.value)}
                                         placeholder="blurry, distorted, low quality..."
-                                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-md px-2.5 py-2 text-[11px] text-neutral-300 placeholder:text-neutral-600 outline-none focus:border-[#E50914]/40 resize-none transition-colors"
+                                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-md px-2.5 py-2 text-[11px] text-neutral-300 placeholder:text-neutral-600 outline-none focus:border-[#D40A12]/40 resize-none transition-colors"
                                         rows={2}
                                     />
                                 </div>
@@ -1873,7 +1873,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         step="0.1"
                                         value={cfgScale}
                                         onChange={(e) => setCfgScale(parseFloat(e.target.value))}
-                                        className="w-full h-1 bg-white/[0.08] rounded-full appearance-none cursor-pointer accent-[#E50914]"
+                                        className="w-full h-1 bg-white/[0.08] rounded-full appearance-none cursor-pointer accent-[#D40A12]"
                                     />
                                 </div>
                                 */}
@@ -1882,7 +1882,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <div className="flex flex-wrap gap-4">
                                     {/* Sound Toggle */}
                                     <label className="flex items-center gap-2 cursor-pointer group">
-                                        <div onClick={() => setSound(sound === 'on' ? 'off' : 'on')} className={`w-7 h-3.5 rounded-full transition-colors relative ${sound === 'on' ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
+                                        <div onClick={() => setSound(sound === 'on' ? 'off' : 'on')} className={`w-7 h-3.5 rounded-full transition-colors relative ${sound === 'on' ? 'bg-[#D40A12]' : 'bg-white/[0.1]'}`}>
                                             <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${sound === 'on' ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
                                         </div>
                                         <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">Sound</span>
@@ -1890,7 +1890,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
                                     {/* TODO: Uncomment Watermark toggle when switching to official Kling API
                                     <label className="flex items-center gap-2 cursor-pointer group">
-                                        <div onClick={() => setWatermark(!watermark)} className={`w-7 h-3.5 rounded-full transition-colors relative ${watermark ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
+                                        <div onClick={() => setWatermark(!watermark)} className={`w-7 h-3.5 rounded-full transition-colors relative ${watermark ? 'bg-[#D40A12]' : 'bg-white/[0.1]'}`}>
                                             <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${watermark ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
                                         </div>
                                         <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">Watermark</span>
@@ -1899,7 +1899,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
 
                                     {/* Multi-Shot Toggle */}
                                     <label className="flex items-center gap-2 cursor-pointer group">
-                                        <div onClick={() => setMultiShot(!multiShot)} className={`w-7 h-3.5 rounded-full transition-colors relative ${multiShot ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
+                                        <div onClick={() => setMultiShot(!multiShot)} className={`w-7 h-3.5 rounded-full transition-colors relative ${multiShot ? 'bg-[#D40A12]' : 'bg-white/[0.1]'}`}>
                                             <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${multiShot ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
                                         </div>
                                         <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">Multi-Shot</span>
@@ -1923,13 +1923,13 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                             value={seg.prompt}
                                                             onChange={(e) => updateSegment(idx, 'prompt', e.target.value)}
                                                             placeholder="Segment prompt..."
-                                                            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#E50914]/40 resize-none h-[34px]"
+                                                            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#D40A12]/40 resize-none h-[34px]"
                                                         />
                                                         <input
                                                             type="number"
                                                             value={seg.duration}
                                                             onChange={(e) => updateSegment(idx, 'duration', e.target.value)}
-                                                            className="w-10 bg-white/[0.03] border border-white/[0.08] rounded-md px-1 py-1.5 text-[10px] text-center outline-none focus:border-[#E50914]/40"
+                                                            className="w-10 bg-white/[0.03] border border-white/[0.08] rounded-md px-1 py-1.5 text-[10px] text-center outline-none focus:border-[#D40A12]/40"
                                                         />
                                                         <button type="button" onClick={() => removeSegment(idx)} className="text-neutral-600 hover:text-red-500 pt-1.5"><Trash2 size={12} /></button>
                                                     </div>
@@ -1953,7 +1953,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                         <span>
                                             End Frame
                                             {isLinked && nextShotImage
-                                                ? <span className="text-[#E50914] font-normal ml-1">· Linked</span>
+                                                ? <span className="text-[#D40A12] font-normal ml-1">· Linked</span>
                                                 : <span className="text-neutral-600 font-normal ml-1">(optional)</span>
                                             }
                                         </span>
@@ -1969,11 +1969,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     </label>
 
                                     {isLinked && nextShotImage ? (
-                                        <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-[#E50914]/30 bg-black">
+                                        <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-[#D40A12]/30 bg-black">
                                             <img src={nextShotImage} alt="Next Shot (Linked)" className="w-full h-full object-cover" />
                                             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2.5 py-2">
                                                 <div className="flex items-center gap-1.5">
-                                                    <Link2 size={9} className="text-[#E50914]" />
+                                                    <Link2 size={9} className="text-[#D40A12]" />
                                                     <span className="text-[8px] text-neutral-300">Linked to next shot — morph target</span>
                                                 </div>
                                             </div>
@@ -2022,11 +2022,11 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                 disabled={isUploadingEndFrame}
                                                 onClick={() => endFrameInputRef.current?.click()}
                                                 className="w-full py-3 rounded-lg border border-dashed border-white/[0.12] flex flex-col items-center justify-center gap-1.5
-                                                    bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#E50914]/30 transition-all cursor-pointer
+                                                    bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#D40A12]/30 transition-all cursor-pointer
                                                     disabled:opacity-40 disabled:cursor-wait"
                                             >
                                                 {isUploadingEndFrame ? (
-                                                    <Loader2 size={16} className="text-[#E50914] animate-spin" />
+                                                    <Loader2 size={16} className="text-[#D40A12] animate-spin" />
                                                 ) : (
                                                     <>
                                                         <ImagePlus size={16} className="text-neutral-500" />
@@ -2129,7 +2129,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                         `}
                         >
                             <span className="flex items-center gap-1.5">
-                                <Sliders size={11} className={showAdvanced ? "text-[#E50914]" : ""} />
+                                <Sliders size={11} className={showAdvanced ? "text-[#D40A12]" : ""} />
                                 Advanced Settings
                             </span>
                             {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -2141,7 +2141,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                 <div className="flex flex-wrap gap-4">
                                     {/* Sound Toggle */}
                                     <label className="flex items-center gap-2 cursor-pointer group">
-                                        <div onClick={() => setSound(sound === 'on' ? 'off' : 'on')} className={`w-7 h-3.5 rounded-full transition-colors relative ${sound === 'on' ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
+                                        <div onClick={() => setSound(sound === 'on' ? 'off' : 'on')} className={`w-7 h-3.5 rounded-full transition-colors relative ${sound === 'on' ? 'bg-[#D40A12]' : 'bg-white/[0.1]'}`}>
                                             <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${sound === 'on' ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
                                         </div>
                                         <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">Sound</span>
@@ -2150,7 +2150,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                     {/* Multi-Shot Toggle (disabled when video is in tray) */}
                                     <label className={`flex items-center gap-2 group ${hasRefVideo ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
                                         title={hasRefVideo ? 'Multi-Shot is incompatible with video reference' : undefined}>
-                                        <div onClick={() => { if (!hasRefVideo) setMultiShot(!multiShot); }} className={`w-7 h-3.5 rounded-full transition-colors relative ${multiShot ? 'bg-[#E50914]' : 'bg-white/[0.1]'}`}>
+                                        <div onClick={() => { if (!hasRefVideo) setMultiShot(!multiShot); }} className={`w-7 h-3.5 rounded-full transition-colors relative ${multiShot ? 'bg-[#D40A12]' : 'bg-white/[0.1]'}`}>
                                             <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-transform ${multiShot ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
                                         </div>
                                         <span className="text-[10px] text-neutral-400 group-hover:text-neutral-300">Multi-Shot</span>
@@ -2184,13 +2184,13 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                                                             value={seg.prompt}
                                                             onChange={(e) => updateSegment(idx, 'prompt', e.target.value)}
                                                             placeholder="Segment prompt..."
-                                                            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#E50914]/40 resize-none h-[34px]"
+                                                            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-md px-2 py-1.5 text-[10px] text-white outline-none focus:border-[#D40A12]/40 resize-none h-[34px]"
                                                         />
                                                         <input
                                                             type="number"
                                                             value={seg.duration}
                                                             onChange={(e) => updateSegment(idx, 'duration', e.target.value)}
-                                                            className="w-10 bg-white/[0.03] border border-white/[0.08] rounded-md px-1 py-1.5 text-[10px] text-center outline-none focus:border-[#E50914]/40"
+                                                            className="w-10 bg-white/[0.03] border border-white/[0.08] rounded-md px-1 py-1.5 text-[10px] text-center outline-none focus:border-[#D40A12]/40"
                                                         />
                                                         <button type="button" onClick={() => removeSegment(idx)} className="text-neutral-600 hover:text-red-500 pt-1.5"><Trash2 size={12} /></button>
                                                     </div>
@@ -2224,7 +2224,7 @@ export const VideoSettingsPanel: React.FC<VideoSettingsPanelProps> = ({
                             disabled={(!hasImage && !hasVideo) || isBusy}
                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[11px] font-bold transition-all
                                 ${isLinked
-                                    ? 'bg-[#E50914] text-white border border-[#E50914] hover:bg-[#E50914]/90'
+                                    ? 'bg-[#D40A12] text-white border border-[#D40A12] hover:bg-[#D40A12]/90'
                                     : (hasImage || hasVideo)
                                         ? 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'
                                         : 'bg-white/[0.03] text-neutral-600 border border-white/[0.05] cursor-not-allowed'

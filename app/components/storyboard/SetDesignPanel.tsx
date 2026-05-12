@@ -478,7 +478,7 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60" />
                     </>
                 ) : (
-                    <div className="absolute inset-0 bg-[#050505]">
+                    <div className="absolute inset-0 bg-[#111111]">
                         <div className="absolute inset-0 opacity-[0.03]"
                             style={{ backgroundImage: "repeating-linear-gradient(90deg, #fff 0px, transparent 1px, transparent 100px)", backgroundSize: "100px 100%" }} />
                     </div>

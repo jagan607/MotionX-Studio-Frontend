@@ -205,7 +205,7 @@ export default function ScriptIngestionPage() {
 
     if (loading || !project) {
         return (
-            <div className="fixed inset-0 bg-[#050505] flex items-center justify-center text-red-600 gap-3">
+            <div className="fixed inset-0 bg-[#111111] flex items-center justify-center text-red-600 gap-3">
                 <Loader2 className="animate-spin" />
                 <span className="font-mono text-xs tracking-widest">INITIALIZING TERMINAL...</span>
             </div>
@@ -319,7 +319,7 @@ export default function ScriptIngestionPage() {
                                     <div className="relative group flex-1">
                                         <select value={selectedEpisodeId || "new_placeholder"} onChange={handleEpisodeChange} className="w-full appearance-none bg-black/50 border border-white/10 text-white text-xs font-mono uppercase tracking-wider py-3 pl-4 pr-10 rounded-lg hover:border-red-600/50 hover:bg-white/5 focus:outline-none focus:border-red-600 transition-all cursor-pointer">
                                             {episodes.map((ep) => (
-                                                <option key={ep.id} value={ep.id} className="bg-[#050505] text-neutral-300">
+                                                <option key={ep.id} value={ep.id} className="bg-[#111111] text-neutral-300">
                                                     {ep.title || `EPISODE ${ep.episode_number}`}
                                                 </option>
                                             ))}
@@ -384,7 +384,7 @@ export default function ScriptIngestionPage() {
                         <div className="w-full max-w-4xl relative z-10 shrink-0">
 
                             {/* STANDARD INPUT DECK (Always Visible) */}
-                            <div className="bg-[#050505]/80 border border-white/10 rounded-xl p-8 shadow-2xl backdrop-blur-md deck-root relative group">
+                            <div className="bg-[#111111]/80 border border-white/10 rounded-xl p-8 shadow-2xl backdrop-blur-md deck-root relative group">
                                 <div className="absolute -inset-[1px] bg-gradient-to-r from-red-600/0 via-red-600/20 to-red-600/0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
                                 <div className="flex justify-between items-end mb-8 pb-4 border-b border-white/5">

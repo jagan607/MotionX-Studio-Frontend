@@ -4,7 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 
 export const OverviewChart = ({ data }: { data: any[] }) => {
     return (
-        <div className="h-[300px] w-full bg-[#080808] border border-[#222] p-4 relative group">
+        <div className="h-[300px] w-full bg-[#161616] border border-[#222] p-4 relative group">
             {/* Decorative Corner Markers */}
             <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-red-600" />
             <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-red-600" />
@@ -20,8 +20,8 @@ export const OverviewChart = ({ data }: { data: any[] }) => {
                 <AreaChart data={data}>
                     <defs>
                         <linearGradient id="colorRed" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#E50914" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#E50914" stopOpacity={0} />
+                            <stop offset="5%" stopColor="#D40A12" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#D40A12" stopOpacity={0} />
                         </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
@@ -41,15 +41,15 @@ export const OverviewChart = ({ data }: { data: any[] }) => {
                         tick={{ fontFamily: 'monospace' }}
                     />
                     <Tooltip
-                        contentStyle={{ backgroundColor: '#000', border: '1px solid #E50914', borderRadius: '0px' }}
+                        contentStyle={{ backgroundColor: '#000', border: '1px solid #D40A12', borderRadius: '0px' }}
                         itemStyle={{ color: '#FFF', fontFamily: 'monospace', fontSize: '12px' }}
                         labelStyle={{ color: '#666', fontFamily: 'monospace', fontSize: '10px', marginBottom: '5px' }}
-                        cursor={{ stroke: '#E50914', strokeWidth: 1 }}
+                        cursor={{ stroke: '#D40A12', strokeWidth: 1 }}
                     />
                     <Area
                         type="monotone"
                         dataKey="users"
-                        stroke="#E50914"
+                        stroke="#D40A12"
                         strokeWidth={2}
                         fillOpacity={1}
                         fill="url(#colorRed)"

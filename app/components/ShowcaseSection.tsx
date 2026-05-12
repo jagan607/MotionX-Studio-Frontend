@@ -86,8 +86,8 @@ export default function ShowcaseSection() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2.5">
-                        <div className="w-6 h-6 rounded-md bg-[#E50914]/10 flex items-center justify-center">
-                            <Sparkles size={12} className="text-[#E50914]" />
+                        <div className="w-6 h-6 rounded-md bg-[#D40A12]/10 flex items-center justify-center">
+                            <Sparkles size={12} className="text-[#D40A12]" />
                         </div>
                         <div>
                             <h3 className="text-[11px] font-bold text-white uppercase tracking-[2px]">Made with MotionX</h3>
@@ -96,7 +96,7 @@ export default function ShowcaseSection() {
                     </div>
                     <Link
                         href="/project/new"
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-bold text-black bg-[#E50914] hover:bg-[#ff1a25] uppercase tracking-wider transition-colors no-underline rounded-md"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-bold text-black bg-[#D40A12] hover:bg-[#ff1a25] uppercase tracking-wider transition-colors no-underline rounded-md"
                     >
                         Create Your Own <ArrowRight size={10} />
                     </Link>
@@ -115,7 +115,7 @@ export default function ShowcaseSection() {
                     {shots.map((shot, idx) => (
                         <div
                             key={shot.id}
-                            className="shrink-0 w-[220px] aspect-video bg-black border border-[#222] rounded-lg overflow-hidden relative group cursor-pointer hover:border-[#E50914]/50 hover:shadow-[0_0_15px_rgba(229,9,20,0.15)] transition-all"
+                            className="shrink-0 w-[220px] aspect-video bg-black border border-[#222] rounded-lg overflow-hidden relative group cursor-pointer hover:border-[#D40A12]/50 hover:shadow-[0_0_15px_rgba(212,10,18,0.15)] transition-all"
                             onClick={() => openLightbox(idx)}
                             onMouseEnter={() => {
                                 const vid = videoRefs.current[shot.id];
@@ -149,7 +149,7 @@ export default function ShowcaseSection() {
                             {/* Play icon */}
                             {shot.video_url && (
                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <div className="w-8 h-8 rounded-full bg-[#E50914]/90 flex items-center justify-center backdrop-blur-sm">
+                                    <div className="w-8 h-8 rounded-full bg-[#D40A12]/90 flex items-center justify-center backdrop-blur-sm">
                                         <Play size={12} className="text-white ml-0.5" fill="white" />
                                     </div>
                                 </div>
@@ -164,7 +164,7 @@ export default function ShowcaseSection() {
 
                             {/* AI badge */}
                             <div className="absolute top-2 left-2">
-                                <span className="bg-[#E50914]/80 text-white text-[6px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded backdrop-blur-sm">
+                                <span className="bg-[#D40A12]/80 text-white text-[6px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded backdrop-blur-sm">
                                     AI Generated
                                 </span>
                             </div>
@@ -174,7 +174,7 @@ export default function ShowcaseSection() {
                     {/* CTA Card */}
                     <Link
                         href="/project/new"
-                        className="shrink-0 w-[220px] aspect-video border border-dashed border-[#333] bg-[#0A0A0A] rounded-lg flex flex-col items-center justify-center text-[#444] hover:text-[#E50914] hover:border-[#E50914] hover:bg-[#0f0f0f] transition-all no-underline group"
+                        className="shrink-0 w-[220px] aspect-video border border-dashed border-[#333] bg-[#0A0A0A] rounded-lg flex flex-col items-center justify-center text-[#444] hover:text-[#D40A12] hover:border-[#D40A12] hover:bg-[#0f0f0f] transition-all no-underline group"
                     >
                         <Film size={20} className="mb-2 group-hover:scale-110 transition-transform" />
                         <span className="text-[8px] font-bold uppercase tracking-[2px]">Create Your Film</span>
@@ -237,7 +237,7 @@ export default function ShowcaseSection() {
                         {/* Bottom info bar */}
                         <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent rounded-b-lg flex items-end justify-between">
                             <div>
-                                <span className="text-[9px] text-[#E50914] font-bold uppercase tracking-[2px]">
+                                <span className="text-[9px] text-[#D40A12] font-bold uppercase tracking-[2px]">
                                     {currentShot.shot_type || "CINEMATIC"}
                                 </span>
                                 {currentShot.visual_action && (

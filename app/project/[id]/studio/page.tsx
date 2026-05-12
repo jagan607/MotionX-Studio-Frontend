@@ -633,7 +633,7 @@ export default function StudioPage() {
 
     if (loading || !project) {
         return (
-            <div className="fixed inset-0 bg-[#050505] flex flex-col items-center justify-center gap-4 text-red-600">
+            <div className="fixed inset-0 bg-[#111111] flex flex-col items-center justify-center gap-4 text-red-600">
                 <Loader2 className="animate-spin" size={32} />
                 <span className="text-xs tracking-widest text-neutral-600">
                     Loading Studio...

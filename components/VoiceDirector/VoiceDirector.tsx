@@ -35,9 +35,9 @@ function injectGlowStyles() {
     const style = document.createElement("style");
     style.textContent = `
         @keyframes voiceDirectorGlow {
-            0%   { box-shadow: 0 0 0 0 rgba(229,9,20,0.6), 0 0 15px rgba(229,9,20,0.3); transform: scale(1); }
-            40%  { box-shadow: 0 0 0 8px rgba(229,9,20,0.15), 0 0 30px rgba(229,9,20,0.2); transform: scale(1.03); }
-            100% { box-shadow: 0 0 0 0 rgba(229,9,20,0), 0 0 0 rgba(229,9,20,0); transform: scale(1); }
+            0%   { box-shadow: 0 0 0 0 rgba(212,10,18,0.6), 0 0 15px rgba(212,10,18,0.3); transform: scale(1); }
+            40%  { box-shadow: 0 0 0 8px rgba(212,10,18,0.15), 0 0 30px rgba(212,10,18,0.2); transform: scale(1.03); }
+            100% { box-shadow: 0 0 0 0 rgba(212,10,18,0), 0 0 0 rgba(212,10,18,0); transform: scale(1); }
         }
         .voice-director-glow {
             animation: voiceDirectorGlow 0.8s ease-out !important;
@@ -1186,7 +1186,7 @@ export default function VoiceDirector() {
                 duration: 4000,
                 icon: "🎙️",
                 style: {
-                    borderLeft: "3px solid #E50914",
+                    borderLeft: "3px solid #D40A12",
                 },
             }
         );
@@ -1223,6 +1223,10 @@ export default function VoiceDirector() {
     sendContextRef.current = voice.sendContext;
     sendActionResultRef.current = voice.sendActionResult;
     sendTextRef.current = voice.sendTextMessage;
+
+    // Keep a live ref to voice.state so polling closures can read it
+    const voiceStateRef = useRef(voice.state);
+    voiceStateRef.current = voice.state;
 
     // ── Track assistant responses and add to message history ──
     useEffect(() => {
@@ -1270,25 +1274,35 @@ export default function VoiceDirector() {
             // Auto-connect if not connected
             if (!voice.isConnected) {
                 voice.connect(selectedVoice);
-                // Queue the text message to send after connection
+                // Poll until the WebSocket session is actually ready, then send
                 const interval = setInterval(() => {
-                    if (sendTextRef.current) {
+                    if (
+                        voiceStateRef.current === "ready" &&
+                        sendTextRef.current
+                    ) {
                         sendTextRef.current(text);
                         clearInterval(interval);
                     }
-                }, 500);
-                setTimeout(() => clearInterval(interval), 5000);
+                }, 300);
+                // Safety: stop polling after 10s
+                setTimeout(() => clearInterval(interval), 10000);
             } else {
                 voice.sendTextMessage(text);
             }
         },
-        [voice]
+        [voice, selectedVoice]
     );
 
     // Clear unread when panel opens
     useEffect(() => {
         if (isPanelOpen) setHasUnread(false);
     }, [isPanelOpen]);
+
+    useEffect(() => {
+        const handleOpen = () => setIsPanelOpen(true);
+        window.addEventListener('open-voice-director', handleOpen);
+        return () => window.removeEventListener('open-voice-director', handleOpen);
+    }, []);
 
     if (isPublicPage) return null;
 

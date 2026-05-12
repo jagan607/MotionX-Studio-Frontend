@@ -180,7 +180,7 @@ export const SceneBin: React.FC<SceneBinProps> = ({
     };
 
     return (
-        <div className={`flex-1 bg-[#020202] flex flex-col relative ${className}`}>
+        <div className={`flex-1 bg-[#111111] flex flex-col relative ${className}`}>
 
 
 
@@ -188,7 +188,7 @@ export const SceneBin: React.FC<SceneBinProps> = ({
             <div className="flex-1 flex overflow-hidden relative">
 
                 {/* GRID CONTENT — full width always, never shrinks */}
-                <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-[#020202]">
+                <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-[#111111]">
                     {scenes.length === 0 ? (
                         // EMPTY STATE
                         <div className="h-full flex flex-col items-center justify-center opacity-50">
@@ -200,13 +200,13 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                             <div className="flex gap-3">
                                 <button
                                     onClick={onManualAdd}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold text-[#888] hover:text-white uppercase transition-colors"
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-[#1a1a1a] border border-[#333] hover:border-white text-[10px] font-bold text-[#888] hover:text-white uppercase transition-colors"
                                 >
                                     <Plus size={12} /> Add First Scene
                                 </button>
                                 <button
                                     onClick={() => router.push(`/project/${projectId}/script`)}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-[#111] border border-[#333] hover:border-white text-[10px] font-bold text-[#888] hover:text-white uppercase transition-colors"
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-[#1a1a1a] border border-[#333] hover:border-white text-[10px] font-bold text-[#888] hover:text-white uppercase transition-colors"
                                 >
                                     <ArrowRight size={12} /> Script Editor
                                 </button>
@@ -225,9 +225,9 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                                                 className="scene-card-wrapper group relative"
                                                 ref={isActive ? editingCardRef : undefined}
                                                 style={isActive ? {
-                                                    outline: '2px solid rgba(229, 9, 20, 0.4)',
+                                                    outline: '2px solid rgba(212, 10, 18, 0.4)',
                                                     outlineOffset: '-1px',
-                                                    boxShadow: '0 0 20px rgba(229, 9, 20, 0.15), 0 0 60px rgba(229, 9, 20, 0.05)',
+                                                    boxShadow: '0 0 20px rgba(212, 10, 18, 0.15), 0 0 60px rgba(212, 10, 18, 0.05)',
                                                     borderRadius: '12px',
                                                     position: 'relative',
                                                     zIndex: 5,
@@ -252,15 +252,15 @@ export const SceneBin: React.FC<SceneBinProps> = ({
 
                                     {/* LOADING SKELETON (Auto-Extend) */}
                                     {isExtending && (
-                                        <div className="relative aspect-video bg-[#050505] border border-[#222] rounded-lg overflow-hidden flex flex-col animate-pulse">
+                                        <div className="relative aspect-video bg-[#111111] border border-[#222] rounded-lg overflow-hidden flex flex-col animate-pulse">
                                             <div className="h-8 border-b border-[#222] bg-[#0A0A0A] flex items-center justify-between px-3">
-                                                <div className="w-16 h-3 bg-[#111] rounded" />
-                                                <div className="w-12 h-3 bg-[#111] rounded" />
+                                                <div className="w-16 h-3 bg-[#1a1a1a] rounded" />
+                                                <div className="w-12 h-3 bg-[#1a1a1a] rounded" />
                                             </div>
                                             <div className="flex-1 p-4 space-y-3">
-                                                <div className="w-3/4 h-3 bg-[#111] rounded" />
-                                                <div className="w-full h-3 bg-[#111] rounded" />
-                                                <div className="w-5/6 h-3 bg-[#111] rounded" />
+                                                <div className="w-3/4 h-3 bg-[#1a1a1a] rounded" />
+                                                <div className="w-full h-3 bg-[#1a1a1a] rounded" />
+                                                <div className="w-5/6 h-3 bg-[#1a1a1a] rounded" />
                                             </div>
                                             <div className="absolute inset-0 flex items-center justify-center">
                                                 <div className="flex flex-col items-center gap-2 text-[#444]">
@@ -286,7 +286,7 @@ export const SceneBin: React.FC<SceneBinProps> = ({
 
                 {/* Sliding panel */}
                 <div
-                    className={`absolute top-0 right-0 h-full w-[380px] z-[60] bg-[#080808] border-l border-white/[0.06]
+                    className={`absolute top-0 right-0 h-full w-[380px] z-[60] bg-[#161616] border-l border-white/[0.06]
                         flex flex-col shadow-2xl
                         transform transition-transform duration-300 ease-in-out
                         ${isEditing ? 'translate-x-0' : 'translate-x-full'}`}
@@ -301,7 +301,7 @@ export const SceneBin: React.FC<SceneBinProps> = ({
                         </div>
                         <button
                             onClick={onCloseEdit}
-                            className="p-1.5 rounded bg-[#111] border border-[#333] text-[#666] hover:text-white hover:border-[#555] transition-colors"
+                            className="p-1.5 rounded bg-[#1a1a1a] border border-[#333] text-[#666] hover:text-white hover:border-[#555] transition-colors"
                         >
                             <X size={14} />
                         </button>

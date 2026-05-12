@@ -115,7 +115,7 @@ export default function TaskHistoryPage() {
             <input
               type="text"
               placeholder="user@domain.com"
-              className="bg-[#0a0a0a] border border-[#333] text-[10px] font-mono text-[#888] p-2.5 focus:border-red-600 focus:outline-none w-48 transition-colors"
+              className="bg-[#1a1a1a] border border-[#333] text-[10px] font-mono text-[#888] p-2.5 focus:border-red-600 focus:outline-none w-48 transition-colors"
               value={emailFilter}
               onChange={(e) => setEmailFilter(e.target.value)}
             />
@@ -124,7 +124,7 @@ export default function TaskHistoryPage() {
           <div className="flex flex-col">
             <label className="text-[9px] text-[#666] font-mono mb-1 uppercase tracking-widest">Task Type</label>
             <select
-              className="bg-[#0a0a0a] border border-[#333] text-[10px] font-mono text-[#888] p-2.5 focus:border-red-600 focus:outline-none uppercase tracking-widest"
+              className="bg-[#1a1a1a] border border-[#333] text-[10px] font-mono text-[#888] p-2.5 focus:border-red-600 focus:outline-none uppercase tracking-widest"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
             >
@@ -140,7 +140,7 @@ export default function TaskHistoryPage() {
           <div className="flex flex-col">
             <label className="text-[9px] text-[#666] font-mono mb-1 uppercase tracking-widest">Status</label>
             <select
-              className="bg-[#0a0a0a] border border-[#333] text-[10px] font-mono text-[#888] p-2.5 focus:border-red-600 focus:outline-none uppercase tracking-widest"
+              className="bg-[#1a1a1a] border border-[#333] text-[10px] font-mono text-[#888] p-2.5 focus:border-red-600 focus:outline-none uppercase tracking-widest"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -156,11 +156,11 @@ export default function TaskHistoryPage() {
 
       {/* DATA TABLE */}
       {loading ? (
-        <div className="flex items-center justify-center h-64 border border-[#222] bg-[#080808]">
+        <div className="flex items-center justify-center h-64 border border-[#222] bg-[#161616]">
           <span className="text-red-600 font-mono text-sm animate-pulse tracking-widest uppercase">Connecting to stream...</span>
         </div>
       ) : (
-        <div className="border border-[#222] bg-[#080808] overflow-x-auto">
+        <div className="border border-[#222] bg-[#161616] overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-[#222] bg-[#0A0A0A] text-[10px] font-mono text-[#666] uppercase tracking-widest">
@@ -203,7 +203,7 @@ export default function TaskHistoryPage() {
                       {task.metadata && Object.keys(task.metadata).length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
                           {Object.entries(task.metadata).map(([k, v]) => (
-                            <span key={k} className="text-[8px] font-mono text-[#888] bg-[#111] border border-[#2A2A2A] px-1.5 py-0.5 uppercase tracking-wider">
+                            <span key={k} className="text-[8px] font-mono text-[#888] bg-[#1a1a1a] border border-[#2A2A2A] px-1.5 py-0.5 uppercase tracking-wider">
                               {k}: {String(v)}
                             </span>
                           ))}

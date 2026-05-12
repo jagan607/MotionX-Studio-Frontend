@@ -50,7 +50,7 @@ export const LibraryModal = ({ isOpen, onClose, type, masterList, currentList, o
         },
         container: {
             width: '700px', maxHeight: '85vh',
-            backgroundColor: '#050505',
+            backgroundColor: '#111111',
             border: '1px solid #333',
             boxShadow: '0 0 50px rgba(0,0,0,0.8)',
             display: 'flex', flexDirection: 'column' as const,
@@ -65,7 +65,7 @@ export const LibraryModal = ({ isOpen, onClose, type, masterList, currentList, o
         searchBar: {
             padding: '15px 30px',
             borderBottom: '1px solid #222',
-            backgroundColor: '#080808'
+            backgroundColor: '#161616'
         },
         searchInput: {
             width: '100%', backgroundColor: '#111', border: '1px solid #222',
@@ -82,7 +82,7 @@ export const LibraryModal = ({ isOpen, onClose, type, masterList, currentList, o
             padding: '20px 30px',
             borderTop: '1px solid #222',
             display: 'flex', justifyContent: 'flex-end',
-            backgroundColor: '#080808'
+            backgroundColor: '#161616'
         }
     };
 
@@ -93,7 +93,7 @@ export const LibraryModal = ({ isOpen, onClose, type, masterList, currentList, o
                 {/* HEADER */}
                 <div style={modalStyles.header}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {type === 'character' ? <Users size={20} color="#E50914" /> : <MapPin size={20} color="#E50914" />}
+                        {type === 'character' ? <Users size={20} color="#D40A12" /> : <MapPin size={20} color="#D40A12" />}
                         <div>
                             <h2 style={{ fontFamily: 'Anton', fontSize: '20px', margin: 0, textTransform: 'uppercase', color: 'white' }}>
                                 SERIES {type === 'character' ? 'CASTING' : 'LOCATIONS'}
@@ -133,7 +133,7 @@ export const LibraryModal = ({ isOpen, onClose, type, masterList, currentList, o
                                     key={item.id}
                                     onClick={() => toggleSelect(item.id)}
                                     style={{
-                                        border: isSelected ? '1px solid #E50914' : '1px solid #222',
+                                        border: isSelected ? '1px solid #D40A12' : '1px solid #222',
                                         backgroundColor: isSelected ? 'rgba(6, 182, 212, 0.05)' : '#0E0E0E',
                                         padding: '12px', borderRadius: '4px', cursor: 'pointer',
                                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -161,7 +161,7 @@ export const LibraryModal = ({ isOpen, onClose, type, masterList, currentList, o
                                             </div>
                                         </div>
                                     </div>
-                                    {isSelected && <Check size={16} color="#E50914" />}
+                                    {isSelected && <Check size={16} color="#D40A12" />}
                                 </div>
                             );
                         })
@@ -175,7 +175,7 @@ export const LibraryModal = ({ isOpen, onClose, type, masterList, currentList, o
                         disabled={selected.size === 0}
                         style={{
                             padding: '12px 24px',
-                            backgroundColor: selected.size > 0 ? '#E50914' : '#222',
+                            backgroundColor: selected.size > 0 ? '#D40A12' : '#222',
                             color: selected.size > 0 ? '#FFF' : '#444',
                             border: 'none',
                             fontWeight: 'bold', fontSize: '11px', letterSpacing: '1px',

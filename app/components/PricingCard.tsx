@@ -45,7 +45,7 @@ export default function PricingCard({
                 ${isActive
                     ? 'border-[#00FF41] shadow-[0_0_20px_rgba(0,255,65,0.08)]'
                     : isPopular
-                        ? 'border-[#E50914] shadow-[0_0_30px_rgba(229,9,20,0.12)] hover:scale-[1.02]'
+                        ? 'border-[#D40A12] shadow-[0_0_30px_rgba(212,10,18,0.12)] hover:scale-[1.02]'
                         : 'border-[#222] hover:border-[#333] hover:bg-[#0F0F0F]'
                 }
             `}
@@ -59,7 +59,7 @@ export default function PricingCard({
 
             {/* POPULAR BADGE (Only show if not active) */}
             {isPopular && !isActive && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#E50914] text-white px-3 py-1 text-[9px] font-bold tracking-[2px] uppercase rounded-full">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#D40A12] text-white px-3 py-1 text-[9px] font-bold tracking-[2px] uppercase rounded-full">
                     RECOMMENDED
                 </div>
             )}
@@ -73,14 +73,14 @@ export default function PricingCard({
                 </div>
             </div>
 
-            <div className="mb-6 p-3 bg-[#111] border border-[#222] text-center rounded-md">
+            <div className="mb-6 p-3 bg-[#1a1a1a] border border-[#222] text-center rounded-md">
                 <span className="text-[#EDEDED] text-xs font-bold tracking-[1px] uppercase">{credits}</span>
             </div>
 
             <div className="flex-1 space-y-3 mb-8">
                 {features.map((feature, i) => (
                     <div key={i} className="flex items-start gap-3 text-xs text-[#CCC] font-medium leading-relaxed">
-                        <Check size={14} className={`mt-0.5 shrink-0 ${isActive ? 'text-[#00FF41]' : 'text-[#E50914]'}`} />
+                        <Check size={14} className={`mt-0.5 shrink-0 ${isActive ? 'text-[#00FF41]' : 'text-[#D40A12]'}`} />
                         <span>{feature}</span>
                     </div>
                 ))}
@@ -99,11 +99,11 @@ export default function PricingCard({
                     w-full py-3 text-[10px] font-bold tracking-[3px] uppercase transition-all rounded-md
                     flex items-center justify-center gap-2
                     ${isActive
-                        ? 'bg-[#111] text-[#00FF41] border border-[#00FF41]/30 cursor-default opacity-100'
+                        ? 'bg-[#1a1a1a] text-[#00FF41] border border-[#00FF41]/30 cursor-default opacity-100'
                         : isDowngrade
                             ? 'bg-transparent text-[#888] border border-[#333] hover:border-[#666] hover:text-[#CCC]'
                             : isPopular
-                                ? 'bg-[#E50914] text-white border border-[#E50914] hover:bg-[#B91C1C]'
+                                ? 'bg-[#D40A12] text-white border border-[#D40A12] hover:bg-[#B91C1C]'
                                 : 'bg-transparent text-[#EDEDED] border border-[#333] hover:border-[#EDEDED] hover:bg-[#EDEDED] hover:text-black'
                     }
                     ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}

@@ -76,7 +76,7 @@ const TaxonomyHeatmap: React.FC<TaxonomyHeatmapProps> = ({
                             key={idx}
                             className={`text-center py-2 px-1 rounded-t-md text-[9px] font-bold uppercase tracking-[2px] ${
                                 col.isScript
-                                    ? "bg-[#E50914]/15 text-[#E50914] border border-[#E50914]/30"
+                                    ? "bg-[#D40A12]/15 text-[#D40A12] border border-[#D40A12]/30"
                                     : "bg-white/[0.04] text-white/40 border border-white/[0.06]"
                             }`}
                         >
@@ -110,7 +110,7 @@ const TaxonomyHeatmap: React.FC<TaxonomyHeatmapProps> = ({
                                 <div
                                     key={idx}
                                     className={`flex items-center justify-center py-3 rounded-sm text-sm font-mono font-semibold transition-all duration-300 ${getHeatColor(val)} ${
-                                        idx === 0 ? "ring-1 ring-[#E50914]/20" : ""
+                                        idx === 0 ? "ring-1 ring-[#D40A12]/20" : ""
                                     }`}
                                 >
                                     {val.toFixed(1)}

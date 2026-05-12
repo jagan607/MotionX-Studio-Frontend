@@ -106,9 +106,9 @@ export default function ShowcasePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+            <div className="min-h-screen bg-[#111111] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-8 h-8 border-2 border-[#E50914] border-t-transparent rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-2 border-[#D40A12] border-t-transparent rounded-full animate-spin" />
                     <span className="text-[10px] text-[#555] uppercase tracking-[3px]">Loading Showcase</span>
                 </div>
             </div>
@@ -116,9 +116,9 @@ export default function ShowcasePage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white">
+        <div className="min-h-screen bg-[#111111] text-white">
             {/* ═══ HEADER ═══ */}
-            <div className="sticky top-0 z-50 bg-[#030303]/90 backdrop-blur-xl border-b border-white/[0.06]">
+            <div className="sticky top-0 z-50 bg-[#111111]/90 backdrop-blur-xl border-b border-white/[0.06]">
                 <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Link href="/dashboard" className="text-[#555] hover:text-white transition-colors">
@@ -129,7 +129,7 @@ export default function ShowcasePage() {
                                 <h1 className="text-lg font-bold text-white uppercase tracking-wide font-anton">
                                     {project?.title || "Sample Project"}
                                 </h1>
-                                <span className="bg-[#E50914]/20 text-[#E50914] text-[7px] font-bold uppercase tracking-widest px-2 py-0.5 rounded">
+                                <span className="bg-[#D40A12]/20 text-[#D40A12] text-[7px] font-bold uppercase tracking-widest px-2 py-0.5 rounded">
                                     Sample
                                 </span>
                             </div>
@@ -140,7 +140,7 @@ export default function ShowcasePage() {
                     </div>
                     <Link
                         href="/project/new"
-                        className="flex items-center gap-2 px-4 py-2 bg-[#E50914] text-white text-[10px] font-bold uppercase tracking-[2px] rounded-md hover:bg-[#ff1a25] transition-colors no-underline"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#D40A12] text-white text-[10px] font-bold uppercase tracking-[2px] rounded-md hover:bg-[#ff1a25] transition-colors no-underline"
                     >
                         <Sparkles size={12} /> Create Your Own
                     </Link>
@@ -164,7 +164,7 @@ export default function ShowcasePage() {
                                 className="w-full flex items-center justify-between px-4 py-3 text-left cursor-pointer bg-transparent border-none hover:bg-white/[0.02] transition-colors"
                             >
                                 <div className="flex items-center gap-3">
-                                    <span className="w-6 h-6 rounded bg-[#E50914]/10 flex items-center justify-center text-[9px] font-bold text-[#E50914] shrink-0">
+                                    <span className="w-6 h-6 rounded bg-[#D40A12]/10 flex items-center justify-center text-[9px] font-bold text-[#D40A12] shrink-0">
                                         {scene.scene_number}
                                     </span>
                                     <div>
@@ -201,7 +201,7 @@ export default function ShowcasePage() {
                                             onClick={() => { setActiveShot(shot); setPlaying(false); }}
                                             className={`aspect-video rounded-md overflow-hidden cursor-pointer border-2 transition-all relative group ${
                                                 activeShot?.id === shot.id
-                                                    ? 'border-[#E50914] shadow-[0_0_12px_rgba(229,9,20,0.3)]'
+                                                    ? 'border-[#D40A12] shadow-[0_0_12px_rgba(212,10,18,0.3)]'
                                                     : 'border-transparent hover:border-[#333]'
                                             }`}
                                         >
@@ -232,7 +232,7 @@ export default function ShowcasePage() {
                     <div className="p-4 border-t border-white/[0.06]">
                         <Link
                             href="/project/new"
-                            className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[#333] rounded-lg text-[9px] font-bold text-[#555] uppercase tracking-[2px] hover:text-[#E50914] hover:border-[#E50914] transition-colors no-underline"
+                            className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[#333] rounded-lg text-[9px] font-bold text-[#555] uppercase tracking-[2px] hover:text-[#D40A12] hover:border-[#D40A12] transition-colors no-underline"
                         >
                             <Film size={12} /> Create Your Own Project
                         </Link>
@@ -240,7 +240,7 @@ export default function ShowcasePage() {
                 </div>
 
                 {/* ─── RIGHT: Shot Viewer ─── */}
-                <div className="flex-1 flex flex-col bg-[#080808]">
+                <div className="flex-1 flex flex-col bg-[#161616]">
                     {activeShot ? (
                         <>
                             {/* Media Viewer */}
@@ -291,7 +291,7 @@ export default function ShowcasePage() {
                                 <div className="flex items-start gap-6">
                                     {/* Shot Type */}
                                     <div className="flex items-center gap-2">
-                                        <Camera size={12} className="text-[#E50914]" />
+                                        <Camera size={12} className="text-[#D40A12]" />
                                         <div>
                                             <span className="text-[7px] text-[#555] uppercase tracking-widest block">Shot Type</span>
                                             <span className="text-[11px] text-white font-semibold">{activeShot.shot_type || "—"}</span>

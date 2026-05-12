@@ -128,12 +128,12 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
             animate={{ width: "100%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="h-full border-l border-[#1a1a1a] bg-[#080808] flex flex-col overflow-hidden shrink-0"
+            className="h-full border-l border-[#1a1a1a] bg-[#161616] flex flex-col overflow-hidden shrink-0"
         >
             {/* Header */}
             <div className="px-4 py-3 border-b border-[#1a1a1a] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                    <Download size={12} className="text-[#E50914]" />
+                    <Download size={12} className="text-[#D40A12]" />
                     <span className="text-[10px] font-bold tracking-[2px] text-white uppercase">Export</span>
                 </div>
                 <button onClick={onClose} className="p-1 rounded hover:bg-[#1a1a1a] text-neutral-500 transition-colors">
@@ -161,11 +161,11 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
                                 onClick={() => handlePreset(preset)}
                                 className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-all ${
                                     config.platform === preset.key
-                                        ? "bg-[#E50914]/15 border border-[#E50914]/30 text-white"
-                                        : "bg-[#111] border border-[#1a1a1a] text-neutral-400 hover:border-[#333]"
+                                        ? "bg-[#D40A12]/15 border border-[#D40A12]/30 text-white"
+                                        : "bg-[#1a1a1a] border border-[#1a1a1a] text-neutral-400 hover:border-[#333]"
                                 }`}
                             >
-                                <span className={config.platform === preset.key ? "text-[#E50914]" : "text-neutral-600"}>
+                                <span className={config.platform === preset.key ? "text-[#D40A12]" : "text-neutral-600"}>
                                     {preset.icon}
                                 </span>
                                 <span className="text-[9px] font-bold tracking-wider uppercase flex-1 text-left">
@@ -191,8 +191,8 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
                                     onClick={() => setConfig({ ...config, resolution: r })}
                                     className={`flex-1 py-1.5 rounded text-[8px] font-bold tracking-wider uppercase transition-all ${
                                         config.resolution === r
-                                            ? "bg-[#E50914] text-white"
-                                            : "bg-[#111] text-neutral-500 hover:text-white"
+                                            ? "bg-[#D40A12] text-white"
+                                            : "bg-[#1a1a1a] text-neutral-500 hover:text-white"
                                     }`}
                                 >
                                     {r}
@@ -211,8 +211,8 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
                                     onClick={() => setConfig({ ...config, fps: f })}
                                     className={`flex-1 py-1.5 rounded text-[8px] font-bold tracking-wider transition-all ${
                                         config.fps === f
-                                            ? "bg-[#E50914] text-white"
-                                            : "bg-[#111] text-neutral-500 hover:text-white"
+                                            ? "bg-[#D40A12] text-white"
+                                            : "bg-[#1a1a1a] text-neutral-500 hover:text-white"
                                     }`}
                                 >
                                     {f}fps
@@ -231,8 +231,8 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
                                     onClick={() => setConfig({ ...config, format: fmt })}
                                     className={`flex-1 py-1.5 rounded text-[8px] font-bold tracking-wider uppercase transition-all ${
                                         config.format === fmt
-                                            ? "bg-[#E50914] text-white"
-                                            : "bg-[#111] text-neutral-500 hover:text-white"
+                                            ? "bg-[#D40A12] text-white"
+                                            : "bg-[#1a1a1a] text-neutral-500 hover:text-white"
                                     }`}
                                 >
                                     .{fmt}
@@ -247,7 +247,7 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
                         <button
                             onClick={() => setConfig({ ...config, watermark: !config.watermark })}
                             className={`w-8 h-4 rounded-full transition-all relative ${
-                                config.watermark ? "bg-[#E50914]" : "bg-[#333]"
+                                config.watermark ? "bg-[#D40A12]" : "bg-[#333]"
                             }`}
                         >
                             <div
@@ -292,7 +292,7 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
                         </button>
                         <button
                             onClick={() => { setExportUrl(null); setExportStatus(null); }}
-                            className="w-full py-1.5 rounded bg-[#111] border border-[#1a1a1a] text-neutral-500 text-[8px] tracking-wider uppercase hover:text-white transition-all"
+                            className="w-full py-1.5 rounded bg-[#1a1a1a] border border-[#1a1a1a] text-neutral-500 text-[8px] tracking-wider uppercase hover:text-white transition-all"
                         >
                             EXPORT AGAIN
                         </button>
@@ -305,7 +305,7 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
                         </div>
                         <button
                             onClick={() => { setExportError(null); setExportStatus(null); handleExport(); }}
-                            className="w-full py-2.5 rounded bg-[#E50914] hover:bg-[#ff1a25] text-white text-[10px] font-bold tracking-[3px] uppercase transition-all flex items-center justify-center gap-2"
+                            className="w-full py-2.5 rounded bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[10px] font-bold tracking-[3px] uppercase transition-all flex items-center justify-center gap-2"
                         >
                             RETRY EXPORT
                         </button>
@@ -318,11 +318,11 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
                                 <Loader2 size={10} className="animate-spin" />
                                 {exportStatus === "queued" ? "Queued..." : exportStatus === "exporting" ? "Rendering..." : "Processing..."}
                             </span>
-                            <span className="text-[#E50914] font-bold">{progress}%</span>
+                            <span className="text-[#D40A12] font-bold">{progress}%</span>
                         </div>
                         <div className="h-1.5 bg-[#222] rounded-full overflow-hidden">
                             <div
-                                className="h-full bg-gradient-to-r from-[#E50914] to-[#ff4444] rounded-full transition-all duration-500"
+                                className="h-full bg-gradient-to-r from-[#D40A12] to-[#ff4444] rounded-full transition-all duration-500"
                                 style={{ width: `${progress}%` }}
                             />
                         </div>
@@ -335,10 +335,10 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
                     <button
                         onClick={handleExport}
                         disabled={totalClips === 0 || submitting}
-                        className={`w-full py-2.5 rounded text-white text-[10px] font-bold tracking-[3px] uppercase transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#E50914]/20 ${
+                        className={`w-full py-2.5 rounded text-white text-[10px] font-bold tracking-[3px] uppercase transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#D40A12]/20 ${
                             totalClips === 0 || submitting
                                 ? 'bg-neutral-700 cursor-not-allowed opacity-50'
-                                : 'bg-[#E50914] hover:bg-[#ff1a25]'
+                                : 'bg-[#D40A12] hover:bg-[#ff1a25]'
                         }`}
                     >
                         {submitting ? (
@@ -361,7 +361,7 @@ export default function ExportPanel({ projectId, episodeId, timeline, onClose }:
 
 function StatBox({ label, value }: { label: string; value: string | number }) {
     return (
-        <div className="bg-[#111] border border-[#1a1a1a] rounded p-2 text-center">
+        <div className="bg-[#1a1a1a] border border-[#1a1a1a] rounded p-2 text-center">
             <span className="text-[11px] font-bold text-white block">{value}</span>
             <span className="text-[7px] text-neutral-600 tracking-[2px] uppercase">{label}</span>
         </div>

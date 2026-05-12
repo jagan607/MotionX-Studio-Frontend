@@ -89,7 +89,7 @@ function FullScreenLoader() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#050505',
+      backgroundColor: '#111111',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'
@@ -98,7 +98,7 @@ function FullScreenLoader() {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .spin-loader { animation: spin 1s linear infinite; }
       `}</style>
-      <Loader2 className="spin-loader" size={48} color="#E50914" />
+      <Loader2 className="spin-loader" size={48} color="#D40A12" />
     </div>
   );
 }

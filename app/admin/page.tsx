@@ -59,7 +59,7 @@ async function GrowthKpiSection() {
 async function LandingCmsSection() {
     const cmsData = await getCmsConfig();
     return (
-        <div className="bg-[#080808] border border-[#222] p-6 relative overflow-hidden group">
+        <div className="bg-[#161616] border border-[#222] p-6 relative overflow-hidden group">
             <div className="flex items-center gap-3 mb-6 border-b border-[#222] pb-4">
                 <Globe className="text-red-600" size={18} />
                 <h3 className="font-anton text-xl text-white uppercase tracking-wide">Landing Page CMS</h3>
@@ -71,7 +71,7 @@ async function LandingCmsSection() {
                     <input
                         name="headline"
                         defaultValue={cmsData?.headline}
-                        className="w-full bg-[#111] border border-[#333] text-white p-3 font-anton text-lg tracking-wide focus:border-red-600 outline-none transition-colors"
+                        className="w-full bg-[#1a1a1a] border border-[#333] text-white p-3 font-anton text-lg tracking-wide focus:border-red-600 outline-none transition-colors"
                     />
                 </div>
                 <div className="space-y-1">
@@ -79,7 +79,7 @@ async function LandingCmsSection() {
                     <input
                         name="subhead"
                         defaultValue={cmsData?.subhead}
-                        className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors"
+                        className="w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors"
                     />
                 </div>
                 <div className="space-y-1">
@@ -88,7 +88,7 @@ async function LandingCmsSection() {
                         name="heroVideoUrl"
                         defaultValue={cmsData?.heroVideoUrl}
                         placeholder="https://firebasestorage.googleapis.com/..."
-                        className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors"
+                        className="w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors"
                     />
                     <p className="text-[8px] text-[#444] pt-1">* Paste a direct link to your MP4 or Image from Firebase Storage</p>
                 </div>
@@ -105,7 +105,7 @@ async function LandingCmsSection() {
 async function AuditStreamSection() {
     const recentActivity = await getAuditLogs();
     return (
-        <div className="bg-[#080808] border border-[#222] flex flex-col h-full max-h-[600px]">
+        <div className="bg-[#161616] border border-[#222] flex flex-col h-full max-h-[600px]">
             <div className="p-4 border-b border-[#222] bg-[#0A0A0A] sticky top-0">
                 <h3 className="font-anton text-lg uppercase text-white">Audit Stream</h3>
             </div>

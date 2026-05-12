@@ -57,14 +57,14 @@ export const SceneEditorDrawer: React.FC<SceneEditorDrawerProps> = ({
 
             {/* DRAWER PANEL */}
             <div
-                className={`fixed top-0 right-0 h-full w-[420px] bg-[#080808] border-l border-[#222] z-[70]
+                className={`fixed top-0 right-0 h-full w-[420px] bg-[#161616] border-l border-[#222] z-[70]
                     transform transition-transform duration-300 ease-in-out
                     ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
             >
                 {/* CLOSE BUTTON */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 z-10 p-2 rounded bg-[#111] border border-[#333] text-[#666] hover:text-white hover:border-[#555] transition-colors"
+                    className="absolute top-4 right-4 z-10 p-2 rounded bg-[#1a1a1a] border border-[#333] text-[#666] hover:text-white hover:border-[#555] transition-colors"
                 >
                     <X size={14} />
                 </button>

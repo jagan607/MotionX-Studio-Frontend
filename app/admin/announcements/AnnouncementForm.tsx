@@ -83,14 +83,14 @@ export function AnnouncementForm({ onPublish }: Props) {
                         name="title"
                         required
                         placeholder="e.g. Kling 3.0 Integration"
-                        className="w-full bg-[#111] border border-[#333] text-white p-3 font-anton text-lg tracking-wide focus:border-[#E50914] outline-none transition-colors"
+                        className="w-full bg-[#1a1a1a] border border-[#333] text-white p-3 font-anton text-lg tracking-wide focus:border-[#D40A12] outline-none transition-colors"
                     />
                 </div>
                 <div className="space-y-1">
                     <label className="text-[9px] font-mono uppercase text-[#666] tracking-widest">Type</label>
                     <select
                         name="type"
-                        className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-[#E50914] outline-none transition-colors h-[50px]"
+                        className="w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-[#D40A12] outline-none transition-colors h-[50px]"
                     >
                         <option value="feature">🚀 Feature</option>
                         <option value="update">⚡ Update</option>
@@ -106,7 +106,7 @@ export function AnnouncementForm({ onPublish }: Props) {
                     required
                     rows={3}
                     placeholder="Describe the announcement..."
-                    className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-sm font-mono focus:border-[#E50914] outline-none transition-colors resize-none"
+                    className="w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-sm font-mono focus:border-[#D40A12] outline-none transition-colors resize-none"
                 />
             </div>
 
@@ -116,7 +116,7 @@ export function AnnouncementForm({ onPublish }: Props) {
 
                 {preview ? (
                     <div className="relative inline-block">
-                        <div className="w-40 h-24 rounded border border-[#333] overflow-hidden bg-[#111]">
+                        <div className="w-40 h-24 rounded border border-[#333] overflow-hidden bg-[#1a1a1a]">
                             {preview.type === 'video' ? (
                                 <video src={preview.url} autoPlay loop muted playsInline className="w-full h-full object-cover" />
                             ) : (
@@ -144,7 +144,7 @@ export function AnnouncementForm({ onPublish }: Props) {
                             type="button"
                             onClick={() => fileRef.current?.click()}
                             disabled={uploading}
-                            className="flex items-center gap-2 bg-[#111] border border-[#333] hover:border-[#555] px-4 py-2.5 text-[10px] font-mono text-[#888] uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50"
+                            className="flex items-center gap-2 bg-[#1a1a1a] border border-[#333] hover:border-[#555] px-4 py-2.5 text-[10px] font-mono text-[#888] uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50"
                         >
                             {uploading ? (
                                 <>
@@ -160,7 +160,7 @@ export function AnnouncementForm({ onPublish }: Props) {
                         </button>
                         {uploading && (
                             <div className="flex-1 h-1 bg-[#222] rounded overflow-hidden">
-                                <div className="h-full bg-[#E50914] transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                                <div className="h-full bg-[#D40A12] transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
                             </div>
                         )}
                     </div>
@@ -171,7 +171,7 @@ export function AnnouncementForm({ onPublish }: Props) {
             <input type="hidden" name="media_url" value={mediaUrl} />
 
             <div className="flex justify-end pt-2">
-                <button type="submit" disabled={uploading} className="flex items-center gap-2 bg-[#E50914] text-white hover:bg-[#ff1a25] px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50">
+                <button type="submit" disabled={uploading} className="flex items-center gap-2 bg-[#D40A12] text-white hover:bg-[#ff1a25] px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50">
                     <Megaphone size={14} /> Publish
                 </button>
             </div>

@@ -197,16 +197,16 @@ export default function TaxonomyPage() {
     // ─────────────────────────────────────────────────────────────────────────
 
     return (
-        <main className="min-h-screen bg-[#020202] text-white">
+        <main className="min-h-screen bg-[#111111] text-white">
             <style jsx global>{`
                 @keyframes taxFadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes taxPulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
-                @keyframes taxGlow { 0%,100% { box-shadow: 0 0 20px rgba(229,9,20,0.15); } 50% { box-shadow: 0 0 40px rgba(229,9,20,0.35); } }
+                @keyframes taxGlow { 0%,100% { box-shadow: 0 0 20px rgba(212,10,18,0.15); } 50% { box-shadow: 0 0 40px rgba(212,10,18,0.35); } }
                 @keyframes taxDNA { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
             `}</style>
 
             {/* ══════════════════════ TOP BAR ══════════════════════ */}
-            <div className="sticky top-0 z-50 h-14 flex items-center justify-between px-6 bg-[#020202]/90 backdrop-blur-md border-b border-white/[0.04]">
+            <div className="sticky top-0 z-50 h-14 flex items-center justify-between px-6 bg-[#111111]/90 backdrop-blur-md border-b border-white/[0.04]">
                 <div className="flex items-center gap-4">
                     <Link
                         href={`/project/${projectId}/script`}
@@ -225,9 +225,9 @@ export default function TaxonomyPage() {
                     )}
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-3 py-1 bg-[#E50914]/10 border border-[#E50914]/30 rounded-full">
-                        <Clapperboard size={10} className="text-[#E50914]" />
-                        <span className="text-[8px] font-bold text-[#E50914] uppercase tracking-widest">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-[#D40A12]/10 border border-[#D40A12]/30 rounded-full">
+                        <Clapperboard size={10} className="text-[#D40A12]" />
+                        <span className="text-[8px] font-bold text-[#D40A12] uppercase tracking-widest">
                             Cinematic DNA
                         </span>
                     </div>
@@ -238,10 +238,10 @@ export default function TaxonomyPage() {
             {phase === "loading" && (
                 <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ animation: "taxFadeIn 0.6s ease both" }}>
                     <div className="relative w-20 h-20">
-                        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#E50914] animate-spin" style={{ animationDuration: "1.5s" }} />
-                        <div className="absolute inset-0 rounded-full border-2 border-transparent border-b-[#E50914]/30 animate-spin" style={{ animationDuration: "3s", animationDirection: "reverse" }} />
+                        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#D40A12] animate-spin" style={{ animationDuration: "1.5s" }} />
+                        <div className="absolute inset-0 rounded-full border-2 border-transparent border-b-[#D40A12]/30 animate-spin" style={{ animationDuration: "3s", animationDirection: "reverse" }} />
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <Zap size={24} className="text-[#E50914]" style={{ animation: "taxPulse 2s ease-in-out infinite" }} />
+                            <Zap size={24} className="text-[#D40A12]" style={{ animation: "taxPulse 2s ease-in-out infinite" }} />
                         </div>
                     </div>
                     <div className="text-center">
@@ -256,15 +256,15 @@ export default function TaxonomyPage() {
             {/* ══════════════════════ ERROR ══════════════════════ */}
             {phase === "error" && (
                 <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ animation: "taxFadeIn 0.6s ease both" }}>
-                    <div className="w-20 h-20 rounded-full border border-[#E50914]/30 flex items-center justify-center">
-                        <AlertCircle size={32} className="text-[#E50914]" />
+                    <div className="w-20 h-20 rounded-full border border-[#D40A12]/30 flex items-center justify-center">
+                        <AlertCircle size={32} className="text-[#D40A12]" />
                     </div>
                     <div className="text-center max-w-md">
                         <h2 className="text-2xl uppercase tracking-wide mb-3 font-display">Analysis Failed</h2>
                         <p className="text-[12px] text-neutral-500 mb-8 leading-relaxed">{errorMessage}</p>
                         <button
                             onClick={runTaxonomy}
-                            className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer mx-auto"
+                            className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer mx-auto"
                         >
                             <RefreshCw size={14} /> Try Again
                         </button>
@@ -276,12 +276,12 @@ export default function TaxonomyPage() {
             {(phase === "locking" || phase === "processing") && (
                 <div className="flex flex-col items-center justify-center min-h-[80vh] gap-6" style={{ animation: "taxFadeIn 0.6s ease both" }}>
                     <div className="relative w-20 h-20">
-                        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#E50914] animate-spin" style={{ animationDuration: "1.2s" }} />
+                        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#D40A12] animate-spin" style={{ animationDuration: "1.2s" }} />
                         <div className="absolute inset-0 flex items-center justify-center">
                             {phase === "locking" ? (
-                                <Lock size={24} className="text-[#E50914]" />
+                                <Lock size={24} className="text-[#D40A12]" />
                             ) : (
-                                <Clapperboard size={24} className="text-[#E50914]" style={{ animation: "taxPulse 1.5s ease-in-out infinite" }} />
+                                <Clapperboard size={24} className="text-[#D40A12]" style={{ animation: "taxPulse 1.5s ease-in-out infinite" }} />
                             )}
                         </div>
                     </div>
@@ -305,11 +305,11 @@ export default function TaxonomyPage() {
                     {/* ── Header ── */}
                     <div className="text-center mb-10">
                         <div className="flex items-center justify-center gap-3 mb-4">
-                            <div className="h-[1px] w-12 bg-[#E50914]/30" />
-                            <span className="text-[9px] font-mono text-[#E50914]/60 uppercase tracking-[4px]">
+                            <div className="h-[1px] w-12 bg-[#D40A12]/30" />
+                            <span className="text-[9px] font-mono text-[#D40A12]/60 uppercase tracking-[4px]">
                                 Cinematic Taxonomy
                             </span>
-                            <div className="h-[1px] w-12 bg-[#E50914]/30" />
+                            <div className="h-[1px] w-12 bg-[#D40A12]/30" />
                         </div>
                         <h1 className="text-4xl md:text-5xl font-display uppercase tracking-tight mb-3">
                             Choose Your Visual Identity
@@ -321,9 +321,9 @@ export default function TaxonomyPage() {
                     </div>
 
                     {/* ── HEATMAP (dynamic with visibleCount) ── */}
-                    <div className="mb-12 bg-[#080808] border border-white/[0.06] rounded-xl p-6">
+                    <div className="mb-12 bg-[#161616] border border-white/[0.06] rounded-xl p-6">
                         <div className="flex items-center gap-2 mb-5">
-                            <div className="w-2 h-2 rounded-full bg-[#E50914]" />
+                            <div className="w-2 h-2 rounded-full bg-[#D40A12]" />
                             <span className="text-[10px] font-bold text-white/50 uppercase tracking-[2px]">
                                 Script–Archetype Correlation Matrix
                             </span>
@@ -347,8 +347,8 @@ export default function TaxonomyPage() {
                                     onClick={() => setSelectedId(archetype.id)}
                                     className={`relative text-left p-6 rounded-xl border-2 transition-all duration-300 cursor-pointer group ${
                                         isSelected
-                                            ? "bg-[#E50914]/[0.06] border-[#E50914] shadow-[0_0_30px_rgba(229,9,20,0.15)]"
-                                            : "bg-[#080808] border-white/[0.06] hover:border-white/[0.15] hover:bg-[#0A0A0A]"
+                                            ? "bg-[#D40A12]/[0.06] border-[#D40A12] shadow-[0_0_30px_rgba(212,10,18,0.15)]"
+                                            : "bg-[#161616] border-white/[0.06] hover:border-white/[0.15] hover:bg-[#0A0A0A]"
                                     }`}
                                     style={{ animation: `taxFadeIn 0.4s ease ${idx * 0.08}s both` }}
                                 >
@@ -356,7 +356,7 @@ export default function TaxonomyPage() {
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-2">
                                             <span className={`text-[9px] font-mono uppercase tracking-[3px] ${
-                                                isSelected ? "text-[#E50914]" : "text-white/30"
+                                                isSelected ? "text-[#D40A12]" : "text-white/30"
                                             }`}>
                                                 #{idx + 1} Match
                                             </span>
@@ -368,7 +368,7 @@ export default function TaxonomyPage() {
                                         </div>
                                         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${
                                             isSelected
-                                                ? "bg-[#E50914]/20 text-[#E50914] border border-[#E50914]/30"
+                                                ? "bg-[#D40A12]/20 text-[#D40A12] border border-[#D40A12]/30"
                                                 : "bg-white/[0.06] text-white/50 border border-white/[0.08]"
                                         }`}>
                                             {archetype.match_percentage}%
@@ -392,7 +392,7 @@ export default function TaxonomyPage() {
                                                     <Icon
                                                         size={13}
                                                         className={`mt-0.5 shrink-0 ${
-                                                            isSelected ? "text-[#E50914]/60" : "text-white/20"
+                                                            isSelected ? "text-[#D40A12]/60" : "text-white/20"
                                                         }`}
                                                     />
                                                     <div>
@@ -412,7 +412,7 @@ export default function TaxonomyPage() {
 
                                     {/* Selection indicator */}
                                     {isSelected && (
-                                        <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-[#E50914] flex items-center justify-center">
+                                        <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-[#D40A12] flex items-center justify-center">
                                             <Check size={14} className="text-white" />
                                         </div>
                                     )}
@@ -439,7 +439,7 @@ export default function TaxonomyPage() {
                         <button
                             onClick={handleLockIn}
                             disabled={!selectedId}
-                            className="flex items-center gap-3 px-10 py-4 rounded-xl bg-[#E50914] hover:bg-[#ff1a25] text-white text-[12px] font-bold uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed shadow-[0_0_25px_rgba(229,9,20,0.2)] hover:shadow-[0_0_40px_rgba(229,9,20,0.4)]"
+                            className="flex items-center gap-3 px-10 py-4 rounded-xl bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[12px] font-bold uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed shadow-[0_0_25px_rgba(212,10,18,0.2)] hover:shadow-[0_0_40px_rgba(212,10,18,0.4)]"
                             style={{ animation: "taxGlow 3s ease-in-out infinite" }}
                         >
                             <Lock size={16} />

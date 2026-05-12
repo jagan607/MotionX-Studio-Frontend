@@ -23,7 +23,7 @@ export function CanvasToolbar({
         { icon: User, label: "Character", onClick: onAddCharacter, color: "#D4A843" },
         { icon: MapPin, label: "Location", onClick: onAddLocation, color: "#4A90E2" },
         { icon: Package, label: productLabel, onClick: onAddProduct, color: "#10B981" },
-        { icon: Palette, label: "Mood", onClick: onOpenMoodboard, color: "#E50914" },
+        { icon: Palette, label: "Mood", onClick: onOpenMoodboard, color: "#D40A12" },
         "---",
         { icon: Maximize2, label: "Fit", onClick: onFitToView, color: "#888" },
     ];

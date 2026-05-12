@@ -457,7 +457,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
             {/* ── Centered Modal ── */}
             <div className="fixed inset-0 z-[201] flex items-center justify-center pointer-events-none">
                 <div
-                    className="pointer-events-auto w-[95%] max-w-6xl h-[90vh] bg-[#111] rounded-2xl border border-white/[0.08] shadow-2xl flex flex-col overflow-hidden"
+                    className="pointer-events-auto w-[95%] max-w-6xl h-[90vh] bg-[#1a1a1a] rounded-2xl border border-white/[0.08] shadow-2xl flex flex-col overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* ── Header ── */}
@@ -568,7 +568,7 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
                                 <div className="relative">
                                     {/* Grid stack: backdrop + textarea share the same cell */}
                                     <div
-                                        className={`relative grid bg-[#0a0a0a] border border-white/[0.1] rounded-lg overflow-hidden transition-all focus-within:border-white/[0.3]
+                                        className={`relative grid bg-[#1a1a1a] border border-white/[0.1] rounded-lg overflow-hidden transition-all focus-within:border-white/[0.3]
                                             ${isEnhancing ? 'animate-pulse opacity-60' : ''}`}
                                         style={{ gridTemplateColumns: '1fr' }}
                                     >
@@ -712,13 +712,13 @@ export const ShotEditorPanel: React.FC<ShotEditorPanelProps> = ({
 
                             {/* ── Sticky CTA Footer ── */}
                             {(shot.image_url || shot.video_url) && animateInfo && (
-                                <div id="tour-shot-animate-btn" className="px-4 py-3 border-t border-white/[0.08] bg-[#111] flex-shrink-0">
+                                <div id="tour-shot-animate-btn" className="px-4 py-3 border-t border-white/[0.08] bg-[#1a1a1a] flex-shrink-0">
                                     <button
                                         onClick={animateInfo.handleAnimate}
                                         disabled={animateInfo.disabled}
                                         className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg text-[12px] font-bold transition-all
                                             ${animateInfo.icon === 'morph'
-                                                ? 'bg-[#E50914] text-white border border-[#E50914] hover:bg-[#E50914]/90'
+                                                ? 'bg-[#D40A12] text-white border border-[#D40A12] hover:bg-[#D40A12]/90'
                                                 : animateInfo.disabled
                                                     ? 'bg-white/[0.03] text-neutral-600 border border-white/[0.05] cursor-not-allowed'
                                                     : 'bg-white/[0.06] text-white border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1]'

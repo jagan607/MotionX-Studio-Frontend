@@ -80,7 +80,7 @@ export const ShotImage = ({
                 <div style={{
                     position: 'absolute', inset: 0, zIndex: 5,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: '#080808', color: '#333', border: '1px solid #111'
+                    backgroundColor: '#161616', color: '#333', border: '1px solid #111'
                 }}>
                     <div style={{
                         padding: '15px',
@@ -121,7 +121,7 @@ export const ShotImage = ({
                         onClick={(e) => { e.stopPropagation(); setViewMode('video'); }}
                         style={{
                             padding: '4px 10px', borderRadius: '15px', border: 'none',
-                            backgroundColor: viewMode === 'video' ? '#E50914' : 'transparent',
+                            backgroundColor: viewMode === 'video' ? '#D40A12' : 'transparent',
                             color: viewMode === 'video' ? 'white' : '#888',
                             fontSize: '9px', fontWeight: 'bold', cursor: 'pointer',
                             display: 'flex', alignItems: 'center', gap: '4px',

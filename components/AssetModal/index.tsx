@@ -566,7 +566,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
             <div className="bg-[#090909] border border-[#222] rounded-xl w-[880px] max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
 
                 {/* HEADER */}
-                <div className="p-5 border-b border-[#222] flex justify-between items-center bg-[#0a0a0a] shrink-0" id="tour-assetcfg-header">
+                <div className="p-5 border-b border-[#222] flex justify-between items-center bg-[#1a1a1a] shrink-0" id="tour-assetcfg-header">
                     <div className="flex items-center gap-3">
                         {isVoiceMode && <ArrowLeft size={20} className="cursor-pointer hover:text-motion-red" onClick={() => setIsVoiceMode(false)} />}
                         {getHeaderIcon()}
@@ -672,7 +672,7 @@ export const AssetModal: React.FC<AssetModalProps> = (props) => {
 
                 {/* FOOTER - SPLIT ACTIONS */}
                 {!isVoiceMode && (
-                    <div className="p-5 border-t border-[#222] bg-[#0a0a0a] shrink-0 grid grid-cols-2 gap-3" id="tour-assetcfg-actions">
+                    <div className="p-5 border-t border-[#222] bg-[#1a1a1a] shrink-0 grid grid-cols-2 gap-3" id="tour-assetcfg-actions">
                         <button
                             data-agent="save-asset-config"
                             onClick={handleSaveOnly}

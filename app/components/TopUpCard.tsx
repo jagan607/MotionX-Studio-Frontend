@@ -21,8 +21,8 @@ export const TopUpCard = ({ id, title, credits, bonus, price, label, onClick, is
             className={`
                 relative p-5 border cursor-pointer transition-all duration-300 group flex flex-col justify-between h-full
                 ${isBestValue
-                    ? 'border-[#E50914] bg-[#0A0000] hover:bg-[#1A0505]'
-                    : 'border-[#222] bg-[#0A0A0A] hover:border-[#444] hover:bg-[#111]'
+                    ? 'border-[#D40A12] bg-[#0A0000] hover:bg-[#1A0505]'
+                    : 'border-[#222] bg-[#0A0A0A] hover:border-[#444] hover:bg-[#1a1a1a]'
                 }
                 ${isLoading ? 'opacity-70' : ''}
             `}
@@ -31,7 +31,7 @@ export const TopUpCard = ({ id, title, credits, bonus, price, label, onClick, is
             {label && (
                 <div className={`
                     absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[9px] font-bold tracking-[2px] uppercase z-10
-                    ${isBestValue ? 'bg-[#E50914] text-white' : 'bg-[#333] text-[#CCC]'}
+                    ${isBestValue ? 'bg-[#D40A12] text-white' : 'bg-[#333] text-[#CCC]'}
                 `}>
                     {label}
                 </div>
@@ -65,7 +65,7 @@ export const TopUpCard = ({ id, title, credits, bonus, price, label, onClick, is
                     w-full py-3 text-[10px] font-bold tracking-[2px] uppercase transition-all flex items-center justify-center gap-2 mt-auto
                     ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
                     ${isBestValue
-                        ? 'bg-[#E50914] text-white hover:bg-[#CC0000]'
+                        ? 'bg-[#D40A12] text-white hover:bg-[#CC0000]'
                         : 'bg-[#1A1A1A] text-[#CCC] border border-[#333] group-hover:border-[#666] group-hover:text-white'
                     }
                 `}

@@ -99,7 +99,7 @@ export default function QuickStartTemplates({ userGoal, onDismiss }: QuickStartT
             {/* Section Header */}
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                    <Sparkles size={12} className="text-[#E50914]" />
+                    <Sparkles size={12} className="text-[#D40A12]" />
                     <span className="text-[10px] font-bold tracking-[2px] uppercase text-white/40">Quick Start</span>
                 </div>
                 {onDismiss && (
@@ -116,9 +116,9 @@ export default function QuickStartTemplates({ userGoal, onDismiss }: QuickStartT
             {/* Input Field */}
             <div className="relative mb-3">
                 <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 transition-all duration-300 ${
-                    idea ? "border-[#E50914]/30 bg-[#E50914]/[0.03]" : "border-white/[0.06] bg-white/[0.02]"
-                } focus-within:border-[#E50914]/40 focus-within:bg-[#E50914]/[0.04]`}>
-                    <Sparkles size={14} className="text-[#E50914]/50 shrink-0" />
+                    idea ? "border-[#D40A12]/30 bg-[#D40A12]/[0.03]" : "border-white/[0.06] bg-white/[0.02]"
+                } focus-within:border-[#D40A12]/40 focus-within:bg-[#D40A12]/[0.04]`}>
+                    <Sparkles size={14} className="text-[#D40A12]/50 shrink-0" />
                     <input
                         type="text"
                         value={idea}
@@ -130,7 +130,7 @@ export default function QuickStartTemplates({ userGoal, onDismiss }: QuickStartT
                         }}
                         onKeyDown={handleKeyDown}
                         placeholder="Describe your video in one line... e.g. A street fashion reel in neon-lit Tokyo"
-                        className="flex-1 bg-transparent text-[13px] text-white placeholder-white/20 focus:outline-none caret-[#E50914] tracking-wide"
+                        className="flex-1 bg-transparent text-[13px] text-white placeholder-white/20 focus:outline-none caret-[#D40A12] tracking-wide"
                         disabled={isCreating}
                     />
                     <button
@@ -138,9 +138,9 @@ export default function QuickStartTemplates({ userGoal, onDismiss }: QuickStartT
                         disabled={!idea.trim() || isCreating}
                         className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[9px] font-bold tracking-[1.5px] uppercase transition-all duration-300 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed border-none shrink-0"
                         style={{
-                            background: idea.trim() ? "linear-gradient(135deg, #E50914, #B30710)" : "rgba(255,255,255,0.05)",
+                            background: idea.trim() ? "linear-gradient(135deg, #D40A12, #B30710)" : "rgba(255,255,255,0.05)",
                             color: idea.trim() ? "white" : "rgba(255,255,255,0.3)",
-                            boxShadow: idea.trim() ? "0 4px 16px rgba(229,9,20,0.25)" : "none",
+                            boxShadow: idea.trim() ? "0 4px 16px rgba(212,10,18,0.25)" : "none",
                         }}
                     >
                         {isCreating ? (

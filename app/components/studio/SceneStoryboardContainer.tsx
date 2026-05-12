@@ -216,7 +216,7 @@ export const SceneStoryboardContainer: React.FC<SceneStoryboardContainerProps> =
     if (!isOpen || !activeSceneData) return null;
 
     return (
-        <div className="relative z-[100]">
+        <div className="relative z-[100] w-full h-full flex-1 flex flex-col">
 
             {/* Scene Mood is now managed by CinematographyPanel inside StoryboardOverlay */}
 

@@ -595,7 +595,7 @@ export default function DraftPage() {
     };
 
     const DraftHeader = (
-        <div className="h-20 border-b border-[#1A1A1A] bg-[#080808] flex items-center justify-between px-8 shrink-0">
+        <div className="h-20 border-b border-[#1A1A1A] bg-[#161616] flex items-center justify-between px-8 shrink-0">
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3 text-[#EEE]">
                     <div>

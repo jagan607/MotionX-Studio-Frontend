@@ -370,11 +370,11 @@ export const TimelineBoard = ({ seriesId, episodeId, sceneId, shots }: any) => {
             <div className="flex-1 flex overflow-hidden border-b border-[#222]">
 
                 {/* LIBRARY */}
-                <div className="w-80 bg-[#111] border-r border-[#222] flex flex-col">
+                <div className="w-80 bg-[#1a1a1a] border-r border-[#222] flex flex-col">
                     <div className="p-4 border-b border-[#222]">
                         <h3 className="text-[10px] font-bold text-[#666] uppercase mb-2">Sound Generator</h3>
                         <div className="flex gap-2">
-                            <input className="bg-[#050505] border border-[#333] rounded flex-1 px-3 py-1.5 text-xs focus:border-blue-500 outline-none"
+                            <input className="bg-[#111111] border border-[#333] rounded flex-1 px-3 py-1.5 text-xs focus:border-blue-500 outline-none"
                                 placeholder="E.g. Footsteps..." value={sfxPrompt} onChange={e => setSfxPrompt(e.target.value)} />
                             <button onClick={handleGenerateSfx} disabled={isGeneratingSfx} className="bg-[#222] border border-[#333] px-3 rounded hover:bg-[#333]">
                                 {isGeneratingSfx ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
@@ -411,7 +411,7 @@ export const TimelineBoard = ({ seriesId, episodeId, sceneId, shots }: any) => {
             </div>
 
             {/* CONTROLS */}
-            <div className="h-12 bg-[#111] border-b border-[#222] flex items-center px-4 justify-between shrink-0 z-20">
+            <div className="h-12 bg-[#1a1a1a] border-b border-[#222] flex items-center px-4 justify-between shrink-0 z-20">
                 <div className="flex items-center gap-4">
                     <button onClick={() => setIsPlaying(!isPlaying)} className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-black hover:scale-105 transition">
                         {isPlaying ? <Pause size={14} fill="black" /> : <Play size={14} fill="black" className="ml-0.5" />}
@@ -431,7 +431,7 @@ export const TimelineBoard = ({ seriesId, episodeId, sceneId, shots }: any) => {
             </div>
 
             {/* TRACKS */}
-            <div className="flex-1 bg-[#080808] overflow-hidden flex flex-col relative">
+            <div className="flex-1 bg-[#161616] overflow-hidden flex flex-col relative">
                 {/* Ruler */}
                 <div ref={timelineContainerRef} className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar relative"
                     onMouseDown={(e) => {

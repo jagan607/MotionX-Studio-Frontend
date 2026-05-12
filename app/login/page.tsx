@@ -140,14 +140,14 @@ export default function LoginPage() {
   // If already authenticated, show a loader instead of flashing the login UI
   if (isRedirecting) {
     return (
-      <div className="h-screen w-screen bg-[#050505] flex items-center justify-center">
-        <Activity size={32} className="animate-spin text-[#E50914]" />
+      <div className="h-screen w-screen bg-[#111111] flex items-center justify-center">
+        <Activity size={32} className="animate-spin text-[#D40A12]" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen w-screen bg-[#050505] text-[#EDEDED] font-sans overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-screen w-screen bg-[#111111] text-[#EDEDED] font-sans overflow-hidden">
 
       {/* ── LEFT PANEL — hero (hidden on mobile) ── */}
       <div className="hidden lg:flex flex-[1.5] relative bg-black border-r border-[#222] flex-col justify-between overflow-hidden">
@@ -164,7 +164,7 @@ export default function LoginPage() {
         {/* HUD top */}
         <div className="relative z-10 p-10 flex justify-between font-mono text-[10px] tracking-[2px] uppercase leading-relaxed">
           <div>
-            <div className="flex items-center gap-2 text-white mb-1"><Disc size={10} fill="#E50914" color="#E50914" className="animate-pulse" /> MOTIONX STUDIO</div>
+            <div className="flex items-center gap-2 text-white mb-1"><Disc size={10} fill="#D40A12" color="#D40A12" className="animate-pulse" /> MOTIONX STUDIO</div>
             <div className="text-[9px] text-[#555]">CINEMATIC AI PLATFORM</div>
           </div>
           <div className="text-right text-[#555]"><div>SECURE</div><div>ENCRYPTED</div></div>
@@ -185,7 +185,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── RIGHT PANEL — login form ── */}
-      <div className="flex-1 flex items-center justify-center relative bg-[#050505] px-6 sm:px-10 py-10">
+      <div className="flex-1 flex items-center justify-center relative bg-[#111111] px-6 sm:px-10 py-10">
         {/* Grid background */}
         <div className="absolute inset-0 opacity-50 z-0"
           style={{ backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)', backgroundSize: '40px 40px' }}
@@ -199,7 +199,7 @@ export default function LoginPage() {
         <div className="relative z-10 w-full max-w-[420px]">
           {/* Header */}
           <div className="mb-10">
-            <div className="bg-[#E50914] text-white font-['Anton'] py-1 px-2.5 text-sm inline-block mb-4 rounded">MX</div>
+            <div className="bg-[#D40A12] text-white font-['Anton'] py-1 px-2.5 text-sm inline-block mb-4 rounded">MX</div>
             <div className="text-[11px] font-semibold tracking-[2px] text-[#555] mb-2.5">SIGN IN</div>
             <h1 className="font-['Anton'] text-[36px] sm:text-[42px] uppercase mb-2.5 leading-none">Welcome Back</h1>
             <p className="text-[13px] text-[#666] leading-relaxed">Sign in to your MotionX Studio account.</p>
@@ -207,11 +207,11 @@ export default function LoginPage() {
 
           {/* Card */}
           <div className="border border-white/[0.08] bg-[#0A0A0A] p-[5px] rounded-xl">
-            <div className="border border-white/[0.06] p-6 sm:p-[30px] bg-[#080808] rounded-[10px]">
+            <div className="border border-white/[0.06] p-6 sm:p-[30px] bg-[#161616] rounded-[10px]">
               {/* Status row */}
               <div className="flex gap-4 mb-6 text-[9px] font-mono text-[#555] uppercase">
                 {isRestrictedBrowser ? (
-                  <span className="flex items-center text-[#E50914]"><span className="w-1.5 h-1.5 bg-[#E50914] rounded-full inline-block mr-1.5" /> SECURITY ALERT</span>
+                  <span className="flex items-center text-[#D40A12]"><span className="w-1.5 h-1.5 bg-[#D40A12] rounded-full inline-block mr-1.5" /> SECURITY ALERT</span>
                 ) : (
                   <span className="flex items-center"><span className="w-1.5 h-1.5 bg-[#00FF41] rounded-full inline-block mr-1.5" /> SYSTEM ONLINE</span>
                 )}
@@ -219,7 +219,7 @@ export default function LoginPage() {
               </div>
 
               {isRestrictedBrowser ? (
-                <div className="w-full p-5 bg-[#E50914]/[0.06] border border-[#E50914]/30 text-[#E50914] text-[11px] leading-relaxed tracking-[1px] uppercase flex flex-col gap-2.5 items-center text-center rounded-lg">
+                <div className="w-full p-5 bg-[#D40A12]/[0.06] border border-[#D40A12]/30 text-[#D40A12] text-[11px] leading-relaxed tracking-[1px] uppercase flex flex-col gap-2.5 items-center text-center rounded-lg">
                   <div className="flex items-center gap-2 text-xs font-bold"><AlertTriangle size={16} /> ACCESS RESTRICTED</div>
                   <div>IN-APP BROWSER DETECTED.</div>
                   <div>Please tap <strong>...</strong> and select <strong>Open in Browser</strong>.</div>
@@ -234,9 +234,9 @@ export default function LoginPage() {
                     onMouseLeave={() => setIsHovered(false)}
                     className="w-full py-4 sm:py-[18px] rounded-lg text-xs font-bold tracking-[2px] uppercase flex items-center justify-center gap-2.5 transition-all cursor-pointer border-none disabled:opacity-70"
                     style={{
-                      backgroundColor: isHovered ? '#E50914' : '#FFF',
+                      backgroundColor: isHovered ? '#D40A12' : '#FFF',
                       color: isHovered ? '#FFF' : '#000',
-                      boxShadow: isHovered ? '0 0 25px rgba(229,9,20,0.35)' : 'none'
+                      boxShadow: isHovered ? '0 0 25px rgba(212,10,18,0.35)' : 'none'
                     }}
                   >
                     {isLoading ? <><Activity size={16} className="animate-spin" /> SIGNING IN...</> : <> CONTINUE WITH GOOGLE <ArrowRight size={16} strokeWidth={3} /></>}

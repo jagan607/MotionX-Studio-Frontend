@@ -36,7 +36,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                             data-agent="product-name"
                             value={editableName}
                             onChange={(e) => onNameChange(e.target.value)}
-                            className="w-full bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
+                            className="w-full bg-[#1a1a1a] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
                             placeholder="e.g. Quantum X Sneaker"
                         />
                     </div>
@@ -46,7 +46,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                             data-agent="product-brand"
                             value={brandName}
                             onChange={(e) => onChange('brandName', e.target.value)}
-                            className="w-full bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
+                            className="w-full bg-[#1a1a1a] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
                             placeholder="e.g. Athletix"
                         />
                     </div>
@@ -57,7 +57,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                         data-agent="product-category"
                         value={category}
                         onChange={(e) => onChange('category', e.target.value)}
-                        className="w-full bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
+                        className="w-full bg-[#1a1a1a] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
                         placeholder="e.g. Footwear, Beverage, Tech..."
                     />
                 </div>
@@ -67,7 +67,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                         data-agent="product-description"
                         value={description}
                         onChange={(e) => onChange('description', e.target.value)}
-                        className="w-full h-20 bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors resize-none"
+                        className="w-full h-20 bg-[#1a1a1a] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors resize-none"
                         placeholder="e.g. A weathered steel machete with a leather-wrapped handle, blade nicked from heavy use..."
                     />
                 </div>
@@ -84,7 +84,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                         data-agent="product-materials"
                         value={materials}
                         onChange={(e) => onChange('materials', e.target.value)}
-                        className="w-full bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
+                        className="w-full bg-[#1a1a1a] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
                         placeholder="e.g. Leather, Brushed Steel, Neon Rubber..."
                     />
                 </div>
@@ -94,8 +94,8 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                         data-agent="product-colors"
                         value={colors}
                         onChange={(e) => onChange('colors', e.target.value)}
-                        className="w-full bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
-                        placeholder="e.g. #E50914, Matte Black, White..."
+                        className="w-full bg-[#1a1a1a] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors"
+                        placeholder="e.g. #D40A12, Matte Black, White..."
                     />
                 </div>
             </div>
@@ -111,7 +111,7 @@ export const ProductTab: React.FC<ProductTabProps> = ({
                         data-agent="product-features"
                         value={features}
                         onChange={(e) => onChange('features', e.target.value)}
-                        className="w-full h-24 bg-[#111] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors resize-none"
+                        className="w-full h-24 bg-[#1a1a1a] border border-[#333] p-3 text-sm text-white focus:border-red-600 focus:outline-none transition-colors resize-none"
                         placeholder="e.g. Waterproof, 24h Battery, Zero Sugar..."
                     />
                 </div>

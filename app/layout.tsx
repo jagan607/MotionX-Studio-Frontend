@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 import GlobalHeader from "@/components/GlobalHeader";
+import GlobalSidebar from "@/components/GlobalSidebar";
 import { Toaster } from "react-hot-toast";
 import { IS_MAINTENANCE_MODE } from "@/lib/maintenance";
 import Script from "next/script";
@@ -138,7 +139,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://motionx-api-280948415370.asia-south2.run.app" />
       </head>
-      <body className={inter.className} style={{ backgroundColor: '#030303', color: 'white' }} suppressHydrationWarning={true}>
+      <body className={inter.className} style={{ backgroundColor: '#111111', color: 'white' }} suppressHydrationWarning={true}>
 
         <Script
           id="razorpay-checkout"
@@ -150,6 +151,9 @@ export default function RootLayout({
           <GlobalMediaViewer />
 
           <div className="h-screen flex flex-col relative overflow-hidden">
+            {/* Global Ambient Glow to enhance glassmorphism */}
+            <div className="fixed inset-0 pointer-events-none z-[-1] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-[#D40A12]/[0.05] via-[#111111] to-[#111111]" />
+
             <Script
               id="json-ld"
               type="application/ld+json"
@@ -195,6 +199,9 @@ export default function RootLayout({
 
               {/* MAIN CONTENT + AI DIRECTOR: flex row so panel pushes content */}
               <div className="flex-1 flex flex-row relative z-0 min-h-0">
+                <Suspense fallback={null}>
+                  <GlobalSidebar />
+                </Suspense>
                 <main className="flex-1 flex flex-col relative min-w-0 overflow-y-auto" style={{ transform: 'translateZ(0)' }}>
                   {children}
                 </main>

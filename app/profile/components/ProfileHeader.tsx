@@ -43,7 +43,7 @@ export default function ProfileHeader({
                 <button
                     onClick={() => setActiveTab("subscription")}
                     className={`px-5 py-3 text-[11px] font-semibold tracking-wide flex items-center gap-2 transition-all border-b-2 cursor-pointer bg-transparent outline-none ${activeTab === "subscription"
-                        ? "text-white border-[#E50914]"
+                        ? "text-white border-[#D40A12]"
                         : "text-[#555] border-transparent hover:text-[#999]"
                         }`}
                 >
@@ -52,7 +52,7 @@ export default function ProfileHeader({
                 <button
                     onClick={() => setActiveTab("settings")}
                     className={`px-5 py-3 text-[11px] font-semibold tracking-wide flex items-center gap-2 transition-all border-b-2 cursor-pointer bg-transparent outline-none ${activeTab === "settings"
-                        ? "text-white border-[#E50914]"
+                        ? "text-white border-[#D40A12]"
                         : "text-[#555] border-transparent hover:text-[#999]"
                         }`}
                 >
@@ -62,7 +62,7 @@ export default function ProfileHeader({
                     <button
                         onClick={() => setActiveTab("organization")}
                         className={`px-5 py-3 text-[11px] font-semibold tracking-wide flex items-center gap-2 transition-all border-b-2 cursor-pointer bg-transparent outline-none ${activeTab === "organization"
-                            ? "text-white border-[#E50914]"
+                            ? "text-white border-[#D40A12]"
                             : "text-[#555] border-transparent hover:text-[#999]"
                             }`}
                     >

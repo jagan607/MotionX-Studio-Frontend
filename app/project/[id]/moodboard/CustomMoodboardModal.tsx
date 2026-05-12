@@ -128,7 +128,7 @@ export default function CustomMoodboardModal({
 
             {/* Modal */}
             <div
-                className="relative z-10 bg-[#0a0a0a] border border-white/[0.08] rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl"
+                className="relative z-10 bg-[#1a1a1a] border border-white/[0.08] rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl"
                 style={{ animation: "fadeSlideUp 0.3s ease both" }}
             >
                 {/* Header */}

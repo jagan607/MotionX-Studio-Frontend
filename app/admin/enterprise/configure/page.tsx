@@ -173,7 +173,7 @@ export default function ConfigurePage() {
         }
     };
 
-    const inputClass = "w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors";
+    const inputClass = "w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors";
     const labelClass = "text-[9px] font-mono uppercase text-[#666] tracking-widest";
 
     return (
@@ -182,7 +182,7 @@ export default function ConfigurePage() {
             {/* HEADER */}
             <div className="flex justify-between items-end border-b border-[#222] pb-6">
                 <div>
-                    <div className="flex items-center gap-2 text-[#E50914] mb-2">
+                    <div className="flex items-center gap-2 text-[#D40A12] mb-2">
                         <ShieldCheck size={18} />
                         <span className="text-[10px] font-mono tracking-widest uppercase">SSO Management</span>
                     </div>
@@ -201,7 +201,7 @@ export default function ConfigurePage() {
             </div>
 
             {/* TABLE CARD */}
-            <div className="bg-[#080808] border border-[#222] overflow-hidden">
+            <div className="bg-[#161616] border border-[#222] overflow-hidden">
                 {isLoading ? (
                     <div className="flex items-center justify-center py-20 gap-3 text-[#555]">
                         <Activity size={18} className="animate-spin" />
@@ -231,7 +231,7 @@ export default function ConfigurePage() {
                         </thead>
                         <tbody>
                             {organizations.map((org) => (
-                                <tr key={org.slug} className="border-b border-[#1A1A1A] hover:bg-[#111] transition-colors group">
+                                <tr key={org.slug} className="border-b border-[#1A1A1A] hover:bg-[#1a1a1a] transition-colors group">
                                     <td className="p-4 text-sm text-white font-mono">{org.organization_name}</td>
                                     <td className="p-4 text-xs text-[#AAA] font-mono">{org.slug}</td>
                                     <td className="p-4">
@@ -282,11 +282,11 @@ export default function ConfigurePage() {
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closeModal} />
 
                     {/* Modal */}
-                    <div className="relative z-10 w-full max-w-[560px] max-h-[90vh] overflow-y-auto bg-[#080808] border border-[#222] shadow-2xl">
+                    <div className="relative z-10 w-full max-w-[560px] max-h-[90vh] overflow-y-auto bg-[#161616] border border-[#222] shadow-2xl">
                         {/* Header */}
-                        <div className="sticky top-0 bg-[#080808] z-20 flex items-center justify-between p-6 border-b border-[#222]">
+                        <div className="sticky top-0 bg-[#161616] z-20 flex items-center justify-between p-6 border-b border-[#222]">
                             <div>
-                                <div className="flex items-center gap-2 text-[#E50914] mb-1">
+                                <div className="flex items-center gap-2 text-[#D40A12] mb-1">
                                     <ShieldCheck size={14} />
                                     <span className="text-[9px] font-mono tracking-widest uppercase">IdP Injection</span>
                                 </div>
@@ -308,7 +308,7 @@ export default function ConfigurePage() {
                                         type="button"
                                         onClick={() => { setProtocol("OIDC"); resetModalFields(); }}
                                         className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${protocol === "OIDC"
-                                            ? "bg-[#E50914] text-white"
+                                            ? "bg-[#D40A12] text-white"
                                             : "bg-transparent text-[#666] hover:text-white"
                                             }`}
                                     >
@@ -318,7 +318,7 @@ export default function ConfigurePage() {
                                         type="button"
                                         onClick={() => { setProtocol("SAML"); resetModalFields(); }}
                                         className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest border-l border-[#333] transition-colors ${protocol === "SAML"
-                                            ? "bg-[#E50914] text-white"
+                                            ? "bg-[#D40A12] text-white"
                                             : "bg-transparent text-[#666] hover:text-white"
                                             }`}
                                     >
@@ -328,7 +328,7 @@ export default function ConfigurePage() {
                                         type="button"
                                         onClick={() => { setProtocol("GOOGLE"); resetModalFields(); }}
                                         className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest border-l border-[#333] transition-colors ${protocol === "GOOGLE"
-                                            ? "bg-[#E50914] text-white"
+                                            ? "bg-[#D40A12] text-white"
                                             : "bg-transparent text-[#666] hover:text-white"
                                             }`}
                                     >
@@ -397,7 +397,7 @@ export default function ConfigurePage() {
                                         <input type="password" value={googleClientSecret} onChange={(e) => setGoogleClientSecret(e.target.value)} placeholder="••••••••••••••••" className={inputClass} />
                                     </div>
                                     <p className="text-[8px] text-[#555] pt-1 flex items-center gap-1">
-                                        <Info size={10} className="shrink-0 text-[#E50914]" />
+                                        <Info size={10} className="shrink-0 text-[#D40A12]" />
                                         Note: You can reuse your master MotionX Google OAuth Client credentials here.
                                     </p>
                                 </div>
@@ -433,11 +433,11 @@ export default function ConfigurePage() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center">
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setInfoModalOrg(null)} />
 
-                    <div className="relative z-10 w-full max-w-[600px] bg-[#080808] border border-[#222] shadow-2xl">
+                    <div className="relative z-10 w-full max-w-[600px] bg-[#161616] border border-[#222] shadow-2xl">
                         {/* Header */}
                         <div className="flex items-center justify-between p-6 border-b border-[#222]">
                             <div className="flex items-center gap-3">
-                                <Mail size={18} className="text-[#E50914]" />
+                                <Mail size={18} className="text-[#D40A12]" />
                                 <h3 className="font-anton text-xl text-white uppercase tracking-wide">IT Onboarding Instructions</h3>
                             </div>
                             <button onClick={() => setInfoModalOrg(null)} className="text-[#666] hover:text-white transition-colors">
@@ -448,19 +448,19 @@ export default function ConfigurePage() {
                         <div className="p-6 space-y-4">
                             {/* Workspace Details */}
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="bg-[#111] border border-[#222] p-4">
+                                <div className="bg-[#1a1a1a] border border-[#222] p-4">
                                     <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Organization Name</span>
                                     <span className="text-sm font-mono text-white">{infoModalOrg.organization_name}</span>
                                 </div>
-                                <div className="bg-[#111] border border-[#222] p-4">
+                                <div className="bg-[#1a1a1a] border border-[#222] p-4">
                                     <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Workspace Slug</span>
                                     <span className="text-sm font-mono text-white">{infoModalOrg.slug}</span>
                                 </div>
-                                <div className="bg-[#111] border border-[#222] p-4">
+                                <div className="bg-[#1a1a1a] border border-[#222] p-4">
                                     <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Tenant ID</span>
                                     <span className="text-sm font-mono text-white">{infoModalOrg.tenant_id}</span>
                                 </div>
-                                <div className="bg-[#111] border border-[#222] p-4">
+                                <div className="bg-[#1a1a1a] border border-[#222] p-4">
                                     <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Organization ID</span>
                                     <span className="text-sm font-mono text-white">{infoModalOrg.slug}</span>
                                 </div>
@@ -477,7 +477,7 @@ export default function ConfigurePage() {
                             {/* Subject */}
                             <div>
                                 <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Subject</span>
-                                <div className="bg-[#111] border border-[#333] p-3 text-xs font-mono text-[#CCC]">
+                                <div className="bg-[#1a1a1a] border border-[#333] p-3 text-xs font-mono text-[#CCC]">
                                     MotionX Studio Enterprise SSO Provisioning - {infoModalOrg.organization_name}
                                 </div>
                             </div>
@@ -485,7 +485,7 @@ export default function ConfigurePage() {
                             {/* Body */}
                             <div>
                                 <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Body</span>
-                                <div className="bg-[#111] border border-[#333] p-4 text-xs font-mono text-[#AAA] space-y-3 whitespace-pre-wrap leading-relaxed">
+                                <div className="bg-[#1a1a1a] border border-[#333] p-4 text-xs font-mono text-[#AAA] space-y-3 whitespace-pre-wrap leading-relaxed">
                                     <p>Hi IT Team,</p>
                                     <p>We are setting up the enterprise workspace for <strong className="text-white">{infoModalOrg.organization_name}</strong> and need to configure your Single Sign-On (SSO) integration. We natively support Microsoft Entra ID, Okta, and Google Workspace (SAML 2.0 or OIDC).</p>
                                     <p>To register MotionX Studio in your identity provider, please use our Service Provider details:</p>

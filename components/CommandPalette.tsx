@@ -102,7 +102,7 @@ export default function CommandPalette({ projects, open, onClose }: Props) {
                         onChange={e => setQuery(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder="Search projects or jump to..."
-                        className="flex-1 bg-transparent text-[14px] text-white placeholder-white/20 focus:outline-none caret-[#E50914]"
+                        className="flex-1 bg-transparent text-[14px] text-white placeholder-white/20 focus:outline-none caret-[#D40A12]"
                     />
                     <kbd className="hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-white/[0.05] border border-white/[0.08] text-[9px] font-mono text-white/20">
                         ESC
@@ -132,7 +132,7 @@ export default function CommandPalette({ projects, open, onClose }: Props) {
                                             activeIdx === globalIdx ? "bg-white/[0.06]" : "bg-transparent hover:bg-white/[0.03]"
                                         }`}>
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                            activeIdx === globalIdx ? "bg-[#E50914]/15 text-[#E50914]" : "bg-white/[0.04] text-white/30"
+                                            activeIdx === globalIdx ? "bg-[#D40A12]/15 text-[#D40A12]" : "bg-white/[0.04] text-white/30"
                                         } transition-colors`}>
                                             {action.icon}
                                         </div>
@@ -160,7 +160,7 @@ export default function CommandPalette({ projects, open, onClose }: Props) {
                                             activeIdx === globalIdx ? "bg-white/[0.06]" : "bg-transparent hover:bg-white/[0.03]"
                                         }`}>
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                            activeIdx === globalIdx ? "bg-[#E50914]/15 text-[#E50914]" : "bg-white/[0.04] text-white/30"
+                                            activeIdx === globalIdx ? "bg-[#D40A12]/15 text-[#D40A12]" : "bg-white/[0.04] text-white/30"
                                         } transition-colors`}>
                                             {action.icon}
                                         </div>

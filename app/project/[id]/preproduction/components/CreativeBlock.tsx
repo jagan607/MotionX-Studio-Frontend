@@ -48,7 +48,7 @@ export function CreativeBlock({
             case "SCRIPT": return { color: "#FFFFFF", bg: "bg-white/10" };
             case "CHARACTER": return { color: "#D4A843", bg: "bg-[#D4A843]/10" };
             case "LOCATION": return { color: "#4A90E2", bg: "bg-[#4A90E2]/10" };
-            case "MOODBOARD": return { color: "#E50914", bg: "bg-[#E50914]/10" };
+            case "MOODBOARD": return { color: "#D40A12", bg: "bg-[#D40A12]/10" };
             case "PRODUCT": return { color: "#10B981", bg: "bg-[#10B981]/10" };
         }
     };
@@ -57,7 +57,7 @@ export function CreativeBlock({
 
     return (
         <div className={`
-            group relative w-[240px] flex flex-col bg-[#080808] border border-white/[0.08] rounded-xl overflow-hidden
+            group relative w-[240px] flex flex-col bg-[#161616] border border-white/[0.08] rounded-xl overflow-hidden
             transition-all duration-300 hover:border-white/[0.15] hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)]
             ${className}
         `}>
@@ -95,7 +95,7 @@ export function CreativeBlock({
                 {/* Optional Image Area */}
                 {(imageUrl !== undefined || imagePlaceholderIcon || type === "MOODBOARD") && type !== "SCRIPT" && (
                     <div
-                        className={`relative w-full aspect-square bg-[#111] rounded-lg mb-3 overflow-hidden border border-white/[0.04] ${onImageClick ? 'cursor-pointer hover:border-white/[0.1] transition-colors group/img' : ''}`}
+                        className={`relative w-full aspect-square bg-[#1a1a1a] rounded-lg mb-3 overflow-hidden border border-white/[0.04] ${onImageClick ? 'cursor-pointer hover:border-white/[0.1] transition-colors group/img' : ''}`}
                         onClick={onImageClick}
                     >
                         {imageUrl ? (
@@ -105,7 +105,7 @@ export function CreativeBlock({
                                 {imagePlaceholderIcon === "user" && <User size={32} className="text-white/10" />}
                                 {imagePlaceholderIcon === "location" && <MapPin size={32} className="text-white/10" />}
                                 {imagePlaceholderIcon === "product" && <div className="text-white/10 text-[32px] font-thin">P</div>}
-                                {type === "MOODBOARD" && <Palette size={32} className="text-[#E50914]/20" />}
+                                {type === "MOODBOARD" && <Palette size={32} className="text-[#D40A12]/20" />}
                             </div>
                         )}
 
@@ -114,13 +114,13 @@ export function CreativeBlock({
                             <div className={`absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 opacity-0 ${isGenerating ? 'opacity-100' : 'group-hover/img:opacity-100'} transition-opacity`}>
                                 {isGenerating ? (
                                     <>
-                                        <div className="w-4 h-4 border-2 border-[#E50914] border-t-transparent rounded-full animate-spin" />
-                                        <span className="text-[8px] font-mono text-[#E50914] tracking-widest uppercase animate-pulse">Generating</span>
+                                        <div className="w-4 h-4 border-2 border-[#D40A12] border-t-transparent rounded-full animate-spin" />
+                                        <span className="text-[8px] font-mono text-[#D40A12] tracking-widest uppercase animate-pulse">Generating</span>
                                     </>
                                 ) : (
                                     <>
                                         {onGenerate && (
-                                            <button onClick={(e) => { e.stopPropagation(); onGenerate(); }} className="px-3 py-1.5 bg-[#E50914]/20 text-[#E50914] border border-[#E50914]/30 hover:bg-[#E50914] hover:text-white hover:border-[#E50914] transition-all rounded text-[9px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                            <button onClick={(e) => { e.stopPropagation(); onGenerate(); }} className="px-3 py-1.5 bg-[#D40A12]/20 text-[#D40A12] border border-[#D40A12]/30 hover:bg-[#D40A12] hover:text-white hover:border-[#D40A12] transition-all rounded text-[9px] font-bold uppercase tracking-wider flex items-center gap-1.5">
                                                 <Sparkles size={10} /> Generate
                                             </button>
                                         )}

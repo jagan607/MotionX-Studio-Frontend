@@ -353,7 +353,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
             />
 
             {/* Modal Container */}
-            <div className="w-[95vw] max-w-[1200px] h-[90vh] flex flex-col bg-[#050505] border border-white/[0.06] shadow-2xl shadow-black/80 relative overflow-hidden rounded-xl">
+            <div className="w-[95vw] max-w-[1200px] h-[90vh] flex flex-col bg-[#111111] border border-white/[0.06] shadow-2xl shadow-black/80 relative overflow-hidden rounded-xl">
 
                 {/* ── HEADER ── */}
                 <div className="h-14 border-b border-white/[0.06] bg-[#0A0A0A] flex items-center justify-between px-6 shrink-0">
@@ -392,7 +392,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                         <button
                             id="tour-am-generate-all"
                             onClick={handleGenerateAll}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/[0.08] hover:border-[#E50914]/50 hover:bg-[#E50914]/10 text-neutral-500 hover:text-[#ff6b6b] text-[9px] font-bold tracking-widest uppercase transition-all rounded cursor-pointer"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/[0.08] hover:border-[#D40A12]/50 hover:bg-[#D40A12]/10 text-neutral-500 hover:text-[#ff6b6b] text-[9px] font-bold tracking-widest uppercase transition-all rounded cursor-pointer"
                         >
                             <Sparkles size={10} /> Generate All
                         </button>
@@ -407,7 +407,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                 </div>
 
                 {/* ── TAB BAR ── */}
-                <div id="tour-am-cast-tab" className="h-11 border-b border-white/[0.06] bg-[#080808] flex items-center px-6 gap-1 shrink-0">
+                <div id="tour-am-cast-tab" className="h-11 border-b border-white/[0.06] bg-[#161616] flex items-center px-6 gap-1 shrink-0">
                     {project?.type === 'ad' && (
                         <TabButton active={activeTab === 'products'} onClick={() => setActiveTab('products')} icon={<ShoppingBag size={12} />} label="Products" count={assets.products.length} />
                     )}
@@ -419,13 +419,13 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                 </div>
 
                 {/* ── GRID ── */}
-                <div className="flex-1 overflow-y-auto p-6 bg-[#020202]">
+                <div className="flex-1 overflow-y-auto p-6 bg-[#111111]">
                     <div className={`grid gap-5 ${activeTab === 'locations' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'}`}>
                         <AssetCard variant="create" tourId="tour-am-register-new" onCreate={handleOpenDraft} label={"ADD " + (activeTab === 'cast' ? 'CHARACTER' : activeTab === 'locations' ? 'LOCATION' : 'PRODUCT')} />
 
                         {loading ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-50">
-                                <Loader2 className="animate-spin text-[#E50914] mb-3" size={22} />
+                                <Loader2 className="animate-spin text-[#D40A12] mb-3" size={22} />
                                 <span className="text-[10px] tracking-widest text-neutral-600 uppercase">Loading assets...</span>
                             </div>
                         ) : filteredAssets.map((asset, index) => (
@@ -479,7 +479,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
                     onUpload={() => { }}
                     onUpdateTraits={(data) => handleSaveAsset(selectedAsset, data)}
                     onLinkVoice={async () => { }}
-                    styles={{ modal: { background: '#050505', border: '1px solid #333', borderRadius: '4px', boxShadow: '0 0 100px rgba(0,0,0,0.9)' } }}
+                    styles={{ modal: { background: '#111111', border: '1px solid #333', borderRadius: '4px', boxShadow: '0 0 100px rgba(0,0,0,0.9)' } }}
                 />
             )}
         </div>
@@ -499,7 +499,7 @@ function TabButton({ active, onClick, icon, label, count }: {
         >
             {icon}
             {label}
-            <span className={`font-mono text-[9px] ${active ? "text-[#E50914]" : "text-neutral-700"}`}>
+            <span className={`font-mono text-[9px] ${active ? "text-[#D40A12]" : "text-neutral-700"}`}>
                 {String(count).padStart(2, '0')}
             </span>
         </button>

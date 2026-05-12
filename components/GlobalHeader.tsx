@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { auth } from "@/lib/firebase";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, User, Building, ChevronDown, Check, Zap, Eye } from "@/lib/lucide";
+import { Plus, User, Building, ChevronDown, Check } from "@/lib/lucide";
 import { useCredits } from "@/hooks/useCredits";
 import { formatCredits } from "@/app/hooks/usePricing";
 import { useWorkspace } from "@/app/context/WorkspaceContext";
@@ -84,13 +84,13 @@ export default function GlobalHeader() {
     return (
         <>
             <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
-            <header className="flex justify-between items-center border-b border-white/[0.06] px-4 sm:px-6 lg:px-10 py-3 sm:py-4 bg-[#050505]/85 backdrop-blur-xl sticky top-0 z-50">
+            <header className="flex justify-between items-center border-b border-white/[0.06] px-4 sm:px-6 lg:px-10 py-3 sm:py-4 bg-[#111111]/85 backdrop-blur-xl sticky top-0 z-50">
 
                 {/* ── LEFT: LOGO + WORKSPACE SWITCHER ── */}
                 <div className="flex items-center gap-3 sm:gap-4">
                     <Link href="/dashboard" className="no-underline shrink-0">
                         <h1 className="text-lg sm:text-2xl font-['Anton'] uppercase leading-none tracking-[0.5px] text-white">
-                            Motion X <span className="text-[#E50914]">Studio</span>
+                            Motion X <span className="text-[#D40A12]">Studio</span>
                         </h1>
                         <p className="text-[8px] sm:text-[9px] text-[#999] tracking-[3px] font-bold mt-1 uppercase">Creative Studio</p>
                     </Link>
@@ -104,7 +104,7 @@ export default function GlobalHeader() {
                         >
                             <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
                                 activeWorkspaceSlug
-                                    ? 'bg-[#E50914]/20 text-[#E50914] border border-[#E50914]/30'
+                                    ? 'bg-[#D40A12]/20 text-[#D40A12] border border-[#D40A12]/30'
                                     : 'bg-white/10 text-white/70'
                             }`}>
                                 {activeWorkspaceSlug
@@ -152,11 +152,11 @@ export default function GlobalHeader() {
                                         onClick={() => handleWorkspaceSwitch(ws.slug)}
                                         className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.05] transition-colors cursor-pointer border-none bg-transparent text-left"
                                     >
-                                        <div className="w-7 h-7 rounded-lg bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center shrink-0 overflow-hidden">
+                                        <div className="w-7 h-7 rounded-lg bg-[#D40A12]/10 border border-[#D40A12]/20 flex items-center justify-center shrink-0 overflow-hidden">
                                             {ws.logo_url ? (
                                                 <img src={ws.logo_url} alt="" className="w-full h-full object-cover rounded-lg" />
                                             ) : (
-                                                <Building size={13} className="text-[#E50914]" />
+                                                <Building size={13} className="text-[#D40A12]" />
                                             )}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -184,69 +184,23 @@ export default function GlobalHeader() {
                 {/* ── RIGHT CONTROLS ── */}
                 <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
 
-                    {/* Credits + Top Up */}
-                    <div id="tour-credits-target" className={`flex items-center gap-2 sm:gap-3 lg:gap-4 mr-1 sm:mr-2 lg:mr-4 ${credits !== null && credits < 5 ? 'animate-pulse' : ''}`}>
-                        <div className="text-right">
-                            <span className="text-[7px] sm:text-[8px] text-[#999] font-mono uppercase block leading-none mb-0.5 flex items-center gap-1">
-                                {isEnterprise && <Building size={8} className="text-[#E50914]" />}
-                                {isEnterprise ? 'Org Credits' : 'Credits'}
-                            </span>
-                            <div className={`text-xs sm:text-[13px] font-bold font-mono tracking-[0.5px] ${credits !== null && credits < 5 ? 'text-[#E50914]' : 'text-white'}`}>{credits !== null ? formatCredits(credits) : '---'}</div>
-                            {/* Expiry countdown for free users */}
-                            {plan === "free" && creditsExpireAt && !freeCreditsExpired && credits !== null && credits > 0 && (() => {
-                                const now = new Date();
-                                const diff = creditsExpireAt.getTime() - now.getTime();
-                                const daysLeft = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-                                if (daysLeft <= 0) return null;
-                                return (
-                                    <span className={`text-[7px] font-mono uppercase block leading-none mt-0.5 ${daysLeft <= 3 ? 'text-[#E50914] animate-pulse' : 'text-[#666]'}`}>
-                                        {daysLeft}d left
-                                    </span>
-                                );
-                            })()}
-                        </div>
+                    {/* Credits — compact */}
+                    <div id="tour-credits-target" className={`flex items-center mr-1 sm:mr-2 lg:mr-4 ${credits !== null && credits < 5 ? 'animate-pulse' : ''}`}>
                         <button
                             onClick={() => setShowTopUp(true)}
-                            className="flex items-center gap-1 sm:gap-1.5 bg-[#E50914]/10 border border-[#E50914]/30 text-white px-2 sm:px-3 py-1.5 sm:py-[6px] text-[8px] sm:text-[9px] font-bold uppercase rounded-md cursor-pointer transition-all hover:bg-[#E50914]/25 hover:border-[#E50914] hover:shadow-[0_0_20px_rgba(229,9,20,0.2)]"
+                            className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] text-white px-3 py-2 text-[10px] font-bold rounded-lg cursor-pointer transition-all hover:bg-white/[0.06] hover:border-white/[0.12]"
                         >
-                            <Plus size={9} strokeWidth={4} />
-                            <span className="hidden sm:inline">TOP UP</span>
+                            <span className="text-yellow-500 text-[11px]">⚡</span>
+                            <span className={`font-mono tracking-wide ${credits !== null && credits < 5 ? 'text-[#D40A12]' : 'text-white/90'}`}>{credits !== null ? formatCredits(credits) : '---'}</span>
+                            <span className="text-white/30 text-[8px] font-bold uppercase tracking-wider hidden sm:inline">Top Up</span>
                         </button>
                     </div>
-
-                    {/* Playground — B2C workspace */}
-                    <Link id="tour-playground" href="/playground" className="hidden md:block no-underline">
-                        <button
-                            className={`flex items-center gap-2 text-[10px] sm:text-xs font-bold tracking-[2px] uppercase transition-all rounded-md px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 cursor-pointer border ${
-                                pathname === '/playground'
-                                    ? 'bg-[#E50914]/15 border-[#E50914]/40 text-[#E50914] shadow-[0_0_20px_rgba(229,9,20,0.15)]'
-                                    : 'bg-[#1A1A1A] border-[#222] text-white hover:bg-[#222]'
-                            }`}
-                        >
-                            Playground
-                        </button>
-                    </Link>
-
-                    {/* Explore — public gallery */}
-                    <Link href="/explore" className="hidden md:block no-underline">
-                        <button
-                            className={`flex items-center gap-2 text-[10px] sm:text-xs font-bold tracking-[2px] uppercase transition-all rounded-md px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 cursor-pointer border ${
-                                pathname === '/explore'
-                                    ? 'bg-[#E50914]/15 border-[#E50914]/40 text-[#E50914] shadow-[0_0_20px_rgba(229,9,20,0.15)]'
-                                    : 'bg-[#1A1A1A] border-[#222] text-white hover:bg-[#222]'
-                            }`}
-                        >
-                            <Eye size={12} />
-                            Explore
-                        </button>
-                    </Link>
-
                     {/* New Project — hidden on small mobile, disabled when on /project/new */}
                     <Link href="/project/new" className={`hidden md:block ${isOnNewProject ? 'pointer-events-none' : ''}`}>
                         <button
                             disabled={isOnNewProject}
-                            className={`flex items-center gap-2 bg-[#E50914] border border-[#E50914] text-[10px] sm:text-xs font-bold tracking-[2px] text-white px-3 sm:px-5 lg:px-6 py-2 sm:py-2.5 uppercase transition-all rounded-md
-                                ${isOnNewProject ? 'opacity-30 cursor-not-allowed' : 'hover:bg-[#ff1a25] hover:shadow-[0_0_20px_rgba(229,9,20,0.3)] cursor-pointer'}`}
+                            className={`flex items-center gap-2 bg-[#D40A12] border border-[#D40A12] text-[10px] sm:text-xs font-bold tracking-[2px] text-white px-3 sm:px-5 lg:px-6 py-2 sm:py-2.5 uppercase transition-all rounded-md
+                                ${isOnNewProject ? 'opacity-30 cursor-not-allowed' : 'hover:bg-[#ff1a25] hover:shadow-[0_0_20px_rgba(212,10,18,0.3)] cursor-pointer'}`}
                         >
                             <Plus className="w-3 h-3" strokeWidth={3} /> New Project
                         </button>

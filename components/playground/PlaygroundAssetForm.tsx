@@ -297,19 +297,19 @@ export default function PlaygroundAssetForm({
                 {/* Name (required) */}
                 <div>
                     <label className="text-[8px] font-mono text-[#555] uppercase tracking-[2px] block mb-1.5">
-                        Name <span className="text-[#E50914]">*</span>
+                        Name <span className="text-[#D40A12]">*</span>
                     </label>
                     <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder={`e.g. ${assetType === "characters" ? "Maya" : assetType === "locations" ? "Tokyo Rooftop" : "Vintage Camera"}`}
-                        className="w-full bg-[#0a0a0a] border border-[#222] rounded-lg px-3 py-2 text-[12px] text-white/90 placeholder:text-[#333] outline-none focus:border-white/20 transition-colors font-sans"
+                        className="w-full bg-[#1a1a1a] border border-[#222] rounded-lg px-3 py-2 text-[12px] text-white/90 placeholder:text-[#333] outline-none focus:border-white/20 transition-colors font-sans"
                         autoFocus={!isEditMode}
                     />
                     {name.trim() && (
                         <p className="text-[8px] text-[#444] font-mono mt-1">
-                            Tag: <span className="text-[#E50914]">@{name.replace(/\s+/g, "")}</span>
+                            Tag: <span className="text-[#D40A12]">@{name.replace(/\s+/g, "")}</span>
                         </p>
                     )}
                 </div>
@@ -323,7 +323,7 @@ export default function PlaygroundAssetForm({
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         placeholder="A brief description for the AI to understand this asset..."
-                        className="w-full bg-[#0a0a0a] border border-[#222] rounded-lg px-3 py-2 text-[11px] text-white/90 placeholder:text-[#333] outline-none focus:border-white/20 transition-colors font-sans resize-none min-h-[56px]"
+                        className="w-full bg-[#1a1a1a] border border-[#222] rounded-lg px-3 py-2 text-[11px] text-white/90 placeholder:text-[#333] outline-none focus:border-white/20 transition-colors font-sans resize-none min-h-[56px]"
                         rows={2}
                     />
                 </div>
@@ -374,7 +374,7 @@ export default function PlaygroundAssetForm({
                             {/* Generating overlay */}
                             {isGeneratingVisual && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <Loader2 className="animate-spin text-[#E50914] mb-2" size={24} />
+                                    <Loader2 className="animate-spin text-[#D40A12] mb-2" size={24} />
                                     <span className="text-[9px] font-mono text-white uppercase tracking-[2px]">Generating…</span>
                                 </div>
                             )}
@@ -401,8 +401,8 @@ export default function PlaygroundAssetForm({
                         >
                             {isGeneratingVisual ? (
                                 <>
-                                    <Loader2 size={18} className="text-[#E50914] animate-spin mb-2" />
-                                    <span className="text-[9px] font-mono text-[#E50914] uppercase tracking-[1px]">
+                                    <Loader2 size={18} className="text-[#D40A12] animate-spin mb-2" />
+                                    <span className="text-[9px] font-mono text-[#D40A12] uppercase tracking-[1px]">
                                         Generating visual…
                                     </span>
                                 </>
@@ -455,7 +455,7 @@ export default function PlaygroundAssetForm({
                                         value={traits[key] || ""}
                                         onChange={(e) => updateTrait(key, e.target.value)}
                                         placeholder={placeholder}
-                                        className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-md px-2.5 py-1.5 text-[10px] text-white/80 placeholder:text-[#2a2a2a] outline-none focus:border-white/15 transition-colors font-sans"
+                                        className="w-full bg-[#1a1a1a] border border-[#1a1a1a] rounded-md px-2.5 py-1.5 text-[10px] text-white/80 placeholder:text-[#2a2a2a] outline-none focus:border-white/15 transition-colors font-sans"
                                     />
                                 </div>
                             ))}
@@ -480,7 +480,7 @@ export default function PlaygroundAssetForm({
                                         value={traits[key] || ""}
                                         onChange={(e) => updateTrait(key, e.target.value)}
                                         placeholder={placeholder}
-                                        className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-md px-2.5 py-1.5 text-[10px] text-white/80 placeholder:text-[#2a2a2a] outline-none focus:border-white/15 transition-colors font-sans"
+                                        className="w-full bg-[#1a1a1a] border border-[#1a1a1a] rounded-md px-2.5 py-1.5 text-[10px] text-white/80 placeholder:text-[#2a2a2a] outline-none focus:border-white/15 transition-colors font-sans"
                                     />
                                 </div>
                             ))}
@@ -505,7 +505,7 @@ export default function PlaygroundAssetForm({
                                         value={productMeta[key] || ""}
                                         onChange={(e) => updateProductMetaField(key, e.target.value)}
                                         placeholder={placeholder}
-                                        className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-md px-2.5 py-1.5 text-[10px] text-white/80 placeholder:text-[#2a2a2a] outline-none focus:border-white/15 transition-colors font-sans"
+                                        className="w-full bg-[#1a1a1a] border border-[#1a1a1a] rounded-md px-2.5 py-1.5 text-[10px] text-white/80 placeholder:text-[#2a2a2a] outline-none focus:border-white/15 transition-colors font-sans"
                                     />
                                 </div>
                             ))}
@@ -522,7 +522,7 @@ export default function PlaygroundAssetForm({
                     className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[9px] font-bold uppercase tracking-[2px] transition-all border ${
                         !name.trim() || isSubmitting || isGeneratingVisual
                             ? "border-white/[0.06] bg-white/[0.02] text-[#444] cursor-not-allowed"
-                            : "border-[#E50914]/40 bg-[#E50914]/15 text-white hover:bg-[#E50914]/25 hover:border-[#E50914] hover:shadow-[0_0_20px_rgba(229,9,20,0.15)] cursor-pointer"
+                            : "border-[#D40A12]/40 bg-[#D40A12]/15 text-white hover:bg-[#D40A12]/25 hover:border-[#D40A12] hover:shadow-[0_0_20px_rgba(212,10,18,0.15)] cursor-pointer"
                     }`}
                 >
                     {isSubmitting ? (

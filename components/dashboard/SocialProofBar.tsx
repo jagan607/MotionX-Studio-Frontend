@@ -53,7 +53,7 @@ export default function SocialProofBar() {
             <div className="flex items-center justify-center gap-6 sm:gap-10 py-3 px-4 rounded-xl bg-white/[0.015] border border-white/[0.03]">
                 {STATS.map((stat, i) => (
                     <div key={i} className="flex items-center gap-2">
-                        <div className="text-[#E50914]/40">{stat.icon}</div>
+                        <div className="text-[#D40A12]/40">{stat.icon}</div>
                         <span className="text-[12px] sm:text-[13px] font-bold text-white/50 tabular-nums font-mono">
                             <AnimatedNumber target={stat.value} />
                             {stat.suffix}

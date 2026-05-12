@@ -91,7 +91,7 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
         <>
             <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
 
-            <header className={`h-16 border-b border-white/[0.06] bg-[#050505]/85 backdrop-blur-xl flex items-center justify-between px-6 shrink-0 z-50 ${className}`}>
+            <header className={`h-16 border-b border-white/[0.06] bg-[#111111]/85 backdrop-blur-xl flex items-center justify-between px-6 shrink-0 z-50 ${className}`}>
 
                 {/* LEFT: Back to Project Hub */}
                 <div className="flex items-center h-full gap-5">
@@ -121,7 +121,7 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
 
                         {showProjectDropdown && (
                             <div className="absolute top-full right-0 mt-1 w-full bg-[#1A1A1A] border border-[#333] rounded-md shadow-2xl shadow-black/80 z-[9999] overflow-hidden">
-                                <div className="px-4 py-2 border-b border-[#222] flex items-center justify-between bg-[#111]">
+                                <div className="px-4 py-2 border-b border-[#222] flex items-center justify-between bg-[#1a1a1a]">
                                     <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Switch Project</span>
                                     <span className="text-[9px] font-mono text-[#333]">{projects.length}</span>
                                 </div>
@@ -176,7 +176,7 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
 
                                 {showEpisodeDropdown && (
                                     <div className="absolute top-full right-0 mt-1 w-[220px] bg-[#1A1A1A] border border-[#333] rounded-md shadow-2xl shadow-black/80 z-[9999] overflow-hidden">
-                                        <div className="px-4 py-2 border-b border-[#222] bg-[#111]">
+                                        <div className="px-4 py-2 border-b border-[#222] bg-[#1a1a1a]">
                                             <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Switch Episode</span>
                                         </div>
                                         <div className="max-h-[280px] overflow-y-auto">
@@ -193,7 +193,7 @@ export const PreProductionHeader: React.FC<PreProductionHeaderProps> = ({
                                                             : 'hover:bg-[#222] border-l-2 border-l-transparent'
                                                     }`}
                                                 >
-                                                    <span className="text-[8px] font-mono text-[#555] bg-[#111] border border-[#333] px-1.5 py-0.5 rounded-sm">
+                                                    <span className="text-[8px] font-mono text-[#555] bg-[#1a1a1a] border border-[#333] px-1.5 py-0.5 rounded-sm">
                                                         {String(ep.episode_number || 0).padStart(2, '0')}
                                                     </span>
                                                     <span className="text-[10px] font-bold text-[#EEE] uppercase tracking-wide truncate flex-1">

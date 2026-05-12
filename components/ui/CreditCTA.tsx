@@ -32,7 +32,7 @@ interface CreditCTAProps {
     /**
      * Visual variant:
      * - "default"  → dark glass CTA (border-white/20, text-white)
-     * - "primary"  → red accent CTA (bg-[#E50914]/15, border-[#E50914]/40)
+     * - "primary"  → red accent CTA (bg-[#D40A12]/15, border-[#D40A12]/40)
      * - "ghost"    → minimal transparent CTA
      */
     variant?: "default" | "primary" | "ghost";
@@ -58,8 +58,8 @@ const VARIANT_CLASSES: Record<string, string> = {
         "hover:bg-white/[0.08] hover:border-white/[0.25]",
     ].join(" "),
     primary: [
-        "bg-[#E50914]/15 text-white border border-[#E50914]/40",
-        "hover:bg-[#E50914]/25 hover:border-[#E50914]/60",
+        "bg-[#D40A12]/15 text-white border border-[#D40A12]/40",
+        "hover:bg-[#D40A12]/25 hover:border-[#D40A12]/60",
     ].join(" "),
     ghost: [
         "bg-transparent text-neutral-400 border border-transparent",

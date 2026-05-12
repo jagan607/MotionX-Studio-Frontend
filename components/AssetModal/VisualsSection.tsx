@@ -150,8 +150,8 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
             </div>
 
             {/* PROMPT TERMINAL */}
-            <div className="bg-[#050505] border border-neutral-800 rounded-lg overflow-hidden mb-4 group focus-within:border-neutral-600 transition-colors">
-                <div className="bg-[#0a0a0a] px-3 py-2 border-b border-neutral-800 flex items-center gap-2">
+            <div className="bg-[#111111] border border-neutral-800 rounded-lg overflow-hidden mb-4 group focus-within:border-neutral-600 transition-colors">
+                <div className="bg-[#1a1a1a] px-3 py-2 border-b border-neutral-800 flex items-center gap-2">
                     <Terminal size={10} className="text-green-500" />
                     <span className="text-[10px] font-mono text-green-500/70 tracking-widest uppercase">Prompt Terminal</span>
                 </div>
@@ -165,7 +165,7 @@ export const VisualsSection: React.FC<VisualsSectionProps> = ({
             </div>
 
             {/* MAIN IMAGE PREVIEW AREA */}
-            <div className="w-full h-[260px] bg-[#050505] border border-dashed border-neutral-800 rounded-lg overflow-hidden flex items-center justify-center relative group">
+            <div className="w-full h-[260px] bg-[#111111] border border-dashed border-neutral-800 rounded-lg overflow-hidden flex items-center justify-center relative group">
 
                 {/* LOADING OVERLAY */}
                 {isProcessing && (

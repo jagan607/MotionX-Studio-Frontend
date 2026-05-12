@@ -135,7 +135,7 @@ export default function ExplorePage() {
     };
 
     return (
-        <div className="fixed inset-0 bg-[#030303] text-[#EDEDED] font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#E50914] selection:text-white">
+        <div className="fixed inset-0 bg-[#111111] text-[#EDEDED] font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#D40A12] selection:text-white">
 
             {/* ═══ SCROLLABLE CONTENT ═══ */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto no-scrollbar">
@@ -163,8 +163,8 @@ export default function ExplorePage() {
                         )}
 
                         {/* Cinematic overlays */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/40 to-transparent" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#030303]/70 via-transparent to-[#030303]/70" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-[#111111]/40 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#111111]/70 via-transparent to-[#111111]/70" />
                         {/* Film grain */}
                         <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
                             style={{
@@ -178,7 +178,7 @@ export default function ExplorePage() {
                             <div className="max-w-3xl">
                                 {/* Badge */}
                                 <div className="flex items-center gap-2 mb-4">
-                                    <div className="w-1.5 h-1.5 bg-[#E50914] rounded-full animate-pulse shadow-[0_0_8px_rgba(229,9,20,0.6)]" />
+                                    <div className="w-1.5 h-1.5 bg-[#D40A12] rounded-full animate-pulse shadow-[0_0_8px_rgba(212,10,18,0.6)]" />
                                     <span className="text-[9px] font-mono text-white/40 uppercase tracking-[3px]">
                                         Spotlight — Made with MotionX
                                     </span>
@@ -187,7 +187,7 @@ export default function ExplorePage() {
                                 {/* Title */}
                                 <h1 className="font-['Anton'] text-[36px] sm:text-[52px] lg:text-[64px] uppercase leading-[0.9] tracking-[1px] text-white mb-4"
                                     style={{
-                                        background: "linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 60%, #E50914 100%)",
+                                        background: "linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 60%, #D40A12 100%)",
                                         WebkitBackgroundClip: "text",
                                         WebkitTextFillColor: "transparent",
                                     }}
@@ -207,8 +207,8 @@ export default function ExplorePage() {
                                         onClick={() => router.push("/playground")}
                                         className="flex items-center gap-2 px-6 py-3 rounded-lg text-[10px] font-bold uppercase tracking-[2px] border-none cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.98]"
                                         style={{
-                                            background: "linear-gradient(135deg, #E50914, #B30710)",
-                                            boxShadow: "0 4px 24px rgba(229,9,20,0.35), inset 0 1px 0 rgba(255,255,255,0.1)",
+                                            background: "linear-gradient(135deg, #D40A12, #B30710)",
+                                            boxShadow: "0 4px 24px rgba(212,10,18,0.35), inset 0 1px 0 rgba(255,255,255,0.1)",
                                         }}
                                     >
                                         <Zap size={13} />
@@ -250,7 +250,7 @@ export default function ExplorePage() {
                 )}
 
                 {/* ── FILTER BAR ── */}
-                <div className="sticky top-0 z-30 bg-[#030303]/80 backdrop-blur-xl border-b border-white/[0.04]">
+                <div className="sticky top-0 z-30 bg-[#111111]/80 backdrop-blur-xl border-b border-white/[0.04]">
                     <div className="max-w-[1600px] mx-auto px-6 sm:px-10 py-3 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <span className="text-[9px] font-mono text-white/20 uppercase tracking-[2px]">
@@ -291,8 +291,8 @@ export default function ExplorePage() {
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-32">
                             <div className="relative">
-                                <div className="w-16 h-16 rounded-full border-2 border-[#E50914]/20 border-t-[#E50914] animate-spin" />
-                                <Sparkles size={16} className="text-[#E50914] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                                <div className="w-16 h-16 rounded-full border-2 border-[#D40A12]/20 border-t-[#D40A12] animate-spin" />
+                                <Sparkles size={16} className="text-[#D40A12] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                             </div>
                             <span className="text-[10px] font-mono text-white/20 uppercase tracking-[3px] mt-6">
                                 Loading community feed
@@ -311,24 +311,19 @@ export default function ExplorePage() {
                     ) : (
                         <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-3">
                             {filtered.map((shot, i) => (
-                                <div
-                                    key={shot.id + i}
-                                    className="break-inside-avoid mb-3 explore-card-enter"
-                                    style={{ animationDelay: `${Math.min(i * 40, 600)}ms` }}
-                                >
+                                <LazyCard key={shot.id + i} index={i}>
                                     <div
-                                        className="group relative rounded-xl overflow-hidden cursor-pointer bg-[#0a0a0a] border border-white/[0.03] hover:border-white/[0.12] transition-all duration-500"
+                                        className="group relative rounded-xl overflow-hidden cursor-pointer bg-[#161616] border border-white/[0.03] hover:border-white/[0.12] transition-all duration-500"
                                         onClick={() => setSelectedShot(shot)}
                                         onMouseEnter={() => handleMouseEnter(shot, i)}
                                         onMouseLeave={() => handleMouseLeave(shot, i)}
                                         style={{ boxShadow: "0 2px 20px rgba(0,0,0,0.3)" }}
                                     >
-                                        {/* Image */}
-                                        <img
+                                        {/* Image with blur-up */}
+                                        <ProgressiveImage
                                             src={shot.image_url}
                                             alt={shot.prompt || "AI generation"}
                                             className="w-full object-cover opacity-75 group-hover:opacity-100 group-hover:scale-[1.04] transition-all duration-700 ease-out"
-                                            loading="lazy"
                                         />
 
                                         {/* Video overlay (play on hover) */}
@@ -347,7 +342,7 @@ export default function ExplorePage() {
                                         <div className="absolute top-0 left-0 right-0 p-2.5 flex items-start justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                             <div className="flex gap-1.5">
                                                 {shot.video_url && (
-                                                    <div className="bg-[#E50914]/80 backdrop-blur-sm px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                    <div className="bg-[#D40A12]/80 backdrop-blur-sm px-2 py-0.5 rounded-full flex items-center gap-1">
                                                         <Play size={7} fill="white" className="text-white" />
                                                         <span className="text-[7px] font-bold uppercase tracking-[0.5px] text-white">Video</span>
                                                     </div>
@@ -371,10 +366,10 @@ export default function ExplorePage() {
 
                                         {/* Ambient glow on hover */}
                                         <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
-                                            style={{ boxShadow: "inset 0 0 40px rgba(229,9,20,0.06), 0 0 30px rgba(229,9,20,0.05)" }}
+                                            style={{ boxShadow: "inset 0 0 40px rgba(212,10,18,0.06), 0 0 30px rgba(212,10,18,0.05)" }}
                                         />
                                     </div>
-                                </div>
+                                </LazyCard>
                             ))}
                         </div>
                     )}
@@ -392,8 +387,8 @@ export default function ExplorePage() {
                         onClick={() => router.push("/playground")}
                         className="flex items-center gap-2 px-6 py-3 rounded-full text-[10px] font-bold uppercase tracking-[2px] border-none cursor-pointer transition-all hover:scale-105 active:scale-[0.98]"
                         style={{
-                            background: "linear-gradient(135deg, #E50914, #B30710)",
-                            boxShadow: "0 8px 32px rgba(229,9,20,0.4), 0 0 60px rgba(229,9,20,0.15)",
+                            background: "linear-gradient(135deg, #D40A12, #B30710)",
+                            boxShadow: "0 8px 32px rgba(212,10,18,0.4), 0 0 60px rgba(212,10,18,0.15)",
                             backdropFilter: "blur(10px)",
                         }}
                     >
@@ -412,7 +407,7 @@ export default function ExplorePage() {
                     style={{ backgroundColor: "rgba(0,0,0,0.92)", backdropFilter: "blur(20px)" }}
                 >
                     <div
-                        className="relative max-w-5xl w-full max-h-[90vh] flex flex-col sm:flex-row rounded-2xl overflow-hidden border border-white/[0.06] bg-[#0a0a0a]/95 shadow-[0_40px_120px_rgba(0,0,0,0.8)]"
+                        className="relative max-w-5xl w-full max-h-[90vh] flex flex-col sm:flex-row rounded-2xl overflow-hidden border border-white/[0.06] bg-[#1a1a1a]/95 shadow-[0_40px_120px_rgba(0,0,0,0.8)]"
                         onClick={e => e.stopPropagation()}
                         style={{ animation: "lightboxSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)" }}
                     >
@@ -445,12 +440,12 @@ export default function ExplorePage() {
                         </div>
 
                         {/* Info panel — right/bottom */}
-                        <div className="sm:w-[320px] lg:w-[360px] flex flex-col border-t sm:border-t-0 sm:border-l border-white/[0.06] bg-[#0a0a0a]">
+                        <div className="sm:w-[320px] lg:w-[360px] flex flex-col border-t sm:border-t-0 sm:border-l border-white/[0.06] bg-[#1a1a1a]">
                             {/* Header */}
                             <div className="p-5 pb-4 border-b border-white/[0.04]">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <div className="w-6 h-6 rounded-md bg-[#E50914]/15 border border-[#E50914]/20 flex items-center justify-center">
-                                        {selectedShot.video_url ? <Film size={11} className="text-[#E50914]" /> : <ImageIcon size={11} className="text-[#E50914]" />}
+                                    <div className="w-6 h-6 rounded-md bg-[#D40A12]/15 border border-[#D40A12]/20 flex items-center justify-center">
+                                        {selectedShot.video_url ? <Film size={11} className="text-[#D40A12]" /> : <ImageIcon size={11} className="text-[#D40A12]" />}
                                     </div>
                                     <span className="text-[9px] font-mono text-white/30 uppercase tracking-[2px]">
                                         {selectedShot.video_url ? "AI Video" : "AI Image"}
@@ -476,7 +471,7 @@ export default function ExplorePage() {
                                         {selectedShot.video_url ? <Film size={7} /> : <ImageIcon size={7} />}
                                         {selectedShot.video_url ? "Video" : "Image"}
                                     </span>
-                                    <span className="text-[8px] font-bold uppercase tracking-[1px] text-[#E50914]/40 bg-[#E50914]/[0.05] border border-[#E50914]/10 px-2.5 py-1 rounded-full">
+                                    <span className="text-[8px] font-bold uppercase tracking-[1px] text-[#D40A12]/40 bg-[#D40A12]/[0.05] border border-[#D40A12]/10 px-2.5 py-1 rounded-full">
                                         MotionX
                                     </span>
                                 </div>
@@ -491,8 +486,8 @@ export default function ExplorePage() {
                                     }}
                                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] font-bold uppercase tracking-[2px] border-none cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
                                     style={{
-                                        background: "linear-gradient(135deg, #E50914, #B30710)",
-                                        boxShadow: "0 4px 20px rgba(229,9,20,0.3)",
+                                        background: "linear-gradient(135deg, #D40A12, #B30710)",
+                                        boxShadow: "0 4px 20px rgba(212,10,18,0.3)",
                                     }}
                                 >
                                     <Sparkles size={12} />
@@ -544,6 +539,67 @@ export default function ExplorePage() {
                     animation: explore-lightbox-bg 0.3s ease-out;
                 }
             `}</style>
+        </div>
+    );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PERFORMANCE: Progressive Image + Lazy Card
+   ═══════════════════════════════════════════════════════════════ */
+
+/** Intersection-observer powered lazy card wrapper — only mounts children when near viewport */
+function LazyCard({ children, index }: { children: React.ReactNode; index: number }) {
+    const ref = useRef<HTMLDivElement>(null);
+    const [visible, setVisible] = useState(index < 8); // first 8 render immediately
+
+    useEffect(() => {
+        if (visible) return;
+        const el = ref.current;
+        if (!el) return;
+        const obs = new IntersectionObserver(
+            ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
+            { rootMargin: "200px" } // start loading 200px before entering viewport
+        );
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, [visible]);
+
+    return (
+        <div ref={ref} className="break-inside-avoid mb-3 explore-card-enter" style={{ animationDelay: `${Math.min(index * 40, 600)}ms` }}>
+            {visible ? children : (
+                <div className="rounded-xl bg-[#161616] border border-white/[0.03] animate-pulse" style={{ paddingBottom: '56.25%' }} />
+            )}
+        </div>
+    );
+}
+
+/** Progressive image with blur-up placeholder */
+function ProgressiveImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+    const [loaded, setLoaded] = useState(false);
+    const imgRef = useRef<HTMLImageElement>(null);
+
+    useEffect(() => {
+        // Check if already cached
+        if (imgRef.current?.complete && imgRef.current?.naturalWidth > 0) {
+            setLoaded(true);
+        }
+    }, []);
+
+    return (
+        <div className="relative">
+            {/* Tiny blurred placeholder */}
+            {!loaded && (
+                <div className="w-full bg-[#161616] animate-pulse" style={{ paddingBottom: '75%' }} />
+            )}
+            <img
+                ref={imgRef}
+                src={src}
+                alt={alt}
+                loading="lazy"
+                decoding="async"
+                onLoad={() => setLoaded(true)}
+                className={`${className} transition-all duration-500 ${loaded ? 'opacity-75 blur-0' : 'opacity-0 blur-sm absolute inset-0'}`}
+            />
         </div>
     );
 }

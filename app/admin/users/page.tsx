@@ -93,7 +93,7 @@ async function UsersTableSection({ query }: { query: string }) {
     const users = await getUsers(query);
 
     return (
-        <div className="border border-[#222] bg-[#080808] max-h-[80vh] overflow-y-auto">
+        <div className="border border-[#222] bg-[#161616] max-h-[80vh] overflow-y-auto">
             <table className="w-full text-left">
                 <thead className="bg-[#0A0A0A] text-[10px] uppercase font-mono text-[#666] tracking-widest sticky top-0 z-10">
                     <tr>
@@ -161,7 +161,7 @@ async function UsersTableSection({ query }: { query: string }) {
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-[#666]">Spent:</span>
-                                            <span className="text-[#E50914] font-mono">{user.creditsSpent}</span>
+                                            <span className="text-[#D40A12] font-mono">{user.creditsSpent}</span>
                                         </div>
                                     </div>
                                 </td>
@@ -176,7 +176,7 @@ async function UsersTableSection({ query }: { query: string }) {
 
                                 {/* ROLE COLUMN */}
                                 <td className="p-4 border-r border-[#222]">
-                                    <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-[#111] border border-[#333] rounded text-[9px] font-bold text-[#888] uppercase">
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-[#1a1a1a] border border-[#333] rounded text-[9px] font-bold text-[#888] uppercase">
                                         <Shield size={10} /> {user.role}
                                     </span>
                                 </td>
@@ -187,7 +187,7 @@ async function UsersTableSection({ query }: { query: string }) {
                                         <input type="hidden" name="userId" value={user.id} />
                                         <div className="flex items-center border border-[#333] bg-[#0A0A0A] focus-within:border-white transition-colors h-8">
                                             <input type="number" name="amount" placeholder="Qty" className="w-16 bg-transparent text-white text-xs font-mono px-2 outline-none text-right placeholder-[#444]" required />
-                                            <button type="submit" className="h-full px-3 bg-[#111] hover:bg-green-900 hover:text-green-400 border-l border-[#333] transition-colors flex items-center justify-center text-[#666]">
+                                            <button type="submit" className="h-full px-3 bg-[#1a1a1a] hover:bg-green-900 hover:text-green-400 border-l border-[#333] transition-colors flex items-center justify-center text-[#666]">
                                                 <Plus size={12} strokeWidth={3} />
                                             </button>
                                         </div>

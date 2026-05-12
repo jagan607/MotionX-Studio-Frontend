@@ -5,7 +5,7 @@ import { db } from "@/lib/firebase";
 import { Loader2, Megaphone, Sparkles, Zap, Wrench, X, ChevronLeft, ChevronRight } from "@/lib/lucide";
 
 const TYPES: Record<string, { icon: any; color: string; label: string }> = {
-    feature: { icon: Sparkles, color: '#E50914', label: 'Feature' },
+    feature: { icon: Sparkles, color: '#D40A12', label: 'Feature' },
     update: { icon: Zap, color: '#3B82F6', label: 'Update' },
     fix: { icon: Wrench, color: '#22C55E', label: 'Fix' },
 };
@@ -96,17 +96,17 @@ export function WhatsNewModal({ visible, onClose }: { visible: any[]; onClose: (
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={onClose}>
             <div className="absolute inset-0 bg-black/85 backdrop-blur-md" />
-            <div className="relative z-10 w-full max-w-lg mx-4 bg-[#0a0a0a] border border-white/[0.06] rounded-2xl overflow-hidden shadow-2xl"
+            <div className="relative z-10 w-full max-w-lg mx-4 bg-[#1a1a1a] border border-white/[0.06] rounded-2xl overflow-hidden shadow-2xl"
                 onClick={e => e.stopPropagation()} style={{ animation: 'slideUp 0.4s cubic-bezier(0.16,1,0.3,1)' }}>
                 <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `linear-gradient(90deg, transparent, ${c.color}, transparent)` }} />
                 <div className="p-7">
-                    <div className="flex items-center gap-2.5 mb-1"><Megaphone size={16} className="text-[#E50914]" /><span className="text-[9px] font-mono text-[#E50914] uppercase tracking-[4px] font-bold">What&apos;s New</span></div>
+                    <div className="flex items-center gap-2.5 mb-1"><Megaphone size={16} className="text-[#D40A12]" /><span className="text-[9px] font-mono text-[#D40A12] uppercase tracking-[4px] font-bold">What&apos;s New</span></div>
                     <h2 className="font-['Anton'] text-2xl text-white uppercase tracking-wide mb-5">Latest Updates</h2>
                     <div style={{ transition: 'opacity 0.35s, transform 0.35s', opacity: fading ? 0 : 1, transform: fading ? 'translateX(-30px)' : 'translateX(0)' }}>
                         {a.media_url && (
                             <div className="w-full aspect-video rounded-xl overflow-hidden border border-white/[0.04] mb-4 bg-black relative">
                                 {isVid ? (<>
-                                    {!vidReady && <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a0a] z-10"><Loader2 className="animate-spin text-[#E50914]" size={24} /></div>}
+                                    {!vidReady && <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#1a1a1a] z-10"><Loader2 className="animate-spin text-[#D40A12]" size={24} /></div>}
                                     <video key={a.id} src={a.media_url} autoPlay loop muted playsInline preload="metadata" onCanPlay={() => setVidReady(true)} className={`w-full h-full object-cover transition-opacity ${vidReady ? 'opacity-100' : 'opacity-0'}`} />
                                 </>) : <img key={a.id} src={a.media_url} alt="" className="w-full h-full object-cover" />}
                             </div>
@@ -119,11 +119,11 @@ export function WhatsNewModal({ visible, onClose }: { visible: any[]; onClose: (
                         {total > 1 ? (
                             <div className="flex items-center gap-3">
                                 <button onClick={() => goTo((idx - 1 + total) % total)} className="w-7 h-7 rounded-full border border-white/[0.06] flex items-center justify-center text-white/20 hover:text-white cursor-pointer"><ChevronLeft size={14} /></button>
-                                <div className="flex gap-1.5">{visible.map((_, i) => <button key={i} onClick={() => goTo(i)} className={`rounded-full transition-all cursor-pointer ${i === idx ? 'w-5 h-1.5 bg-[#E50914]' : 'w-1.5 h-1.5 bg-white/10'}`} />)}</div>
+                                <div className="flex gap-1.5">{visible.map((_, i) => <button key={i} onClick={() => goTo(i)} className={`rounded-full transition-all cursor-pointer ${i === idx ? 'w-5 h-1.5 bg-[#D40A12]' : 'w-1.5 h-1.5 bg-white/10'}`} />)}</div>
                                 <button onClick={() => goTo((idx + 1) % total)} className="w-7 h-7 rounded-full border border-white/[0.06] flex items-center justify-center text-white/20 hover:text-white cursor-pointer"><ChevronRight size={14} /></button>
                             </div>
                         ) : <div />}
-                        <button onClick={onClose} className="px-7 py-2.5 text-[10px] font-bold uppercase tracking-[3px] rounded-xl cursor-pointer border-none text-white" style={{ background: "linear-gradient(135deg, #E50914, #B30710)", boxShadow: "0 4px 16px rgba(229,9,20,0.3)" }}>Got It</button>
+                        <button onClick={onClose} className="px-7 py-2.5 text-[10px] font-bold uppercase tracking-[3px] rounded-xl cursor-pointer border-none text-white" style={{ background: "linear-gradient(135deg, #D40A12, #B30710)", boxShadow: "0 4px 16px rgba(212,10,18,0.3)" }}>Got It</button>
                     </div>
                 </div>
             </div>

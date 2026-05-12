@@ -46,7 +46,7 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
                     </label>
                     <input
                         data-agent="asset-name"
-                        className="w-full bg-[#0a0a0a] border border-[#333] rounded px-3 py-3 text-white text-[13px] font-bold outline-none focus:border-motion-red transition-colors placeholder-[#444]"
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-3 text-white text-[13px] font-bold outline-none focus:border-motion-red transition-colors placeholder-[#444]"
                         placeholder="e.g. Spike, Old House"
                         value={editableName}
                         onChange={(e) => onNameChange(e.target.value)}
@@ -64,7 +64,7 @@ export const TraitsTab: React.FC<TraitsTabProps> = ({
                         </label>
                         <input
                             data-agent={`asset-trait-${field.k}`}
-                            className="w-full bg-[#0a0a0a] border border-[#333] rounded px-3 py-3 text-[#EEE] text-[13px] outline-none focus:border-[#555] transition-colors placeholder-[#444]"
+                            className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-3 text-[#EEE] text-[13px] outline-none focus:border-[#555] transition-colors placeholder-[#444]"
                             placeholder={field.p}
                             value={getDisplayValue(field.k)}
                             onChange={(e) => handleTraitChange(field.k, e.target.value)}

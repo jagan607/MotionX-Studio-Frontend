@@ -61,7 +61,7 @@ export function SceneNavigator({ id, scenes, onJumpToScene, activeSceneId }: Sce
                                 onClick={() => onJumpToScene(scene.position)}
                                 className={`w-full text-left px-3 py-2 transition-all duration-200 cursor-pointer group
                                     ${isActive
-                                        ? 'bg-white/[0.06] border-l-2 border-[#E50914]'
+                                        ? 'bg-white/[0.06] border-l-2 border-[#D40A12]'
                                         : 'border-l-2 border-transparent hover:bg-white/[0.03] hover:border-white/10'
                                     }`}
                                 style={{

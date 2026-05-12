@@ -260,10 +260,10 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
             {/* ═══ HEADER — Film strip accent ═══ */}
             <div className="px-4 py-3 border-b border-[#1a1a1a] flex items-center justify-between shrink-0 relative overflow-hidden">
                 {/* Film sprocket holes */}
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#E50914]/30 to-transparent" />
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#D40A12]/30 to-transparent" />
                 <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded bg-[#E50914]/10 flex items-center justify-center">
-                        <Eye size={10} className="text-[#E50914]" />
+                    <div className="w-5 h-5 rounded bg-[#D40A12]/10 flex items-center justify-center">
+                        <Eye size={10} className="text-[#D40A12]" />
                     </div>
                     <div>
                         <span className="text-[10px] font-bold tracking-[3px] text-white uppercase block leading-none">
@@ -283,7 +283,7 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
 
                 {/* ═══ SHOT PREVIEW ═══ */}
                 <div className="p-3 border-b border-[#111]">
-                    <div className="aspect-video rounded-md overflow-hidden bg-[#0a0a0a] border border-[#151515] relative group">
+                    <div className="aspect-video rounded-md overflow-hidden bg-[#1a1a1a] border border-[#151515] relative group">
                         {clip.thumbnailUrl ? (
                             <img src={clip.thumbnailUrl} alt={clip.label} className="w-full h-full object-cover" />
                         ) : (
@@ -402,16 +402,16 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                                             disabled={isActive || isReverting}
                                             className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md transition-all text-left ${
                                                 isActive
-                                                    ? 'bg-[#E50914]/10 border border-[#E50914]/30'
-                                                    : 'bg-[#0a0a0a] border border-[#151515] hover:border-neutral-600 cursor-pointer'
+                                                    ? 'bg-[#D40A12]/10 border border-[#D40A12]/30'
+                                                    : 'bg-[#1a1a1a] border border-[#151515] hover:border-neutral-600 cursor-pointer'
                                             }`}
                                         >
                                             {/* Version indicator */}
                                             <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
-                                                isActive ? 'bg-[#E50914]/20' : 'bg-[#111]'
+                                                isActive ? 'bg-[#D40A12]/20' : 'bg-[#1a1a1a]'
                                             }`}>
                                                 {isActive ? (
-                                                    <CheckCircle size={10} className="text-[#E50914]" />
+                                                    <CheckCircle size={10} className="text-[#D40A12]" />
                                                 ) : isOriginal ? (
                                                     <span className="text-[7px] text-neutral-600 font-bold">OG</span>
                                                 ) : (
@@ -423,12 +423,12 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-1.5">
                                                     <span className={`text-[9px] font-bold truncate ${
-                                                        isActive ? 'text-[#E50914]' : 'text-neutral-400'
+                                                        isActive ? 'text-[#D40A12]' : 'text-neutral-400'
                                                     }`}>
                                                         {displayLabel}
                                                     </span>
                                                     {isActive && (
-                                                        <span className="text-[6px] text-[#E50914]/60 tracking-wider font-bold uppercase">Active</span>
+                                                        <span className="text-[6px] text-[#D40A12]/60 tracking-wider font-bold uppercase">Active</span>
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-1">
@@ -503,25 +503,25 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                             }}
                             className={`w-full rounded-md border border-dashed transition-all ${
                                 isDraggingRef
-                                    ? "border-[#E50914]/60 bg-[#E50914]/5"
-                                    : "border-[#222] hover:border-[#444] bg-[#0a0a0a]"
+                                    ? "border-[#D40A12]/60 bg-[#D40A12]/5"
+                                    : "border-[#222] hover:border-[#444] bg-[#1a1a1a]"
                             }`}
                         >
                             <div className="py-4 flex flex-col items-center gap-1.5">
                                 {isUploadingRef ? (
                                     <>
-                                        <Loader2 size={14} className="animate-spin text-[#E50914]" />
+                                        <Loader2 size={14} className="animate-spin text-[#D40A12]" />
                                         <span className="text-[7px] text-neutral-400 tracking-wider">Uploading...</span>
                                     </>
                                 ) : (
                                     <>
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                                            isDraggingRef ? "bg-[#E50914]/10" : "bg-[#111]"
+                                            isDraggingRef ? "bg-[#D40A12]/10" : "bg-[#1a1a1a]"
                                         }`}>
-                                            <ImagePlus size={14} className={isDraggingRef ? "text-[#E50914]" : "text-neutral-600"} />
+                                            <ImagePlus size={14} className={isDraggingRef ? "text-[#D40A12]" : "text-neutral-600"} />
                                         </div>
                                         <span className={`text-[8px] font-medium tracking-wider ${
-                                            isDraggingRef ? "text-[#E50914]" : "text-neutral-500"
+                                            isDraggingRef ? "text-[#D40A12]" : "text-neutral-500"
                                         }`}>
                                             {isDraggingRef ? "Drop reference here" : "Drop a reference frame"}
                                         </span>
@@ -545,7 +545,7 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                             value={lookPrompt}
                             onChange={(e) => { setLookPrompt(e.target.value); setSelectedQuickLook(null); }}
                             placeholder={`"Pull shadows cooler, add warm rim light"\n"Match the interrogation scene from Se7en"\n"Desaturate everything except the red dress"`}
-                            className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-md px-3 py-2.5 text-[9px] text-white placeholder:text-neutral-700 resize-none focus:outline-none focus:border-[#E50914]/40 leading-relaxed transition-colors"
+                            className="w-full bg-[#1a1a1a] border border-[#1a1a1a] rounded-md px-3 py-2.5 text-[9px] text-white placeholder:text-neutral-700 resize-none focus:outline-none focus:border-[#D40A12]/40 leading-relaxed transition-colors"
                             rows={3}
                         />
                         {lookPrompt && (
@@ -578,7 +578,7 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                                 }}
                                 className={`px-2 py-1 rounded-full text-[7px] font-medium tracking-wider transition-all whitespace-nowrap ${
                                     selectedQuickLook === look.key
-                                        ? "bg-[#E50914]/15 text-[#E50914] border border-[#E50914]/40 shadow-[0_0_8px_rgba(229,9,20,0.15)]"
+                                        ? "bg-[#D40A12]/15 text-[#D40A12] border border-[#D40A12]/40 shadow-[0_0_8px_rgba(212,10,18,0.15)]"
                                         : "bg-[#0e0e0e] text-neutral-500 border border-[#1a1a1a] hover:border-[#333] hover:text-neutral-300"
                                 }`}
                                 title={look.prompt}
@@ -597,7 +597,7 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                                 exit={{ height: 0, opacity: 0 }}
                                 className="overflow-hidden"
                             >
-                                <p className="mt-2 text-[7px] text-neutral-600 italic leading-relaxed bg-[#0a0a0a] rounded px-2.5 py-1.5 border border-[#111]">
+                                <p className="mt-2 text-[7px] text-neutral-600 italic leading-relaxed bg-[#1a1a1a] rounded px-2.5 py-1.5 border border-[#111]">
                                     {QUICK_LOOKS.find(q => q.key === selectedQuickLook)?.prompt}
                                 </p>
                             </motion.div>
@@ -624,15 +624,15 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                                     [&::-webkit-slider-thumb]:w-3
                                     [&::-webkit-slider-thumb]:h-3
                                     [&::-webkit-slider-thumb]:rounded-full
-                                    [&::-webkit-slider-thumb]:bg-[#E50914]
-                                    [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(229,9,20,0.4)]
+                                    [&::-webkit-slider-thumb]:bg-[#D40A12]
+                                    [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(212,10,18,0.4)]
                                     [&::-webkit-slider-thumb]:cursor-pointer
                                     [&::-webkit-slider-thumb]:transition-shadow
-                                    [&::-webkit-slider-thumb]:hover:shadow-[0_0_10px_rgba(229,9,20,0.6)]"
+                                    [&::-webkit-slider-thumb]:hover:shadow-[0_0_10px_rgba(212,10,18,0.6)]"
                             />
                             {/* Track fill */}
                             <div
-                                className="absolute top-[calc(50%-2px)] left-0 h-1 bg-gradient-to-r from-[#E50914]/60 to-[#E50914] rounded-full pointer-events-none"
+                                className="absolute top-[calc(50%-2px)] left-0 h-1 bg-gradient-to-r from-[#D40A12]/60 to-[#D40A12] rounded-full pointer-events-none"
                                 style={{ width: `${((intensity - 10) / 90) * 100}%` }}
                             />
                         </div>
@@ -651,7 +651,7 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                                 ? "bg-neutral-800 text-neutral-600 cursor-not-allowed"
                                 : !hasLookInput
                                 ? "bg-[#1a1a1a] text-neutral-500 border border-[#222]"
-                                : "bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.25)] hover:shadow-[0_0_30px_rgba(229,9,20,0.4)] hover:bg-[#ff1a25]"
+                                : "bg-[#D40A12] text-white shadow-[0_0_20px_rgba(212,10,18,0.25)] hover:shadow-[0_0_30px_rgba(212,10,18,0.4)] hover:bg-[#ff1a25]"
                         } disabled:opacity-50`}
                     >
                         {isProcessing && processingAction === "look" ? (
@@ -677,7 +677,7 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                 <div className="border-b border-[#111]">
                     <button
                         onClick={() => setShowMotionSection(!showMotionSection)}
-                        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-[#0a0a0a] transition-colors"
+                        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-[#1a1a1a] transition-colors"
                     >
                         <div className="flex items-center gap-2">
                             <Move size={10} className="text-purple-500" />
@@ -702,7 +702,7 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                                     </p>
 
                                     {/* Character Image (auto from shot) */}
-                                    <div className="flex items-center gap-2 bg-[#0a0a0a] border border-[#151515] rounded-md px-2 py-1.5">
+                                    <div className="flex items-center gap-2 bg-[#1a1a1a] border border-[#151515] rounded-md px-2 py-1.5">
                                         {clip.thumbnailUrl ? (
                                             <>
                                                 <img src={clip.thumbnailUrl} alt="character" className="w-7 h-7 rounded object-cover" />
@@ -740,7 +740,7 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                                             const file = e.dataTransfer.files?.[0];
                                             if (file) handleRefVideoUpload(file);
                                         }}
-                                        className={`w-full bg-[#0a0a0a] border border-dashed rounded-md px-2 py-3 text-center transition-all disabled:opacity-50 ${
+                                        className={`w-full bg-[#1a1a1a] border border-dashed rounded-md px-2 py-3 text-center transition-all disabled:opacity-50 ${
                                             isDraggingVideo
                                                 ? "border-purple-500 bg-purple-500/5"
                                                 : "border-[#222] hover:border-purple-500/40"
@@ -774,7 +774,7 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                                         value={motionPrompt}
                                         onChange={(e) => setMotionPrompt(e.target.value)}
                                         placeholder='Scene context: "A dancer on a dimly lit stage"'
-                                        className="w-full bg-[#0a0a0a] border border-[#151515] rounded-md px-2.5 py-2 text-[8px] text-white placeholder:text-neutral-700 resize-none focus:outline-none focus:border-purple-500/40 transition-colors"
+                                        className="w-full bg-[#1a1a1a] border border-[#151515] rounded-md px-2.5 py-2 text-[8px] text-white placeholder:text-neutral-700 resize-none focus:outline-none focus:border-purple-500/40 transition-colors"
                                         rows={2}
                                     />
 
@@ -787,7 +787,7 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                                                 className={`flex-1 py-1.5 rounded-md text-[7px] font-bold tracking-[1px] uppercase transition-all border ${
                                                     motionProvider === p
                                                         ? "bg-purple-600/15 text-purple-400 border-purple-500/30"
-                                                        : "bg-[#0a0a0a] text-neutral-600 border-[#151515] hover:border-[#333]"
+                                                        : "bg-[#1a1a1a] text-neutral-600 border-[#151515] hover:border-[#333]"
                                                 }`}
                                             >
                                                 {p === "kling" ? "Kling" : "Seedance 2.0"}
@@ -808,7 +808,7 @@ export default function ShotInspector({ clip, projectId, episodeId, onClose, onP
                                                     className={`flex-1 py-1 rounded-md text-[6px] font-bold tracking-[1px] uppercase transition-all border ${
                                                         motionDirection === o
                                                             ? "bg-purple-600/15 text-purple-400 border-purple-500/30"
-                                                            : "bg-[#0a0a0a] text-neutral-600 border-[#151515]"
+                                                            : "bg-[#1a1a1a] text-neutral-600 border-[#151515]"
                                                     }`}
                                                 >
                                                     {o === "video" ? "Match Video (30s)" : "Keep Image (10s)"}

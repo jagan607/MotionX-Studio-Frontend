@@ -81,7 +81,7 @@ export default function GlobalMediaViewer() {
                     </div>
 
                     {/* UPDATED: IMG / VID / SYNC TOGGLE */}
-                    <div className="flex bg-[#111] border border-[#333] rounded-full p-1 gap-1">
+                    <div className="flex bg-[#1a1a1a] border border-[#333] rounded-full p-1 gap-1">
 
                         {/* IMAGE BUTTON */}
                         <button
@@ -100,7 +100,7 @@ export default function GlobalMediaViewer() {
                             onClick={() => setViewMode("vid")}
                             disabled={!hasVideo}
                             className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold font-mono transition-all
-                                ${viewMode === "vid" ? "bg-[#E50914] text-white" : "text-gray-500 hover:text-white"}
+                                ${viewMode === "vid" ? "bg-[#D40A12] text-white" : "text-gray-500 hover:text-white"}
                                 ${!hasVideo ? "opacity-30 cursor-not-allowed hidden" : "cursor-pointer"}
                             `}
                         >
@@ -135,7 +135,7 @@ export default function GlobalMediaViewer() {
                 {currentIndex > 0 && (
                     <button
                         onClick={(e) => { e.stopPropagation(); prevItem(); }}
-                        className="absolute left-6 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-[#E50914] border border-white/10 hover:border-[#E50914] rounded-full text-white transition-all duration-200 z-[2001] backdrop-blur-md group"
+                        className="absolute left-6 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-[#D40A12] border border-white/10 hover:border-[#D40A12] rounded-full text-white transition-all duration-200 z-[2001] backdrop-blur-md group"
                     >
                         <ChevronLeft size={32} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
                     </button>
@@ -144,7 +144,7 @@ export default function GlobalMediaViewer() {
                 {currentIndex < items.length - 1 && (
                     <button
                         onClick={(e) => { e.stopPropagation(); nextItem(); }}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-[#E50914] border border-white/10 hover:border-[#E50914] rounded-full text-white transition-all duration-200 z-[2001] backdrop-blur-md group"
+                        className="absolute right-6 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-[#D40A12] border border-white/10 hover:border-[#D40A12] rounded-full text-white transition-all duration-200 z-[2001] backdrop-blur-md group"
                     >
                         <ChevronRight size={32} strokeWidth={2} className="group-hover:scale-110 transition-transform" />
                     </button>

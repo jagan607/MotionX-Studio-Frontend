@@ -134,8 +134,8 @@ export default function StoryboardPage() {
 
     if (loading || !project) {
         return (
-            <div className="fixed inset-0 bg-[#050505] flex flex-col items-center justify-center gap-4">
-                <Loader2 size={28} className="animate-spin text-[#E50914]" />
+            <div className="fixed inset-0 bg-[#111111] flex flex-col items-center justify-center gap-4">
+                <Loader2 size={28} className="animate-spin text-[#D40A12]" />
                 <span className="text-[10px] text-neutral-600 tracking-[3px] uppercase font-mono">
                     Loading Storyboard...
                 </span>
@@ -145,11 +145,11 @@ export default function StoryboardPage() {
 
     if (!selectedScene) {
         return (
-            <div className="fixed inset-0 bg-[#050505] flex flex-col items-center justify-center gap-4">
+            <div className="fixed inset-0 bg-[#111111] flex flex-col items-center justify-center gap-4">
                 <p className="text-[11px] text-neutral-500">No scenes found. Go to Pre-Production first.</p>
                 <button
                     onClick={() => router.push(`/project/${projectId}/preproduction`)}
-                    className="px-4 py-2 rounded-lg bg-[#E50914] text-white text-[10px] font-bold uppercase tracking-[2px] cursor-pointer hover:bg-[#ff1a25] transition-all"
+                    className="px-4 py-2 rounded-lg bg-[#D40A12] text-white text-[10px] font-bold uppercase tracking-[2px] cursor-pointer hover:bg-[#ff1a25] transition-all"
                 >
                     Go to Pre-Production
                 </button>

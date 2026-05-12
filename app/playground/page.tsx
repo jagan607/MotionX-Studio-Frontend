@@ -112,7 +112,7 @@ function PlaygroundWorkspace() {
 
     if (!uid) {
         return (
-            <div className="h-screen w-screen bg-[#030303] flex flex-col items-center justify-center text-[#E50914]">
+            <div className="h-screen w-screen bg-[#111111] flex flex-col items-center justify-center text-[#D40A12]">
                 <Loader2 className="animate-spin mb-4" size={32} />
                 <span className="text-xs font-mono tracking-[3px] uppercase">Authenticating…</span>
             </div>
@@ -120,7 +120,7 @@ function PlaygroundWorkspace() {
     }
 
     return (
-        <div className="fixed inset-0 bg-[#030303] text-[#EDEDED] font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#E50914] selection:text-white">
+        <div className="fixed inset-0 bg-[#111111] text-[#EDEDED] font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#D40A12] selection:text-white">
 
             {/* ═══ MAIN LAYOUT: LEFT DRAWER | CENTER FEED | RIGHT TEMPLATES ═══ */}
             <div className="flex-1 flex min-h-0 overflow-hidden relative">
@@ -128,7 +128,7 @@ function PlaygroundWorkspace() {
                 {/* ── LEFT: COLLAPSIBLE ASSET DRAWER ── */}
                 <aside
                     id="tour-pg-assets"
-                    className="flex flex-col bg-[#050505] border-r border-white/[0.06] shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
+                    className="flex flex-col bg-[#111111] border-r border-white/[0.06] shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
                     style={{ width: drawerOpen ? 280 : 0, minWidth: drawerOpen ? 280 : 0 }}
                 >
                     <PlaygroundAssetDrawer />
@@ -153,7 +153,7 @@ function PlaygroundWorkspace() {
                                 <button
                                     data-agent="toggle-assets-drawer"
                                     onClick={() => setDrawerOpen(true)}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E50914]/30 bg-[#E50914]/10 text-[#E50914] text-[9px] font-bold uppercase tracking-[2px] hover:bg-[#E50914]/20 hover:border-[#E50914]/50 transition-all cursor-pointer"
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#D40A12]/30 bg-[#D40A12]/10 text-[#D40A12] text-[9px] font-bold uppercase tracking-[2px] hover:bg-[#D40A12]/20 hover:border-[#D40A12]/50 transition-all cursor-pointer"
                                     title="Show assets"
                                 >
                                     <PanelLeftOpen size={14} />
@@ -209,7 +209,7 @@ function PlaygroundWorkspace() {
                 {/* ── RIGHT: COLLAPSIBLE TEMPLATE SIDEBAR ── */}
                 <aside
                     id="tour-pg-templates"
-                    className="flex flex-col bg-[#050505] border-l border-white/[0.06] shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
+                    className="flex flex-col bg-[#111111] border-l border-white/[0.06] shrink-0 transition-all duration-200 ease-in-out overflow-hidden"
                     style={{ width: templateSidebarOpen ? 300 : 0, minWidth: templateSidebarOpen ? 300 : 0 }}
                 >
                     <PlaygroundTemplatePicker />

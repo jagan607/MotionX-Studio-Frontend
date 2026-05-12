@@ -55,7 +55,7 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
         const ghost = document.createElement("div");
         ghost.style.cssText = `
             width: 120px; height: 120px; border-radius: 14px; overflow: hidden;
-            border: 2px solid rgba(229,9,20,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            border: 2px solid rgba(212,10,18,0.5); box-shadow: 0 8px 32px rgba(0,0,0,0.6);
             position: fixed; top: -9999px; left: -9999px;
             display: flex; align-items: center; justify-content: center;
             background: #111;
@@ -72,7 +72,7 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
         badge.style.cssText = `
             position:absolute; bottom:6px; right:6px;
             width:28px; height:28px; border-radius:8px;
-            background:rgba(229,9,20,0.85); backdrop-filter:blur(4px);
+            background:rgba(212,10,18,0.85); backdrop-filter:blur(4px);
             display:flex; align-items:center; justify-content:center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         `;
@@ -167,11 +167,11 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
             >
                 {/* === STATE: GENERATING === */}
                 {isGenerating && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#080808]">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#161616]">
                         <div className="absolute inset-0 skeleton-shimmer opacity-30" />
                         <div className="relative z-10 flex flex-col items-center">
-                            <div className="w-12 h-12 rounded-xl bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center mb-3">
-                                <Loader2 className="animate-spin text-[#E50914]" size={20} />
+                            <div className="w-12 h-12 rounded-xl bg-[#D40A12]/10 border border-[#D40A12]/20 flex items-center justify-center mb-3">
+                                <Loader2 className="animate-spin text-[#D40A12]" size={20} />
                             </div>
                             <span className="text-[9px] font-mono text-[#666] uppercase tracking-[3px]">Generating…</span>
                             {gen.provider && (
@@ -209,7 +209,7 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                                     }`}
                                 />
                                 <div className="absolute top-2 right-2 bg-black/70 p-1.5 rounded-md backdrop-blur-sm flex items-center gap-1">
-                                    <Film size={9} className="text-[#E50914]" />
+                                    <Film size={9} className="text-[#D40A12]" />
                                     <span className="text-[7px] font-mono text-white/70 uppercase">Video</span>
                                 </div>
                             </>
@@ -227,8 +227,8 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                         {/* Animating overlay */}
                         {isAnimating && (
                             <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[2px]">
-                                <div className="flex items-center gap-2 bg-black/80 px-4 py-2 rounded-lg border border-[#E50914]/30">
-                                    <Loader2 className="animate-spin text-[#E50914]" size={14} />
+                                <div className="flex items-center gap-2 bg-black/80 px-4 py-2 rounded-lg border border-[#D40A12]/30">
+                                    <Loader2 className="animate-spin text-[#D40A12]" size={14} />
                                     <span className="text-[9px] font-mono text-white uppercase tracking-[2px]">Animating…</span>
                                 </div>
                             </div>
@@ -284,7 +284,7 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
                                 {!hasVideo && !isAnimating && !isFailed && (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setAnimateTarget(gen); }}
-                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#E50914]/15 text-[#E50914] text-[8px] font-bold uppercase tracking-[1.5px] hover:bg-[#E50914]/25 transition-all cursor-pointer shrink-0 border border-[#E50914]/30"
+                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#D40A12]/15 text-[#D40A12] text-[8px] font-bold uppercase tracking-[1.5px] hover:bg-[#D40A12]/25 transition-all cursor-pointer shrink-0 border border-[#D40A12]/30"
                                     >
                                         <Film size={11} />
                                         Animate
@@ -297,7 +297,7 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
 
                 {/* === STATE: FAILED / ERROR === */}
                 {isFailed && !hasImage && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#080808]">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#161616]">
                         <button
                             onClick={handleDelete}
                             disabled={isDeleting}
@@ -322,11 +322,11 @@ export default function PlaygroundGenerationCard({ generation: gen }: Playground
 
                 {/* === STATE: ANIMATING (no image — direct video gen) === */}
                 {!isGenerating && !isFailed && !hasImage && isAnimating && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#080808]">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#161616]">
                         <div className="absolute inset-0 skeleton-shimmer opacity-20" />
                         <div className="relative z-10 flex flex-col items-center">
-                            <div className="w-12 h-12 rounded-xl bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center mb-3">
-                                <Loader2 className="animate-spin text-[#E50914]" size={20} />
+                            <div className="w-12 h-12 rounded-xl bg-[#D40A12]/10 border border-[#D40A12]/20 flex items-center justify-center mb-3">
+                                <Loader2 className="animate-spin text-[#D40A12]" size={20} />
                             </div>
                             <span className="text-[9px] font-mono text-[#666] uppercase tracking-[3px]">Generating Video…</span>
                             {gen.provider && (

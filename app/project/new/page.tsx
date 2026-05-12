@@ -23,7 +23,7 @@ type Phase = "prompt" | "processing" | "complete";
 const AMBIENT_VIDEO = "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/MotionX%20Showreel%20(1).mp4?alt=media";
 
 const FORMAT_CARDS = [
-    { icon: Film, text: 'Feature Film', key: 'film', seed: 'A feature film about ', subtitle: 'Full cinematic narrative', accent: '#E50914' },
+    { icon: Film, text: 'Feature Film', key: 'film', seed: 'A feature film about ', subtitle: 'Full cinematic narrative', accent: '#D40A12' },
     { icon: Tv, text: 'Series', key: 'series', seed: 'A micro drama series about ', subtitle: 'Episodic storytelling', accent: '#3B82F6' },
     { icon: Megaphone, text: 'Commercial', key: 'ad', seed: 'A commercial for ', subtitle: 'Brand films & ads', accent: '#D4A843' },
     { icon: Clapperboard, text: 'Trailer', key: 'trailer', seed: 'A trailer for ', subtitle: 'Cinematic trailers & teasers', accent: '#9333EA' },
@@ -120,7 +120,7 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                     ? "radial-gradient(ellipse at center, rgba(239,68,68,0.08) 0%, rgba(8,8,8,0.97) 60%)"
                     : isTransitioning
                         ? "radial-gradient(ellipse at center, rgba(16,185,129,0.08) 0%, rgba(8,8,8,0.97) 60%)"
-                        : "radial-gradient(ellipse at center, rgba(229,9,20,0.03) 0%, rgba(8,8,8,0.97) 60%)"
+                        : "radial-gradient(ellipse at center, rgba(212,10,18,0.03) 0%, rgba(8,8,8,0.97) 60%)"
             }}>
 
             <div className="absolute inset-0 backdrop-blur-xl" />
@@ -139,7 +139,7 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                             ? "radial-gradient(circle, rgba(239,68,68,0.12) 0%, transparent 70%)"
                             : isTransitioning
                                 ? "radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)"
-                                : "radial-gradient(circle, rgba(229,9,20,0.08) 0%, transparent 70%)",
+                                : "radial-gradient(circle, rgba(212,10,18,0.08) 0%, transparent 70%)",
                         animation: "breathe 6s ease-in-out infinite"
                     }} />
 
@@ -150,14 +150,14 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 144 144">
                         <circle cx="72" cy="72" r={OUTER_R} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1.5" />
                         <circle cx="72" cy="72" r={OUTER_R} fill="none"
-                            stroke={error ? "rgba(239,68,68,0.4)" : isTransitioning || engines.art === "done" ? "rgba(16,185,129,0.5)" : "rgba(229,9,20,0.25)"}
+                            stroke={error ? "rgba(239,68,68,0.4)" : isTransitioning || engines.art === "done" ? "rgba(16,185,129,0.5)" : "rgba(212,10,18,0.25)"}
                             strokeWidth="1.5" strokeLinecap="round"
                             strokeDasharray={outerCirc}
                             strokeDashoffset={outerCirc * (1 - outerFill)}
                             transform="rotate(-90 72 72)"
                             style={{ transition: "stroke-dashoffset 1.5s ease-out, stroke 0.7s ease" }} />
                         {engines.art === "active" && !isTransitioning && !error && (
-                            <circle cx="72" cy="4" r="2" fill="#E50914" opacity="0.6"
+                            <circle cx="72" cy="4" r="2" fill="#D40A12" opacity="0.6"
                                 style={{ transformOrigin: "72px 72px", animation: "spin 4s linear infinite" }} />
                         )}
                     </svg>
@@ -166,14 +166,14 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                     <svg className="absolute inset-[14px] w-[calc(100%-28px)] h-[calc(100%-28px)]" viewBox="0 0 116 116">
                         <circle cx="58" cy="58" r={INNER_R} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1.5" />
                         <circle cx="58" cy="58" r={INNER_R} fill="none"
-                            stroke={error ? "rgba(239,68,68,0.5)" : isTransitioning || engines.story === "done" ? "rgba(16,185,129,0.6)" : "rgba(229,9,20,0.4)"}
+                            stroke={error ? "rgba(239,68,68,0.5)" : isTransitioning || engines.story === "done" ? "rgba(16,185,129,0.6)" : "rgba(212,10,18,0.4)"}
                             strokeWidth="1.5" strokeLinecap="round"
                             strokeDasharray={innerCirc}
                             strokeDashoffset={innerCirc * (1 - innerFill)}
                             transform="rotate(-90 58 58)"
                             style={{ transition: "stroke-dashoffset 1.5s ease-out, stroke 0.7s ease" }} />
                         {engines.story === "active" && !isTransitioning && !error && (
-                            <circle cx="58" cy="4" r="2" fill="#E50914" opacity="0.8"
+                            <circle cx="58" cy="4" r="2" fill="#D40A12" opacity="0.8"
                                 style={{ transformOrigin: "58px 58px", animation: "spin 3s linear infinite reverse" }} />
                         )}
                     </svg>
@@ -188,7 +188,7 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                         ) : isTransitioning ? (
                             <div className="animate-[scaleIn_0.4s_ease_both]"><Check size={24} className="text-emerald-400" strokeWidth={3} /></div>
                         ) : (
-                            <BrainCircuit size={22} className="text-[#E50914]" style={{ animation: "breathe 3s ease-in-out infinite" }} />
+                            <BrainCircuit size={22} className="text-[#D40A12]" style={{ animation: "breathe 3s ease-in-out infinite" }} />
                         )}
                     </div>
                 </div>
@@ -214,7 +214,7 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                             }`}>
                             {engines.story === "active" && !isTransitioning && (
                                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                                    <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#E50914]/[0.06] to-transparent animate-[scan_2.5s_ease-in-out_infinite]" />
+                                    <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#D40A12]/[0.06] to-transparent animate-[scan_2.5s_ease-in-out_infinite]" />
                                 </div>
                             )}
                             <div className="relative flex items-start gap-3">
@@ -234,7 +234,7 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                             </div>
                             {engines.story === "active" && !isTransitioning && (
                                 <div className="mt-3 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
-                                    <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914]/60 to-transparent animate-[scan_1.5s_ease-in-out_infinite]" />
+                                    <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#D40A12]/60 to-transparent animate-[scan_1.5s_ease-in-out_infinite]" />
                                 </div>
                             )}
                         </div>
@@ -246,7 +246,7 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                             }`}>
                             {engines.art === "active" && !isTransitioning && (
                                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                                    <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#E50914]/[0.06] to-transparent animate-[scan_3s_ease-in-out_infinite]" />
+                                    <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#D40A12]/[0.06] to-transparent animate-[scan_3s_ease-in-out_infinite]" />
                                 </div>
                             )}
                             <div className="relative flex items-start gap-3">
@@ -266,7 +266,7 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                             </div>
                             {engines.art === "active" && !isTransitioning && (
                                 <div className="mt-3 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
-                                    <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914]/60 to-transparent animate-[scan_2s_ease-in-out_infinite]" />
+                                    <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#D40A12]/60 to-transparent animate-[scan_2s_ease-in-out_infinite]" />
                                 </div>
                             )}
                         </div>
@@ -276,17 +276,17 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
                 {/* ── Archetype glimpse ── */}
                 {detectedArchetype && (
                     <div className={`w-full transition-all duration-700 ${archetypeVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}>
-                        <div className="relative rounded-xl border border-[#E50914]/20 bg-[#E50914]/[0.04] backdrop-blur-sm px-5 py-4 overflow-hidden"
+                        <div className="relative rounded-xl border border-[#D40A12]/20 bg-[#D40A12]/[0.04] backdrop-blur-sm px-5 py-4 overflow-hidden"
                             style={{ animation: "pulseGlow 4s ease-in-out infinite" }}>
                             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                                <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#E50914]/10 to-transparent animate-[scan_3s_ease-in-out_infinite]" />
+                                <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#D40A12]/10 to-transparent animate-[scan_3s_ease-in-out_infinite]" />
                             </div>
                             <div className="relative flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center shrink-0">
-                                    <BrainCircuit size={14} className="text-[#E50914]" />
+                                <div className="w-8 h-8 rounded-lg bg-[#D40A12]/10 border border-[#D40A12]/20 flex items-center justify-center shrink-0">
+                                    <BrainCircuit size={14} className="text-[#D40A12]" />
                                 </div>
                                 <div>
-                                    <p className="text-[8px] text-[#E50914]/60 tracking-[2px] uppercase font-mono mb-0.5">Archetype Locked</p>
+                                    <p className="text-[8px] text-[#D40A12]/60 tracking-[2px] uppercase font-mono mb-0.5">Archetype Locked</p>
                                     <p className="text-[14px] text-white font-medium tracking-wide">{detectedArchetype}</p>
                                 </div>
                             </div>
@@ -781,15 +781,15 @@ function NewProjectPageInner() {
 
     // ══════ RENDER ══════
     return (
-        <div className="flex-1 min-h-0 bg-[#080808] text-white overflow-hidden flex flex-col relative">
+        <div className="flex-1 min-h-0 bg-[#161616] text-white overflow-hidden flex flex-col relative">
             <style jsx global>{`
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
-                @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 20px rgba(229,9,20,0.08); } 50% { box-shadow: 0 0 40px rgba(229,9,20,0.15); } }
+                @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 20px rgba(212,10,18,0.08); } 50% { box-shadow: 0 0 40px rgba(212,10,18,0.15); } }
                 @keyframes scan { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
                 @keyframes scaleIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
-                @keyframes cardGlow { 0%,100% { box-shadow: 0 0 15px rgba(229,9,20,0.06); } 50% { box-shadow: 0 0 30px rgba(229,9,20,0.12); } }
+                @keyframes cardGlow { 0%,100% { box-shadow: 0 0 15px rgba(212,10,18,0.06); } 50% { box-shadow: 0 0 30px rgba(212,10,18,0.12); } }
                 .fade-in { animation: fadeIn 0.6s ease both; }
                 .fade-in-1 { animation: fadeIn 0.6s ease 0.1s both; }
                 .fade-in-2 { animation: fadeIn 0.6s ease 0.25s both; }
@@ -808,14 +808,14 @@ function NewProjectPageInner() {
                 />
 
                 {/* Heavy vignette + gradient overlay */}
-                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #080808 0%, rgba(8,8,8,0.85) 25%, rgba(8,8,8,0.5) 50%, rgba(8,8,8,0.7) 75%, #080808 100%)' }} />
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #161616 0%, rgba(8,8,8,0.85) 25%, rgba(8,8,8,0.5) 50%, rgba(8,8,8,0.7) 75%, #161616 100%)' }} />
                 <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 20%, rgba(8,8,8,0.92) 75%)' }} />
 
                 {/* Cinematic color wash based on selected format */}
                 <div className="absolute inset-0 transition-all duration-[2000ms]"
                     style={{
                         background: selectedFormat === 'film'
-                            ? 'radial-gradient(ellipse at 40% 40%, rgba(229,9,20,0.06) 0%, transparent 60%)'
+                            ? 'radial-gradient(ellipse at 40% 40%, rgba(212,10,18,0.06) 0%, transparent 60%)'
                             : selectedFormat === 'series'
                                 ? 'radial-gradient(ellipse at 40% 40%, rgba(59,130,246,0.05) 0%, transparent 60%)'
                                 : selectedFormat === 'trailer'
@@ -833,7 +833,7 @@ function NewProjectPageInner() {
 
                 {/* Ambient glow orb */}
                 <div className="absolute top-[25%] left-[30%] w-[800px] h-[600px] rounded-full blur-[200px]"
-                    style={{ background: 'radial-gradient(circle, rgba(229,9,20,0.04) 0%, transparent 70%)', animation: 'breathe 10s ease-in-out infinite' }} />
+                    style={{ background: 'radial-gradient(circle, rgba(212,10,18,0.04) 0%, transparent 70%)', animation: 'breathe 10s ease-in-out infinite' }} />
             </div>
 
 
@@ -864,7 +864,7 @@ function NewProjectPageInner() {
                     <div
                         className={`relative rounded-2xl border backdrop-blur-xl p-6 fade-in-1 transition-all duration-300 ${
                             isDragging
-                                ? 'border-[#E50914]/40 bg-[#E50914]/[0.04] shadow-[0_0_40px_rgba(229,9,20,0.1)]'
+                                ? 'border-[#D40A12]/40 bg-[#D40A12]/[0.04] shadow-[0_0_40px_rgba(212,10,18,0.1)]'
                                 : 'border-white/[0.06] bg-white/[0.02]'
                         }`}
                         style={{ boxShadow: isDragging ? undefined : '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)' }}
@@ -875,8 +875,8 @@ function NewProjectPageInner() {
 
                     {/* Drop zone overlay */}
                     {isDragging && (
-                        <div className="absolute inset-0 z-50 rounded-2xl border-2 border-dashed border-[#E50914]/50 bg-[#E50914]/[0.03] flex flex-col items-center justify-center gap-3 pointer-events-none">
-                            <Upload size={32} className="text-[#E50914]/60" />
+                        <div className="absolute inset-0 z-50 rounded-2xl border-2 border-dashed border-[#D40A12]/50 bg-[#D40A12]/[0.03] flex flex-col items-center justify-center gap-3 pointer-events-none">
+                            <Upload size={32} className="text-[#D40A12]/60" />
                             <p className="text-[12px] font-semibold text-white/60 tracking-wide">Drop your file here</p>
                             <p className="text-[9px] text-white/30 tracking-[2px] uppercase">PDF Script · Excel · CSV</p>
                         </div>
@@ -888,21 +888,21 @@ function NewProjectPageInner() {
                             <label className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-1.5 block">Project Name</label>
                             <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); if (validationErrors.title) setValidationErrors(v => ({ ...v, title: false })); }}
                                 data-agent="project-title-input"
-                                className={`w-full bg-white/[0.03] rounded-lg px-3.5 py-2.5 text-[14px] text-white placeholder-neutral-600 focus:outline-none tracking-[0.5px] caret-[#E50914] border transition-all duration-300 ${validationErrors.title ? 'border-[#E50914]/60 placeholder-[#E50914]/40' : 'border-white/[0.06] focus:border-[#E50914]/30 focus:bg-white/[0.04]'}`}
+                                className={`w-full bg-white/[0.03] rounded-lg px-3.5 py-2.5 text-[14px] text-white placeholder-neutral-600 focus:outline-none tracking-[0.5px] caret-[#D40A12] border transition-all duration-300 ${validationErrors.title ? 'border-[#D40A12]/60 placeholder-[#D40A12]/40' : 'border-white/[0.06] focus:border-[#D40A12]/30 focus:bg-white/[0.04]'}`}
                                 placeholder="e.g. The Last Frontier" autoComplete="off" />
                         </div>
                         <div>
                             <label className="text-[9px] font-mono text-white uppercase tracking-[3px] mb-1.5 block">Genre</label>
                             <input type="text" value={genre} onChange={(e) => { setGenre(e.target.value); if (validationErrors.genre) setValidationErrors(v => ({ ...v, genre: false })); }}
                                 data-agent="project-genre-input"
-                                className={`w-full bg-white/[0.03] rounded-lg px-3.5 py-2.5 text-[14px] text-white placeholder-neutral-600 focus:outline-none tracking-[0.5px] caret-[#E50914] border transition-all duration-300 ${validationErrors.genre ? 'border-[#E50914]/60 placeholder-[#E50914]/40' : 'border-white/[0.06] focus:border-[#E50914]/30 focus:bg-white/[0.04]'}`}
+                                className={`w-full bg-white/[0.03] rounded-lg px-3.5 py-2.5 text-[14px] text-white placeholder-neutral-600 focus:outline-none tracking-[0.5px] caret-[#D40A12] border transition-all duration-300 ${validationErrors.genre ? 'border-[#D40A12]/60 placeholder-[#D40A12]/40' : 'border-white/[0.06] focus:border-[#D40A12]/30 focus:bg-white/[0.04]'}`}
                                 placeholder="Thriller, Sci-Fi, Drama..." autoComplete="off" />
                         </div>
                     </div>
 
                     {/* ── Prompt Box ── */}
                     <div className="relative">
-                        <div className={`rounded-2xl border bg-black/40 backdrop-blur-sm p-5 transition-all duration-300 ${validationErrors.vision ? 'border-[#E50914]/60 shadow-[0_0_30px_rgba(229,9,20,0.08)]' : 'border-white/[0.06] focus-within:border-[#E50914]/20 focus-within:bg-black/50 focus-within:shadow-[0_0_60px_rgba(229,9,20,0.04)]'}`}>
+                        <div className={`rounded-2xl border bg-black/40 backdrop-blur-sm p-5 transition-all duration-300 ${validationErrors.vision ? 'border-[#D40A12]/60 shadow-[0_0_30px_rgba(212,10,18,0.08)]' : 'border-white/[0.06] focus-within:border-[#D40A12]/20 focus-within:bg-black/50 focus-within:shadow-[0_0_60px_rgba(212,10,18,0.04)]'}`}>
 
                             {/* Editable textarea with expansion overlay */}
                             <div className="relative">
@@ -910,7 +910,7 @@ function NewProjectPageInner() {
                                     data-agent="project-concept-input"
                                     onChange={(e) => { setVision(e.target.value); setScriptApplied(false); setExpandedScript(null); if (validationErrors.vision) setValidationErrors(v => ({ ...v, vision: false })); }} onKeyDown={handleKeyDown}
                                     disabled={isExpanding}
-                                    className={`w-full bg-transparent text-[15px] text-white focus:outline-none resize-none leading-[1.7] caret-[#E50914] min-h-[80px] transition-opacity duration-300 ${isExpanding ? 'opacity-30' : ''}`}
+                                    className={`w-full bg-transparent text-[15px] text-white focus:outline-none resize-none leading-[1.7] caret-[#D40A12] min-h-[80px] transition-opacity duration-300 ${isExpanding ? 'opacity-30' : ''}`}
                                     placeholder={displayedPlaceholder || " "} rows={3} />
                                 {isExpanding && (
                                     <div className="absolute inset-0 flex items-center justify-center">
@@ -918,7 +918,7 @@ function NewProjectPageInner() {
                                             <div className="absolute top-0 bottom-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent animate-[scan_2s_ease-in-out_infinite]" />
                                         </div>
                                         <div className="relative flex items-center gap-2.5 px-4 py-2 rounded-full bg-black/60 border border-white/[0.08]">
-                                            <Loader2 size={14} className="animate-spin text-[#E50914]" />
+                                            <Loader2 size={14} className="animate-spin text-[#D40A12]" />
                                             <span className="text-[11px] font-medium text-white/60">Generating...</span>
                                         </div>
                                     </div>
@@ -928,7 +928,7 @@ function NewProjectPageInner() {
                             {/* Script attachment */}
                             {scriptFile && (
                                 <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.06]">
-                                    <FileText size={14} className="text-[#E50914] shrink-0" />
+                                    <FileText size={14} className="text-[#D40A12] shrink-0" />
                                     <span className="text-[11px] text-neutral-300 truncate flex-1">{scriptFile.name}</span>
                                     <span className="text-[9px] text-neutral-600">{(scriptFile.size / 1024 / 1024).toFixed(1)} MB</span>
                                     <button onClick={() => { setScriptFile(null); setScriptApplied(false); }} className="text-neutral-600 hover:text-white transition-colors cursor-pointer"><X size={12} /></button>
@@ -986,7 +986,7 @@ function NewProjectPageInner() {
                                             className={`flex items-center gap-2 px-5 py-2 rounded-full text-[10px] font-semibold tracking-[1px] transition-all duration-300 cursor-pointer
                                                 ${isSubmitting || phase !== 'prompt'
                                                     ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-                                                    : 'bg-[#E50914] text-white shadow-[0_0_20px_rgba(229,9,20,0.12)] hover:shadow-[0_0_30px_rgba(229,9,20,0.2)] hover:bg-[#ff1a25]'
+                                                    : 'bg-[#D40A12] text-white shadow-[0_0_20px_rgba(212,10,18,0.12)] hover:shadow-[0_0_30px_rgba(212,10,18,0.2)] hover:bg-[#ff1a25]'
                                                 }`}>
                                             {isSubmitting ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
                                             {isSubmitting ? 'Creating...' : 'Create Project'}
@@ -1004,7 +1004,7 @@ function NewProjectPageInner() {
                                 {/* Header */}
                                 <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
                                     <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-[2px] flex items-center gap-1.5">
-                                        <Clapperboard size={10} className="text-[#E50914]/50" />
+                                        <Clapperboard size={10} className="text-[#D40A12]/50" />
                                         Suggested Script
                                     </span>
                                     <div className="flex items-center gap-1.5">
@@ -1014,7 +1014,7 @@ function NewProjectPageInner() {
                                                 setExpandedScript(null);
                                                 setScriptApplied(true);
                                             }}
-                                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[9px] font-bold bg-[#E50914] text-white hover:bg-[#ff1a25] transition-all cursor-pointer">
+                                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[9px] font-bold bg-[#D40A12] text-white hover:bg-[#ff1a25] transition-all cursor-pointer">
                                             <Check size={10} /> Apply
                                         </button>
                                         <button
@@ -1050,25 +1050,25 @@ function NewProjectPageInner() {
                                             onClick={() => { setSelectedFormat(card.key); textareaRef.current?.focus(); }}
                                             className={`group relative rounded-xl border p-4 text-left transition-all duration-500 cursor-pointer overflow-hidden
                                                 ${isActive
-                                                    ? 'border-[#E50914]/40 bg-[#E50914]/[0.06]'
+                                                    ? 'border-[#D40A12]/40 bg-[#D40A12]/[0.06]'
                                                     : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12] hover:bg-white/[0.04]'
                                                 }`}
                                             style={{
                                                 animation: `fadeIn 0.5s ease ${0.3 + idx * 0.1}s both`,
-                                                ...(isActive ? { boxShadow: '0 0 25px rgba(229,9,20,0.08), inset 0 1px 0 rgba(229,9,20,0.1)' } : {}),
+                                                ...(isActive ? { boxShadow: '0 0 25px rgba(212,10,18,0.08), inset 0 1px 0 rgba(212,10,18,0.1)' } : {}),
                                             }}>
                                             {/* Active glow scanline */}
                                             {isActive && (
                                                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                                                    <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#E50914]/[0.06] to-transparent animate-[scan_3s_ease-in-out_infinite]" />
+                                                    <div className="absolute top-0 bottom-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-[#D40A12]/[0.06] to-transparent animate-[scan_3s_ease-in-out_infinite]" />
                                                 </div>
                                             )}
                                             <div className="relative flex flex-col items-center gap-2">
-                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-500 ${isActive ? 'bg-[#E50914]/15 border border-[#E50914]/25' : 'bg-white/[0.04] border border-white/[0.06] group-hover:bg-white/[0.06]'}`}>
-                                                    <card.icon size={18} className={`transition-colors duration-300 ${isActive ? 'text-[#E50914]' : 'text-white/30 group-hover:text-white/50'}`} />
+                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-500 ${isActive ? 'bg-[#D40A12]/15 border border-[#D40A12]/25' : 'bg-white/[0.04] border border-white/[0.06] group-hover:bg-white/[0.06]'}`}>
+                                                    <card.icon size={18} className={`transition-colors duration-300 ${isActive ? 'text-[#D40A12]' : 'text-white/30 group-hover:text-white/50'}`} />
                                                 </div>
                                                 <span className={`text-[11px] font-semibold tracking-wide transition-colors duration-300 ${isActive ? 'text-white' : 'text-white/40 group-hover:text-white/60'}`}>{card.text}</span>
-                                                <span className={`text-[8px] tracking-[1px] uppercase transition-colors duration-300 ${isActive ? 'text-[#E50914]/60' : 'text-white/15'}`}>{card.subtitle}</span>
+                                                <span className={`text-[8px] tracking-[1px] uppercase transition-colors duration-300 ${isActive ? 'text-[#D40A12]/60' : 'text-white/15'}`}>{card.subtitle}</span>
                                             </div>
                                         </button>
                                     );
@@ -1110,7 +1110,7 @@ function NewProjectPageInner() {
                                                     ? 'text-white bg-white/[0.08] border-white/[0.12]'
                                                     : 'text-neutral-600 hover:text-neutral-400 border-transparent hover:border-white/[0.06]'
                                                 }`}>
-                                            <RectangleHorizontal size={9} className={aspectRatio === r ? 'text-[#E50914]' : 'text-neutral-700'}
+                                            <RectangleHorizontal size={9} className={aspectRatio === r ? 'text-[#D40A12]' : 'text-neutral-700'}
                                                 style={r === '9:16' ? { transform: 'rotate(90deg)' } : r === '1:1' ? { borderRadius: '1px' } : {}} />
                                             {r}
                                         </button>
@@ -1141,7 +1141,7 @@ function NewProjectPageInner() {
                                                 setRuntime(runtimeUnit === 'min' ? Math.round(val * 60) : Math.round(val));
                                             }}
                                             onBlur={() => { if (runtime < 1) setRuntime(30); }}
-                                            className="w-16 bg-white/[0.03] rounded-lg px-2 py-1.5 text-[10px] font-mono text-white text-center focus:outline-none focus:bg-white/[0.06] border border-white/[0.06] caret-[#E50914]" />
+                                            className="w-16 bg-white/[0.03] rounded-lg px-2 py-1.5 text-[10px] font-mono text-white text-center focus:outline-none focus:bg-white/[0.06] border border-white/[0.06] caret-[#D40A12]" />
                                         <select
                                             value={runtimeUnit}
                                             onChange={(e) => { setRuntimeUnit(e.target.value as 'sec' | 'min'); }}

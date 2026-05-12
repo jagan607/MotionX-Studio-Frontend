@@ -5,22 +5,28 @@
 
 /* 3. TAILWIND CONFIG & VARIABLES */
 @theme {
-  --color-background: #050505;
+  --color-background: #111111;
   --font-anton: "Anton", sans-serif;
   --font-inter: "Inter", sans-serif;
 }
 
-/* 4. CUSTOM VARIABLES (Keeping your CSS variables for backward compat) */
+/* 4. DESIGN TOKENS — Softened dark palette for extended use */
 :root {
-  --bg-black: #050505;
-  --text-white: #EDEDED;
-  --accent-red: #E50914;
-  --border-dim: #1F1F1F;
+  --bg-base: #111111;
+  --bg-surface: #1a1a1a;
+  --bg-elevated: #1c2028;
+  --bg-black: #111111;
+  --text-white: #e0e1e6;
+  --text-muted: #8b8d98;
+  --accent-red: #D40A12;
+  --accent-red-soft: rgba(212, 10, 18, 0.15);
+  --border-dim: #232530;
+  --border-subtle: rgba(255, 255, 255, 0.07);
 }
 
 /* 5. BASE STYLES */
 body {
-  background-color: var(--bg-black);
+  background-color: var(--bg-base);
   color: var(--text-white);
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -83,7 +89,7 @@ button {
   height: 100vh;
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.05;
+  opacity: 0.03;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
@@ -95,7 +101,7 @@ button {
   height: 100vh;
   pointer-events: none;
   z-index: 9998;
-  background: radial-gradient(circle, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.8) 100%);
+  background: radial-gradient(circle, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.5) 100%);
 }
 
 /* Scanline removed — no longer used */
@@ -104,10 +110,10 @@ button {
 
 /* Glassmorphism panel */
 .glass-panel {
-  background: rgba(10, 10, 10, 0.7);
+  background: rgba(22, 26, 34, 0.8);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 /* Glow pulse for accent elements */
@@ -115,11 +121,11 @@ button {
 
   0%,
   100% {
-    box-shadow: 0 0 8px rgba(229, 9, 20, 0.3);
+    box-shadow: 0 0 6px rgba(212, 10, 18, 0.2);
   }
 
   50% {
-    box-shadow: 0 0 20px rgba(229, 9, 20, 0.5);
+    box-shadow: 0 0 14px rgba(212, 10, 18, 0.35);
   }
 }
 
@@ -138,17 +144,17 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
+  background: #2a2d38;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #444;
+  background: #3d4050;
 }
 
 /* Selection */
 ::selection {
-  background: rgba(229, 9, 20, 0.9);
+  background: rgba(212, 10, 18, 0.7);
   color: #fff;
 }
 
@@ -187,7 +193,7 @@ textarea[style*="color: transparent"]::-moz-selection {
 }
 
 .skeleton-shimmer {
-  background: linear-gradient(90deg, #111 25%, #1a1a1a 50%, #111 75%);
+  background: linear-gradient(90deg, #1a1a1a 25%, #1c2028 50%, #1a1a1a 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }

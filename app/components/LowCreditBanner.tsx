@@ -65,11 +65,11 @@ export default function LowCreditBanner() {
 
     const colors = {
         critical: {
-            bg: "rgba(229, 9, 20, 0.08)",
-            border: "rgba(229, 9, 20, 0.25)",
+            bg: "rgba(212, 10, 18, 0.08)",
+            border: "rgba(212, 10, 18, 0.25)",
             text: "#ff6b6b",
-            icon: "#E50914",
-            glow: "0 0 20px rgba(229, 9, 20, 0.1)",
+            icon: "#D40A12",
+            glow: "0 0 20px rgba(212, 10, 18, 0.1)",
         },
         warning: {
             bg: "rgba(245, 166, 35, 0.06)",

@@ -23,7 +23,7 @@ export const DownloadModal = ({ shot, onClose, onDownload }: DownloadModalProps)
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000
         }}>
             <div style={{
-                width: '400px', backgroundColor: '#050505', border: '1px solid #333',
+                width: '400px', backgroundColor: '#111111', border: '1px solid #333',
                 padding: '30px', position: 'relative', boxShadow: '0 0 50px rgba(0,0,0,0.8)'
             }}>
                 {/* Header */}
@@ -60,7 +60,7 @@ export const DownloadModal = ({ shot, onClose, onDownload }: DownloadModalProps)
                 </button>
 
                 <button
-                    style={{ ...btnStyle, backgroundColor: '#E50914', color: 'white', border: 'none' }}
+                    style={{ ...btnStyle, backgroundColor: '#D40A12', color: 'white', border: 'none' }}
                     onClick={() => onDownload('both')}
                 >
                     <span style={{ display: 'flex', gap: '10px' }}><Layers size={16} /> DOWNLOAD PACK</span>

@@ -371,7 +371,7 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
     return (
         <div className="fixed inset-0 z-[200] flex" style={{ opacity: isVisible ? 1 : 0, transition: "opacity 0.3s ease" }}>
             {/* === BACKDROP & CENTER IMAGE === */}
-            <div className="absolute inset-0 bg-[#050505]">
+            <div className="absolute inset-0 bg-[#111111]">
                 {activeImage ? (
                     <img key={activeImage} src={activeImage} alt={ac?.character || ""} className="absolute inset-0 w-full h-full object-cover object-top"
                          style={{ transition: "opacity 0.6s ease" }} />

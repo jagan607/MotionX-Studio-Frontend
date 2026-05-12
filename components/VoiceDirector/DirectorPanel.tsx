@@ -8,6 +8,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import {
     Mic,
     MicOff,
@@ -15,10 +16,13 @@ import {
     Minimize2,
     Send,
     Loader2,
-    Volume2,
+    Square,
     Sparkles,
     ChevronRight,
 } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { motion } from 'framer-motion';
 import type { VoiceSessionState } from "./useVoiceDirector";
 
 // ── Message Types ────────────────────────────────────────────────
@@ -70,26 +74,20 @@ export default function DirectorPanel({
     isLocked,
     onConnect,
     onDisconnect,
-    onStartTalking,
-    onStopTalking,
     onUpgradeClick,
     onSendText,
     messages,
     isAgentBusy,
     onStopAgent,
-    selectedVoice = "coral",
-    onVoiceChange,
 }: DirectorPanelProps) {
+    const pathname = usePathname();
     const [inputText, setInputText] = useState("");
     const [isSending, setIsSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
-    const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const isHoldingRef = useRef(false);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
 
     const isConnected = voiceState !== "idle" && voiceState !== "error";
-    const isRecording = voiceState === "recording";
     const isProcessing = voiceState === "processing";
     const isResponding = voiceState === "responding";
     const isThinking = isSending || isProcessing;
@@ -130,6 +128,16 @@ export default function DirectorPanel({
         }
     }, [isResponding, assistantText]);
 
+    // Clear isSending when new messages arrive (reliable signal response was received)
+    useEffect(() => {
+        if (messages.length > 0) {
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg.role === "assistant") {
+                setIsSending(false);
+            }
+        }
+    }, [messages.length]);
+
     // Safety timeout — if no response within 60s, stop showing "thinking"
     useEffect(() => {
         if (!isSending) return;
@@ -144,9 +152,20 @@ export default function DirectorPanel({
         const text = inputText.trim();
         if (!text) return;
         setInputText("");
+        currentFinalTextRef.current = "";
         setIsSending(true);
         onSendText(text);
+        // Reset textarea height
+        if (inputRef.current) inputRef.current.style.height = 'auto';
     }, [inputText, onSendText]);
+
+    // Auto-resize textarea when inputText changes externally (e.g., voice dictation)
+    useEffect(() => {
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+            inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 100) + 'px';
+        }
+    }, [inputText]);
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
@@ -158,52 +177,123 @@ export default function DirectorPanel({
         [handleSend]
     );
 
-    // ── Push-to-Talk (mic button) ────────────────────────────────
-    const handleMicDown = useCallback(
-        (e: React.PointerEvent) => {
-            e.preventDefault();
-            if (isLocked) {
-                onUpgradeClick();
-                return;
-            }
-            if (!isConnected) {
-                onConnect();
-                return;
-            }
-            if (voiceState !== "ready") return;
+    // ── Local Speech Recognition (Click-to-Toggle) ────────────────
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef<any>(null);
+    const currentFinalTextRef = useRef("");
 
-            isHoldingRef.current = true;
-            holdTimeoutRef.current = setTimeout(() => {
-                if (isHoldingRef.current) onStartTalking();
-            }, 150);
-        },
-        [voiceState, isLocked, isConnected, onConnect, onStartTalking, onUpgradeClick]
-    );
+    // Initialize SpeechRecognition on mount
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                const recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = "en-US";
 
-    const handleMicUp = useCallback(() => {
-        isHoldingRef.current = false;
-        if (holdTimeoutRef.current) {
-            clearTimeout(holdTimeoutRef.current);
-            holdTimeoutRef.current = null;
+                recognition.onstart = () => {
+                    setIsListening(true);
+                };
+
+                recognition.onresult = (event: any) => {
+                    let finalT = '';
+                    let interimT = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalT += event.results[i][0].transcript;
+                        } else {
+                            interimT += event.results[i][0].transcript;
+                        }
+                    }
+                    if (finalT) {
+                        currentFinalTextRef.current += finalT;
+                    }
+                    setInputText(currentFinalTextRef.current + interimT);
+                };
+
+                recognition.onerror = (event: any) => {
+                    console.error("Speech recognition error", event.error);
+                    setIsListening(false);
+                };
+
+                recognition.onend = () => {
+                    setIsListening(false);
+                };
+
+                recognitionRef.current = recognition;
+            }
         }
-        if (voiceState === "recording") onStopTalking();
-    }, [voiceState, onStopTalking]);
+        return () => {
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+            }
+        };
+    }, []);
+
+    const handleMicToggle = useCallback((e: React.PointerEvent | React.MouseEvent) => {
+        e.preventDefault();
+        if (isLocked) {
+            onUpgradeClick();
+            return;
+        }
+        // Mic requires an active session
+        if (!isConnected) return;
+
+        if (isListening) {
+            recognitionRef.current?.stop();
+        } else {
+            if (!recognitionRef.current) {
+                alert("Speech recognition is not supported in this browser. Please use Chrome or Safari.");
+                return;
+            }
+            // Add a space before starting if there's already text
+            const startingText = inputText ? inputText + " " : "";
+            currentFinalTextRef.current = startingText;
+            setInputText(startingText);
+            try {
+                recognitionRef.current.start();
+            } catch (err) {
+                console.error("Failed to start recognition", err);
+            }
+        }
+    }, [isLocked, isListening, isConnected, inputText, onUpgradeClick]);
+
+    // ── Keyboard shortcut: Cmd/Ctrl + Shift + M ──────────────────
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyboard = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'm') {
+                e.preventDefault();
+                if (!isConnected) return; // Mic requires active session
+                if (isListening) {
+                    recognitionRef.current?.stop();
+                } else if (recognitionRef.current) {
+                    const start = inputText ? inputText + " " : "";
+                    currentFinalTextRef.current = start;
+                    try { recognitionRef.current.start(); } catch {}
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyboard);
+        return () => window.removeEventListener('keydown', handleKeyboard);
+    }, [isOpen, isListening, inputText]);
 
     // ── Status indicator ─────────────────────────────────────────
-    const statusDot = isConnected
-        ? isRecording
-            ? "bg-red-500 animate-pulse"
-            : isResponding
-                ? "bg-[#E50914] animate-pulse"
-                : "bg-emerald-500"
-        : "bg-white/20";
+    const statusDot = isListening
+        ? "bg-red-500 animate-pulse"
+        : isResponding
+            ? "bg-[#D40A12] animate-pulse"
+            : isConnected
+                ? "bg-emerald-500"
+                : "bg-white/20";
 
-    const statusText = isRecording
+    const statusText = isListening
         ? "Listening..."
-        : isProcessing
+        : isThinking
             ? "Thinking..."
             : isResponding
-                ? "Speaking..."
+                ? "Responding..."
                 : isConnected
                     ? "Ready"
                     : "Offline";
@@ -211,9 +301,11 @@ export default function DirectorPanel({
     if (!isOpen) return null;
 
     return (
-        <div
-            className="w-[380px] shrink-0 h-full flex flex-col border-l border-white/[0.06]"
-            style={{ background: "#0a0a0a" }}
+        <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 35 }}
+            className="w-[380px] shrink-0 h-full flex flex-col border-l border-white/[0.06] bg-[#111111]/70 backdrop-blur-2xl"
         >
             {/* ── Header ─────────────────────────────────────────── */}
             <div
@@ -223,11 +315,11 @@ export default function DirectorPanel({
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center"
                         style={{
-                            background: "linear-gradient(135deg, rgba(229,9,20,0.15), rgba(229,9,20,0.05))",
-                            border: "1px solid rgba(229,9,20,0.15)",
+                            background: "linear-gradient(135deg, rgba(212,10,18,0.2), rgba(212,10,18,0.08))",
+                            border: "1px solid rgba(212,10,18,0.2)",
                         }}
                     >
-                        <Sparkles size={14} className="text-[#E50914]" />
+                        <Sparkles size={14} className="text-[#D40A12]" />
                     </div>
                     <div>
                         <h2 className="text-[13px] font-semibold text-white/90 tracking-tight">
@@ -272,29 +364,29 @@ export default function DirectorPanel({
             {/* ── Messages ────────────────────────────────────────── */}
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-thin scrollbar-thumb-white/5">
                 {messages.length === 0 && !assistantText && (
-                    <div className="flex flex-col items-center justify-center h-full text-center px-6 opacity-60">
+                    <div className="flex flex-col items-center justify-center h-full text-center px-6">
                         <div
                             className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
                             style={{
-                                background: "linear-gradient(135deg, rgba(229,9,20,0.1), rgba(229,9,20,0.03))",
-                                border: "1px solid rgba(229,9,20,0.08)",
+                                background: "linear-gradient(135deg, rgba(212,10,18,0.2), rgba(212,10,18,0.08))",
+                                border: "1px solid rgba(212,10,18,0.18)",
                             }}
                         >
-                            <Sparkles size={22} className="text-[#E50914]/50" />
+                            <Sparkles size={22} className="text-[#D40A12]" />
                         </div>
-                        <p className="text-[13px] text-white/50 leading-relaxed">
+                        <p className="text-[13px] text-white/70 leading-relaxed">
                             Your AI Director is ready to help.
                             <br />
-                            Type a message or hold the mic to talk.
+                            Type a message or click the mic to dictate.
                         </p>
                         {!isConnected && (
                             <button
-                                onClick={isLocked ? onUpgradeClick : () => onConnect()}
-                                className="mt-4 px-4 py-2 rounded-lg text-[11px] font-medium transition-all cursor-pointer"
+                                onClick={() => isLocked ? onUpgradeClick?.() : onConnect?.()}
+                                className="mt-5 px-5 py-2.5 rounded-lg text-[12px] font-semibold transition-all cursor-pointer hover:brightness-110"
                                 style={{
-                                    background: "linear-gradient(135deg, rgba(229,9,20,0.2), rgba(229,9,20,0.08))",
-                                    border: "1px solid rgba(229,9,20,0.15)",
-                                    color: "rgba(229,9,20,0.8)",
+                                    background: "#D40A12",
+                                    color: "#fff",
+                                    boxShadow: "0 2px 12px rgba(212,10,18,0.3)",
                                 }}
                             >
                                 {isLocked ? "Upgrade to Pro" : "Start Session"}
@@ -309,29 +401,40 @@ export default function DirectorPanel({
 
                 {/* Live assistant streaming text */}
                 {assistantText && (
-                    <div className="flex gap-2.5 items-start">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.3, type: "spring", stiffness: 200, damping: 20 }}
+                        className="flex gap-2.5 items-start my-2"
+                    >
                         <div
-                            className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5"
+                            className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-1"
                             style={{
-                                background: "linear-gradient(135deg, rgba(229,9,20,0.2), rgba(229,9,20,0.05))",
-                                border: "1px solid rgba(229,9,20,0.12)",
+                                background: "linear-gradient(135deg, rgba(212,10,18,0.2), rgba(212,10,18,0.05))",
+                                border: "1px solid rgba(212,10,18,0.12)",
                             }}
                         >
-                            <Sparkles size={10} className="text-[#E50914]/70" />
+                            <Sparkles size={10} className="text-[#D40A12]/70" />
                         </div>
                         <div
-                            className="rounded-xl rounded-tl-sm px-3.5 py-2.5 max-w-[85%]"
+                            className="rounded-xl rounded-tl-sm px-4 py-3 max-w-[90%] relative overflow-hidden backdrop-blur-md"
                             style={{
-                                background: "rgba(255,255,255,0.03)",
-                                border: "1px solid rgba(255,255,255,0.05)",
+                                background: "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                borderLeft: "2px solid #D40A12",
+                                boxShadow: "0 4px 24px rgba(0,0,0,0.2)"
                             }}
                         >
-                            <p className="text-[13px] text-white/90 leading-relaxed">
-                                {assistantText}
-                                <span className="inline-block w-1.5 h-3.5 bg-[#E50914]/50 ml-1 animate-pulse rounded-sm" />
-                            </p>
+                            <div className="text-[13px] text-white/90 leading-relaxed flex items-end">
+                                <div className="prose prose-invert prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-strong:text-white prose-ul:my-1 prose-li:my-0.5">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {assistantText}
+                                    </ReactMarkdown>
+                                </div>
+                                <span className="inline-block w-1.5 h-3.5 bg-[#D40A12]/50 ml-1 animate-pulse rounded-sm mb-1" />
+                            </div>
                         </div>
-                    </div>
+                    </motion.div>
                 )}
 
                 {/* Thinking indicator — shows for both voice processing and text chat */}
@@ -340,11 +443,11 @@ export default function DirectorPanel({
                         <div
                             className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
                             style={{
-                                background: "linear-gradient(135deg, rgba(229,9,20,0.2), rgba(229,9,20,0.05))",
-                                border: "1px solid rgba(229,9,20,0.12)",
+                                background: "linear-gradient(135deg, rgba(212,10,18,0.2), rgba(212,10,18,0.05))",
+                                border: "1px solid rgba(212,10,18,0.12)",
                             }}
                         >
-                            <Loader2 size={10} className="text-[#E50914]/70 animate-spin" />
+                            <Loader2 size={10} className="text-[#D40A12]/70 animate-spin" />
                         </div>
                         <div className="flex gap-1.5 items-center">
                             <span className="text-[11px] text-white/40">Thinking</span>
@@ -376,48 +479,68 @@ export default function DirectorPanel({
                 className="px-4 py-3 shrink-0"
                 style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
             >
-                {/* Recording indicator */}
-                {isRecording && (
-                    <div className="flex items-center gap-2 mb-2 px-1">
-                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                        <span className="text-[10px] text-red-400/70 font-medium">Recording... release to send</span>
-                        <div className="flex items-center gap-[2px] ml-auto">
-                            {[...Array(5)].map((_, i) => (
+                {/* Listening indicator */}
+                {isListening && (
+                    <div
+                        className="flex items-center gap-2 mb-2.5 px-3 py-2 rounded-lg"
+                        style={{
+                            background: "linear-gradient(135deg, rgba(212,10,18,0.08), rgba(212,10,18,0.03))",
+                            border: "1px solid rgba(212,10,18,0.15)",
+                        }}
+                    >
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                        <span className="text-[10px] text-red-400/80 font-medium flex-1">Listening — speak now</span>
+                        <div className="flex items-center gap-[2px] mr-1">
+                            {[0, 1, 2, 3, 4].map((i) => (
                                 <span
                                     key={i}
-                                    className="w-[2px] bg-red-400/40 rounded-full"
+                                    className="w-[2px] bg-red-400/50 rounded-full"
                                     style={{
-                                        height: `${6 + Math.random() * 10}px`,
                                         animation: `waveform ${0.3 + i * 0.1}s ease-in-out infinite alternate`,
                                     }}
                                 />
                             ))}
                         </div>
+                        <button
+                            onClick={() => recognitionRef.current?.stop()}
+                            className="w-6 h-6 rounded-md flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                            style={{
+                                background: "rgba(212,10,18,0.15)",
+                                border: "1px solid rgba(212,10,18,0.25)",
+                            }}
+                            title="Stop listening"
+                        >
+                            <Square size={8} className="text-red-400 fill-red-400" />
+                        </button>
                     </div>
                 )}
 
-                <div className="flex flex-col gap-2 mb-2 px-1">
-                    <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-white/40 uppercase tracking-widest font-semibold flex items-center gap-1.5">
-                            Voice Persona
-                        </span>
-                        <select
-                            value={selectedVoice}
-                            onChange={(e) => onVoiceChange?.(e.target.value)}
-                            className="bg-[#111] border border-white/10 text-white/80 text-[10px] rounded py-1 pl-1 pr-1 outline-none hover:border-white/20 focus:border-[#E50914]/50 transition-colors cursor-pointer w-[110px]"
-                        >
-                            <option value="coral">Coral (Default)</option>
-                            <option value="alloy">Alloy (Neutral)</option>
-                            <option value="echo">Echo (Warm)</option>
-                            <option value="fable">Fable (British)</option>
-                            <option value="onyx">Onyx (Deep)</option>
-                            <option value="nova">Nova (Energetic)</option>
-                            <option value="shimmer">Shimmer (Bright)</option>
-                            <option value="ash">Ash (Soft)</option>
-                            <option value="sage">Sage (Calm)</option>
-                        </select>
+                {/* ── Context-Aware Suggestion Chips ── */}
+                {(!isAgentBusy && isConnected) && (
+                    <div className="flex flex-wrap gap-1.5 mb-3 px-1">
+                        {pathname?.includes('/moodboard') ? (
+                            <>
+                                <button onClick={() => { setIsSending(true); onSendText('Make the lighting moody and cinematic'); }} className="px-2 py-1 text-[9px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] rounded-full text-white/60 transition-colors cursor-pointer">Make it cinematic</button>
+                                <button onClick={() => { setIsSending(true); onSendText('Apply a cyberpunk aesthetic'); }} className="px-2 py-1 text-[9px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] rounded-full text-white/60 transition-colors cursor-pointer">Cyberpunk aesthetic</button>
+                            </>
+                        ) : pathname?.includes('/script') ? (
+                            <>
+                                <button onClick={() => { setIsSending(true); onSendText('Rewrite this scene to be more suspenseful'); }} className="px-2 py-1 text-[9px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] rounded-full text-white/60 transition-colors cursor-pointer">Make it suspenseful</button>
+                                <button onClick={() => { setIsSending(true); onSendText('Add more dialogue here'); }} className="px-2 py-1 text-[9px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] rounded-full text-white/60 transition-colors cursor-pointer">Add dialogue</button>
+                            </>
+                        ) : pathname?.includes('/playground') ? (
+                            <>
+                                <button onClick={() => { setIsSending(true); onSendText('Generate a sci-fi establishing shot'); }} className="px-2 py-1 text-[9px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] rounded-full text-white/60 transition-colors cursor-pointer">Sci-fi shot</button>
+                                <button onClick={() => { setIsSending(true); onSendText('Create a slow zoom on a character'); }} className="px-2 py-1 text-[9px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] rounded-full text-white/60 transition-colors cursor-pointer">Slow zoom</button>
+                            </>
+                        ) : (
+                            <>
+                                <button onClick={() => { setIsSending(true); onSendText('Help me start a new project'); }} className="px-2 py-1 text-[9px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] rounded-full text-white/60 transition-colors cursor-pointer">Start new project</button>
+                                <button onClick={() => { setIsSending(true); onSendText('What can you do?'); }} className="px-2 py-1 text-[9px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] rounded-full text-white/60 transition-colors cursor-pointer">What can you do?</button>
+                            </>
+                        )}
                     </div>
-                </div>
+                )}
 
                 <div className="flex items-center gap-2">
                     {isAgentBusy ? (
@@ -439,31 +562,42 @@ export default function DirectorPanel({
                     ) : (
                         /* ── Normal Input ── */
                         <div
-                            className="flex-1 flex items-center rounded-xl px-3.5 transition-all"
+                            className="flex-1 flex items-end rounded-xl px-3.5 py-2 transition-all"
                             style={{
-                                background: "rgba(255,255,255,0.03)",
-                                border: "1px solid rgba(255,255,255,0.06)",
-                                height: "42px",
+                                background: "rgba(255,255,255,0.04)",
+                                border: "1px solid rgba(255,255,255,0.08)",
+                                minHeight: "42px",
                             }}
                         >
-                            <input
+                            <textarea
                                 ref={inputRef}
-                                type="text"
                                 value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
+                                onChange={(e) => {
+                                    setInputText(e.target.value);
+                                    currentFinalTextRef.current = e.target.value;
+                                    // Auto-resize height
+                                    e.target.style.height = 'auto';
+                                    e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+                                }}
                                 onKeyDown={handleKeyDown}
                                 placeholder={
-                                    isRecording
-                                        ? "Listening..."
+                                    isListening
+                                        ? "Speak now — your words appear here..."
                                         : "Type a message..."
                                 }
-                                disabled={isRecording}
-                                className="flex-1 bg-transparent text-[13px] text-white/90 placeholder:text-white/25 outline-none disabled:opacity-30"
+                                rows={1}
+                                className={`flex-1 bg-transparent text-[13px] text-white/90 placeholder:text-white/25 outline-none resize-none leading-[1.5] overflow-y-auto scrollbar-none ${
+                                    isListening ? "placeholder:text-red-400/40 placeholder:animate-pulse" : ""
+                                }`}
+                                style={{ maxHeight: '100px' }}
                             />
                             {inputText.trim() && (
                                 <button
-                                    onClick={handleSend}
-                                    className="ml-2 w-7 h-7 rounded-lg flex items-center justify-center text-[#E50914] hover:bg-[#E50914]/10 transition-all cursor-pointer"
+                                    onClick={() => {
+                                        if (isListening) recognitionRef.current?.stop();
+                                        handleSend();
+                                    }}
+                                    className="ml-2 w-7 h-7 rounded-lg flex items-center justify-center text-[#D40A12] hover:bg-[#D40A12]/10 transition-all cursor-pointer shrink-0 mb-0.5"
                                 >
                                     <Send size={13} />
                                 </button>
@@ -473,52 +607,52 @@ export default function DirectorPanel({
 
                     {/* Mic Button */}
                     <button
-                        onPointerDown={handleMicDown}
-                        onPointerUp={handleMicUp}
-                        onPointerLeave={handleMicUp}
+                        onClick={handleMicToggle}
+                        disabled={!isConnected && !isListening}
                         className={`
-                            w-[42px] h-[42px] rounded-xl flex items-center justify-center shrink-0 transition-all cursor-pointer select-none
-                            ${isRecording ? "scale-110" : ""}
+                            w-[42px] h-[42px] rounded-xl flex items-center justify-center shrink-0 transition-all select-none
+                            ${isListening ? "scale-110" : ""}
+                            ${!isConnected ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}
                         `}
                         style={{
-                            background: isRecording
-                                ? "linear-gradient(135deg, #E50914, #FF2D2D)"
+                            background: isListening
+                                ? "linear-gradient(135deg, #D40A12, #FF2D2D)"
                                 : isConnected
-                                    ? "linear-gradient(135deg, rgba(229,9,20,0.25), rgba(229,9,20,0.1))"
+                                    ? "linear-gradient(135deg, rgba(212,10,18,0.25), rgba(212,10,18,0.1))"
                                     : "rgba(255,255,255,0.04)",
-                            border: isRecording
-                                ? "1px solid rgba(229,9,20,0.5)"
-                                : "1px solid rgba(255,255,255,0.06)",
-                            boxShadow: isRecording
-                                ? "0 0 20px rgba(229,9,20,0.3)"
+                            border: isListening
+                                ? "1px solid rgba(212,10,18,0.5)"
+                                : isConnected
+                                    ? "1px solid rgba(212,10,18,0.15)"
+                                    : "1px solid rgba(255,255,255,0.06)",
+                            boxShadow: isListening
+                                ? "0 0 20px rgba(212,10,18,0.3)"
                                 : "none",
                         }}
                         title={
                             isLocked
                                 ? "Upgrade to Pro"
                                 : !isConnected
-                                    ? "Click to connect"
-                                    : voiceState === "ready"
-                                        ? "Hold to talk"
-                                        : ""
+                                    ? "Start session first"
+                                    : isListening
+                                        ? "Click to stop listening"
+                                        : "Click to dictate (⌘⇧M)"
                         }
                     >
                         {voiceState === "connecting" ? (
                             <Loader2 size={16} className="text-white/50 animate-spin" />
-                        ) : isRecording ? (
-                            <Mic size={16} className="text-white animate-pulse" />
-                        ) : isResponding ? (
-                            <Volume2 size={16} className="text-[#E50914]/70" />
+                        ) : isListening ? (
+                            <MicOff size={16} className="text-white" />
                         ) : (
-                            <Mic size={16} className={isConnected ? "text-[#E50914]/70" : "text-white/25"} />
+                            <Mic size={16} className={isConnected ? "text-[#D40A12]/70" : "text-white/20"} />
                         )}
                     </button>
                 </div>
 
                 {/* Hint */}
-                {isConnected && voiceState === "ready" && !inputText && (
+                {!inputText && !isListening && (
                     <p className="text-[8px] text-white/10 mt-1.5 px-1 font-mono tracking-wider">
-                        Hold mic or press Space to talk · Type to chat
+                        Click mic or ⌘⇧M to dictate · Type to chat
                     </p>
                 )}
             </div>
@@ -534,7 +668,7 @@ export default function DirectorPanel({
                     50% { opacity: 0.8; transform: scale(1.2); }
                 }
             ` }} />
-        </div>
+        </motion.div>
     );
 }
 
@@ -545,7 +679,10 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         // Special rendering for thinking/planning messages
         if (message.text.startsWith("🧠")) {
             return (
-                <div
+                <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
                     className="mx-2 my-1.5 rounded-lg px-3 py-2.5"
                     style={{
                         background: "linear-gradient(135deg, rgba(139,92,246,0.1), rgba(59,130,246,0.06))",
@@ -571,58 +708,89 @@ function MessageBubble({ message }: { message: ChatMessage }) {
                     }}>
                         {message.text.replace(/^🧠\s*/, "")}
                     </p>
-                </div>
+                </motion.div>
             );
         }
 
-        const icon =
-            message.actionStatus === "success" ? "✅" :
-            message.actionStatus === "error" ? "❌" : "⏳";
         return (
-            <div className="flex items-center gap-2 px-2 py-1.5">
-                <span className="text-[11px]">{icon}</span>
-                <span className="text-[11px] text-white/50 leading-snug">{message.text}</span>
-            </div>
+            <motion.div 
+                initial={{ opacity: 0, x: -5 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="font-mono text-[10px] leading-relaxed tracking-tight py-1 px-2 border-l-2 border-[#D40A12]/40 ml-[34px] bg-black/20 rounded-r-md" 
+                style={{ color: message.actionStatus === "success" ? "#4ade80" : message.actionStatus === "error" ? "#f87171" : "#a3a3a3" }}
+            >
+                <span className="opacity-40 mr-2">{">"}</span>
+                {message.text}
+                {message.actionStatus === "pending" && <span className="ml-2 animate-pulse bg-current w-1.5 h-2.5 inline-block align-middle" />}
+                {message.actionStatus === "success" && <span className="ml-2 opacity-50 font-bold">[OK]</span>}
+                {message.actionStatus === "error" && <span className="ml-2 opacity-50 font-bold">[ERR]</span>}
+            </motion.div>
         );
     }
 
     if (message.role === "user") {
         return (
-            <div className="flex justify-end">
+            <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.3, type: "spring", stiffness: 200, damping: 20 }}
+                className="flex justify-end my-2"
+            >
                 <div
-                    className="rounded-xl rounded-br-sm px-3.5 py-2.5 max-w-[85%]"
+                    className="rounded-xl rounded-br-sm px-4 py-3 max-w-[85%] relative overflow-hidden"
                     style={{
-                        background: "rgba(229,9,20,0.06)",
-                        border: "1px solid rgba(229,9,20,0.08)",
+                        background: "linear-gradient(135deg, rgba(212,10,18,0.15), rgba(212,10,18,0.05))",
+                        border: "1px solid rgba(212,10,18,0.2)",
+                        borderRight: "2px solid #D40A12",
+                        boxShadow: "0 4px 24px rgba(212,10,18,0.1)"
                     }}
                 >
-                    <p className="text-[13px] text-white/90 leading-relaxed">{message.text}</p>
+                    <div className="text-[13px] text-white/90 leading-relaxed font-medium">
+                        <div className="prose prose-invert prose-sm max-w-none prose-p:my-0.5 prose-p:leading-relaxed prose-strong:text-white prose-ul:my-1 prose-li:my-0">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {message.text}
+                            </ReactMarkdown>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </motion.div>
         );
     }
 
     // Assistant
     return (
-        <div className="flex gap-2.5 items-start">
+        <motion.div 
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.3, type: "spring", stiffness: 200, damping: 20 }}
+            className="flex gap-2.5 items-start my-2"
+        >
             <div
-                className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5"
+                className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-1"
                 style={{
-                    background: "linear-gradient(135deg, rgba(229,9,20,0.2), rgba(229,9,20,0.05))",
-                    border: "1px solid rgba(229,9,20,0.12)",
+                    background: "linear-gradient(135deg, rgba(212,10,18,0.2), rgba(212,10,18,0.05))",
+                    border: "1px solid rgba(212,10,18,0.12)",
                 }}
             >
-                <Sparkles size={10} className="text-[#E50914]/70" />
+                <Sparkles size={10} className="text-[#D40A12]/70" />
             </div>
             <div
-                className="rounded-xl rounded-tl-sm px-3.5 py-2.5 max-w-[85%]"
+                className="rounded-xl rounded-tl-sm px-4 py-3 max-w-[90%] relative overflow-hidden backdrop-blur-md"
                 style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.05)",
+                    background: "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderLeft: "2px solid #D40A12",
+                    boxShadow: "0 4px 24px rgba(0,0,0,0.2)"
                 }}
             >
-                <p className="text-[13px] text-white/90 leading-relaxed">{message.text}</p>
+                <div className="text-[13px] text-white/90 leading-relaxed">
+                    <div className="prose prose-invert prose-sm max-w-none prose-p:my-1 prose-p:leading-relaxed prose-strong:text-white prose-ul:my-1 prose-li:my-0.5 prose-a:text-[#D40A12]">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {message.text}
+                        </ReactMarkdown>
+                    </div>
+                </div>
             </div>
-        </div>
+        </motion.div>
     );
 }

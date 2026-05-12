@@ -39,7 +39,7 @@ export const FinanceChart = ({ transactions }: { transactions: any[] }) => {
     }, [transactions]);
 
     return (
-        <div className="h-[300px] w-full bg-[#080808] border border-[#222] p-6 relative">
+        <div className="h-[300px] w-full bg-[#161616] border border-[#222] p-6 relative">
             <div className="flex justify-between items-end mb-6">
                 <div>
                     <h3 className="font-anton text-xl text-white uppercase tracking-wide">Revenue Trend</h3>
@@ -95,7 +95,7 @@ export const FinanceChart = ({ transactions }: { transactions: any[] }) => {
                     />
                     <Bar dataKey="total" barSize={40}>
                         {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={index === data.length - 1 ? '#E50914' : '#333'} />
+                            <Cell key={`cell-${index}`} fill={index === data.length - 1 ? '#D40A12' : '#333'} />
                         ))}
                     </Bar>
                 </BarChart>

@@ -187,7 +187,7 @@ export const CinematographyPanel: React.FC<CinematographyPanelProps> = ({
             style={{ opacity: isVisible ? 1 : 0, transition: "opacity 0.3s ease" }}
         >
             {/* ═══ BACKDROP — Style Reference Image ═══ */}
-            <div className="absolute inset-0 bg-[#050505]">
+            <div className="absolute inset-0 bg-[#111111]">
                 {hasImage ? (
                     <img
                         key={styleRefUrl}
