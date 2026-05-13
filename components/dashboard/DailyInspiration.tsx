@@ -48,7 +48,7 @@ export default function DailyInspiration() {
         <div className="shrink-0">
             <div className="flex items-center justify-between mb-2 px-1">
                 <div className="flex items-center gap-2">
-                    <Sparkles size={11} className="text-[#E50914]" />
+                    <Sparkles size={11} className="text-[#D40A12]" />
                     <span className="text-[10px] font-bold tracking-[2px] uppercase text-white/40">Daily Inspiration</span>
                 </div>
                 <button onClick={() => { setLoading(true); load(true); }}
@@ -58,12 +58,12 @@ export default function DailyInspiration() {
             </div>
 
             {/* Compact horizontal card */}
-            <div className="group flex items-stretch rounded-xl overflow-hidden border border-white/[0.04] hover:border-white/[0.1] transition-all bg-[#0a0a0a] h-[100px] sm:h-[110px]">
+            <div className="group flex items-stretch rounded-xl overflow-hidden border border-white/[0.04] hover:border-white/[0.1] transition-all bg-[#1a1a1a] h-[100px] sm:h-[110px]">
                 {/* Thumbnail — fixed width */}
                 <div className="relative w-[160px] sm:w-[190px] shrink-0 overflow-hidden bg-black">
                     <img src={shot.image_url} alt="" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-[1.05] transition-all duration-500" loading="lazy" />
                     {shot.video_url && (
-                        <div className="absolute top-1.5 left-1.5 bg-[#E50914]/80 backdrop-blur-sm px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                        <div className="absolute top-1.5 left-1.5 bg-[#D40A12]/80 backdrop-blur-sm px-1.5 py-0.5 rounded-full flex items-center gap-1">
                             <Play size={6} fill="white" className="text-white" />
                             <span className="text-[6px] font-bold uppercase text-white">Video</span>
                         </div>
@@ -80,7 +80,7 @@ export default function DailyInspiration() {
                             {shot.shot_type && (
                                 <span className="text-[6px] font-bold uppercase tracking-[1px] text-white/15 bg-white/[0.03] border border-white/[0.06] px-1.5 py-0.5 rounded-full">{shot.shot_type}</span>
                             )}
-                            <span className="text-[6px] font-bold uppercase tracking-[1px] text-[#E50914]/30 bg-[#E50914]/[0.05] border border-[#E50914]/10 px-1.5 py-0.5 rounded-full">Community</span>
+                            <span className="text-[6px] font-bold uppercase tracking-[1px] text-[#D40A12]/30 bg-[#D40A12]/[0.05] border border-[#D40A12]/10 px-1.5 py-0.5 rounded-full">Community</span>
                             {shot.creator && (
                                 <span className="text-[7px] text-white/25 font-medium ml-1">by <span className="text-white/40">{shot.creator}</span></span>
                             )}
@@ -88,7 +88,7 @@ export default function DailyInspiration() {
                         <button
                             onClick={() => router.push(`/playground?idea=${encodeURIComponent(shot.prompt || "")}`)}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[8px] font-bold uppercase tracking-[1px] border-none cursor-pointer transition-all hover:scale-[1.03] active:scale-[0.97] shrink-0"
-                            style={{ background: "linear-gradient(135deg, #E50914, #B30710)" }}>
+                            style={{ background: "linear-gradient(135deg, #D40A12, #B30710)" }}>
                             <Sparkles size={8} /> Try Prompt <ArrowRight size={8} />
                         </button>
                     </div>

@@ -82,7 +82,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
         <>
             <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
 
-            <header className={`h-20 border-b border-white/[0.06] bg-[#050505]/85 backdrop-blur-xl flex items-center justify-between px-8 shrink-0 z-50 ${className}`}>
+            <header className={`h-20 border-b border-white/[0.06] bg-[#111111]/85 backdrop-blur-xl flex items-center justify-between px-8 shrink-0 z-50 ${className}`}>
 
                 <div className="flex items-center h-full gap-6">
                     <Link href={`/project/${projectId}`} className="flex items-center gap-3 text-[#555] hover:text-white transition-colors group h-full">
@@ -112,7 +112,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
                         {showProjectDropdown && (
                             <div className="absolute top-full right-0 mt-1 w-full bg-[#1A1A1A] border border-[#333] rounded-md shadow-2xl shadow-black/80 z-[9999] overflow-hidden">
                                 {/* Header */}
-                                <div className="px-4 py-2.5 border-b border-[#222] flex items-center justify-between bg-[#111]">
+                                <div className="px-4 py-2.5 border-b border-[#222] flex items-center justify-between bg-[#1a1a1a]">
                                     <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Switch Project</span>
                                     <span className="text-[9px] font-mono text-[#333]">{projects.length}</span>
                                 </div>

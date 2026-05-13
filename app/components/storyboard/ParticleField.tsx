@@ -81,7 +81,7 @@ const ParticleField = memo(() => {
             const glowRadius = 160 + breathe * 40;
 
             const glow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowRadius);
-            glow.addColorStop(0, `rgba(229, 9, 20, ${0.07 * breathe})`);
+            glow.addColorStop(0, `rgba(212, 10, 18, ${0.07 * breathe})`);
             glow.addColorStop(0.3, `rgba(255, 100, 50, ${0.025 * breathe})`);
             glow.addColorStop(1, "rgba(0, 0, 0, 0)");
             ctx.fillStyle = glow;
@@ -157,7 +157,7 @@ const ParticleField = memo(() => {
                         ctx.beginPath();
                         ctx.moveTo(bigP[i].x, bigP[i].y);
                         ctx.lineTo(bigP[j].x, bigP[j].y);
-                        ctx.strokeStyle = `rgba(229, 9, 20, ${alpha})`;
+                        ctx.strokeStyle = `rgba(212, 10, 18, ${alpha})`;
                         ctx.lineWidth = 0.4;
                         ctx.stroke();
                     }

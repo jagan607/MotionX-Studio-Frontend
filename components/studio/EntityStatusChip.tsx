@@ -29,7 +29,7 @@ export const EntityStatusChip: React.FC<EntityStatusChipProps> = ({
 
     const baseStyles = "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[8px] font-bold tracking-wider uppercase border transition-all cursor-pointer select-none";
     const variantStyles = isLinked
-        ? "bg-[#E50914]/10 border-[#E50914]/25 text-[#ff6b6b] hover:bg-[#E50914]/15 hover:border-[#E50914]/40"
+        ? "bg-[#D40A12]/10 border-[#D40A12]/25 text-[#ff6b6b] hover:bg-[#D40A12]/15 hover:border-[#D40A12]/40"
         : "bg-neutral-800/40 border-neutral-700/50 text-neutral-500 hover:bg-neutral-700/30 hover:border-neutral-600";
 
     const ChipContent = (

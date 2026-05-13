@@ -128,10 +128,10 @@ export const ScriptWorkstation: React.FC<ScriptWorkstationProps> = ({
     const activeScene = scenes.find(s => s.id === activeSceneId) || null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-[#050505] text-[#EEE] font-sans overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 bg-[#111111] text-[#EEE] font-sans overflow-hidden flex flex-col">
             <style jsx global>{`
                 ::-webkit-scrollbar { width: 6px; }
-                ::-webkit-scrollbar-track { background: #050505; }
+                ::-webkit-scrollbar-track { background: #111111; }
                 ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
                 ::-webkit-scrollbar-thumb:hover { background: #555; }
             `}</style>

@@ -130,7 +130,7 @@ function ClipContextMenu({
             <button
                 onClick={() => { if (canSplit) onSplit(clip.id, playheadPosition); onClose(); }}
                 disabled={!canSplit}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] text-neutral-300 hover:bg-[#E50914]/20 hover:text-white transition-colors disabled:text-neutral-600 disabled:hover:bg-transparent"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] text-neutral-300 hover:bg-[#D40A12]/20 hover:text-white transition-colors disabled:text-neutral-600 disabled:hover:bg-transparent"
             >
                 <Scissors size={12} /> Split at Playhead
                 <span className="ml-auto text-[9px] text-neutral-600 font-mono">S</span>
@@ -138,7 +138,7 @@ function ClipContextMenu({
 
             <button
                 onClick={() => { onDuplicate(); onClose(); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] text-neutral-300 hover:bg-[#E50914]/20 hover:text-white transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] text-neutral-300 hover:bg-[#D40A12]/20 hover:text-white transition-colors"
             >
                 <Copy size={12} /> Duplicate
                 <span className="ml-auto text-[9px] text-neutral-600 font-mono">⌘D</span>
@@ -150,7 +150,7 @@ function ClipContextMenu({
             <div className="relative">
                 <button
                     onClick={(e) => { e.stopPropagation(); setShowSpeedMenu(!showSpeedMenu); }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] text-neutral-300 hover:bg-[#E50914]/20 hover:text-white transition-colors"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] text-neutral-300 hover:bg-[#D40A12]/20 hover:text-white transition-colors"
                 >
                     <Gauge size={12} /> Speed
                     <span className="ml-auto text-[9px] text-neutral-500">{clip.speed || 1}x ▸</span>
@@ -163,8 +163,8 @@ function ClipContextMenu({
                                 onClick={() => { onSpeed(clip.id, s); onClose(); }}
                                 className={`w-full text-left px-3 py-1.5 text-[11px] transition-colors ${
                                     (clip.speed || 1) === s
-                                        ? "text-[#E50914] bg-[#E50914]/10"
-                                        : "text-neutral-300 hover:bg-[#E50914]/20 hover:text-white"
+                                        ? "text-[#D40A12] bg-[#D40A12]/10"
+                                        : "text-neutral-300 hover:bg-[#D40A12]/20 hover:text-white"
                                 }`}
                             >
                                 {s}x
@@ -176,7 +176,7 @@ function ClipContextMenu({
 
             <button
                 onClick={() => { onToggleMute(clip.id); onClose(); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] text-neutral-300 hover:bg-[#E50914]/20 hover:text-white transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] text-neutral-300 hover:bg-[#D40A12]/20 hover:text-white transition-colors"
             >
                 {clip.muted ? <Volume2 size={12} /> : <VolumeX size={12} />}
                 {clip.muted ? 'Unmute Clip Audio' : 'Mute Clip Audio'}
@@ -208,13 +208,13 @@ function GapContextMenu({
 }) {
     return (
         <div
-            className="fixed z-50 bg-[#111] border border-[#2a2a2a] rounded-lg shadow-2xl py-1.5 min-w-[160px]"
+            className="fixed z-50 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-2xl py-1.5 min-w-[160px]"
             style={{ left: menu.x, top: menu.y }}
             onClick={(e) => e.stopPropagation()}
         >
             <button
                 onClick={() => { onRemoveGap(menu.trackId, menu.gap.startTime, menu.gap.duration); onClose(); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] text-neutral-300 hover:bg-[#E50914]/20 hover:text-white transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[11px] text-neutral-300 hover:bg-[#D40A12]/20 hover:text-white transition-colors"
             >
                 <Trash2 size={12} /> Remove Gap
                 <span className="ml-auto text-[9px] text-neutral-600 font-mono">{menu.gap.duration.toFixed(1)}s</span>
@@ -279,7 +279,7 @@ function DraggableClip({
         <div
             ref={mergedRef}
             className={`cursor-pointer group rounded-sm overflow-hidden ${
-                isSelected ? "ring-2 ring-[#E50914] ring-offset-1 ring-offset-black" : ""
+                isSelected ? "ring-2 ring-[#D40A12] ring-offset-1 ring-offset-black" : ""
             }`}
             style={style}
             onClick={(e) => {
@@ -361,14 +361,14 @@ function DraggableClip({
                     <div
                         className="absolute inset-0"
                         style={{
-                            background: "linear-gradient(90deg, transparent 0%, rgba(229,9,20,0.15) 40%, rgba(229,9,20,0.25) 50%, rgba(229,9,20,0.15) 60%, transparent 100%)",
+                            background: "linear-gradient(90deg, transparent 0%, rgba(212,10,18,0.15) 40%, rgba(212,10,18,0.25) 50%, rgba(212,10,18,0.15) 60%, transparent 100%)",
                             backgroundSize: "200% 100%",
                             animation: "shimmer 1.5s ease-in-out infinite",
                         }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="flex items-center gap-1.5">
-                            <Loader2 size={10} className="animate-spin text-[#E50914]" />
+                            <Loader2 size={10} className="animate-spin text-[#D40A12]" />
                             <span className="text-[7px] font-mono text-white/70 tracking-wider uppercase">
                                 Processing
                             </span>
@@ -379,7 +379,7 @@ function DraggableClip({
 
             {/* Start time tooltip */}
             <div className="absolute -top-5 left-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-30">
-                <span className="text-[7px] font-mono text-neutral-500 bg-[#111] px-1 py-0.5 rounded border border-[#222]">
+                <span className="text-[7px] font-mono text-neutral-500 bg-[#1a1a1a] px-1 py-0.5 rounded border border-[#222]">
                     {clip.startTime.toFixed(1)}s
                 </span>
             </div>
@@ -454,7 +454,7 @@ function ClipOverlay({ clip, trackHeight, zoom }: {
 
     return (
         <div
-            className="rounded-sm overflow-hidden ring-2 ring-[#E50914] shadow-2xl"
+            className="rounded-sm overflow-hidden ring-2 ring-[#D40A12] shadow-2xl"
             style={{
                 width: w, height: h,
                 backgroundColor: `${clip.color}44`,
@@ -669,12 +669,12 @@ export default function Timeline({
         : undefined;
 
     return (
-        <div className="flex-1 flex flex-col overflow-hidden bg-[#0a0a0a] border-t border-[#1a1a1a]">
+        <div className="flex-1 flex flex-col overflow-hidden bg-[#1a1a1a] border-t border-[#1a1a1a]">
             <div className="flex flex-1 overflow-hidden">
                 {/* ═══ TRACK HEADERS ═══ */}
                 <div
                     ref={trackHeaderRef}
-                    className="w-[180px] shrink-0 border-r border-[#1a1a1a] bg-[#080808] flex flex-col overflow-y-auto scrollbar-hide"
+                    className="w-[180px] shrink-0 border-r border-[#1a1a1a] bg-[#161616] flex flex-col overflow-y-auto scrollbar-hide"
                     onScroll={(e) => {
                         if (scrollRef.current) scrollRef.current.scrollTop = e.currentTarget.scrollTop;
                     }}
@@ -685,7 +685,7 @@ export default function Timeline({
                             <select
                                 value={activeSceneId || ""}
                                 onChange={(e) => onSceneChange(e.target.value)}
-                                className="text-[9px] bg-[#111] border border-[#2a2a2a] text-neutral-400 rounded px-1.5 py-0.5 font-mono tracking-wider uppercase cursor-pointer hover:border-[#444] transition-colors focus:outline-none focus:border-[#E50914] appearance-none pr-4"
+                                className="text-[9px] bg-[#1a1a1a] border border-[#2a2a2a] text-neutral-400 rounded px-1.5 py-0.5 font-mono tracking-wider uppercase cursor-pointer hover:border-[#444] transition-colors focus:outline-none focus:border-[#D40A12] appearance-none pr-4"
                                 style={{
                                     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
                                     backgroundRepeat: "no-repeat",
@@ -796,7 +796,7 @@ export default function Timeline({
                     {/* Ruler */}
                     <div
                         ref={rulerRef}
-                        className="h-7 border-b border-[#1a1a1a] bg-[#080808] sticky top-0 z-20 cursor-pointer relative"
+                        className="h-7 border-b border-[#1a1a1a] bg-[#161616] sticky top-0 z-20 cursor-pointer relative"
                         style={{ width: totalWidth }}
                         onClick={(e) => { e.stopPropagation(); handleRulerClick(e); }}
                     >
@@ -960,17 +960,17 @@ export default function Timeline({
                                                         style={{ left: loopLeft, width: loopWidth }}
                                                     >
                                                         {/* Left bracket */}
-                                                        <div className="absolute left-0 top-0 bottom-0 w-px bg-[#E50914]/60" />
-                                                        <div className="absolute left-0 top-0 w-2 h-px bg-[#E50914]/60" />
-                                                        <div className="absolute left-0 bottom-0 w-2 h-px bg-[#E50914]/60" />
+                                                        <div className="absolute left-0 top-0 bottom-0 w-px bg-[#D40A12]/60" />
+                                                        <div className="absolute left-0 top-0 w-2 h-px bg-[#D40A12]/60" />
+                                                        <div className="absolute left-0 bottom-0 w-2 h-px bg-[#D40A12]/60" />
                                                         {/* Right bracket */}
-                                                        <div className="absolute right-0 top-0 bottom-0 w-px bg-[#E50914]/60" />
-                                                        <div className="absolute right-0 top-0 w-2 h-px bg-[#E50914]/60" />
-                                                        <div className="absolute right-0 bottom-0 w-2 h-px bg-[#E50914]/60" />
+                                                        <div className="absolute right-0 top-0 bottom-0 w-px bg-[#D40A12]/60" />
+                                                        <div className="absolute right-0 top-0 w-2 h-px bg-[#D40A12]/60" />
+                                                        <div className="absolute right-0 bottom-0 w-2 h-px bg-[#D40A12]/60" />
                                                         {/* Loop label */}
-                                                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[#E50914]/20 border border-[#E50914]/30 rounded px-1.5 py-0.5">
-                                                            <div className="w-1 h-1 rounded-full bg-[#E50914] animate-pulse" />
-                                                            <span className="text-[7px] font-mono text-[#E50914] tracking-wider uppercase">LOOP</span>
+                                                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[#D40A12]/20 border border-[#D40A12]/30 rounded px-1.5 py-0.5">
+                                                            <div className="w-1 h-1 rounded-full bg-[#D40A12] animate-pulse" />
+                                                            <span className="text-[7px] font-mono text-[#D40A12] tracking-wider uppercase">LOOP</span>
                                                         </div>
                                                     </div>
                                                 </>
@@ -985,9 +985,9 @@ export default function Timeline({
                                 style={{ left: timeToPixels(playheadPosition, zoom) }}
                             >
                                 <div className="relative -top-7 -left-[5px]">
-                                    <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-[#E50914]" />
+                                    <div className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent border-t-[#D40A12]" />
                                 </div>
-                                <div className="w-px h-full bg-[#E50914] -mt-0.5" />
+                                <div className="w-px h-full bg-[#D40A12] -mt-0.5" />
                             </div>
 
                             {/* ═══ SNAP LINE (at playhead when snap is on) ═══ */}

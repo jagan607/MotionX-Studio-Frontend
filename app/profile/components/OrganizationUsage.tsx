@@ -59,10 +59,10 @@ export default function OrganizationUsage() {
     if (loading) {
         return (
             <div className="space-y-4 animate-pulse">
-                <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl h-28" />
+                <div className="bg-[#161616] border border-[#1a1a1a] rounded-xl h-28" />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl h-64" />
-                    <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl h-64" />
+                    <div className="bg-[#161616] border border-[#1a1a1a] rounded-xl h-64" />
+                    <div className="bg-[#161616] border border-[#1a1a1a] rounded-xl h-64" />
                 </div>
             </div>
         );
@@ -71,7 +71,7 @@ export default function OrganizationUsage() {
     // ─── Error ───
     if (error || !data) {
         return (
-            <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl p-12 text-center">
+            <div className="bg-[#161616] border border-[#1a1a1a] rounded-xl p-12 text-center">
                 <BarChart3 size={32} className="mx-auto mb-3 text-[#333]" />
                 <p className="text-[10px] font-mono uppercase tracking-widest text-[#555]">Failed to load usage data</p>
                 <p className="text-[9px] text-[#444] mt-1">Check console for details or try refreshing.</p>
@@ -82,7 +82,7 @@ export default function OrganizationUsage() {
     // ─── Empty State ───
     if (data.total_spent === 0 && data.leaderboard.length === 0) {
         return (
-            <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl p-12 text-center">
+            <div className="bg-[#161616] border border-[#1a1a1a] rounded-xl p-12 text-center">
                 <TokenIcon size={32} className="mx-auto mb-3 text-[#333]" />
                 <p className="text-[11px] font-bold uppercase tracking-widest text-[#666]">No credits consumed yet</p>
                 <p className="text-[9px] text-[#444] mt-1">No credits have been consumed by your organization yet.</p>
@@ -97,10 +97,10 @@ export default function OrganizationUsage() {
         <div className="space-y-5">
 
             {/* ═══ KPI CARD ═══ */}
-            <div className="bg-gradient-to-br from-[#0a0a0a] to-[#0d0d0d] border border-[#1a1a1a] rounded-xl p-6">
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] border border-[#1a1a1a] rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-lg bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center">
-                        <TrendingUp size={18} className="text-[#E50914]" />
+                    <div className="w-10 h-10 rounded-lg bg-[#D40A12]/10 border border-[#D40A12]/20 flex items-center justify-center">
+                        <TrendingUp size={18} className="text-[#D40A12]" />
                     </div>
                     <div>
                         <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block">Total Credits Consumed</span>
@@ -117,7 +117,7 @@ export default function OrganizationUsage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
                 {/* ═══ LEADERBOARD ═══ */}
-                <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl overflow-hidden">
+                <div className="bg-[#161616] border border-[#1a1a1a] rounded-xl overflow-hidden">
                     <div className="flex items-center gap-3 p-5 border-b border-[#1a1a1a]">
                         <BarChart3 size={16} className="text-amber-400" />
                         <h3 className="text-sm font-bold text-white uppercase tracking-wide">Usage Leaderboard</h3>
@@ -137,7 +137,7 @@ export default function OrganizationUsage() {
                                     {/* User + bar */}
                                     <div className="flex-1 min-w-0">
                                         <span className="text-[10px] font-mono text-white block truncate">{entry.email}</span>
-                                        <div className="mt-1 h-1.5 bg-[#111] rounded-full overflow-hidden">
+                                        <div className="mt-1 h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-700 ${idx === 0 ? "bg-gradient-to-r from-amber-500 to-amber-400"
                                                     : idx === 1 ? "bg-gradient-to-r from-[#666] to-[#888]"
@@ -159,7 +159,7 @@ export default function OrganizationUsage() {
                 </div>
 
                 {/* ═══ RECENT TRANSACTIONS ═══ */}
-                <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl overflow-hidden">
+                <div className="bg-[#161616] border border-[#1a1a1a] rounded-xl overflow-hidden">
                     <div className="flex items-center gap-3 p-5 border-b border-[#1a1a1a]">
                         <Clock size={16} className="text-blue-400" />
                         <h3 className="text-sm font-bold text-white uppercase tracking-wide">Audit Ledger</h3>
@@ -185,12 +185,12 @@ export default function OrganizationUsage() {
                                                 <span className="text-[9px] font-mono text-white truncate block max-w-[150px]">{tx.email}</span>
                                             </td>
                                             <td className="p-3">
-                                                <span className="text-[8px] font-mono text-[#aaa] bg-[#111] border border-[#222] px-2 py-0.5 rounded uppercase tracking-wider">
+                                                <span className="text-[8px] font-mono text-[#aaa] bg-[#1a1a1a] border border-[#222] px-2 py-0.5 rounded uppercase tracking-wider">
                                                     <Cpu size={9} className="inline mr-1 -mt-px" />{tx.model}
                                                 </span>
                                             </td>
                                             <td className="p-3 text-right">
-                                                <span className="text-[10px] font-mono font-bold text-[#E50914] tabular-nums">
+                                                <span className="text-[10px] font-mono font-bold text-[#D40A12] tabular-nums">
                                                     −{tx.cost.toLocaleString()}
                                                 </span>
                                             </td>

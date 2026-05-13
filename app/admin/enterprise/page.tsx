@@ -166,7 +166,7 @@ export default function EnterprisePage() {
             {/* HEADER */}
             <div className="flex justify-between items-end border-b border-[#222] pb-6">
                 <div>
-                    <div className="flex items-center gap-2 text-[#E50914] mb-2">
+                    <div className="flex items-center gap-2 text-[#D40A12] mb-2">
                         <Building size={18} />
                         <span className="text-[10px] font-mono tracking-widest uppercase">Enterprise Management</span>
                     </div>
@@ -182,7 +182,7 @@ export default function EnterprisePage() {
                 <div className="space-y-6">
 
                     {/* Success Card */}
-                    <div className="bg-[#080808] border border-[#222] p-6">
+                    <div className="bg-[#161616] border border-[#222] p-6">
                         <div className="flex items-center gap-3 mb-6 border-b border-[#222] pb-4">
                             <CheckCircle className="text-green-500" size={16} />
                             <h3 className="font-anton text-xl text-white uppercase tracking-wide">Workspace Provisioned Successfully</h3>
@@ -216,10 +216,10 @@ export default function EnterprisePage() {
                     </div>
 
                     {/* IT Email Generator Card */}
-                    <div className="bg-[#080808] border border-[#222] p-6">
+                    <div className="bg-[#161616] border border-[#222] p-6">
                         <div className="flex items-center justify-between mb-6 border-b border-[#222] pb-4">
                             <div className="flex items-center gap-3">
-                                <Mail className="text-[#E50914]" size={16} />
+                                <Mail className="text-[#D40A12]" size={16} />
                                 <h3 className="font-anton text-xl text-white uppercase tracking-wide">IT Onboarding Email</h3>
                             </div>
                             <span className="text-[9px] font-mono text-[#555]">READY TO SEND</span>
@@ -252,7 +252,7 @@ export default function EnterprisePage() {
                             </button>
                             <button
                                 onClick={handleMailto}
-                                className="flex items-center gap-2 bg-[#111] text-[#AAA] border border-[#333] hover:border-red-600 hover:text-white px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all"
+                                className="flex items-center gap-2 bg-[#1a1a1a] text-[#AAA] border border-[#333] hover:border-red-600 hover:text-white px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all"
                             >
                                 <Mail size={13} />
                                 Open in Mail Client
@@ -270,9 +270,9 @@ export default function EnterprisePage() {
                 </div>
             ) : (
                 /* ===== ONBOARDING FORM ===== */
-                <div className="bg-[#080808] border border-[#222] p-6 relative overflow-hidden group">
+                <div className="bg-[#161616] border border-[#222] p-6 relative overflow-hidden group">
                     <div className="flex items-center gap-3 mb-6 border-b border-[#222] pb-4">
-                        <Building className="text-[#E50914]" size={16} />
+                        <Building className="text-[#D40A12]" size={16} />
                         <h3 className="font-anton text-xl text-white uppercase tracking-wide">Provision New Workspace</h3>
                     </div>
 
@@ -287,7 +287,7 @@ export default function EnterprisePage() {
                                 value={orgName}
                                 onChange={(e) => setOrgName(e.target.value)}
                                 placeholder="Pocket FM"
-                                className="w-full bg-[#111] border border-[#333] text-white p-3 font-anton text-lg tracking-wide focus:border-red-600 outline-none transition-colors"
+                                className="w-full bg-[#1a1a1a] border border-[#333] text-white p-3 font-anton text-lg tracking-wide focus:border-red-600 outline-none transition-colors"
                             />
                         </div>
 
@@ -301,7 +301,7 @@ export default function EnterprisePage() {
                                 value={slug}
                                 onChange={(e) => handleSlugChange(e.target.value)}
                                 placeholder="pocketfm"
-                                className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors"
+                                className="w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors"
                             />
                             {slug && (
                                 <p className="text-[9px] text-[#555] font-mono pt-1">
@@ -320,7 +320,7 @@ export default function EnterprisePage() {
                                 value={domains}
                                 onChange={(e) => setDomains(e.target.value)}
                                 placeholder="pocketfm.com, pocketfm.studio"
-                                className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors"
+                                className="w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors"
                             />
                             <p className="text-[8px] text-[#444] pt-1 flex items-center gap-1">
                                 <Info size={10} className="shrink-0" />
@@ -338,7 +338,7 @@ export default function EnterprisePage() {
                                 value={adminEmail}
                                 onChange={(e) => setAdminEmail(e.target.value)}
                                 placeholder="admin@pocketfm.com"
-                                className="w-full bg-[#111] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors"
+                                className="w-full bg-[#1a1a1a] border border-[#333] text-[#AAA] p-3 text-xs font-mono focus:border-red-600 outline-none transition-colors"
                             />
                             <p className="text-[8px] text-[#444] pt-1 flex items-center gap-1">
                                 <Info size={10} className="shrink-0" />

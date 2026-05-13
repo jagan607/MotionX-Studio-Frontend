@@ -192,9 +192,9 @@ export default function ProjectHub() {
 
     if (loading || !project) {
         return (
-            <div className="fixed inset-0 bg-[#030303] flex flex-col items-center justify-center gap-4">
+            <div className="absolute inset-0 bg-[#111111] flex flex-col items-center justify-center gap-4 z-50">
                 <div className="relative">
-                    <div className="w-12 h-12 rounded-full border-2 border-[#E50914]/20 border-t-[#E50914] animate-spin" />
+                    <div className="w-12 h-12 rounded-full border-2 border-[#D40A12]/20 border-t-[#D40A12] animate-spin" />
                     <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-transparent border-b-[#D4A843]/30 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
                 </div>
                 <span className="text-[10px] font-mono tracking-[4px] text-white/20 uppercase">Loading Project...</span>
@@ -227,9 +227,9 @@ export default function ProjectHub() {
             pipeline: ["Storyboard", "Shots", "Generate", "Animate"],
             icon: Camera,
             href: project.type === 'micro_drama' ? `/project/${projectId}/studio` : `/project/${projectId}/storyboard`,
-            accent: "#E50914",
-            accentDark: "rgba(229, 9, 20, 0.08)",
-            accentMid: "rgba(229, 9, 20, 0.25)",
+            accent: "#D40A12",
+            accentDark: "rgba(212, 10, 18, 0.08)",
+            accentMid: "rgba(212, 10, 18, 0.25)",
             available: true,
             progress: prodProgress,
             quickStats: counts.shots > 0 ? [
@@ -259,7 +259,7 @@ export default function ProjectHub() {
     const formatLabel = project.type === 'micro_drama' ? 'Series' : project.type === 'ad' ? 'Commercial' : 'Feature Film';
 
     return (
-        <div className="fixed inset-0 bg-[#030303] text-white overflow-y-auto overflow-x-hidden">
+        <div className="w-full h-full relative bg-[#111111] text-white overflow-y-auto overflow-x-hidden flex flex-col min-h-0">
             <style jsx global>{`
                 @keyframes hubFadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes hubFadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -281,10 +281,10 @@ export default function ProjectHub() {
             `}</style>
 
             {/* ── Ambient Background Orbs ── */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-30%] left-[-15%] w-[70%] h-[70%] bg-[#D4A843]/[0.025] rounded-full blur-[150px]"
                     style={{ animation: 'float1 20s ease-in-out infinite' }} />
-                <div className="absolute bottom-[-25%] right-[-10%] w-[55%] h-[55%] bg-[#E50914]/[0.02] rounded-full blur-[130px]"
+                <div className="absolute bottom-[-25%] right-[-10%] w-[55%] h-[55%] bg-[#D40A12]/[0.02] rounded-full blur-[130px]"
                     style={{ animation: 'float2 18s ease-in-out infinite' }} />
                 <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] bg-[#A855F7]/[0.015] rounded-full blur-[100px]"
                     style={{ animation: 'float1 25s ease-in-out infinite reverse' }} />
@@ -326,7 +326,7 @@ export default function ProjectHub() {
                                 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
                                 : project.is_public 
                                     ? 'bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20'
-                                    : 'bg-[#E50914] border-[#E50914] text-white hover:bg-[#ff1a25]'
+                                    : 'bg-[#D40A12] border-[#D40A12] text-white hover:bg-[#ff1a25]'
                         }`}
                     >
                         {isSharing ? (
@@ -354,12 +354,12 @@ export default function ProjectHub() {
 
                 {/* Project badge */}
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="h-[1px] w-16 bg-gradient-to-r from-transparent to-[#E50914]/30" />
-                    <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#E50914]/15 bg-[#E50914]/[0.04]">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#E50914]/60 animate-pulse" />
-                        <span className="text-[9px] font-mono text-[#E50914]/60 uppercase tracking-[4px]">Project</span>
+                    <div className="h-[1px] w-16 bg-gradient-to-r from-transparent to-[#D40A12]/30" />
+                    <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#D40A12]/15 bg-[#D40A12]/[0.04]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#D40A12]/60 animate-pulse" />
+                        <span className="text-[9px] font-mono text-[#D40A12]/60 uppercase tracking-[4px]">Project</span>
                     </div>
-                    <div className="h-[1px] w-16 bg-gradient-to-l from-transparent to-[#E50914]/30" />
+                    <div className="h-[1px] w-16 bg-gradient-to-l from-transparent to-[#D40A12]/30" />
                 </div>
 
                 {/* Title */}

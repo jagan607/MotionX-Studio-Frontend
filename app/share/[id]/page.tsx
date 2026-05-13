@@ -141,9 +141,9 @@ export default function SharedProjectPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+            <div className="min-h-screen bg-[#111111] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-8 h-8 border-2 border-[#E50914] border-t-transparent rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-2 border-[#D40A12] border-t-transparent rounded-full animate-spin" />
                     <span className="text-[10px] text-[#555] uppercase tracking-[3px]">Loading Experience</span>
                 </div>
             </div>
@@ -152,11 +152,11 @@ export default function SharedProjectPage() {
 
     if (!project) {
         return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+            <div className="min-h-screen bg-[#111111] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <Film size={32} className="text-[#333]" />
                     <span className="text-[10px] text-[#555] uppercase tracking-[3px]">Project Not Found or Private</span>
-                    <Link href="/" className="px-4 py-2 mt-4 bg-[#E50914] text-white text-[10px] font-bold uppercase tracking-[2px] rounded-md hover:bg-[#ff1a25] transition-colors no-underline">
+                    <Link href="/" className="px-4 py-2 mt-4 bg-[#D40A12] text-white text-[10px] font-bold uppercase tracking-[2px] rounded-md hover:bg-[#ff1a25] transition-colors no-underline">
                         Return Home
                     </Link>
                 </div>
@@ -165,13 +165,13 @@ export default function SharedProjectPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#030303] text-white font-sans selection:bg-[#E50914] selection:text-white">
+        <div className="min-h-screen bg-[#111111] text-white font-sans selection:bg-[#D40A12] selection:text-white">
             {/* ═══ HEADER ═══ */}
-            <div className="sticky top-0 z-50 bg-[#030303]/80 backdrop-blur-2xl border-b border-white/[0.04]">
+            <div className="sticky top-0 z-50 bg-[#111111]/80 backdrop-blur-2xl border-b border-white/[0.04]">
                 <div className="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-6">
-                        <Link href="/" className="flex items-center gap-2 text-white hover:text-[#E50914] transition-colors group">
-                            <div className="w-8 h-8 rounded bg-gradient-to-br from-[#E50914] to-[#800000] flex items-center justify-center shadow-[0_0_15px_rgba(229,9,20,0.4)] group-hover:shadow-[0_0_25px_rgba(229,9,20,0.6)] transition-shadow">
+                        <Link href="/" className="flex items-center gap-2 text-white hover:text-[#D40A12] transition-colors group">
+                            <div className="w-8 h-8 rounded bg-gradient-to-br from-[#D40A12] to-[#800000] flex items-center justify-center shadow-[0_0_15px_rgba(212,10,18,0.4)] group-hover:shadow-[0_0_25px_rgba(212,10,18,0.6)] transition-shadow">
                                 <Film size={14} className="text-white" />
                             </div>
                             <span className="font-bold tracking-widest text-sm hidden sm:block uppercase">MotionX</span>
@@ -182,7 +182,7 @@ export default function SharedProjectPage() {
                                 <h1 className="text-xl font-bold text-white tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
                                     {project?.title || "Untitled Project"}
                                 </h1>
-                                <span className="bg-[#E50914]/10 text-[#E50914] text-[8px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-[#E50914]/20 backdrop-blur-md">
+                                <span className="bg-[#D40A12]/10 text-[#D40A12] text-[8px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-[#D40A12]/20 backdrop-blur-md">
                                     PUBLIC
                                 </span>
                             </div>
@@ -195,7 +195,7 @@ export default function SharedProjectPage() {
                         href="/login"
                         className="group relative flex items-center gap-2 px-5 py-2.5 overflow-hidden rounded-full transition-all"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#E50914] to-[#ff4d4d] opacity-90 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#D40A12] to-[#ff4d4d] opacity-90 group-hover:opacity-100 transition-opacity"></div>
                         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay"></div>
                         <Sparkles size={14} className="relative z-10 text-white" />
                         <span className="relative z-10 text-white text-[11px] font-bold uppercase tracking-[1.5px]">Create Your Own</span>
@@ -204,7 +204,7 @@ export default function SharedProjectPage() {
             </div>
 
             {/* ═══ TABS ═══ */}
-            <div className="border-b border-white/[0.04] bg-[#030303]/90 backdrop-blur-md sticky top-[73px] z-40">
+            <div className="border-b border-white/[0.04] bg-[#111111]/90 backdrop-blur-md sticky top-[73px] z-40">
                 <div className="max-w-[1800px] mx-auto px-6 flex items-center gap-2 overflow-x-auto custom-scrollbar">
                     {[
                         { id: 'moodboard', label: 'Moodboard' },
@@ -223,7 +223,7 @@ export default function SharedProjectPage() {
                         >
                             {tab.label}
                             {activeTab === tab.id && (
-                                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#E50914] to-[#ff4d4d] shadow-[0_0_10px_rgba(229,9,20,0.5)] rounded-t-full" />
+                                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#D40A12] to-[#ff4d4d] shadow-[0_0_10px_rgba(212,10,18,0.5)] rounded-t-full" />
                             )}
                         </button>
                     ))}
@@ -239,7 +239,7 @@ export default function SharedProjectPage() {
                         <div className="max-w-5xl mx-auto">
                             <div className="flex items-center gap-3 mb-8">
                                 <div className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.05]">
-                                    <Palette size={18} className="text-[#E50914]" />
+                                    <Palette size={18} className="text-[#D40A12]" />
                                 </div>
                                 <h2 className="text-2xl font-semibold tracking-tight text-white">Cinematic Vision</h2>
                             </div>
@@ -248,7 +248,7 @@ export default function SharedProjectPage() {
                                 <div className="space-y-12">
                                     {project.moodboard_image_url && (
                                         <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl group">
-                                            <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-transparent opacity-60 z-10"></div>
+                                            <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-transparent to-transparent opacity-60 z-10"></div>
                                             <img 
                                                 src={project.moodboard_image_url} 
                                                 alt="Moodboard Concept" 
@@ -257,7 +257,7 @@ export default function SharedProjectPage() {
                                             {project.moodboard_prompt && (
                                                 <div className="absolute bottom-0 left-0 right-0 p-8 z-20">
                                                     <div className="backdrop-blur-xl bg-black/40 border border-white/[0.1] rounded-xl p-5 shadow-2xl">
-                                                        <span className="text-[10px] text-[#E50914] font-bold tracking-[2px] uppercase mb-3 flex items-center gap-2">
+                                                        <span className="text-[10px] text-[#D40A12] font-bold tracking-[2px] uppercase mb-3 flex items-center gap-2">
                                                             <Sparkles size={12}/> Generation Prompt
                                                         </span>
                                                         <p className="text-[13px] text-white/90 font-mono leading-relaxed">{project.moodboard_prompt}</p>
@@ -271,7 +271,7 @@ export default function SharedProjectPage() {
                                         {project.moodboard.map((item, idx) => (
                                             <div key={idx} className="group bg-white/[0.02] border border-white/[0.05] rounded-2xl p-6 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-300 relative overflow-hidden">
                                                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                                <span className="text-[9px] text-[#E50914] font-bold tracking-[2px] uppercase mb-2 block relative z-10">{item.title}</span>
+                                                <span className="text-[9px] text-[#D40A12] font-bold tracking-[2px] uppercase mb-2 block relative z-10">{item.title}</span>
                                                 <span className="text-[14px] text-white font-medium capitalize leading-tight block relative z-10">{item.option}</span>
                                             </div>
                                         ))}
@@ -295,7 +295,7 @@ export default function SharedProjectPage() {
                             <section>
                                 <div className="flex items-center gap-3 mb-8">
                                     <div className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.05]">
-                                        <Users size={18} className="text-[#E50914]" />
+                                        <Users size={18} className="text-[#D40A12]" />
                                     </div>
                                     <h2 className="text-2xl font-semibold tracking-tight text-white">Cast</h2>
                                 </div>
@@ -303,7 +303,7 @@ export default function SharedProjectPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                                         {characters.map(c => (
                                             <div key={c.id} className="flex flex-col bg-white/[0.02] border border-white/[0.05] rounded-2xl overflow-hidden hover:border-white/[0.1] transition-all group">
-                                                <div className="relative aspect-square overflow-hidden bg-[#111]">
+                                                <div className="relative aspect-square overflow-hidden bg-[#1a1a1a]">
                                                     {c.image_url ? (
                                                         <>
                                                             <img src={c.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={c.name} />
@@ -318,7 +318,7 @@ export default function SharedProjectPage() {
                                                     
                                                     <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
                                                         <h3 className="font-bold text-2xl text-white mb-1 tracking-tight">{c.name}</h3>
-                                                        {c.role && <p className="text-[11px] text-[#E50914] font-bold uppercase tracking-[1.5px]">{c.role}</p>}
+                                                        {c.role && <p className="text-[11px] text-[#D40A12] font-bold uppercase tracking-[1.5px]">{c.role}</p>}
                                                     </div>
                                                 </div>
                                                 
@@ -360,7 +360,7 @@ export default function SharedProjectPage() {
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                         {locations.map(l => (
                                             <div key={l.id} className="flex flex-col bg-white/[0.02] border border-white/[0.05] rounded-2xl overflow-hidden hover:border-white/[0.1] transition-all group">
-                                                <div className="relative aspect-video overflow-hidden bg-[#111]">
+                                                <div className="relative aspect-video overflow-hidden bg-[#1a1a1a]">
                                                     {l.image_url ? (
                                                         <>
                                                             <img src={l.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={l.name} />
@@ -411,8 +411,8 @@ export default function SharedProjectPage() {
                 {activeTab === 'storyboard' && (
                     <div className="flex h-[calc(100vh-135px)] animate-in fade-in duration-500">
                         {/* LEFT: Scene List */}
-                        <div className="w-[380px] bg-[#050505] border-r border-white/[0.04] overflow-y-auto shrink-0 custom-scrollbar relative z-10 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
-                            <div className="sticky top-0 bg-[#050505]/95 backdrop-blur px-6 py-5 border-b border-white/[0.04] z-20">
+                        <div className="w-[380px] bg-[#111111] border-r border-white/[0.04] overflow-y-auto shrink-0 custom-scrollbar relative z-10 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
+                            <div className="sticky top-0 bg-[#111111]/95 backdrop-blur px-6 py-5 border-b border-white/[0.04] z-20">
                                 <span className="text-[10px] text-[#888] font-bold uppercase tracking-[2px]">Timeline</span>
                             </div>
 
@@ -431,7 +431,7 @@ export default function SharedProjectPage() {
                                                     <div className="flex items-center gap-2 text-[11px] text-white font-medium mb-1 line-clamp-1">
                                                         {scene.location && (
                                                             <span className="flex items-center gap-1.5">
-                                                                <MapPin size={10} className="text-[#E50914]" />
+                                                                <MapPin size={10} className="text-[#D40A12]" />
                                                                 {scene.location}
                                                             </span>
                                                         )}
@@ -463,7 +463,7 @@ export default function SharedProjectPage() {
                                                         onClick={() => { setActiveShot(shot); setPlaying(false); }}
                                                         className={`aspect-video rounded-lg overflow-hidden cursor-pointer transition-all duration-300 relative group ${
                                                             activeShot?.id === shot.id
-                                                                ? 'ring-2 ring-[#E50914] ring-offset-2 ring-offset-[#050505] shadow-[0_4px_20px_rgba(229,9,20,0.3)]'
+                                                                ? 'ring-2 ring-[#D40A12] ring-offset-2 ring-offset-[#111111] shadow-[0_4px_20px_rgba(212,10,18,0.3)]'
                                                                 : 'ring-1 ring-white/[0.1] hover:ring-white/[0.3] hover:shadow-lg'
                                                         }`}
                                                     >
@@ -475,7 +475,7 @@ export default function SharedProjectPage() {
                                                                 loading="lazy"
                                                             />
                                                         ) : (
-                                                            <div className="w-full h-full bg-[#111] flex items-center justify-center">
+                                                            <div className="w-full h-full bg-[#1a1a1a] flex items-center justify-center">
                                                                 <Camera size={14} className="text-[#333]" />
                                                             </div>
                                                         )}
@@ -502,7 +502,7 @@ export default function SharedProjectPage() {
                                 <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                                     {/* Media Area */}
                                     <div className="flex-1 flex items-center justify-center p-8 bg-[url('/noise.png')] relative">
-                                        <div className="absolute inset-0 bg-gradient-to-b from-[#111] to-[#050505] opacity-50"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-b from-[#111] to-[#111111] opacity-50"></div>
                                         
                                         <div className="relative z-10 w-full max-w-5xl aspect-video rounded-2xl overflow-hidden ring-1 ring-white/[0.1] shadow-[0_20px_50px_rgba(0,0,0,0.5)] group">
                                             {activeShot.video_url ? (
@@ -544,7 +544,7 @@ export default function SharedProjectPage() {
                                                     className="w-full h-full object-contain bg-black"
                                                 />
                                             ) : (
-                                                <div className="w-full h-full bg-[#111] flex flex-col items-center justify-center text-[#444]">
+                                                <div className="w-full h-full bg-[#1a1a1a] flex flex-col items-center justify-center text-[#444]">
                                                     <Camera size={48} className="mb-4 opacity-50" />
                                                     <span className="text-sm font-bold tracking-widest uppercase">No media generated</span>
                                                 </div>
@@ -553,12 +553,12 @@ export default function SharedProjectPage() {
                                     </div>
 
                                     {/* Right Context Panel */}
-                                    <div className="w-full lg:w-[450px] bg-[#050505] border-l border-white/[0.04] overflow-y-auto custom-scrollbar shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
+                                    <div className="w-full lg:w-[450px] bg-[#111111] border-l border-white/[0.04] overflow-y-auto custom-scrollbar shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
                                         <div className="p-8 space-y-8">
                                             {/* Action & Dialogue */}
                                             <div className="space-y-6">
                                                 <div>
-                                                    <h3 className="text-[10px] text-[#E50914] font-bold uppercase tracking-[2px] mb-3 flex items-center gap-2">
+                                                    <h3 className="text-[10px] text-[#D40A12] font-bold uppercase tracking-[2px] mb-3 flex items-center gap-2">
                                                         <Camera size={12} /> Cinematic Direction
                                                     </h3>
                                                     <div className="flex gap-2 mb-4 flex-wrap">
@@ -634,7 +634,7 @@ export default function SharedProjectPage() {
                                 </div>
                             ) : (
                                 <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[url('/noise.png')] relative">
-                                    <div className="absolute inset-0 bg-gradient-to-b from-[#111] to-[#050505] opacity-50"></div>
+                                    <div className="absolute inset-0 bg-gradient-to-b from-[#111] to-[#111111] opacity-50"></div>
                                     <div className="relative z-10 text-center max-w-md">
                                         <div className="w-20 h-20 bg-white/[0.02] border border-white/[0.05] rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
                                             <Film size={32} className="text-[#333]" />
@@ -654,7 +654,7 @@ export default function SharedProjectPage() {
                         <div className="max-w-4xl mx-auto">
                             <div className="flex items-center gap-3 mb-8">
                                 <div className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.05]">
-                                    <FileText size={18} className="text-[#E50914]" />
+                                    <FileText size={18} className="text-[#D40A12]" />
                                 </div>
                                 <h2 className="text-2xl font-semibold tracking-tight text-white">Master Screenplay</h2>
                             </div>

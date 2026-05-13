@@ -508,13 +508,13 @@ export default function MoodboardPage() {
     // ─────────────────────────────────────────────────────────────────────────
 
     return (
-        <main className="fixed inset-0 bg-[#020202] text-white overflow-hidden">
+        <main className="fixed inset-0 bg-[#111111] text-white overflow-hidden">
             <style jsx global>{`
                 @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes heroFade { from { opacity: 0; } to { opacity: 1; } }
                 @keyframes labelReveal { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes scanDrift { 0% { top: 10%; } 100% { top: 90%; } }
-                @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 20px rgba(229,9,20,0.15); } 50% { box-shadow: 0 0 40px rgba(229,9,20,0.3); } }
+                @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 20px rgba(212,10,18,0.15); } 50% { box-shadow: 0 0 40px rgba(212,10,18,0.3); } }
                 @keyframes mbFlowBlob1 {
                     0%, 100% { transform: translate(0, 0) scale(1); }
                     33% { transform: translate(25%, 15%) scale(1.3); }
@@ -554,7 +554,7 @@ export default function MoodboardPage() {
                 <div className="flex items-center gap-4">
                     {totalCount > 0 && resolvedCount < totalCount && (
                         <div className="flex items-center gap-2">
-                            <Loader2 size={10} className="animate-spin text-[#E50914]/50" />
+                            <Loader2 size={10} className="animate-spin text-[#D40A12]/50" />
                             <span className="text-[9px] font-mono text-white/25 uppercase tracking-wider">
                                 Rendering {resolvedCount}/{totalCount}
                             </span>
@@ -585,15 +585,15 @@ export default function MoodboardPage() {
             {/* ══════════════════════ ERROR ══════════════════════ */}
             {phase === "error" && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-40">
-                    <div className="absolute inset-0 bg-[#030303]" />
+                    <div className="absolute inset-0 bg-[#111111]" />
                     <div className="relative z-10 flex flex-col items-center text-center max-w-md px-6">
-                        <div className="w-20 h-20 rounded-full border border-[#E50914]/30 flex items-center justify-center mb-6">
-                            <AlertCircle size={32} className="text-[#E50914]" />
+                        <div className="w-20 h-20 rounded-full border border-[#D40A12]/30 flex items-center justify-center mb-6">
+                            <AlertCircle size={32} className="text-[#D40A12]" />
                         </div>
                         <h2 className="text-2xl uppercase tracking-wide mb-3 font-display">Generation Failed</h2>
                         <p className="text-[12px] text-neutral-500 mb-8 leading-relaxed">{errorMessage}</p>
                         <button onClick={handleRetry}
-                            className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer">
+                            className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer">
                             <RefreshCw size={14} /> Try Again
                         </button>
                     </div>
@@ -603,8 +603,8 @@ export default function MoodboardPage() {
             {/* ══════════════════════ NO MOODS YET ══════════════════════ */}
             {phase === "select" && !selectedMood && (
                 <div className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-[#030303] overflow-hidden">
-                        <div className="absolute w-[50%] h-[50%] rounded-full bg-[#E50914]/15 blur-[80px]"
+                    <div className="absolute inset-0 bg-[#111111] overflow-hidden">
+                        <div className="absolute w-[50%] h-[50%] rounded-full bg-[#D40A12]/15 blur-[80px]"
                             style={{ animation: 'mbFlowBlob1 6s ease-in-out infinite', top: '15%', left: '20%' }} />
                         <div className="absolute w-[40%] h-[40%] rounded-full bg-[#ff4d4d]/8 blur-[60px]"
                             style={{ animation: 'mbFlowBlob2 7s ease-in-out infinite', top: '40%', right: '15%' }} />
@@ -614,19 +614,19 @@ export default function MoodboardPage() {
                     <div className="absolute inset-0 flex flex-col items-center justify-center z-40">
                         {!firestoreLoaded ? (
                             <>
-                                <Loader2 size={24} className="text-[#E50914]/40 animate-spin mb-4" />
+                                <Loader2 size={24} className="text-[#D40A12]/40 animate-spin mb-4" />
                                 <span className="text-[10px] text-white/20 tracking-[4px] uppercase">Loading moodboard...</span>
                             </>
                         ) : isRegenerating || (isOnboarding && moods.length === 0) ? (
                             <>
-                                <Loader2 size={24} className="text-[#E50914] animate-spin mb-4" />
+                                <Loader2 size={24} className="text-[#D40A12] animate-spin mb-4" />
                                 <span className="text-[10px] text-white/40 tracking-[4px] uppercase">
                                     {isOnboarding ? "AI is composing visual directions..." : "Generating moods..."}
                                 </span>
                             </>
                         ) : (
                             <>
-                                <Palette size={36} className="text-[#E50914]/30 mb-6" />
+                                <Palette size={36} className="text-[#D40A12]/30 mb-6" />
                                 <h2 className="text-2xl sm:text-3xl uppercase tracking-wide mb-3 font-display text-white/80">Visual Direction</h2>
                                 <p className="text-[11px] text-white/30 tracking-[2px] uppercase mb-8">No moodboard generated yet</p>
                                 <CreditCTA
@@ -652,15 +652,15 @@ export default function MoodboardPage() {
                         {selectedMood.image_url ? (
                             <img src={selectedMood.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
                         ) : selectedMood.status === "failed" ? (
-                            <div className="absolute inset-0 bg-[#050505] flex items-center justify-center">
+                            <div className="absolute inset-0 bg-[#111111] flex items-center justify-center">
                                 <div className="flex flex-col items-center gap-3">
-                                    <AlertCircle size={32} className="text-[#E50914]/30" />
+                                    <AlertCircle size={32} className="text-[#D40A12]/30" />
                                     <span className="text-[11px] text-white/20 uppercase tracking-[3px] font-mono">Generation Failed</span>
                                 </div>
                             </div>
                         ) : (
-                            <div className="absolute inset-0 bg-[#050505] overflow-hidden">
-                                <div className="absolute w-[55%] h-[55%] rounded-full bg-[#E50914]/25 blur-[60px]"
+                            <div className="absolute inset-0 bg-[#111111] overflow-hidden">
+                                <div className="absolute w-[55%] h-[55%] rounded-full bg-[#D40A12]/25 blur-[60px]"
                                     style={{ animation: 'mbFlowBlob1 5s ease-in-out infinite', top: '10%', left: '15%' }} />
                                 <div className="absolute w-[45%] h-[45%] rounded-full bg-[#ff4d4d]/12 blur-[50px]"
                                     style={{ animation: 'mbFlowBlob2 6s ease-in-out infinite', top: '35%', right: '10%' }} />
@@ -675,13 +675,13 @@ export default function MoodboardPage() {
                         )}
                         {/* Cinematic overlays */}
                         <div className="absolute inset-0 bg-black/30" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-[#020202]/40" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#020202]/70 via-transparent to-[#020202]/50" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-transparent to-[#111111]/40" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#111111]/70 via-transparent to-[#111111]/50" />
                     </div>
 
                     {/* ── LETTERBOX BARS ── */}
-                    <div className="absolute top-0 left-0 right-0 h-14 bg-gradient-to-b from-[#020202] to-transparent z-30" />
-                    <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-[#020202] via-[#020202] to-transparent z-30" />
+                    <div className="absolute top-0 left-0 right-0 h-14 bg-gradient-to-b from-[#111111] to-transparent z-30" />
+                    <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-[#111111] via-[#111111] to-transparent z-30" />
 
                     {/* ── VIEWFINDER FRAME ── */}
                     <div className="absolute inset-0 z-20 pointer-events-none">
@@ -689,7 +689,7 @@ export default function MoodboardPage() {
                         <div className="absolute top-16 right-8 w-12 h-12 border-t border-r border-white/[0.06]" />
                         <div className="absolute bottom-40 left-8 w-12 h-12 border-b border-l border-white/[0.06]" />
                         <div className="absolute bottom-40 right-8 w-12 h-12 border-b border-r border-white/[0.06]" />
-                        <div className="absolute left-12 right-12 h-[1px] bg-gradient-to-r from-transparent via-[#E50914]/15 to-transparent"
+                        <div className="absolute left-12 right-12 h-[1px] bg-gradient-to-r from-transparent via-[#D40A12]/15 to-transparent"
                             style={{ animation: "scanDrift 6s ease-in-out infinite alternate" }} />
                     </div>
 
@@ -698,8 +698,8 @@ export default function MoodboardPage() {
                         <div key={selectedMood.id} className="ml-16 max-w-lg mt-[15vh] pb-[220px]" style={{ animation: "labelReveal 0.5s ease both" }}>
                             {/* Mood index + badges */}
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="h-[1px] w-10 bg-[#E50914]/40" />
-                                <span className="text-[9px] font-mono text-[#E50914]/60 uppercase tracking-[4px]">
+                                <div className="h-[1px] w-10 bg-[#D40A12]/40" />
+                                <span className="text-[9px] font-mono text-[#D40A12]/60 uppercase tracking-[4px]">
                                     {isViewingVariations ? "Variation" : "Mood"} {selectedIdx + 1} of {totalCount}
                                 </span>
                                 {isViewingVariations && (
@@ -730,14 +730,14 @@ export default function MoodboardPage() {
                             {/* Image generating indicator */}
                             {selectedMood.status === "generating" && (
                                 <div className="flex items-center gap-2 mt-6">
-                                    <Loader2 size={12} className="animate-spin text-[#E50914]/40" />
+                                    <Loader2 size={12} className="animate-spin text-[#D40A12]/40" />
                                     <span className="text-[9px] text-white/20 uppercase tracking-[3px] font-mono">Rendering preview...</span>
                                 </div>
                             )}
                             {selectedMood.status === "failed" && (
                                 <div className="flex items-center gap-2 mt-6">
-                                    <AlertCircle size={12} className="text-[#E50914]/60" />
-                                    <span className="text-[9px] text-[#E50914]/40 uppercase tracking-[3px] font-mono">Failed to generate</span>
+                                    <AlertCircle size={12} className="text-[#D40A12]/60" />
+                                    <span className="text-[9px] text-[#D40A12]/40 uppercase tracking-[3px] font-mono">Failed to generate</span>
                                 </div>
                             )}
 
@@ -767,7 +767,7 @@ export default function MoodboardPage() {
                             ))}
                         </div>
 
-                        <div className="relative h-[130px] border-t border-white/[0.04] bg-[#020202]/80 backdrop-blur-md">
+                        <div className="relative h-[130px] border-t border-white/[0.04] bg-[#111111]/80 backdrop-blur-md">
                             {/* Left arrow */}
                             {filmstripPage > 0 && (
                                 <button
@@ -821,7 +821,7 @@ export default function MoodboardPage() {
                                                     />
                                                 ) : (
                                                     <div className="absolute inset-0 bg-[#060606] overflow-hidden">
-                                                        <div className="absolute w-[70%] h-[70%] rounded-full bg-[#E50914]/20 blur-[25px]"
+                                                        <div className="absolute w-[70%] h-[70%] rounded-full bg-[#D40A12]/20 blur-[25px]"
                                                             style={{ animation: 'mbFlowBlob1 4s ease-in-out infinite', top: '5%', left: '10%' }} />
                                                         <div className="absolute w-[50%] h-[50%] rounded-full bg-[#ff4d4d]/10 blur-[20px]"
                                                             style={{ animation: 'mbFlowBlob2 5s ease-in-out infinite', bottom: '5%', right: '5%' }} />
@@ -832,7 +832,7 @@ export default function MoodboardPage() {
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
 
                                                 {/* Active indicator — red line */}
-                                                {active && <div className="absolute top-0 inset-x-0 h-[2px] bg-[#E50914] shadow-[0_0_8px_rgba(229,9,20,0.5)]" />}
+                                                {active && <div className="absolute top-0 inset-x-0 h-[2px] bg-[#D40A12] shadow-[0_0_8px_rgba(212,10,18,0.5)]" />}
 
                                                 {/* Applied indicator — emerald glow line + badge */}
                                                 {isMoodApplied && (
@@ -864,14 +864,14 @@ export default function MoodboardPage() {
                                                     </span>
                                                     {!hasImage && mood.status === "generating" && (
                                                         <div className="flex items-center gap-1 mt-0.5">
-                                                            <Loader2 size={7} className="animate-spin text-[#E50914]/30" />
+                                                            <Loader2 size={7} className="animate-spin text-[#D40A12]/30" />
                                                             <span className="text-[7px] text-white/15 uppercase tracking-wider font-mono">Rendering</span>
                                                         </div>
                                                     )}
                                                     {mood.status === "failed" && (
                                                         <div className="flex items-center gap-1 mt-0.5">
-                                                            <AlertCircle size={7} className="text-[#E50914]/40" />
-                                                            <span className="text-[7px] text-[#E50914]/30 uppercase tracking-wider font-mono">Failed</span>
+                                                            <AlertCircle size={7} className="text-[#D40A12]/40" />
+                                                            <span className="text-[7px] text-[#D40A12]/30 uppercase tracking-wider font-mono">Failed</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -887,7 +887,7 @@ export default function MoodboardPage() {
                                 <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
                                     {Array.from({ length: totalFilmstripPages }).map((_, i) => (
                                         <button key={i} onClick={() => setFilmstripPage(i)}
-                                            className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${i === filmstripPage ? 'bg-[#E50914] w-4' : 'bg-white/20 hover:bg-white/40'}`}
+                                            className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${i === filmstripPage ? 'bg-[#D40A12] w-4' : 'bg-white/20 hover:bg-white/40'}`}
                                         />
                                     ))}
                                 </div>
@@ -902,7 +902,7 @@ export default function MoodboardPage() {
                         </div>
 
                         {/* CTA bar */}
-                        <div className="flex items-center justify-between px-8 py-3 bg-[#020202]">
+                        <div className="flex items-center justify-between px-8 py-3 bg-[#111111]">
                             <div className="flex items-center gap-2">
                                 <span className="text-[8px] font-mono text-white/10 uppercase tracking-[3px]">
                                     ← → Navigate • Enter to Apply
@@ -946,7 +946,7 @@ export default function MoodboardPage() {
                                     className={`flex items-center gap-2 px-8 py-3 rounded-lg text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
                                         ${isApplied && !isOnboarding
                                             ? 'bg-emerald-900/30 text-emerald-400/60 border border-emerald-500/20 cursor-default'
-                                            : 'bg-[#E50914] hover:bg-[#ff1a25] text-white shadow-[0_0_20px_rgba(229,9,20,0.2)] hover:shadow-[0_0_30px_rgba(229,9,20,0.4)]'}`}
+                                            : 'bg-[#D40A12] hover:bg-[#ff1a25] text-white shadow-[0_0_20px_rgba(212,10,18,0.2)] hover:shadow-[0_0_30px_rgba(212,10,18,0.4)]'}`}
                                     style={!(isApplied && !isOnboarding) ? { animation: "pulseGlow 2.5s ease-in-out infinite" } : undefined}>
                                     {isApplied && !isOnboarding ? (
                                         <><Check size={14} /> Applied</>
@@ -967,9 +967,9 @@ export default function MoodboardPage() {
                     <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
                     <div className="relative z-10 flex flex-col items-center">
                         <div className="relative w-16 h-16 mb-6">
-                            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#E50914] animate-spin" style={{ animationDuration: "1.5s" }} />
+                            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#D40A12] animate-spin" style={{ animationDuration: "1.5s" }} />
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <Palette size={22} className="text-[#E50914]" />
+                                <Palette size={22} className="text-[#D40A12]" />
                             </div>
                         </div>
                         <h3 className="text-lg uppercase tracking-[3px] font-display mb-2">Applying Mood</h3>
@@ -999,21 +999,21 @@ export default function MoodboardPage() {
                         }
                     `}</style>
 
-                    <div className="absolute inset-0 bg-[#030303]" />
+                    <div className="absolute inset-0 bg-[#111111]" />
 
                     {/* Ambient glow */}
                     <div className="absolute top-[20%] left-[30%] w-[500px] h-[400px] rounded-full blur-[150px] pointer-events-none"
-                        style={{ background: "radial-gradient(circle, rgba(229,9,20,0.06) 0%, transparent 70%)", animation: "extractGlow 8s ease-in-out infinite" }} />
+                        style={{ background: "radial-gradient(circle, rgba(212,10,18,0.06) 0%, transparent 70%)", animation: "extractGlow 8s ease-in-out infinite" }} />
                     <div className="absolute bottom-[10%] right-[20%] w-[300px] h-[300px] rounded-full blur-[120px] pointer-events-none"
-                        style={{ background: "radial-gradient(circle, rgba(229,9,20,0.04) 0%, transparent 70%)", animation: "extractGlow 6s ease-in-out infinite 2s" }} />
+                        style={{ background: "radial-gradient(circle, rgba(212,10,18,0.04) 0%, transparent 70%)", animation: "extractGlow 6s ease-in-out infinite 2s" }} />
 
                     <div className="relative z-10 flex flex-col items-center max-w-md px-8">
                         {/* Pulsing brain icon */}
                         <div className="relative w-20 h-20 mb-8 flex items-center justify-center" style={{ animation: "extractFloat 4s ease-in-out infinite" }}>
                             <div className="absolute inset-0 rounded-full border border-white/[0.04]" />
-                            <div className="absolute inset-0 rounded-full border border-[#E50914]/30 border-t-transparent animate-spin" style={{ animationDuration: "2s" }} />
-                            <div className="absolute inset-2 rounded-full border border-[#E50914]/15 border-b-transparent animate-spin" style={{ animationDuration: "3s", animationDirection: "reverse" }} />
-                            <BrainCircuit size={22} className="text-[#E50914]" style={{ animation: "extractGlow 3s ease-in-out infinite" }} />
+                            <div className="absolute inset-0 rounded-full border border-[#D40A12]/30 border-t-transparent animate-spin" style={{ animationDuration: "2s" }} />
+                            <div className="absolute inset-2 rounded-full border border-[#D40A12]/15 border-b-transparent animate-spin" style={{ animationDuration: "3s", animationDirection: "reverse" }} />
+                            <BrainCircuit size={22} className="text-[#D40A12]" style={{ animation: "extractGlow 3s ease-in-out infinite" }} />
                         </div>
 
                         <h3 className="text-xl uppercase tracking-[3px] font-display mb-2 text-white">Setting Up Your Project</h3>
@@ -1038,12 +1038,12 @@ export default function MoodboardPage() {
                                     <div key={step.label}
                                         className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-700 ${active ? "bg-white/[0.03]" : ""}`}
                                         style={{ opacity: done || active ? 1 : 0.4, transition: "all 0.7s ease" }}>
-                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 border transition-all duration-700 ${done ? "border-emerald-500/40 bg-emerald-500/10" : active ? "border-[#E50914]/40 bg-[#E50914]/10" : "border-white/[0.06]"
+                                        <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 border transition-all duration-700 ${done ? "border-emerald-500/40 bg-emerald-500/10" : active ? "border-[#D40A12]/40 bg-[#D40A12]/10" : "border-white/[0.06]"
                                             }`}>
                                             {done ? (
                                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                             ) : active ? (
-                                                <div className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
+                                                <div className="w-1.5 h-1.5 rounded-full bg-[#D40A12] animate-pulse" />
                                             ) : (
                                                 <div className="w-1 h-1 rounded-full bg-white/10" />
                                             )}
@@ -1052,7 +1052,7 @@ export default function MoodboardPage() {
                                             }`}>{step.label}</span>
                                         {active && (
                                             <div className="ml-auto w-16 h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
-                                                <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent"
+                                                <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#D40A12] to-transparent"
                                                     style={{ animation: "extractScan 1.5s ease-in-out infinite" }} />
                                             </div>
                                         )}
@@ -1063,7 +1063,7 @@ export default function MoodboardPage() {
 
                         {/* Bottom progress bar */}
                         <div className="w-full h-[2px] bg-white/[0.04] rounded-full overflow-hidden">
-                            <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#E50914] to-transparent"
+                            <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-[#D40A12] to-transparent"
                                 style={{ animation: "extractScan 2s ease-in-out infinite" }} />
                         </div>
                     </div>

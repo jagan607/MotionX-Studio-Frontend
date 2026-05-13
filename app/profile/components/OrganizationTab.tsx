@@ -219,11 +219,11 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
         <div className="space-y-6 animate-in fade-in duration-300 mt-8">
 
             {/* Org Info Card */}
-            <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl p-6">
+            <div className="bg-[#161616] border border-[#1a1a1a] rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-5">
-                    <Building size={16} className="text-[#E50914]" />
+                    <Building size={16} className="text-[#D40A12]" />
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">{orgData.organization_name}</h3>
-                    <span className="text-[9px] font-mono text-[#555] bg-[#111] border border-[#222] px-2 py-0.5 rounded">{orgData.slug}</span>
+                    <span className="text-[9px] font-mono text-[#555] bg-[#1a1a1a] border border-[#222] px-2 py-0.5 rounded">{orgData.slug}</span>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -231,7 +231,7 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
                     <div className="bg-[#0A0A0A] border border-[#1A1A1A] p-4 rounded-lg">
                         <span className="text-[9px] font-mono uppercase text-[#666] tracking-widest block mb-1">Your Role</span>
                         <div className="flex items-center gap-2">
-                            <Shield size={13} className={userRole === "admin" ? "text-[#E50914]" : "text-[#555]"} />
+                            <Shield size={13} className={userRole === "admin" ? "text-[#D40A12]" : "text-[#555]"} />
                             <span className="text-sm font-bold text-white">{userRole.charAt(0).toUpperCase() + userRole.slice(1)}</span>
                         </div>
                     </div>
@@ -261,13 +261,13 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
                     <div className="flex gap-3">
                         <button
                             onClick={() => setShowInviteModal(true)}
-                            className="flex items-center gap-2 bg-white text-black hover:bg-[#E50914] hover:text-white px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg"
+                            className="flex items-center gap-2 bg-white text-black hover:bg-[#D40A12] hover:text-white px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg"
                         >
                             <UserPlus size={13} /> Add Member
                         </button>
                         <button
                             onClick={handleCopyInvite}
-                            className="flex items-center gap-2 bg-[#111] border border-[#222] text-white px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest hover:border-[#444] transition-colors rounded-lg"
+                            className="flex items-center gap-2 bg-[#1a1a1a] border border-[#222] text-white px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest hover:border-[#444] transition-colors rounded-lg"
                         >
                             <Copy size={13} /> Copy Invite Link
                         </button>
@@ -281,7 +281,7 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
                     </div>
 
                     {/* ═══ SUB-NAVIGATION TABS ═══ */}
-                    <div className="flex gap-1 bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-1 w-fit">
+                    <div className="flex gap-1 bg-[#1a1a1a] border border-[#1a1a1a] rounded-lg p-1 w-fit">
                         <button
                             onClick={() => setActiveSubTab("team")}
                             className={`px-4 py-2 text-[9px] font-bold uppercase tracking-widest rounded-md transition-all ${activeSubTab === "team"
@@ -306,9 +306,9 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
                         <>
 
                             {/* Team Roster */}
-                            <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl overflow-hidden">
+                            <div className="bg-[#161616] border border-[#1a1a1a] rounded-xl overflow-hidden">
                                 <div className="flex items-center gap-3 p-5 border-b border-[#1a1a1a]">
-                                    <Users size={16} className="text-[#E50914]" />
+                                    <Users size={16} className="text-[#D40A12]" />
                                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Team Roster</h3>
                                     <span className="text-[9px] font-mono text-[#555] ml-auto">{members.length} member{members.length !== 1 ? "s" : ""}</span>
                                 </div>
@@ -345,7 +345,7 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
                                                     <tr key={memberId} className="border-b border-[#111] hover:bg-[#0D0D0D] transition-colors">
                                                         <td className="p-4 text-xs text-white font-mono">
                                                             {m.email}
-                                                            {isSelf && <span className="text-[8px] text-[#E50914] ml-2 font-bold">(you)</span>}
+                                                            {isSelf && <span className="text-[8px] text-[#D40A12] ml-2 font-bold">(you)</span>}
                                                         </td>
                                                         <td className="p-4 text-xs text-[#AAA]">{m.displayName || "—"}</td>
                                                         <td className="p-4">
@@ -357,7 +357,7 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
                                                         </td>
                                                         <td className="p-4">
                                                             {isSelf ? (
-                                                                <span className="text-[9px] text-[#E50914] bg-[#E50914]/10 border border-[#E50914]/20 px-2.5 py-1 uppercase tracking-widest font-bold rounded">
+                                                                <span className="text-[9px] text-[#D40A12] bg-[#D40A12]/10 border border-[#D40A12]/20 px-2.5 py-1 uppercase tracking-widest font-bold rounded">
                                                                     {m.role || "admin"}
                                                                 </span>
                                                             ) : (
@@ -366,15 +366,15 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
                                                                         value={m.role || "viewer"}
                                                                         disabled={changingRoleUid === memberId}
                                                                         onChange={(e) => handleRoleChange(memberId, m.email, e.target.value)}
-                                                                        className="w-full appearance-none bg-[#111] border border-[#333] text-[10px] text-white pl-3 py-2 pr-8 uppercase tracking-widest font-bold rounded-md cursor-pointer focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914] outline-none transition-colors disabled:opacity-50"
+                                                                        className="w-full appearance-none bg-[#1a1a1a] border border-[#333] text-[10px] text-white pl-3 py-2 pr-8 uppercase tracking-widest font-bold rounded-md cursor-pointer focus:border-[#D40A12] focus:ring-1 focus:ring-[#D40A12] outline-none transition-colors disabled:opacity-50"
                                                                     >
                                                                         {ROLES.map((r) => (
-                                                                            <option key={r} value={r} className="bg-[#111] text-white">{r}</option>
+                                                                            <option key={r} value={r} className="bg-[#1a1a1a] text-white">{r}</option>
                                                                         ))}
                                                                     </select>
                                                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                                                                         {changingRoleUid === memberId ? (
-                                                                            <Loader2 size={12} className="animate-spin text-[#E50914]" />
+                                                                            <Loader2 size={12} className="animate-spin text-[#D40A12]" />
                                                                         ) : (
                                                                             <ChevronDown size={14} className="text-[#666]" />
                                                                         )}
@@ -388,7 +388,7 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
                                                                     onClick={() => handleRemove(memberId, m.email)}
                                                                     disabled={removingUid === memberId}
                                                                     title={`Remove ${m.email}`}
-                                                                    className="p-2 text-[#666] hover:text-[#E50914] hover:bg-[#E50914]/10 rounded-md transition-all disabled:opacity-50 inline-flex items-center justify-center"
+                                                                    className="p-2 text-[#666] hover:text-[#D40A12] hover:bg-[#D40A12]/10 rounded-md transition-all disabled:opacity-50 inline-flex items-center justify-center"
                                                                 >
                                                                     {removingUid === memberId ? (
                                                                         <Loader2 size={14} className="animate-spin" />
@@ -419,11 +419,11 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
                 <div className="fixed inset-0 z-[100] flex items-center justify-center">
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowInviteModal(false)} />
 
-                    <div className="relative z-10 w-full max-w-md bg-[#080808] border border-[#222] shadow-2xl rounded-xl">
+                    <div className="relative z-10 w-full max-w-md bg-[#161616] border border-[#222] shadow-2xl rounded-xl">
                         {/* Header */}
                         <div className="flex items-center justify-between p-6 border-b border-[#222]">
                             <div className="flex items-center gap-3">
-                                <UserPlus size={18} className="text-[#E50914]" />
+                                <UserPlus size={18} className="text-[#D40A12]" />
                                 <h3 className="font-anton text-xl text-white uppercase tracking-wide">Add Member</h3>
                             </div>
                             <button onClick={() => setShowInviteModal(false)} className="text-[#666] hover:text-white transition-colors">
@@ -440,7 +440,7 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
                                     value={inviteEmail}
                                     onChange={(e) => setInviteEmail(e.target.value)}
                                     placeholder="colleague@company.com"
-                                    className="w-full bg-[#111] border border-[#333] text-white p-3 text-xs font-mono focus:border-[#E50914] outline-none transition-colors rounded-lg"
+                                    className="w-full bg-[#1a1a1a] border border-[#333] text-white p-3 text-xs font-mono focus:border-[#D40A12] outline-none transition-colors rounded-lg"
                                     onKeyDown={(e) => e.key === "Enter" && handleInvite()}
                                 />
                                 <p className="text-[8px] text-[#444] pt-1 flex items-center gap-1">
@@ -459,7 +459,7 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
                                             type="button"
                                             onClick={() => setInviteRole(r)}
                                             className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${inviteRole === r
-                                                ? "bg-[#E50914] text-white"
+                                                ? "bg-[#D40A12] text-white"
                                                 : "bg-transparent text-[#666] hover:text-white"
                                                 }`}
                                         >
@@ -480,7 +480,7 @@ export default function OrganizationTab({ activeSlug, userRole: propRole }: Orga
                                 <button
                                     onClick={handleInvite}
                                     disabled={inviting}
-                                    className="flex items-center gap-2 bg-white text-black hover:bg-[#E50914] hover:text-white px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50 rounded-lg"
+                                    className="flex items-center gap-2 bg-white text-black hover:bg-[#D40A12] hover:text-white px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50 rounded-lg"
                                 >
                                     {inviting ? (
                                         <><Loader2 size={13} className="animate-spin" /> Sending...</>

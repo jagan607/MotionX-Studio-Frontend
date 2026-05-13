@@ -268,7 +268,7 @@ function renderLine(line: string) {
         if (part.startsWith('*') && part.endsWith('*'))
             return <em key={pi} className="text-white/45">{part.slice(1, -1)}</em>;
         if (part.startsWith('`') && part.endsWith('`'))
-            return <code key={pi} className="text-[10px] bg-white/[0.06] px-1.5 py-0.5 rounded text-[#E50914]/60 font-mono">{part.slice(1, -1)}</code>;
+            return <code key={pi} className="text-[10px] bg-white/[0.06] px-1.5 py-0.5 rounded text-[#D40A12]/60 font-mono">{part.slice(1, -1)}</code>;
         return <span key={pi}>{part}</span>;
     });
 }
@@ -352,20 +352,20 @@ function MessageContent({ content, onAction, actionLoading }: {
                             key={ai}
                             onClick={() => onAction(action)}
                             disabled={!!actionLoading}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[#E50914]/20 bg-[#E50914]/[0.06] text-[11px] font-semibold text-white/80 hover:bg-[#E50914]/[0.12] hover:border-[#E50914]/30 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-wait w-full group"
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[#D40A12]/20 bg-[#D40A12]/[0.06] text-[11px] font-semibold text-white/80 hover:bg-[#D40A12]/[0.12] hover:border-[#D40A12]/30 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-wait w-full group"
                         >
                             {actionLoading === `${action.type}-${ai}` ? (
-                                <Loader2 size={13} className="animate-spin text-[#E50914]" />
+                                <Loader2 size={13} className="animate-spin text-[#D40A12]" />
                             ) : action.type === "create_project" ? (
-                                <Rocket size={13} className="text-[#E50914] group-hover:rotate-12 transition-transform" />
+                                <Rocket size={13} className="text-[#D40A12] group-hover:rotate-12 transition-transform" />
                             ) : action.type === "copy_to_playground" ? (
-                                <Copy size={13} className="text-[#E50914]/70" />
+                                <Copy size={13} className="text-[#D40A12]/70" />
                             ) : action.type === "navigate_scene" ? (
-                                <Layers size={13} className="text-[#E50914]/70" />
+                                <Layers size={13} className="text-[#D40A12]/70" />
                             ) : action.type === "open_panel" ? (
-                                <PanelRight size={13} className="text-[#E50914]/70" />
+                                <PanelRight size={13} className="text-[#D40A12]/70" />
                             ) : (
-                                <ExternalLink size={13} className="text-[#E50914]/60" />
+                                <ExternalLink size={13} className="text-[#D40A12]/60" />
                             )}
                             <span>{action.label}</span>
                             {action.type === "create_project" && (
@@ -669,7 +669,7 @@ export default function DirectorChat() {
                 onClick={() => setOpen(true)}
                 className={`fixed top-1/2 -translate-y-1/2 right-0 z-[150] flex items-center gap-1.5 py-3 px-1.5 rounded-l-xl border border-r-0 border-white/[0.06] transition-all cursor-pointer group ${open ? 'translate-x-full opacity-0 pointer-events-none' : 'translate-x-0 opacity-100'}`}
                 style={{
-                    background: "linear-gradient(180deg, rgba(229,9,20,0.10), rgba(10,10,10,0.95))",
+                    background: "linear-gradient(180deg, rgba(212,10,18,0.10), rgba(10,10,10,0.95))",
                     backdropFilter: "blur(12px)",
                     writingMode: "vertical-rl",
                     textOrientation: "mixed",
@@ -677,23 +677,23 @@ export default function DirectorChat() {
                 }}
                 title="AI Director (⌘⇧A)"
             >
-                <Bot size={14} className="text-[#E50914] rotate-90 group-hover:scale-110 transition-transform" />
+                <Bot size={14} className="text-[#D40A12] rotate-90 group-hover:scale-110 transition-transform" />
                 <span className="text-[9px] font-bold uppercase tracking-[2px] text-white/40 group-hover:text-white/70 transition-colors">Director</span>
-                <span className="w-1.5 h-1.5 bg-[#E50914] rounded-full animate-pulse shadow-[0_0_6px_rgba(229,9,20,0.6)] rotate-90" />
+                <span className="w-1.5 h-1.5 bg-[#D40A12] rounded-full animate-pulse shadow-[0_0_6px_rgba(212,10,18,0.6)] rotate-90" />
             </button>
 
             {/* ── Side Panel ── */}
             <div
                 className={`fixed top-0 right-0 z-[160] h-full w-[380px] max-w-[85vw] flex flex-col border-l border-white/[0.08] transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
                 style={{
-                    background: "#080808",
+                    background: "#161616",
                     boxShadow: open ? "-4px 0 16px rgba(0,0,0,0.3)" : "none",
                 }}
             >
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.05] shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #E50914, #8B0000)" }}>
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #D40A12, #8B0000)" }}>
                             <Bot size={16} className="text-white" />
                         </div>
                         <div>
@@ -720,7 +720,7 @@ export default function DirectorChat() {
                 <div className="px-4 py-2 border-b border-white/[0.03] shrink-0">
                     <div className="flex items-center gap-2 text-[8px]">
                         <span className="text-white/15 font-mono uppercase tracking-wider">Context:</span>
-                        <span className="px-2 py-0.5 rounded-full bg-[#E50914]/[0.08] border border-[#E50914]/10 text-[#E50914]/50 font-bold uppercase tracking-wider">{ctx.label}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-[#D40A12]/[0.08] border border-[#D40A12]/10 text-[#D40A12]/50 font-bold uppercase tracking-wider">{ctx.label}</span>
                         {projectId && (
                             <span className="px-2 py-0.5 rounded-full bg-white/[0.03] border border-white/[0.06] text-white/20 font-mono truncate max-w-[120px]">
                                 {projectId.slice(0, 8)}...
@@ -736,8 +736,8 @@ export default function DirectorChat() {
                         <div className="flex flex-col h-full">
                             {/* Welcome */}
                             <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-                                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: "linear-gradient(135deg, rgba(229,9,20,0.12), transparent)" }}>
-                                    <Sparkles size={22} className="text-[#E50914]/40" />
+                                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: "linear-gradient(135deg, rgba(212,10,18,0.12), transparent)" }}>
+                                    <Sparkles size={22} className="text-[#D40A12]/40" />
                                 </div>
                                 <h3 className="text-[14px] font-bold text-white/70 mb-2">{getGreeting()}</h3>
                                 <p className="text-[11px] text-white/20 mb-6 max-w-[280px] leading-relaxed">
@@ -750,7 +750,7 @@ export default function DirectorChat() {
                                 {getSmartSuggestions().map((s, i) => (
                                     <button key={i} onClick={() => sendMessage(s)}
                                         className="w-full text-left group flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-white/[0.04] bg-white/[0.015] text-[11px] text-white/30 hover:text-white/60 hover:border-white/[0.1] hover:bg-white/[0.03] transition-all cursor-pointer">
-                                        <ChevronRight size={10} className="text-[#E50914]/30 group-hover:text-[#E50914]/60 shrink-0 transition-colors" />
+                                        <ChevronRight size={10} className="text-[#D40A12]/30 group-hover:text-[#D40A12]/60 shrink-0 transition-colors" />
                                         {s}
                                     </button>
                                 ))}
@@ -761,12 +761,12 @@ export default function DirectorChat() {
                             <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                                 <div className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 ${
                                     msg.role === "user"
-                                        ? "bg-[#E50914]/12 border border-[#E50914]/15 text-white/80"
+                                        ? "bg-[#D40A12]/12 border border-[#D40A12]/15 text-white/80"
                                         : "bg-white/[0.025] border border-white/[0.04] text-white/60"
                                 }`}>
                                     {msg.role === "assistant" && msg.content === "" && streaming ? (
                                         <div className="flex items-center gap-2 py-1">
-                                            <Loader2 size={12} className="animate-spin text-[#E50914]/50" />
+                                            <Loader2 size={12} className="animate-spin text-[#D40A12]/50" />
                                             <span className="text-[9px] text-white/20 font-mono">Thinking...</span>
                                         </div>
                                     ) : (
@@ -782,7 +782,7 @@ export default function DirectorChat() {
                     )}
                     {streaming && messages.length > 0 && messages[messages.length - 1].content !== "" && (
                         <div className="flex justify-start">
-                            <span className="inline-block w-1.5 h-4 bg-[#E50914]/40 animate-pulse rounded-full ml-1" />
+                            <span className="inline-block w-1.5 h-4 bg-[#D40A12]/40 animate-pulse rounded-full ml-1" />
                         </div>
                     )}
                 </div>
@@ -790,8 +790,8 @@ export default function DirectorChat() {
                 {/* Input */}
                 <div className="shrink-0 border-t border-white/[0.05] p-3 bg-black/30">
                     <div className={`flex items-end gap-2 rounded-xl border p-2.5 transition-all ${
-                        input ? "border-[#E50914]/20 bg-[#E50914]/[0.02]" : "border-white/[0.05] bg-white/[0.015]"
-                    } focus-within:border-[#E50914]/25`}>
+                        input ? "border-[#D40A12]/20 bg-[#D40A12]/[0.02]" : "border-white/[0.05] bg-white/[0.015]"
+                    } focus-within:border-[#D40A12]/25`}>
                         <textarea
                             ref={inputRef}
                             value={input}
@@ -803,7 +803,7 @@ export default function DirectorChat() {
                                 }
                             }}
                             placeholder="Ask the AI Director..."
-                            className="flex-1 bg-transparent text-[12px] text-white placeholder-white/15 focus:outline-none resize-none leading-relaxed caret-[#E50914] min-h-[20px] max-h-[100px]"
+                            className="flex-1 bg-transparent text-[12px] text-white placeholder-white/15 focus:outline-none resize-none leading-relaxed caret-[#D40A12] min-h-[20px] max-h-[100px]"
                             rows={1}
                             disabled={streaming}
                         />
@@ -812,7 +812,7 @@ export default function DirectorChat() {
                             disabled={!input.trim() || streaming}
                             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all cursor-pointer disabled:opacity-15 disabled:cursor-not-allowed border-none"
                             style={{
-                                background: input.trim() ? "linear-gradient(135deg, #E50914, #B30710)" : "rgba(255,255,255,0.04)",
+                                background: input.trim() ? "linear-gradient(135deg, #D40A12, #B30710)" : "rgba(255,255,255,0.04)",
                             }}
                         >
                             {streaming ? <Loader2 size={12} className="animate-spin text-white/50" /> : <Send size={12} className="text-white" />}

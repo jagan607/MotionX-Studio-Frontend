@@ -1076,8 +1076,8 @@ export default function PreProductionCanvas() {
     // ─── LOADING STATE ───
     if (loading || !project) {
         return (
-            <div className="fixed inset-0 bg-[#050505] flex flex-col items-center justify-center gap-4">
-                <Loader2 className="w-8 h-8 animate-spin text-[#E50914]" />
+            <div className="fixed inset-0 bg-[#111111] flex flex-col items-center justify-center gap-4">
+                <Loader2 className="w-8 h-8 animate-spin text-[#D40A12]" />
                 <span className="text-[10px] font-mono tracking-[4px] text-white/20 uppercase">Loading Canvas...</span>
             </div>
         );

@@ -80,13 +80,13 @@ export default function CreditModal({ isOpen, onClose }: CreditModalProps) {
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
-                    className="relative w-full max-w-5xl bg-[#050505] border border-[#222] shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh]"
+                    className="relative w-full max-w-5xl bg-[#111111] border border-[#222] shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh]"
                 >
                     {/* Header */}
                     <div className="flex justify-between items-center p-6 border-b border-[#1F1F1F] bg-[#0A0A0A]">
                         <div>
                             <h2 className="text-2xl font-anton uppercase text-white tracking-wide flex items-center gap-3">
-                                <Zap className="text-[#E50914]" fill="currentColor" size={24} /> Top Up Credits
+                                <Zap className="text-[#D40A12]" fill="currentColor" size={24} /> Top Up Credits
                             </h2>
                             <div className="flex items-center gap-4 mt-2">
                                 <p className="text-[#666] text-xs font-mono uppercase tracking-wider">
@@ -107,7 +107,7 @@ export default function CreditModal({ isOpen, onClose }: CreditModalProps) {
                     </div>
 
                     {/* Grid */}
-                    <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar bg-gradient-to-b from-[#0A0A0A] to-[#050505]">
+                    <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar bg-gradient-to-b from-[#0A0A0A] to-[#111111]">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                             {PACKAGES.map((pkg) => (
                                 <TopUpCard
@@ -127,7 +127,7 @@ export default function CreditModal({ isOpen, onClose }: CreditModalProps) {
                     </div>
 
                     {/* Footer */}
-                    <div className="p-4 border-t border-[#1F1F1F] bg-[#080808] flex justify-between items-center text-[10px] uppercase tracking-wider text-[#444]">
+                    <div className="p-4 border-t border-[#1F1F1F] bg-[#161616] flex justify-between items-center text-[10px] uppercase tracking-wider text-[#444]">
                         <span className="flex items-center gap-2">
                             <ShieldCheck size={12} /> Secure Payment via Razorpay
                         </span>

@@ -50,7 +50,7 @@ export default function SettingsTab({
                             type="text"
                             value={displayName}
                             onChange={(e) => setDisplayName(e.target.value)}
-                            className="w-full bg-[#080808] border border-[#222] rounded-md px-3.5 py-2.5 text-[13px] text-white outline-none focus:border-[#444] transition-colors placeholder:text-[#333]"
+                            className="w-full bg-[#161616] border border-[#222] rounded-md px-3.5 py-2.5 text-[13px] text-white outline-none focus:border-[#444] transition-colors placeholder:text-[#333]"
                             placeholder="Enter your name"
                             disabled={isSaving}
                         />
@@ -64,7 +64,7 @@ export default function SettingsTab({
                             type="text"
                             value={user?.email || ""}
                             disabled
-                            className="w-full bg-[#080808] border border-[#222] rounded-md px-3.5 py-2.5 text-[13px] text-[#555] outline-none cursor-not-allowed"
+                            className="w-full bg-[#161616] border border-[#222] rounded-md px-3.5 py-2.5 text-[13px] text-[#555] outline-none cursor-not-allowed"
                         />
                     </div>
                 </div>
@@ -87,7 +87,7 @@ export default function SettingsTab({
                 </p>
                 <button
                     onClick={() => setShowSignOutConfirm(true)}
-                    className="flex items-center gap-2 text-[11px] font-semibold px-4 py-2.5 border border-[#222] text-[#999] bg-transparent rounded-md hover:border-[#E50914] hover:text-[#E50914] hover:bg-[rgba(229,9,20,0.04)] transition-all cursor-pointer"
+                    className="flex items-center gap-2 text-[11px] font-semibold px-4 py-2.5 border border-[#222] text-[#999] bg-transparent rounded-md hover:border-[#D40A12] hover:text-[#D40A12] hover:bg-[rgba(212,10,18,0.04)] transition-all cursor-pointer"
                 >
                     <LogOut size={14} /> Sign Out
                 </button>

@@ -105,7 +105,7 @@ export default function PlaygroundAssetCard({ asset, isActive, onEdit }: Playgro
         badge.style.cssText = `
             position:absolute; bottom:5px; right:5px;
             width:24px; height:24px; border-radius:7px;
-            background:rgba(229,9,20,0.85); backdrop-filter:blur(4px);
+            background:rgba(212,10,18,0.85); backdrop-filter:blur(4px);
             display:flex; align-items:center; justify-content:center;
             box-shadow:0 2px 8px rgba(0,0,0,0.4);
         `;
@@ -144,7 +144,7 @@ export default function PlaygroundAssetCard({ asset, isActive, onEdit }: Playgro
             <button
                 onClick={handleThumbnailClick}
                 disabled={!asset.image_url}
-                className={`w-14 h-14 rounded-lg bg-[#111] border border-[#222] overflow-hidden shrink-0 flex items-center justify-center relative ${
+                className={`w-14 h-14 rounded-lg bg-[#1a1a1a] border border-[#222] overflow-hidden shrink-0 flex items-center justify-center relative ${
                     asset.image_url
                         ? "cursor-zoom-in hover:ring-1 hover:ring-white/20 transition-all"
                         : "cursor-default"

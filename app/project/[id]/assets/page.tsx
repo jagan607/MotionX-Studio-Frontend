@@ -324,7 +324,7 @@ export default function AssetManagerPage() {
         <StudioLayout>
             {/* --- HEADER --- */}
             {isOnboarding ? (
-                <div className="h-16 border-b border-[#222] bg-[#080808] flex items-center justify-between px-8 shrink-0">
+                <div className="h-16 border-b border-[#222] bg-[#161616] flex items-center justify-between px-8 shrink-0">
                     <div className="flex items-center gap-4">
                         <div className="h-9 w-9 bg-red-600/10 border border-red-600/30 flex items-center justify-center rounded">
                             <Clapperboard className="text-red-500" size={18} />
@@ -363,10 +363,10 @@ export default function AssetManagerPage() {
             />
 
             {/* --- MAIN CONTENT (no sidebar) --- */}
-            <div className="flex-1 flex flex-col overflow-hidden bg-[#020202]">
+            <div className="flex-1 flex flex-col overflow-hidden bg-[#111111]">
 
                 {/* ── TAB BAR + SEARCH + ACTIONS ── */}
-                <div className="h-12 border-b border-white/[0.06] bg-[#080808] flex items-center justify-between px-6 shrink-0">
+                <div className="h-12 border-b border-white/[0.06] bg-[#161616] flex items-center justify-between px-6 shrink-0">
                     <div className="flex items-center gap-1">
                         <TabButton
                             active={activeTab === 'cast'}
@@ -431,7 +431,7 @@ export default function AssetManagerPage() {
                         <button
                             data-agent="generate-all-assets"
                             onClick={handleGenerateAll}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/[0.06] hover:border-[#E50914]/50 hover:bg-[#E50914]/10 text-neutral-500 hover:text-[#ff6b6b] text-[9px] font-bold tracking-widest uppercase transition-all rounded cursor-pointer"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/[0.06] hover:border-[#D40A12]/50 hover:bg-[#D40A12]/10 text-neutral-500 hover:text-[#ff6b6b] text-[9px] font-bold tracking-widest uppercase transition-all rounded cursor-pointer"
                         >
                             <Sparkles size={10} /> Generate All
                         </button>
@@ -448,7 +448,7 @@ export default function AssetManagerPage() {
                         {/* Loading */}
                         {loading ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-50">
-                                <Loader2 className="animate-spin text-[#E50914] mb-3" size={22} />
+                                <Loader2 className="animate-spin text-[#D40A12] mb-3" size={22} />
                                 <span className="text-[10px] tracking-widest text-neutral-600 uppercase">Loading assets...</span>
                             </div>
                         ) : filteredAssets.map((asset) => (
@@ -507,7 +507,7 @@ export default function AssetManagerPage() {
                     onLinkVoice={async () => { }}
                     styles={{
                         modal: {
-                            background: '#050505',
+                            background: '#111111',
                             border: '1px solid #333',
                             borderRadius: '4px',
                             boxShadow: '0 0 100px rgba(0,0,0,0.9)'
@@ -533,7 +533,7 @@ const TabButton = ({ active, onClick, icon, label, count, dataAgent }: {
     >
         {icon}
         {label}
-        <span className={`font-mono text-[9px] ${active ? "text-[#E50914]" : "text-neutral-700"}`}>
+        <span className={`font-mono text-[9px] ${active ? "text-[#D40A12]" : "text-neutral-700"}`}>
             {String(count).padStart(2, '0')}
         </span>
     </button>

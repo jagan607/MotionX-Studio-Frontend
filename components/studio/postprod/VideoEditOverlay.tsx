@@ -153,9 +153,9 @@ export default function VideoEditOverlay({
             // ── Selection border: clean, glowing ──
             // Outer glow
             ctx.save();
-            ctx.shadowColor = "rgba(229, 9, 20, 0.6)";
+            ctx.shadowColor = "rgba(212, 10, 18, 0.6)";
             ctx.shadowBlur = 15;
-            ctx.strokeStyle = "rgba(229, 9, 20, 0.8)";
+            ctx.strokeStyle = "rgba(212, 10, 18, 0.8)";
             ctx.lineWidth = 2;
             ctx.strokeRect(px, py, pw, ph);
             ctx.restore();
@@ -177,7 +177,7 @@ export default function VideoEditOverlay({
                 ctx.arc(dx, dy, dotR, 0, Math.PI * 2);
                 ctx.fillStyle = "#fff";
                 ctx.fill();
-                ctx.strokeStyle = "rgba(229, 9, 20, 0.8)";
+                ctx.strokeStyle = "rgba(212, 10, 18, 0.8)";
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
             });
@@ -186,7 +186,7 @@ export default function VideoEditOverlay({
             if (isDrawing || (phase === "draw" && !isDrawing && selection)) {
                 const scanProgress = ((t % 2000) / 2000);
                 const scanY = py + ph * scanProgress;
-                ctx.strokeStyle = `rgba(229, 9, 20, ${0.4 * (1 - scanProgress)})`;
+                ctx.strokeStyle = `rgba(212, 10, 18, ${0.4 * (1 - scanProgress)})`;
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(px + 4, scanY);
@@ -329,15 +329,15 @@ export default function VideoEditOverlay({
                     >
                         <div
                             className={`flex items-center gap-0 rounded-2xl overflow-hidden transition-all duration-200 ${
-                                isDraggingOver ? 'ring-2 ring-[#E50914]/50 scale-[1.02]' : ''
+                                isDraggingOver ? 'ring-2 ring-[#D40A12]/50 scale-[1.02]' : ''
                             }`}
                             style={{
-                                background: isDraggingOver ? "rgba(229, 9, 20, 0.08)" : "rgba(10, 10, 10, 0.92)",
+                                background: isDraggingOver ? "rgba(212, 10, 18, 0.08)" : "rgba(10, 10, 10, 0.92)",
                                 backdropFilter: "blur(40px) saturate(180%)",
-                                border: isDraggingOver ? "1px solid rgba(229,9,20,0.3)" : "1px solid rgba(255,255,255,0.08)",
+                                border: isDraggingOver ? "1px solid rgba(212,10,18,0.3)" : "1px solid rgba(255,255,255,0.08)",
                                 boxShadow: isDraggingOver
-                                    ? "0 20px 60px -15px rgba(229,9,20,0.3), 0 0 0 1px rgba(229,9,20,0.3)"
-                                    : "0 20px 60px -15px rgba(0,0,0,0.9), 0 0 0 1px rgba(229,9,20,0.15)",
+                                    ? "0 20px 60px -15px rgba(212,10,18,0.3), 0 0 0 1px rgba(212,10,18,0.3)"
+                                    : "0 20px 60px -15px rgba(0,0,0,0.9), 0 0 0 1px rgba(212,10,18,0.15)",
                             }}
                             onDragEnter={(e) => {
                                 e.preventDefault();
@@ -383,7 +383,7 @@ export default function VideoEditOverlay({
                                         title={a.tip}
                                         className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 ${
                                             editAction === a.key
-                                                ? "bg-[#E50914] text-white shadow-md shadow-[#E50914]/30 scale-105"
+                                                ? "bg-[#D40A12] text-white shadow-md shadow-[#D40A12]/30 scale-105"
                                                 : "text-neutral-500 hover:text-white hover:bg-white/10"
                                         }`}
                                     >
@@ -461,7 +461,7 @@ export default function VideoEditOverlay({
                                             : "Describe edit..."
                                     }
                                     className="w-[220px] bg-transparent px-3 py-2.5 text-[12px] text-white placeholder-neutral-600 focus:outline-none"
-                                    style={{ caretColor: "#E50914" }}
+                                    style={{ caretColor: "#D40A12" }}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter") handleSubmit();
                                         if (e.key === "Escape") {
@@ -482,13 +482,13 @@ export default function VideoEditOverlay({
                                 className={`h-full flex items-center justify-center px-3 py-2.5 transition-all duration-200 ${
                                     isProcessing || (editAction !== "remove" && !editPrompt.trim())
                                         ? "text-neutral-700 cursor-not-allowed"
-                                        : "text-[#E50914] hover:bg-[#E50914]/10 cursor-pointer"
+                                        : "text-[#D40A12] hover:bg-[#D40A12]/10 cursor-pointer"
                                 }`}
                             >
                                 {isProcessing ? (
                                     <Loader2 size={16} className="animate-spin" />
                                 ) : (
-                                    <div className="w-7 h-7 rounded-lg bg-[#E50914] flex items-center justify-center shadow-lg shadow-[#E50914]/30">
+                                    <div className="w-7 h-7 rounded-lg bg-[#D40A12] flex items-center justify-center shadow-lg shadow-[#D40A12]/30">
                                         <ArrowRight size={14} className="text-white" />
                                     </div>
                                 )}
@@ -517,10 +517,10 @@ export default function VideoEditOverlay({
                     >
                         <div className="flex items-center gap-1.5">
                             <div className="relative">
-                                <div className="w-1.5 h-1.5 rounded-full bg-[#E50914]" />
-                                <div className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-[#E50914] animate-ping opacity-30" />
+                                <div className="w-1.5 h-1.5 rounded-full bg-[#D40A12]" />
+                                <div className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-[#D40A12] animate-ping opacity-30" />
                             </div>
-                            <span className="text-[8px] font-bold text-[#E50914] tracking-[2px] uppercase">
+                            <span className="text-[8px] font-bold text-[#D40A12] tracking-[2px] uppercase">
                                 Edit
                             </span>
                         </div>

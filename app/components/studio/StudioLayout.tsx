@@ -12,7 +12,7 @@ export const StudioLayout: React.FC<StudioLayoutProps> = ({
     className = ""
 }) => {
     return (
-        <div className={`fixed inset-0 z-50 bg-[#050505] text-[#EEE] font-sans overflow-hidden flex flex-col studio-grain studio-vignette ${className}`}>
+        <div className={`fixed inset-0 z-50 bg-[#111111] text-[#EEE] font-sans overflow-hidden flex flex-col studio-grain studio-vignette ${className}`}>
 
             {/* --- GLOBAL STUDIO STYLES --- */}
             <style jsx global>{`
@@ -35,7 +35,7 @@ export const StudioLayout: React.FC<StudioLayoutProps> = ({
                 body {
                     -webkit-font-smoothing: antialiased;
                     -moz-osx-font-smoothing: grayscale;
-                    background-color: #050505;
+                    background-color: #111111;
                 }
 
                 /* 4. Film Grain Texture */

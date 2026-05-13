@@ -112,17 +112,17 @@ export const ScriptTimeline: React.FC<ScriptTimelineProps> = ({
                 />
             )}
 
-            <div className="flex-1 flex flex-col bg-[#050505] relative border-r border-[#222] h-full"> {/* Ensure h-full */}
+            <div className="flex-1 flex flex-col bg-[#111111] relative border-r border-[#222] h-full"> {/* Ensure h-full */}
 
                 {/* --- TOOLBAR --- */}
-                <div className="h-14 border-b border-[#222] bg-[#080808] flex items-center justify-between px-4 shrink-0">
+                <div className="h-14 border-b border-[#222] bg-[#161616] flex items-center justify-between px-4 shrink-0">
                     {episodeContext && episodeContext.episodes.length > 0 ? (
                         <div className="flex items-center gap-3 w-full max-w-[70%]">
                             <div className="h-8 w-8 bg-red-900/20 border border-red-900/50 flex items-center justify-center rounded-sm shrink-0">
                                 <Layers size={14} className="text-red-500" />
                             </div>
-                            <div className="flex-1 relative group bg-[#111] border border-[#222] hover:border-[#444] transition-colors rounded-sm h-8 flex items-center px-3">
-                                <span className="absolute -top-2 left-2 bg-[#080808] px-1 text-[8px] font-mono text-[#555] uppercase tracking-widest leading-none">
+                            <div className="flex-1 relative group bg-[#1a1a1a] border border-[#222] hover:border-[#444] transition-colors rounded-sm h-8 flex items-center px-3">
+                                <span className="absolute -top-2 left-2 bg-[#161616] px-1 text-[8px] font-mono text-[#555] uppercase tracking-widest leading-none">
                                     Active Reel
                                 </span>
                                 <select
@@ -148,7 +148,7 @@ export const ScriptTimeline: React.FC<ScriptTimelineProps> = ({
                         </div>
                     )}
                     <div className="flex items-center gap-2">
-                        <div className="text-[9px] font-mono text-white/30 flex items-center gap-2 bg-[#111] px-3 py-1 rounded-sm border border-[#222]">
+                        <div className="text-[9px] font-mono text-white/30 flex items-center gap-2 bg-[#1a1a1a] px-3 py-1 rounded-sm border border-[#222]">
                             <Clock size={10} /> EST. {estDuration}M
                         </div>
                     </div>
@@ -190,7 +190,7 @@ export const ScriptTimeline: React.FC<ScriptTimelineProps> = ({
 
                 {/* 3. PINNED FOOTER (Moved Outside) */}
                 {/* This section will always stick to the bottom */}
-                <div className="shrink-0 border-t border-[#222] bg-[#080808] p-4 z-10 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+                <div className="shrink-0 border-t border-[#222] bg-[#161616] p-4 z-10 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
                     {customFooter ? (
                         customFooter
                     ) : (
@@ -198,7 +198,7 @@ export const ScriptTimeline: React.FC<ScriptTimelineProps> = ({
                         onAddScene && (
                             <button
                                 onClick={onAddScene}
-                                className="w-full h-12 border border-dashed border-[#333] rounded-sm flex items-center justify-center gap-2 text-[#555] hover:text-[#CCC] hover:border-[#666] hover:bg-[#111] transition-all group"
+                                className="w-full h-12 border border-dashed border-[#333] rounded-sm flex items-center justify-center gap-2 text-[#555] hover:text-[#CCC] hover:border-[#666] hover:bg-[#1a1a1a] transition-all group"
                             >
                                 <Plus size={16} className="group-hover:scale-110 transition-transform" />
                                 <span className="text-[10px] font-bold uppercase tracking-widest">Add New Scene</span>

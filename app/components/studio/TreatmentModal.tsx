@@ -172,9 +172,9 @@ export const TreatmentModal: React.FC<TreatmentModalProps> = ({
             <div className="w-[95vw] max-w-[1200px] h-[90vh] bg-[#0A0A0A] border border-white/[0.06] rounded-xl flex flex-col overflow-hidden shadow-2xl">
 
                 {/* ── TOP BAR ── */}
-                <div className="h-14 border-b border-white/[0.06] bg-[#080808] flex items-center justify-between px-6 shrink-0">
+                <div className="h-14 border-b border-white/[0.06] bg-[#161616] flex items-center justify-between px-6 shrink-0">
                     <div className="flex items-center gap-3">
-                        <FileText size={16} className="text-[#E50914]" />
+                        <FileText size={16} className="text-[#D40A12]" />
                         <h2 className="text-[12px] font-bold text-white uppercase tracking-widest">
                             Director&apos;s Treatment
                         </h2>
@@ -193,7 +193,7 @@ export const TreatmentModal: React.FC<TreatmentModalProps> = ({
                         <button
                             onClick={handleGenerate}
                             disabled={isGenerating}
-                            className="flex items-center gap-2 px-4 py-2 bg-white/[0.04] border border-white/[0.08] hover:border-[#E50914]/40 hover:bg-[#E50914]/10 text-neutral-400 hover:text-white text-[10px] font-bold tracking-widest uppercase rounded-md transition-all cursor-pointer disabled:opacity-40"
+                            className="flex items-center gap-2 px-4 py-2 bg-white/[0.04] border border-white/[0.08] hover:border-[#D40A12]/40 hover:bg-[#D40A12]/10 text-neutral-400 hover:text-white text-[10px] font-bold tracking-widest uppercase rounded-md transition-all cursor-pointer disabled:opacity-40"
                         >
                             {isGenerating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                             {hasContent ? "Regenerate" : "Generate"}
@@ -232,17 +232,17 @@ export const TreatmentModal: React.FC<TreatmentModalProps> = ({
                                 onClick={() => setActiveSection(key)}
                                 className={`w-full flex items-center gap-3 px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider transition-all cursor-pointer
                                     ${activeSection === key
-                                        ? "bg-white/[0.04] text-white border-l-2 border-l-[#E50914]"
+                                        ? "bg-white/[0.04] text-white border-l-2 border-l-[#D40A12]"
                                         : "text-neutral-600 hover:text-neutral-300 hover:bg-white/[0.02] border-l-2 border-l-transparent"
                                     }`}
                             >
-                                <span className={activeSection === key ? "text-[#E50914]" : "text-neutral-700"}>{icon}</span>
+                                <span className={activeSection === key ? "text-[#D40A12]" : "text-neutral-700"}>{icon}</span>
                                 <span className="truncate">{label}</span>
                                 {sections[key]?.trim() && (
                                     <Check size={10} className="ml-auto text-emerald-500/60 shrink-0" />
                                 )}
                                 {savingKeys.has(key) && (
-                                    <Loader2 size={10} className="ml-auto text-[#E50914] animate-spin shrink-0" />
+                                    <Loader2 size={10} className="ml-auto text-[#D40A12] animate-spin shrink-0" />
                                 )}
                             </button>
                         ))}
@@ -253,7 +253,7 @@ export const TreatmentModal: React.FC<TreatmentModalProps> = ({
 
                         {!loaded ? (
                             <div className="flex-1 flex items-center justify-center">
-                                <Loader2 size={24} className="text-[#E50914] animate-spin" />
+                                <Loader2 size={24} className="text-[#D40A12] animate-spin" />
                             </div>
                         ) : !hasExisting && !hasContent ? (
                             /* EMPTY STATE */
@@ -271,7 +271,7 @@ export const TreatmentModal: React.FC<TreatmentModalProps> = ({
                                 <button
                                     onClick={handleGenerate}
                                     disabled={isGenerating}
-                                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#B91C1C] to-[#E50914] hover:from-[#DC2626] hover:to-[#EF4444] text-white text-[10px] font-bold tracking-widest uppercase rounded-lg transition-all shadow-[0_0_20px_rgba(229,9,20,0.15)] hover:shadow-[0_0_30px_rgba(229,9,20,0.3)] cursor-pointer disabled:opacity-50"
+                                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#B91C1C] to-[#D40A12] hover:from-[#DC2626] hover:to-[#EF4444] text-white text-[10px] font-bold tracking-widest uppercase rounded-lg transition-all shadow-[0_0_20px_rgba(212,10,18,0.15)] hover:shadow-[0_0_30px_rgba(212,10,18,0.3)] cursor-pointer disabled:opacity-50"
                                 >
                                     {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                                     {isGenerating ? "Generating..." : "Generate Treatment"}
@@ -283,12 +283,12 @@ export const TreatmentModal: React.FC<TreatmentModalProps> = ({
                                 {/* Section Header */}
                                 <div className="px-8 pt-6 pb-4 border-b border-white/[0.04] shrink-0">
                                     <div className="flex items-center gap-3 mb-1">
-                                        <span className="text-[#E50914]">{currentMeta.icon}</span>
+                                        <span className="text-[#D40A12]">{currentMeta.icon}</span>
                                         <h3 className="text-[14px] font-bold text-white uppercase tracking-wider">
                                             {currentMeta.label}
                                         </h3>
                                         {savingKeys.has(activeSection) && (
-                                            <span className="text-[9px] font-mono text-[#E50914] uppercase tracking-widest animate-pulse">Saving...</span>
+                                            <span className="text-[9px] font-mono text-[#D40A12] uppercase tracking-widest animate-pulse">Saving...</span>
                                         )}
                                         {!savingKeys.has(activeSection) && sections[activeSection]?.trim() && (
                                             <span className="text-[9px] font-mono text-emerald-600 uppercase tracking-widest flex items-center gap-1">

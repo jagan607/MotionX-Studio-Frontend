@@ -22,7 +22,7 @@ export function UserSearch() {
     }, 300); // Wait 300ms after typing stops
 
     return (
-        <div className="bg-[#111] border border-[#333] flex items-center px-4 py-2 w-64 group focus-within:border-red-600 transition-colors">
+        <div className="bg-[#1a1a1a] border border-[#333] flex items-center px-4 py-2 w-64 group focus-within:border-red-600 transition-colors">
             <Search size={14} className="text-[#666] mr-2" />
             <input
                 type="text"

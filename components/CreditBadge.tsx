@@ -39,13 +39,13 @@ export default function CreditBadge() {
         value: {
             fontSize: '14px',
             fontWeight: 'bold',
-            color: credits !== null && credits > 0 ? '#FFF' : '#E50914',
+            color: credits !== null && credits > 0 ? '#FFF' : '#D40A12',
         },
         iconBox: {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: credits !== null && credits > 0 ? '#00FF41' : '#E50914',
+            color: credits !== null && credits > 0 ? '#00FF41' : '#D40A12',
         }
     };
 
@@ -69,8 +69,8 @@ export default function CreditBadge() {
             {/* Optional: Visual "Indicator" Light */}
             <div style={{
                 width: '6px', height: '6px', borderRadius: '50%',
-                backgroundColor: credits && credits > 0 ? '#00FF41' : '#E50914',
-                boxShadow: credits && credits > 0 ? '0 0 8px #00FF41' : '0 0 8px #E50914'
+                backgroundColor: credits && credits > 0 ? '#00FF41' : '#D40A12',
+                boxShadow: credits && credits > 0 ? '0 0 8px #00FF41' : '0 0 8px #D40A12'
             }} />
         </div>
     );

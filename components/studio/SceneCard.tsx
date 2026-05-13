@@ -291,7 +291,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({
                 id={isFirstCard ? "tour-studio-open-sb" : undefined}
                 onClick={() => onOpenStoryboard(scene)}
                 className="w-full border-t border-white/[0.04] bg-gradient-to-t from-[#0A0A0A] to-transparent text-neutral-500 
-                hover:text-[#ff6b6b] hover:from-[#E50914]/5
+                hover:text-[#ff6b6b] hover:from-[#D40A12]/5
                 py-3 px-4 rounded-b-xl text-[10px] font-bold tracking-[0.15em] uppercase 
                 flex items-center justify-center gap-2 transition-all duration-300"
             >

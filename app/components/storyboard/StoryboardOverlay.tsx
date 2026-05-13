@@ -585,14 +585,19 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
 
     return (
         <PricingProvider>
-            <div style={styles.sbOverlay}
+            <div style={{
+                    ...styles.sbOverlay,
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: '#111111',
+                    zIndex: 50,
+                }}
                 data-active-scene-id={activeSceneId}
                 data-active-scene-number={currentScene?.scene_number || ""}
                 data-active-scene-slugline={currentScene?.slugline || currentScene?.header || ""}
                 data-active-scene-location={sceneLoc || ""}
                 data-active-scene-cast={charDisplay || ""}
             >
-
 
                 {/* MODALS */}
                 <CreditModal isOpen={showTopUp} onClose={() => setShowTopUp(false)} />
@@ -754,65 +759,6 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             )}
                         </div>
 
-                        {/* BUILD SET — hidden for EXT. scenes */}
-                        {!isExterior && (
-                        <button
-                            data-panel-target="set_design"
-                            data-agent="panel-set-design"
-                            onClick={() => setShowSetDesign(true)}
-                            style={{
-                                height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
-                                border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                                transition: 'border-color 0.2s'
-                            }}
-                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
-                        >
-                            <Palette size={14} /> {sceneSetDesign ? 'EDIT SET' : 'BUILD SET'}
-                        </button>
-                        )}
-
-                        {/* UPLOAD SHOTS */}
-                        <button
-                            data-agent="upload-shots"
-                            onClick={() => setShowShotDivision(true)}
-                            style={{
-                                height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
-                                border: '1px solid #333',
-                                borderRadius: '4px', fontSize: '12px', fontWeight: 600,
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                                transition: 'border-color 0.2s'
-                            }}
-                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
-                        >
-                            <Upload size={14} /> UPLOAD SHOTS
-                        </button>
-
-                        {/* GENERATE ALL — hidden for now
-                        {shotMgr.shots.length > 0 && (
-                            <button
-                                id="tour-sb-generate-all"
-                                onClick={handleSafeGenerateAll}
-                                disabled={(shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping}
-                                style={{
-                                    height: '40px', padding: '0 20px', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease',
-                                    opacity: ((shotMgr.loadingShots.size > 0 && !shotMgr.isGeneratingAll) || shotMgr.isAutoDirecting || shotMgr.isStopping) ? 0.5 : 1,
-                                    backgroundColor: shotMgr.isGeneratingAll ? '#2a0a0a' : '#1A1A1A',
-                                    border: shotMgr.isGeneratingAll ? '1px solid #7f1d1d' : '1px solid #333',
-                                    color: shotMgr.isGeneratingAll ? '#f87171' : '#EEE',
-                                }}
-                            >
-                                {shotMgr.isStopping ? <Loader2 size={14} className="animate-spin" /> :
-                                    shotMgr.isGeneratingAll ? <Square size={14} fill="currentColor" /> :
-                                        <Layers size={14} />}
-                                {shotMgr.isStopping ? 'STOPPING...' : shotMgr.isGeneratingAll ? 'STOP' : 'GENERATE SCENE'}
-                            </button>
-                        )}
-                        */}
-
                         {/* AUTO DIRECT */}
                         <button
                             id="tour-sb-autodirect"
@@ -823,7 +769,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
                                 border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
                                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease',
-                                opacity: shotMgr.isAutoDirecting ? 0.5 : 1
+                                opacity: shotMgr.isAutoDirecting ? 0.5 : 1, whiteSpace: 'nowrap', flexShrink: 0
                             }}
                         >
                             <Wand2 size={14} />
@@ -839,44 +785,12 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
                                 border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
                                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.2s', whiteSpace: 'nowrap', flexShrink: 0
                             }}
                             onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
                             onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
                         >
                             <Plus size={16} strokeWidth={3} /> ADD SHOT
-                        </button>
-
-                        {/* SCRIPT */}
-                        <button
-                            data-agent="open-script"
-                            onClick={() => setShowScript(true)}
-                            style={{
-                                height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
-                                border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                                transition: 'border-color 0.2s'
-                            }}
-                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
-                        >
-                            <FileText size={14} /> SCRIPT
-                        </button>
-
-                        {/* ASSETS */}
-                        <button
-                            data-agent="open-assets"
-                            onClick={() => setShowAssets(true)}
-                            style={{
-                                height: '40px', padding: '0 20px', backgroundColor: '#1A1A1A', color: '#EEE',
-                                border: '1px solid #333', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                                transition: 'border-color 0.2s'
-                            }}
-                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
-                        >
-                            <Database size={14} /> ASSETS
                         </button>
 
                         {/* THREE-DOT MORE MENU */}
@@ -889,7 +803,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     height: '40px', width: '40px', backgroundColor: '#1A1A1A', color: '#EEE',
                                     border: '1px solid #333', borderRadius: '4px',
                                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    transition: 'border-color 0.2s'
+                                    transition: 'border-color 0.2s', flexShrink: 0
                                 }}
                                 onMouseOver={(e) => { e.currentTarget.style.borderColor = '#555'; }}
                                 onMouseOut={(e) => { e.currentTarget.style.borderColor = '#333'; }}
@@ -898,9 +812,67 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                             </button>
 
                             {showMoreMenu && (
-                                <div className="absolute top-full right-0 mt-1 w-52 bg-[#1A1A1A] border border-[#333] rounded-md shadow-2xl shadow-black/80 z-[9999] overflow-hidden">
-                                    <div className="px-4 py-2 border-b border-[#222] bg-[#111]">
-                                        <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">More Actions</span>
+                                <div className="absolute top-full right-0 mt-1 w-52 bg-[#1A1A1A] border border-[#333] rounded-md shadow-2xl shadow-black/80 z-[9999] overflow-hidden flex flex-col">
+                                    <div className="px-4 py-2 border-b border-[#222] bg-[#1a1a1a]">
+                                        <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Workspace Tools</span>
+                                    </div>
+                                    
+                                    {/* SCRIPT */}
+                                    <button
+                                        onClick={() => { setShowMoreMenu(false); setShowScript(true); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                                    >
+                                        <FileText size={13} className="text-[#666]" /> Script Editor
+                                    </button>
+
+                                    {/* ASSETS */}
+                                    <button
+                                        onClick={() => { setShowMoreMenu(false); setShowAssets(true); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                                    >
+                                        <Database size={13} className="text-[#666]" /> Project Assets
+                                    </button>
+
+                                    <div className="px-4 py-1.5 border-t border-[#222] bg-[#1a1a1a]">
+                                        <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Scene Tools</span>
+                                    </div>
+
+                                    {/* BUILD SET */}
+                                    {!isExterior && (
+                                        <button
+                                            onClick={() => { setShowMoreMenu(false); setShowSetDesign(true); }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                                        >
+                                            <Palette size={13} className="text-[#666]" /> Build Set
+                                        </button>
+                                    )}
+
+                                    {/* WARDROBE */}
+                                    <button
+                                        onClick={() => { setShowMoreMenu(false); setShowWardrobe(true); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                                    >
+                                        <span className="text-[#666]">👔</span> Wardrobe {sceneWardrobe ? <span className="ml-auto text-[8px] text-violet-500/70 font-bold">●</span> : null}
+                                    </button>
+
+                                    {/* SCENE MOOD */}
+                                    <button
+                                        onClick={() => { setShowMoreMenu(false); setShowCinematography(true); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                                    >
+                                        <Sparkles size={13} className="text-[#666]" /> Scene Mood
+                                    </button>
+
+                                    {/* UPLOAD SHOTS */}
+                                    <button
+                                        onClick={() => { setShowMoreMenu(false); setShowShotDivision(true); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
+                                    >
+                                        <Upload size={13} className="text-[#666]" /> Upload Shots
+                                    </button>
+
+                                    <div className="px-4 py-1.5 border-t border-[#222] bg-[#1a1a1a]">
+                                        <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">More</span>
                                     </div>
 
                                     {/* TREATMENT */}
@@ -911,31 +883,9 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                         <FileText size={13} className="text-[#666]" /> Treatment
                                     </button>
 
-
-
-                                    {/* WARDROBE */}
-                                    <button
-                                        data-panel-target="wardrobe"
-                                        data-agent="panel-wardrobe"
-                                        onClick={() => { setShowMoreMenu(false); setShowWardrobe(true); }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
-                                    >
-                                        <span className="text-[#666]">👔</span> Wardrobe {sceneWardrobe ? <span className="ml-auto text-[8px] text-violet-500/70 font-bold">●</span> : null}
-                                    </button>
-
-                                    {/* SCENE MOOD */}
-                                    <button
-                                        data-panel-target="cinematography"
-                                        data-agent="panel-cinematography"
-                                        onClick={() => { setShowMoreMenu(false); setShowCinematography(true); }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-[11px] text-[#DDD] hover:bg-[#222] hover:text-white transition-colors cursor-pointer"
-                                    >
-                                        <Sparkles size={13} className="text-[#666]" /> Scene Mood
-                                    </button>
-
                                     {/* EXPORT SUB-SECTION */}
                                     <div className="border-t border-[#222]">
-                                        <div className="px-4 py-1.5 bg-[#111]">
+                                        <div className="px-4 py-1.5 bg-[#1a1a1a]">
                                             <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Export Scene</span>
                                         </div>
                                         <button
@@ -1002,7 +952,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                 </div>
 
                 {/* --- CONTENT --- */}
-                <div ref={contentScrollRef} style={{ flex: 1, overflowY: 'auto', backgroundColor: '#050505', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                <div ref={contentScrollRef} style={{ flex: 1, overflowY: 'auto', backgroundColor: 'transparent', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
                     <div id="tour-sb-context-strip" style={{ margin: '40px 40px 0 40px' }}>
                         <SceneContextStrip
@@ -1076,7 +1026,27 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                     onUploadImage={(file) => shotMgr.handleShotImageUpload(shot, file)}
                                                     onLipSync={() => setLipSyncShot({ id: shot.id, videoUrl: shot.video_url || '', audioUrl: shot.audio_url || undefined })}
                                                     tourId={index === 0 ? "tour-sb-shot-card" : undefined}
-                                                    onOpenGizmo={shot.image_url ? () => setActiveGizmoShotId(shot.id) : undefined}
+                                                    onOpenGizmo={shot.image_url ? () => {} : undefined}
+                                                    onSaveCamera={async (transform, typeStr) => {
+                                                        try {
+                                                            if (activeSceneId) {
+                                                                await saveCameraTransform(seriesId, episodeId, activeSceneId, shot.id, transform);
+                                                                shotMgr.updateShot(shot.id, "camera_transform", transform);
+                                                                shotMgr.updateShot(shot.id, "camera_shot_type", typeStr);
+                                                                toastSuccess("Camera position saved");
+                                                            }
+                                                        } catch (e) {
+                                                            toastError("Failed to save camera position");
+                                                        }
+                                                    }}
+                                                    onRegenerateCamera={async (transform, typeStr, provider) => {
+                                                        if (activeSceneId) {
+                                                            shotMgr.updateShot(shot.id, "camera_transform", transform);
+                                                            shotMgr.updateShot(shot.id, "camera_shot_type", typeStr);
+                                                        }
+                                                        shotMgr.handleRenderShot(shot, currentScene, null, (provider as any) || 'gemini', continuityRefId, transform, typeStr);
+                                                    }}
+                                                    onExpandGizmo={() => setActiveGizmoShotId(shot.id)}
                                                     onTopUp={() => setShowTopUp(true)}
                                                     onRetryAnimate={() => setEditingShotId(shot.id)}
                                                     onFocusPrompt={() => setEditingShotId(shot.id)}
@@ -1169,7 +1139,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     color: '#FFF', fontSize: '28px', margin: 0,
                                     fontFamily: 'Anton, sans-serif', textTransform: 'uppercase',
                                     letterSpacing: '4px',
-                                    textShadow: '0 0 40px rgba(229, 9, 20, 0.3), 0 0 80px rgba(229, 9, 20, 0.1)',
+                                    textShadow: '0 0 40px rgba(212, 10, 18, 0.3), 0 0 80px rgba(212, 10, 18, 0.1)',
                                 }}>
                                     AI Director
                                 </h2>
@@ -1189,8 +1159,8 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                         <div key={i} style={{
                                             flex: 1, height: '3px', borderRadius: '2px',
                                             transition: 'all 0.8s ease',
-                                            backgroundColor: isComplete ? 'rgba(229, 9, 20, 0.6)' : isActive ? 'rgba(229, 9, 20, 0.3)' : 'rgba(255,255,255,0.06)',
-                                            boxShadow: isActive ? '0 0 12px rgba(229, 9, 20, 0.4)' : 'none',
+                                            backgroundColor: isComplete ? 'rgba(212, 10, 18, 0.6)' : isActive ? 'rgba(212, 10, 18, 0.3)' : 'rgba(255,255,255,0.06)',
+                                            boxShadow: isActive ? '0 0 12px rgba(212, 10, 18, 0.4)' : 'none',
                                         }} />
                                     );
                                 })}
@@ -1231,10 +1201,10 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                         <div style={{
                                             fontSize: '15px', color: '#fff', fontWeight: 500,
                                             textAlign: 'center', lineHeight: '2.2',
-                                            textShadow: '0 0 20px rgba(229, 9, 20, 0.2)',
+                                            textShadow: '0 0 20px rgba(212, 10, 18, 0.2)',
                                             display: 'flex', alignItems: 'center', gap: '10px',
                                         }}>
-                                            <Loader2 size={14} className="animate-spin" style={{ color: '#E50914', opacity: 0.7 }} />
+                                            <Loader2 size={14} className="animate-spin" style={{ color: '#D40A12', opacity: 0.7 }} />
                                             {clean}
                                         </div>
                                     );
@@ -1249,7 +1219,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                 return (
                                     <div style={{
                                         fontSize: '9px', fontWeight: 600, letterSpacing: '2px',
-                                        textTransform: 'uppercase', color: '#E50914',
+                                        textTransform: 'uppercase', color: '#D40A12',
                                         opacity: 0.6,
                                     }}>
                                         {stages[activeStage]}

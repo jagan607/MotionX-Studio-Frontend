@@ -1334,10 +1334,10 @@ export default function PostProdPage() {
     // ─── LOADING ───
     if (loading || !project || !timeline) {
         return (
-            <div className="fixed inset-0 bg-[#030303] flex flex-col items-center justify-center gap-4">
+            <div className="fixed inset-0 bg-[#111111] flex flex-col items-center justify-center gap-4">
                 <div className="relative">
-                    <div className="absolute inset-0 bg-[#E50914]/20 rounded-full blur-xl animate-pulse" />
-                    <Loader2 size={32} className="animate-spin text-[#E50914] relative z-10" />
+                    <div className="absolute inset-0 bg-[#D40A12]/20 rounded-full blur-xl animate-pulse" />
+                    <Loader2 size={32} className="animate-spin text-[#D40A12] relative z-10" />
                 </div>
                 <span className="text-[10px] text-neutral-600 tracking-[4px] uppercase font-mono">
                     Initializing Post-Production...
@@ -1351,9 +1351,9 @@ export default function PostProdPage() {
     const previewClip = selectedClip || activeVideoClip;
 
     return (
-        <div ref={timelineContainerRef} className="fixed inset-0 bg-[#030303] flex flex-col overflow-hidden">
+        <div ref={timelineContainerRef} className="fixed inset-0 bg-[#111111] flex flex-col overflow-hidden">
             {/* ═══ TOP BAR ═══ */}
-            <header className="h-12 border-b border-[#1a1a1a] bg-[#080808] flex items-center justify-between px-4 shrink-0 z-50">
+            <header className="h-12 border-b border-[#1a1a1a] bg-[#161616] flex items-center justify-between px-4 shrink-0 z-50">
                 <div className="flex items-center gap-3">
                     <button
                         data-agent="nav-storyboard"
@@ -1364,7 +1364,7 @@ export default function PostProdPage() {
                     </button>
                     <div className="h-3 w-px bg-[#333]" />
                     <div className="flex items-center gap-2">
-                        <Film size={13} className="text-[#E50914]" />
+                        <Film size={13} className="text-[#D40A12]" />
                         <span className="text-[11px] font-bold text-white tracking-wider uppercase">
                             {project.title}
                         </span>
@@ -1373,7 +1373,7 @@ export default function PostProdPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <div className="bg-[#111] border border-[#222] rounded px-3 py-1 font-mono text-[11px] text-[#E50914] tracking-wider min-w-[90px] text-center">
+                    <div className="bg-[#1a1a1a] border border-[#222] rounded px-3 py-1 font-mono text-[11px] text-[#D40A12] tracking-wider min-w-[90px] text-center">
                         {formatTimecode(timeline.playheadPosition)}
                     </div>
                     <div className="h-3 w-px bg-[#333]" />
@@ -1402,8 +1402,8 @@ export default function PostProdPage() {
                         }}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-[9px] font-bold tracking-widest transition-all ${
                             showShotInspector
-                                ? 'bg-[#E50914]/10 border-[#E50914]/30 text-[#E50914]'
-                                : 'bg-[#111] border-[#222] hover:border-[#444] text-neutral-400'
+                                ? 'bg-[#D40A12]/10 border-[#D40A12]/30 text-[#D40A12]'
+                                : 'bg-[#1a1a1a] border-[#222] hover:border-[#444] text-neutral-400'
                         }`}
                     >
                         <SlidersHorizontal size={11} /> INSPECTOR
@@ -1414,10 +1414,10 @@ export default function PostProdPage() {
                         onClick={() => setShowExport(!showExport)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-[9px] font-bold tracking-widest transition-all ${
                             exportProgress.status === 'exporting' || exportProgress.status === 'queued'
-                                ? 'bg-[#E50914]/20 border-[#E50914]/50 text-[#E50914] animate-pulse'
+                                ? 'bg-[#D40A12]/20 border-[#D40A12]/50 text-[#D40A12] animate-pulse'
                                 : showExport
-                                    ? 'bg-[#E50914]/10 border-[#E50914]/30 text-[#E50914]'
-                                    : 'bg-[#111] border-[#222] hover:border-[#444] text-neutral-400'
+                                    ? 'bg-[#D40A12]/10 border-[#D40A12]/30 text-[#D40A12]'
+                                    : 'bg-[#1a1a1a] border-[#222] hover:border-[#444] text-neutral-400'
                         }`}
                     >
                         {exportProgress.status === 'exporting' || exportProgress.status === 'queued' ? (
@@ -1485,7 +1485,7 @@ export default function PostProdPage() {
 
                     {/* ──── HORIZONTAL RESIZE HANDLE (preview ↕ timeline) ──── */}
                     <div
-                        className="h-1.5 bg-[#0a0a0a] cursor-row-resize flex items-center justify-center group hover:bg-[#E50914]/20 transition-colors shrink-0 relative z-10"
+                        className="h-1.5 bg-[#1a1a1a] cursor-row-resize flex items-center justify-center group hover:bg-[#D40A12]/20 transition-colors shrink-0 relative z-10"
                         onMouseDown={(e) => {
                             e.preventDefault();
                             const startY = e.clientY;
@@ -1511,7 +1511,7 @@ export default function PostProdPage() {
                             document.addEventListener("mouseup", onUp);
                         }}
                     >
-                        <div className="w-8 h-0.5 rounded-full bg-neutral-700 group-hover:bg-[#E50914]/60 transition-colors" />
+                        <div className="w-8 h-0.5 rounded-full bg-neutral-700 group-hover:bg-[#D40A12]/60 transition-colors" />
                     </div>
 
                     {/* Transport Controls */}
@@ -1600,7 +1600,7 @@ export default function PostProdPage() {
                 {/* ──── VERTICAL RESIZE HANDLE (main area ↔ sidebar) ──── */}
                 {(showShotInspector || showExport) && (
                     <div
-                        className="w-1.5 bg-[#0a0a0a] cursor-col-resize flex items-center justify-center group hover:bg-[#E50914]/20 transition-colors shrink-0 relative z-10"
+                        className="w-1.5 bg-[#1a1a1a] cursor-col-resize flex items-center justify-center group hover:bg-[#D40A12]/20 transition-colors shrink-0 relative z-10"
                         onMouseDown={(e) => {
                             e.preventDefault();
                             const startX = e.clientX;
@@ -1623,7 +1623,7 @@ export default function PostProdPage() {
                             document.addEventListener("mouseup", onUp);
                         }}
                     >
-                        <div className="h-8 w-0.5 rounded-full bg-neutral-700 group-hover:bg-[#E50914]/60 transition-colors" />
+                        <div className="h-8 w-0.5 rounded-full bg-neutral-700 group-hover:bg-[#D40A12]/60 transition-colors" />
                     </div>
                 )}
 

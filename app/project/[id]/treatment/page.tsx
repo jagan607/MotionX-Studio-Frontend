@@ -30,7 +30,7 @@ interface NamedImage { name?: string; image_url?: string; }
 type SectionImages = Record<string, (string | NamedImage)[]>;
 
 const SECTION_META: { key: keyof TreatmentSections; label: string; subtitle: string; icon: React.ReactNode; accent: string }[] = [
-    { key: "concept", label: "Concept", subtitle: "Narrative & Core Idea", icon: <Lightbulb size={18} />, accent: "#E50914" },
+    { key: "concept", label: "Concept", subtitle: "Narrative & Core Idea", icon: <Lightbulb size={18} />, accent: "#D40A12" },
     { key: "visual_approach", label: "Visual Approach", subtitle: "Cinematography & Style", icon: <Eye size={18} />, accent: "#D97706" },
     { key: "tone_mood", label: "Tone & Mood", subtitle: "Atmosphere & Emotion", icon: <Palette size={18} />, accent: "#7C3AED" },
     { key: "cast", label: "Cast", subtitle: "Characters & Performances", icon: <Users size={18} />, accent: "#2563EB" },
@@ -52,7 +52,7 @@ const EMPTY_SECTIONS: TreatmentSections = {
 const HeroBanner = ({ url }: { url: string }) => (
     <div className="relative w-full h-72 rounded-xl overflow-hidden mb-8 group">
         <img src={url} alt="Reference" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-[#020202]/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-transparent to-[#111111]/30" />
         <div className="absolute bottom-4 left-5">
             <span className="text-[8px] font-mono text-white/30 uppercase tracking-[4px]">Reference Frame</span>
         </div>
@@ -120,7 +120,7 @@ const MoodboardCard = ({ mood, accent }: { mood: MoodData; accent: string }) => 
         {mood.image_url && (
             <div className="relative w-full h-56 overflow-hidden">
                 <img src={mood.image_url} alt={mood.name} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-transparent to-transparent" />
                 <div className="absolute bottom-3 left-4">
                     <span className="text-[9px] font-bold text-white/60 uppercase tracking-[3px]">{mood.name}</span>
                 </div>
@@ -133,7 +133,7 @@ const MoodboardCard = ({ mood, accent }: { mood: MoodData; accent: string }) => 
                 { label: "Texture", value: mood.texture },
                 { label: "Atmosphere", value: mood.atmosphere },
             ].filter(d => d.value).map((d, i) => (
-                <div key={i} className="bg-[#050505] px-4 py-3">
+                <div key={i} className="bg-[#111111] px-4 py-3">
                     <span className="block text-[8px] font-mono uppercase tracking-[3px] mb-1.5" style={{ color: `${accent}50` }}>{d.label}</span>
                     <span className="block text-[11px] text-neutral-400 font-light leading-relaxed">{d.value}</span>
                 </div>
@@ -400,7 +400,7 @@ export default function TreatmentPage() {
     // ─────────────────────────────────────────────────────────────────────────
 
     return (
-        <main className="fixed inset-0 bg-[#020202] text-white overflow-hidden">
+        <main className="fixed inset-0 bg-[#111111] text-white overflow-hidden">
             <style jsx global>{`
                 @keyframes treatmentFadeUp {
                     from { opacity: 0; transform: translateY(40px); }
@@ -441,12 +441,12 @@ export default function TreatmentPage() {
 
             {/* ═══════ AMBIENT BACKGROUND ═══════ */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-0 left-1/4 w-[800px] h-[800px] rounded-full bg-[#E50914]/[0.015] blur-[200px]" style={{ animation: "pulseOrb 8s ease-in-out infinite" }} />
+                <div className="absolute top-0 left-1/4 w-[800px] h-[800px] rounded-full bg-[#D40A12]/[0.015] blur-[200px]" style={{ animation: "pulseOrb 8s ease-in-out infinite" }} />
                 <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] rounded-full bg-[#7C3AED]/[0.01] blur-[150px]" style={{ animation: "pulseOrb 10s ease-in-out infinite 3s" }} />
             </div>
 
             {/* ═══════ TOP BAR ═══════ */}
-            <div className="absolute top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-8 bg-gradient-to-b from-[#020202] via-[#020202]/90 to-transparent">
+            <div className="absolute top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-8 bg-gradient-to-b from-[#111111] via-[#111111]/90 to-transparent">
                 <div className="flex items-center gap-4">
                     <Link href={studioUrl} className="flex items-center gap-2 text-white/30 hover:text-white transition-colors no-underline group">
                         <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
@@ -484,7 +484,7 @@ export default function TreatmentPage() {
                 {!loaded ? (
                     <div className="flex items-center justify-center h-full">
                         <div className="flex flex-col items-center gap-4">
-                            <Loader2 size={24} className="text-[#E50914] animate-spin" />
+                            <Loader2 size={24} className="text-[#D40A12] animate-spin" />
                             <span className="text-[9px] font-mono text-neutral-700 uppercase tracking-[4px]">Loading treatment...</span>
                         </div>
                     </div>
@@ -493,19 +493,19 @@ export default function TreatmentPage() {
                     <div className="flex items-center justify-center h-full">
                         <div className="relative z-10 flex flex-col items-center text-center max-w-lg px-8" style={{ animation: "treatmentFadeUp 1s ease-out" }}>
                             <div className="relative w-24 h-24 mb-10">
-                                <div className="absolute inset-0 rounded-full bg-[#E50914]/[0.05] animate-ping" style={{ animationDuration: "3s" }} />
-                                <div className="absolute inset-3 rounded-full bg-[#E50914]/[0.03] animate-ping" style={{ animationDuration: "4s", animationDelay: "1s" }} />
+                                <div className="absolute inset-0 rounded-full bg-[#D40A12]/[0.05] animate-ping" style={{ animationDuration: "3s" }} />
+                                <div className="absolute inset-3 rounded-full bg-[#D40A12]/[0.03] animate-ping" style={{ animationDuration: "4s", animationDelay: "1s" }} />
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <FileText size={32} className="text-neutral-800" />
                                 </div>
                             </div>
 
-                            <span className="text-[9px] font-mono text-[#E50914]/40 uppercase tracking-[8px] mb-6">Director&apos;s Treatment</span>
+                            <span className="text-[9px] font-mono text-[#D40A12]/40 uppercase tracking-[8px] mb-6">Director&apos;s Treatment</span>
 
                             <h1 className="text-[32px] font-extralight text-white/80 leading-snug mb-2" style={{ fontFamily: "'Inter', sans-serif" }}>
                                 Your story, visualized as a
                                 <br />
-                                <span className="font-medium bg-gradient-to-r from-[#E50914] to-[#D97706] bg-clip-text text-transparent">cinematic blueprint</span>
+                                <span className="font-medium bg-gradient-to-r from-[#D40A12] to-[#D97706] bg-clip-text text-transparent">cinematic blueprint</span>
                             </h1>
 
                             <p className="text-[12px] text-neutral-600 leading-relaxed mb-12 max-w-sm">
@@ -513,7 +513,7 @@ export default function TreatmentPage() {
                             </p>
 
                             <button data-agent="generate-treatment" onClick={handleGenerate} disabled={isGenerating}
-                                className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-[#B91C1C] to-[#E50914] hover:from-[#DC2626] hover:to-[#EF4444] text-white text-[11px] font-bold tracking-[3px] uppercase rounded-xl transition-all shadow-[0_0_60px_rgba(229,9,20,0.12)] hover:shadow-[0_0_80px_rgba(229,9,20,0.25)] cursor-pointer disabled:opacity-50">
+                                className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-[#B91C1C] to-[#D40A12] hover:from-[#DC2626] hover:to-[#EF4444] text-white text-[11px] font-bold tracking-[3px] uppercase rounded-xl transition-all shadow-[0_0_60px_rgba(212,10,18,0.12)] hover:shadow-[0_0_80px_rgba(212,10,18,0.25)] cursor-pointer disabled:opacity-50">
                                 {isGenerating ? <><Loader2 size={16} className="animate-spin" /> Generating...</> : <><Sparkles size={16} /> Generate Treatment</>}
                             </button>
                         </div>
@@ -522,19 +522,19 @@ export default function TreatmentPage() {
                     /* ════════ GENERATING STATE ════════ */
                     <div className="flex items-center justify-center h-full">
                         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                            <div className="absolute top-1/4 left-1/3 w-[300px] h-[300px] rounded-full bg-[#E50914]/[0.04] blur-[100px]" style={{ animation: "driftBlob 12s ease-in-out infinite" }} />
+                            <div className="absolute top-1/4 left-1/3 w-[300px] h-[300px] rounded-full bg-[#D40A12]/[0.04] blur-[100px]" style={{ animation: "driftBlob 12s ease-in-out infinite" }} />
                             <div className="absolute bottom-1/3 right-1/4 w-[250px] h-[250px] rounded-full bg-[#7C3AED]/[0.03] blur-[80px]" style={{ animation: "driftBlob 15s ease-in-out infinite reverse" }} />
                         </div>
 
                         <div className="relative z-10 flex flex-col items-center" style={{ animation: "treatmentFadeUp 0.5s ease-out" }}>
                             <div className="relative w-20 h-20 mb-10">
-                                <div className="absolute inset-0 rounded-full border border-[#E50914]/20 animate-ping" style={{ animationDuration: "2s" }} />
-                                <div className="absolute inset-3 rounded-full border border-[#E50914]/15 animate-ping" style={{ animationDuration: "2.5s", animationDelay: "0.5s" }} />
+                                <div className="absolute inset-0 rounded-full border border-[#D40A12]/20 animate-ping" style={{ animationDuration: "2s" }} />
+                                <div className="absolute inset-3 rounded-full border border-[#D40A12]/15 animate-ping" style={{ animationDuration: "2.5s", animationDelay: "0.5s" }} />
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <Sparkles size={22} className="text-[#E50914] animate-pulse" />
+                                    <Sparkles size={22} className="text-[#D40A12] animate-pulse" />
                                 </div>
                             </div>
-                            <span className="text-[10px] font-mono text-[#E50914]/50 uppercase tracking-[6px] mb-3">Crafting Treatment</span>
+                            <span className="text-[10px] font-mono text-[#D40A12]/50 uppercase tracking-[6px] mb-3">Crafting Treatment</span>
                             <p className="text-[11px] text-neutral-700 font-light">Analyzing script, cast, and visual references...</p>
                         </div>
                     </div>
@@ -545,8 +545,8 @@ export default function TreatmentPage() {
                         {heroFrames.length > 0 && (
                             <div className="relative w-full h-[50vh] overflow-hidden" style={{ animation: "heroParallax 1.2s ease-out" }}>
                                 <img src={heroFrames[0]} alt="Key frame" className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-gradient-to-b from-[#020202] via-transparent to-[#020202]" />
-                                <div className="absolute inset-0 bg-gradient-to-r from-[#020202]/80 via-transparent to-[#020202]/80" />
+                                <div className="absolute inset-0 bg-gradient-to-b from-[#111111] via-transparent to-[#111111]" />
+                                <div className="absolute inset-0 bg-gradient-to-r from-[#111111]/80 via-transparent to-[#111111]/80" />
 
                                 {/* Title overlay */}
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-8">
@@ -568,7 +568,7 @@ export default function TreatmentPage() {
                         {/* Title block (no hero image fallback) */}
                         {heroFrames.length === 0 && (
                             <div className="text-center pt-28 pb-16 px-8" style={{ animation: "treatmentFadeUp 0.8s ease-out" }}>
-                                <span className="text-[9px] font-mono text-[#E50914]/40 uppercase tracking-[8px] block mb-5">
+                                <span className="text-[9px] font-mono text-[#D40A12]/40 uppercase tracking-[8px] block mb-5">
                                     Director&apos;s Treatment
                                 </span>
                                 <h1 className="text-[38px] font-extralight text-white/80 leading-tight mb-3" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -577,7 +577,7 @@ export default function TreatmentPage() {
                                 {genre && (
                                     <span className="text-[10px] font-mono text-neutral-700 uppercase tracking-[4px]">{genre}</span>
                                 )}
-                                <div className="w-20 h-px bg-gradient-to-r from-transparent via-[#E50914]/30 to-transparent mx-auto mt-8" />
+                                <div className="w-20 h-px bg-gradient-to-r from-transparent via-[#D40A12]/30 to-transparent mx-auto mt-8" />
                             </div>
                         )}
 

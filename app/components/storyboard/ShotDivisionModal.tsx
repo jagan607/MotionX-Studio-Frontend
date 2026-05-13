@@ -264,7 +264,7 @@ export const ShotDivisionModal: React.FC<ShotDivisionModalProps> = ({
                 style={{ fontFamily: 'monospace' }}
             >
                 {/* HEADER */}
-                <div className="px-5 py-4 border-b border-[#222] flex justify-between items-center bg-[#080808] shrink-0">
+                <div className="px-5 py-4 border-b border-[#222] flex justify-between items-center bg-[#161616] shrink-0">
                     <div>
                         <h2 className="text-sm font-bold text-white tracking-widest uppercase">Upload Shot Division</h2>
                         <p className="text-[10px] text-neutral-500 mt-0.5 tracking-wider">
@@ -286,7 +286,7 @@ export const ShotDivisionModal: React.FC<ShotDivisionModalProps> = ({
                                 <Loader2 size={12} className="animate-spin" />
                                 PROCESSING DOCUMENT...
                             </div>
-                            <div className="bg-[#050505] border border-[#1a1a1a] rounded-md p-4 h-[300px] overflow-y-auto font-mono text-[11px] text-green-400/80 space-y-1">
+                            <div className="bg-[#111111] border border-[#1a1a1a] rounded-md p-4 h-[300px] overflow-y-auto font-mono text-[11px] text-green-400/80 space-y-1">
                                 {terminalLog.map((line, i) => (
                                     <div key={i} className={line.includes('ERROR') ? 'text-red-400' : ''}>{line}</div>
                                 ))}
@@ -322,7 +322,7 @@ export const ShotDivisionModal: React.FC<ShotDivisionModalProps> = ({
                                             border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all
                                             ${isDragging
                                                 ? 'border-amber-500/60 bg-amber-950/20'
-                                                : 'border-[#2a2a2a] hover:border-[#444] bg-[#060606] hover:bg-[#0a0a0a]'
+                                                : 'border-[#2a2a2a] hover:border-[#444] bg-[#060606] hover:bg-[#1a1a1a]'
                                             }
                                         `}
                                     >
@@ -333,7 +333,7 @@ export const ShotDivisionModal: React.FC<ShotDivisionModalProps> = ({
                                         <p className="text-[10px] text-neutral-600">PDF, DOCX, or TXT — Max 10MB</p>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center gap-3 bg-[#111] border border-[#2a2a2a] rounded-lg px-4 py-3">
+                                    <div className="flex items-center gap-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-4 py-3">
                                         <FileText size={20} className="text-amber-400 shrink-0" />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-[12px] text-white truncate">{uploadedFile.name}</p>
@@ -398,7 +398,7 @@ export const ShotDivisionModal: React.FC<ShotDivisionModalProps> = ({
 
                 {/* FOOTER */}
                 {modalState !== 'processing' && (
-                    <div className="px-5 py-4 border-t border-[#222] bg-[#080808] shrink-0 flex justify-end gap-3">
+                    <div className="px-5 py-4 border-t border-[#222] bg-[#161616] shrink-0 flex justify-end gap-3">
                         <button
                             onClick={onClose}
                             className="px-5 py-2.5 text-[11px] font-bold text-neutral-400 hover:text-white tracking-widest uppercase transition-colors cursor-pointer"

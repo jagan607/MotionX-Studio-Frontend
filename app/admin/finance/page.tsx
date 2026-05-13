@@ -83,7 +83,7 @@ async function FinanceDataSection() {
 
             {/* 2. STATS ROW */}
             <div className="grid grid-cols-3 gap-6">
-                <div className="bg-[#080808] border border-[#222] p-6">
+                <div className="bg-[#161616] border border-[#222] p-6">
                     <div className="text-[10px] text-[#555] uppercase tracking-widest mb-1">Gross Volume</div>
                     <div className="space-y-1">
                         {Object.entries(volumeByCurrency).map(([cur, total]) => (
@@ -94,7 +94,7 @@ async function FinanceDataSection() {
                         ))}
                     </div>
                 </div>
-                <div className="bg-[#080808] border border-[#222] p-6">
+                <div className="bg-[#161616] border border-[#222] p-6">
                     <div className="text-[10px] text-[#555] uppercase tracking-widest mb-1">Avg. Transaction</div>
                     <div className="space-y-1">
                         {Object.entries(volumeByCurrency).map(([cur, total]) => (
@@ -105,14 +105,14 @@ async function FinanceDataSection() {
                         ))}
                     </div>
                 </div>
-                <div className="bg-[#080808] border border-[#222] p-6">
+                <div className="bg-[#161616] border border-[#222] p-6">
                     <div className="text-[10px] text-[#555] uppercase tracking-widest mb-1">Success Rate</div>
                     <div className="font-anton text-4xl text-green-500">100%</div>
                 </div>
             </div>
 
             {/* 3. TRANSACTION TABLE */}
-            <div className="border border-[#222] bg-[#080808]">
+            <div className="border border-[#222] bg-[#161616]">
                 <table className="w-full text-left">
                     <thead className="bg-[#0A0A0A] text-[10px] uppercase font-mono text-[#666] tracking-widest">
                         <tr>

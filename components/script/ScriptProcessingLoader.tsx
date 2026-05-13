@@ -118,7 +118,7 @@ const ScriptProcessingLoader: React.FC<ScriptProcessingLoaderProps> = memo(({ lo
             // Glow
             const breathe = 0.5 + 0.5 * Math.sin(t * 0.5);
             const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 50 + breathe * 25);
-            glow.addColorStop(0, `rgba(229, 9, 20, ${0.1 * breathe})`);
+            glow.addColorStop(0, `rgba(212, 10, 18, ${0.1 * breathe})`);
             glow.addColorStop(0.5, `rgba(255, 80, 40, ${0.025 * breathe})`);
             glow.addColorStop(1, "rgba(0, 0, 0, 0)");
             ctx.fillStyle = glow;
@@ -148,9 +148,9 @@ const ScriptProcessingLoader: React.FC<ScriptProcessingLoaderProps> = memo(({ lo
             // Scanline
             const scanY = (t * 25) % h();
             const sg = ctx.createLinearGradient(0, scanY - 15, 0, scanY + 15);
-            sg.addColorStop(0, "rgba(229, 9, 20, 0)");
-            sg.addColorStop(0.5, "rgba(229, 9, 20, 0.025)");
-            sg.addColorStop(1, "rgba(229, 9, 20, 0)");
+            sg.addColorStop(0, "rgba(212, 10, 18, 0)");
+            sg.addColorStop(0.5, "rgba(212, 10, 18, 0.025)");
+            sg.addColorStop(1, "rgba(212, 10, 18, 0)");
             ctx.fillStyle = sg;
             ctx.fillRect(0, scanY - 15, w(), 30);
 
@@ -162,7 +162,7 @@ const ScriptProcessingLoader: React.FC<ScriptProcessingLoaderProps> = memo(({ lo
     }, []);
 
     return (
-        <div className="w-full h-32 rounded-lg overflow-hidden border border-white/[0.06] bg-[#030303] relative">
+        <div className="w-full h-32 rounded-lg overflow-hidden border border-white/[0.06] bg-[#111111] relative">
             {/* Canvas */}
             <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0" />
 

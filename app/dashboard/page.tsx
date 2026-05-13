@@ -15,11 +15,13 @@ import { TourOverlay } from "@/components/tour/TourOverlay";
 import { useTour } from "@/hooks/useTour";
 import { DASHBOARD_TOUR_STEPS } from "@/lib/tourConfigs";
 import { useWorkspace } from "@/app/context/WorkspaceContext";
+import { useCredits } from "@/hooks/useCredits";
 import { useAnnouncements } from "@/components/dashboard/DashboardAnnouncements";
 import EmptyStateHero from "@/components/dashboard/EmptyStateHero";
 import DailyInspiration from "@/components/dashboard/DailyInspiration";
 import CommandPalette from "@/components/CommandPalette";
 import WelcomeBackModal from "@/components/dashboard/WelcomeBackModal";
+import QuickStartTemplates from "@/components/dashboard/QuickStartTemplates";
 
 
 
@@ -31,11 +33,10 @@ export default function Dashboard() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [shareProject, setShareProject] = useState<DashboardProject | null>(null);
     const [userProfile, setUserProfile] = useState<{ goal?: string } | null>(null);
-    const [showAllProjects, setShowAllProjects] = useState(false);
     const [projectTemplates, setProjectTemplates] = useState<TemplateProject[]>([]);
     const [cloningId, setCloningId] = useState<string | null>(null);
     const [templateFilter, setTemplateFilter] = useState('all');
-    const [monitorMode, setMonitorMode] = useState<'project' | 'announcements'>('announcements');
+    // Monitor always shows announcements now — project preview removed (projects live in /library)
     const [annIdx, setAnnIdx] = useState(0);
     const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
 
@@ -46,6 +47,7 @@ export default function Dashboard() {
 
     const { all: allAnn } = useAnnouncements();
     const { step: tourStep, nextStep: tourNext, completeTour } = useTour("dashboard_tour");
+    const { credits } = useCredits();
     const router = useRouter();
     const videoRefs = useRef<{ [k: string]: HTMLVideoElement | null }>({});
     const filmStripRef = useRef<HTMLDivElement>(null);
@@ -100,14 +102,14 @@ export default function Dashboard() {
         return () => u.forEach(x => x());
     }, [myProjects]);
 
-    // Auto-slide announcements every 6 seconds
+    // Auto-slide announcements every 15 seconds
     useEffect(() => {
-        if (monitorMode !== 'announcements' || allAnn.length <= 1) return;
+        if (allAnn.length <= 1) return;
         const timer = setInterval(() => {
             setAnnIdx(p => (p + 1) % allAnn.length);
         }, 15000);
         return () => clearInterval(timer);
-    }, [monitorMode, allAnn.length]);
+    }, [allAnn.length]);
 
     useEffect(() => {
         const h = (e: KeyboardEvent) => {
@@ -135,446 +137,211 @@ export default function Dashboard() {
     };
 
     if (bootState === 'booting') return (
-        <div className="h-full w-full bg-[#030303] flex flex-col items-center justify-center">
-            <div className="relative"><div className="w-16 h-16 rounded-full border-2 border-[#E50914]/20 border-t-[#E50914] animate-spin" /><Film size={20} className="text-[#E50914] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" /></div>
+        <div className="h-full w-full bg-[#111111] flex flex-col items-center justify-center">
+            <div className="relative"><div className="w-16 h-16 rounded-full border-2 border-[#D40A12]/20 border-t-[#D40A12] animate-spin" /><Film size={20} className="text-[#D40A12] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" /></div>
             <span className="text-[10px] font-mono text-white/15 uppercase tracking-[4px] mt-6">Loading Studio</span>
         </div>
     );
 
     return (
         <>
-        <main className="w-full h-full bg-[#030303] text-white font-sans flex flex-col pt-[64px] overflow-hidden selection:bg-[#E50914] selection:text-white">
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <main className="w-full h-full bg-[#111111] text-white font-sans flex flex-col overflow-hidden selection:bg-[#D40A12] selection:text-white">
 
-                {/* ═══ MAIN CONTENT ═══ */}
-                <div className="flex-1 flex flex-col min-w-0 px-3 pb-3 pt-1 sm:px-4 sm:pb-4 sm:pt-1 lg:px-5 lg:pb-5 lg:pt-1.5 gap-3 overflow-y-auto no-scrollbar">
+                {/* ═══ MAIN CONTENT AREA ═══ */}
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative bg-[#111111]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
 
-                    {/* ═══ EMPTY STATE HERO or MONITOR ═══ */}
-                    {isEmptyState ? (
-                        <EmptyStateHero />
-                    ) : (
-                    <>
-                    {/* Monitor — cinematic preview (compact) */}
-                    <div id="tour-monitor" className="relative bg-black border border-white/[0.06] rounded-xl group overflow-hidden h-[45vh] min-h-[260px] shrink-0 transition-colors hover:border-white/[0.1]">
-                        {/* Viewfinder */}
-                        <div className="absolute inset-0 pointer-events-none z-20 p-4">
-                            <div className="absolute top-4 left-4 w-6 h-6 border-l border-t border-white/[0.08]" />
-                            <div className="absolute top-4 right-4 w-6 h-6 border-r border-t border-white/[0.08]" />
-                            <div className="absolute bottom-4 left-4 w-6 h-6 border-l border-b border-white/[0.08]" />
-                            <div className="absolute bottom-4 right-4 w-6 h-6 border-r border-b border-white/[0.08]" />
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"><Crosshair size={32} strokeWidth={0.5} className="text-white/[0.06]" /></div>
-                        </div>
+                    <div className="flex-1 flex flex-col min-w-0 p-4 sm:p-6 lg:p-8 gap-8 overflow-y-auto no-scrollbar relative z-10">
 
-                        {/* Mode tabs — only show if we have announcements */}
-                        {allAnn.length > 0 && (
-                            <div className="absolute top-3 left-3 z-30 flex gap-1 bg-black/50 backdrop-blur-xl rounded-lg border border-white/[0.06] p-0.5">
-                                <button onClick={() => setMonitorMode('project')}
-                                    className={`px-3 py-1.5 text-[8px] font-bold uppercase tracking-[1px] rounded-md transition-all cursor-pointer border-none ${monitorMode === 'project' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}>
-                                    Project
-                                </button>
-                                <button onClick={() => { setMonitorMode('announcements'); setAnnIdx(0); }}
-                                    className={`px-3 py-1.5 text-[8px] font-bold uppercase tracking-[1px] rounded-md transition-all cursor-pointer border-none flex items-center gap-1.5 ${monitorMode === 'announcements' ? 'bg-[#E50914]/20 text-[#E50914]' : 'text-white/30 hover:text-white/60'}`}>
-                                    What&apos;s New
-                                    <span className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
-                                </button>
-                            </div>
-                        )}
+                        {/* ═══ MONITOR ═══ */}
+                        <>
+                            {/* Monitor — cinematic preview */}
+                            <div id="tour-monitor" className="relative bg-black border border-white/[0.08] rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.8)] group overflow-hidden h-[38vh] min-h-[240px] shrink-0 transition-colors hover:border-white/[0.15]">
+                                {/* Viewfinder */}
+                                <div className="absolute inset-0 pointer-events-none z-20 p-6">
+                                    <div className="absolute top-6 left-6 w-8 h-8 border-l border-t border-white/[0.1]" />
+                                    <div className="absolute top-6 right-6 w-8 h-8 border-r border-t border-white/[0.1]" />
+                                    <div className="absolute bottom-6 left-6 w-8 h-8 border-l border-b border-white/[0.1]" />
+                                    <div className="absolute bottom-6 right-6 w-8 h-8 border-r border-b border-white/[0.1]" />
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"><Crosshair size={40} strokeWidth={0.5} className="text-white/[0.08]" /></div>
+                                </div>
 
-                        {/* Media */}
-                        <div className="absolute inset-0">
-                            {monitorMode === 'announcements' && allAnn.length > 0 ? (() => {
-                                const a = allAnn[annIdx] || allAnn[0];
-                                if (!a) return null;
-                                const isVid = a.media_url?.match(/\.(mp4|webm|mov)(\?|$)/i);
-                                return a.media_url ? (
-                                    isVid ? (
-                                        <video key={a.id} src={a.media_url} autoPlay loop muted playsInline preload="none" className="w-full h-full object-cover opacity-80" />
-                                    ) : (
-                                        <div key={a.id} className="w-full h-full bg-cover bg-center opacity-70" style={{ backgroundImage: `url(${a.media_url})` }} />
-                                    )
-                                ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-[#0a0a0a] via-[#111] to-[#0a0a0a]" />
-                                );
-                            })() : (
-                                activeProject?.previewVideo ? (
-                                    <video key={activeProject.id} src={activeProject.previewVideo} autoPlay loop muted playsInline preload="none" className="w-full h-full object-cover opacity-80" />
-                                ) : activeProject?.previewImage ? (
-                                    <div className="w-full h-full bg-cover bg-center opacity-70" style={{ backgroundImage: `url(${activeProject.previewImage})` }} />
-                                ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-[#0a0000] via-[#0a0a0a] to-[#050505]" />
-                                )
-                            )}
-                        </div>
-
-                        {/* Bottom overlay */}
-                        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 z-30 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
-                            {monitorMode === 'announcements' && allAnn.length > 0 ? (() => {
-                                const a = allAnn[annIdx] || allAnn[0];
-                                if (!a) return null;
-                                const TYPES: Record<string, { color: string; label: string }> = {
-                                    feature: { color: '#E50914', label: 'New Feature' },
-                                    update: { color: '#3B82F6', label: 'Update' },
-                                    fix: { color: '#22C55E', label: 'Fix' },
-                                };
-                                const c = TYPES[a.type] || TYPES.update;
-                                return (
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-[7px] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest" style={{ background: `${c.color}20`, color: c.color }}>
-                                                {c.label}
-                                            </span>
+                                {/* What's New badge — only show if we have announcements */}
+                                {allAnn.length > 0 && (
+                                    <div className="absolute top-4 left-4 z-30">
+                                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/60 backdrop-blur-xl border border-white/[0.08] text-[9px] font-bold uppercase tracking-[1.5px] text-[#D40A12]">
+                                            What&apos;s New
+                                            <span className="w-1.5 h-1.5 rounded-full bg-[#D40A12] animate-pulse shadow-[0_0_8px_#D40A12]" />
                                         </div>
-                                        <h1 className="text-[24px] sm:text-[32px] lg:text-[40px] font-['Anton'] uppercase leading-[0.9] tracking-[1px] text-white">
-                                            {a.title}
-                                        </h1>
-                                        {a.body && <p className="text-[11px] text-white/50 mt-2 max-w-md leading-relaxed line-clamp-2">{a.body}</p>}
-                                        {allAnn.length > 1 && (
-                                            <div className="flex items-center gap-2 mt-3">
-                                                {allAnn.map((_: any, i: number) => (
-                                                    <button key={i} onClick={() => setAnnIdx(i)}
-                                                        className={`rounded-full transition-all cursor-pointer border-none ${i === annIdx ? 'w-5 h-1.5 bg-[#E50914]' : 'w-1.5 h-1.5 bg-white/15 hover:bg-white/30'}`} />
-                                                ))}
-                                            </div>
-                                        )}
                                     </div>
-                                );
-                            })() : (
-                                <div className="flex items-end justify-between gap-3">
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="bg-[#E50914] text-white text-[7px] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest">
-                                                {activeProject ? ((pTypes[activeProject.id] || activeProject.type) === 'movie' ? 'Feature Film' : 'Series') : 'Welcome'}
-                                            </span>
-                                            {activeProject && (activeProject as any).is_sample && (
-                                                <span className="bg-white/10 text-white/60 text-[7px] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest animate-pulse">✨ Sample</span>
-                                            )}
-                                        </div>
-                                        <h1 className="text-[24px] sm:text-[32px] lg:text-[40px] font-['Anton'] uppercase leading-[0.9] tracking-[1px] text-white truncate">
-                                            {activeProject ? activeProject.title : 'MotionX Studio'}
-                                        </h1>
+                                )}
+
+                                {/* Top-right: greeting */}
+                                <div className="absolute top-4 right-4 z-30">
+                                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/60 backdrop-blur-xl border border-white/[0.08] text-[10px] font-mono text-white/50 shadow-lg">
+                                        <div className="w-1.5 h-1.5 bg-[#00FF41] rounded-full animate-pulse shadow-[0_0_5px_#00FF41]" />
+                                        {greeting}, <span className="text-white/90 font-sans tracking-wide ml-1">{name}</span>
                                     </div>
-                                    {activeProject ? (
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <button onClick={() => nav(activeProject)}
-                                                className="bg-white text-black px-4 sm:px-6 py-2 sm:py-2.5 font-bold text-[9px] sm:text-[10px] uppercase tracking-[2px] hover:bg-[#E50914] hover:text-white transition-all flex items-center gap-2 cursor-pointer rounded-lg border-none">
-                                                Open <Maximize size={12} />
-                                            </button>
-                                            {(!isOrgAccount || isOrgAdmin) && (
-                                                <button onClick={() => setProjectToDelete(activeProject)}
-                                                    className="w-9 h-9 rounded-lg bg-white/5 border border-white/[0.06] flex items-center justify-center text-white/30 hover:text-white hover:bg-red-500/60 transition-all cursor-pointer">
-                                                    <Trash2 size={13} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <Link href="/project/new">
-                                            <button className="bg-[#E50914] text-white px-6 py-2.5 font-bold text-[10px] uppercase tracking-[2px] hover:bg-[#ff1a25] transition-colors flex items-center gap-2 cursor-pointer rounded-lg border-none">
-                                                Create Project <ArrowRight size={12} />
-                                            </button>
-                                        </Link>
+                                </div>
+
+                                {/* Media */}
+                                <div className="absolute inset-0">
+                                    {allAnn.length > 0 ? (() => {
+                                        const a = allAnn[annIdx] || allAnn[0];
+                                        if (!a) return null;
+                                        const isVid = a.media_url?.match(/\.(mp4|webm|mov)(\?|$)/i);
+                                        return a.media_url ? (
+                                            isVid ? (
+                                                <video key={a.id} src={a.media_url} autoPlay loop muted playsInline preload="none" className="w-full h-full object-cover opacity-80" />
+                                            ) : (
+                                                <div key={a.id} className="w-full h-full bg-cover bg-center opacity-70" style={{ backgroundImage: `url(${a.media_url})` }} />
+                                            )
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#111] to-[#1a1a1a]" />
+                                        );
+                                    })() : (
+                                        <div className="w-full h-full bg-gradient-to-br from-[#0a0000] via-[#0f0a0a] to-[#111111]" />
                                     )}
                                 </div>
-                            )}
-                        </div>
 
-                        {/* Top-right: greeting + stats */}
-                        <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5">
-                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/40 backdrop-blur-xl border border-white/[0.05] text-[9px] font-mono text-white/35">
-                                <div className="w-1 h-1 bg-[#00FF41] rounded-full animate-pulse" />
-                                {greeting}, {name}
-                            </div>
+                                {/* Dramatic vignette overlay */}
+                                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.5)_100%)] pointer-events-none" />
 
-                        </div>
-                    </div>
-                    </> /* end monitor wrapper */
-                    )}
-
-
-                    {/* Film strip header */}
-                    {!isEmptyState && (
-                    <div className="flex items-center justify-between px-1 shrink-0">
-                        <span className="text-[10px] font-bold tracking-[2px] uppercase text-white/50">Your Projects <span className="text-white/20 font-mono">({myProjects.length})</span></span>
-                        {myProjects.length > 0 && (
-                            <button onClick={() => setShowAllProjects(true)}
-                                className="text-[9px] font-bold text-[#E50914] uppercase tracking-[1px] hover:text-white transition-colors cursor-pointer bg-transparent border-none">
-                                View All →
-                            </button>
-                        )}
-                    </div>
-                    )}
-
-                    {/* Film strip */}
-                    {!isEmptyState && (
-                    <div id="tour-project-grid" className="h-[120px] sm:h-[140px] lg:h-[160px] relative group/strip shrink-0">
-                        <button onClick={() => filmStripRef.current?.scrollBy({ left: -280, behavior: 'smooth' })}
-                            className="absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-[#030303] to-transparent z-20 flex items-center justify-center text-white/0 group-hover/strip:text-white/40 transition-all hover:text-[#E50914] cursor-pointer border-none">
-                            <ChevronLeft size={20} />
-                        </button>
-                        <div ref={filmStripRef} className="h-full flex gap-2 overflow-x-auto no-scrollbar scroll-smooth items-center px-1"
-                            onWheel={e => { if (filmStripRef.current) filmStripRef.current.scrollLeft += e.deltaY; }}>
-                            <Link id="tour-new-series-target" href="/project/new" data-nav-target="new-project" data-agent="new-project"
-                                className="shrink-0 aspect-[16/9] h-full border-2 border-dashed border-[#E50914]/30 bg-[#E50914]/[0.04] rounded-lg flex flex-col items-center justify-center text-[#E50914]/70 hover:text-[#E50914] hover:border-[#E50914]/50 hover:bg-[#E50914]/[0.08] transition-all group no-underline">
-                                <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300 mb-1" />
-                                <span className="text-[8px] font-bold uppercase tracking-[2px]">New Project</span>
-                            </Link>
-                            {myProjects.map((p, i) => {
-                                const phase = getPhase(p);
-                                return (
-                                <div key={p.id}
-                                    data-project-card-title={p.title}
-                                    className={`shrink-0 aspect-[16/9] h-full rounded-lg overflow-hidden relative cursor-pointer group/card transition-all duration-300
-                                        ${activeIdx === i ? 'border-2 border-[#E50914] shadow-[0_0_15px_rgba(229,9,20,0.15)] scale-[1.02] z-10 opacity-100' : 'border border-white/[0.04] opacity-50 hover:opacity-90 hover:border-white/[0.1]'}`}
-                                    onClick={() => { if (activeIdx === i) { nav(p); } else { setActiveIdx(i); setMonitorMode('project'); } }}>
-                                    {p.previewImage ? <img src={p.previewImage} alt="" className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full bg-[#080808] flex items-center justify-center"><Film size={14} className="text-white/[0.04]" /></div>}
-                                    <div className="absolute top-1 left-1 z-10 flex items-center gap-1">
-                                        {(p as any).is_sample && <span className="bg-[#E50914] text-white text-[5px] font-bold uppercase tracking-widest px-1 py-0.5 rounded">Sample</span>}
-                                        {/* Phase badge */}
-                                        <span className="text-[5px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded backdrop-blur-sm" style={{ background: `${phase.color}25`, color: phase.color, border: `1px solid ${phase.color}30` }}>{phase.label}</span>
-                                    </div>
-                                    {(!isOrgAccount || isOrgAdmin) && (
-                                        <button onClick={(e) => { e.stopPropagation(); setProjectToDelete(p); }}
-                                            className="absolute top-1 right-1 z-10 w-5 h-5 rounded bg-black/50 flex items-center justify-center text-white/30 hover:bg-red-500/80 transition-all cursor-pointer opacity-0 group-hover/card:opacity-100 border-none">
-                                            <Trash2 size={8} />
-                                        </button>
-                                    )}
-                                    <div className="absolute bottom-0 left-0 right-0">
-                                        {/* Progress bar */}
-                                        <div className="h-[2px] bg-white/[0.04]">
-                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${phase.progress}%`, background: phase.color }} />
-                                        </div>
-                                        <div className="p-1.5 bg-gradient-to-t from-black/70 to-transparent">
-                                            <span className="text-[7px] font-bold text-white uppercase tracking-wider truncate block">{p.title}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                );
-                            })}
-                        </div>
-                        <button onClick={() => filmStripRef.current?.scrollBy({ left: 280, behavior: 'smooth' })}
-                            className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#030303] to-transparent z-20 flex items-center justify-center text-white/0 group-hover/strip:text-white/40 transition-all hover:text-[#E50914] cursor-pointer border-none">
-                            <ChevronRight size={20} />
-                        </button>
-                    </div>
-                    )}
-
-
-                    {/* ═══ PROJECT TEMPLATES — cloneable ═══ */}
-                    {projectTemplates.length === 0 ? (
-                        /* Skeleton loader while templates are fetching */
-                        <div className="shrink-0 mt-2">
-                            <div className="flex items-center gap-2 mb-3 px-1">
-                                <div className="w-3 h-3 rounded bg-white/[0.04] animate-pulse" />
-                                <div className="w-28 h-3 rounded bg-white/[0.04] animate-pulse" />
-                            </div>
-                            <div className="flex gap-2.5 overflow-hidden px-1">
-                                {[...Array(5)].map((_, i) => (
-                                    <div key={i} className="shrink-0 w-[260px] sm:w-[300px] lg:w-[320px] rounded-xl border border-white/[0.03] bg-white/[0.01] overflow-hidden" style={{ animationDelay: `${i * 100}ms` }}>
-                                        <div className="aspect-video bg-white/[0.02] animate-pulse" />
-                                        <div className="p-2.5 space-y-1.5">
-                                            <div className="w-24 h-3 rounded bg-white/[0.03] animate-pulse" />
-                                            <div className="w-16 h-2 rounded bg-white/[0.02] animate-pulse" />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ) : (() => {
-                        // Smart genre categorization
-                        const CATEGORIES: { key: string; label: string; color: string; keywords: string[] }[] = [
-                            { key: 'drama', label: 'Drama', color: '#3B82F6', keywords: ['drama'] },
-                            { key: 'comedy', label: 'Comedy', color: '#F59E0B', keywords: ['comedy', 'dark comedy', 'feel good'] },
-                            { key: 'action', label: 'Action & Thriller', color: '#EF4444', keywords: ['action', 'thriller', 'suspense', 'military', 'crime'] },
-                            { key: 'scifi', label: 'Sci-Fi & Fantasy', color: '#8B5CF6', keywords: ['sci fi', 'sci-fi', 'fantasy', 'mythology', 'supernatural'] },
-                            { key: 'horror', label: 'Horror', color: '#64748B', keywords: ['horror', 'noir', 'neo-noir'] },
-                            { key: 'romance', label: 'Romance', color: '#EC4899', keywords: ['romance', 'romantic'] },
-                            { key: 'commercial', label: 'Commercial', color: '#D4A843', keywords: ['ad', 'advertisement', 'commercial', 'ugc'] },
-                            { key: 'mystery', label: 'Mystery', color: '#06B6D4', keywords: ['mystery', 'murder mystery', 'philosophical'] },
-                        ];
-                        const categorize = (t: TemplateProject) => {
-                            const g = (t.genre || '').toLowerCase();
-                            const tp = t.type?.toLowerCase() || '';
-                            const matched: string[] = [];
-                            for (const cat of CATEGORIES) {
-                                if (cat.keywords.some(kw => g.includes(kw) || (cat.key === 'commercial' && (tp === 'ad' || tp === 'ugc')))) {
-                                    matched.push(cat.key);
-                                }
-                            }
-                            return matched.length > 0 ? matched : ['drama']; // default
-                        };
-                        const filtered = templateFilter === 'all'
-                            ? projectTemplates
-                            : projectTemplates.filter(t => categorize(t).includes(templateFilter));
-                        // Only show categories that have templates
-                        const activeCats = CATEGORIES.filter(cat =>
-                            projectTemplates.some(t => categorize(t).includes(cat.key))
-                        );
-                        return (
-                            <div id="tour-templates" className="shrink-0 mt-2">
-                                <div className="flex items-center justify-between mb-3 px-1">
-                                    <div className="flex items-center gap-2">
-                                        <Copy size={12} className="text-[#E50914]" />
-                                        <span className="text-[10px] font-bold tracking-[2px] uppercase text-white/40">Project Templates</span>
-                                        <span className="text-[8px] font-mono text-white/15 bg-white/[0.03] px-1.5 py-0.5 rounded-full">{filtered.length}</span>
-                                    </div>
-                                </div>
-                                {/* Category filter chips */}
-                                <div className="flex flex-wrap gap-1.5 mb-3 px-1">
-                                    <button onClick={() => setTemplateFilter('all')}
-                                        className={`px-2.5 py-1 rounded-full text-[8px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border ${templateFilter === 'all' ? 'border-[#E50914]/30 bg-[#E50914]/10 text-[#E50914]' : 'border-white/[0.06] bg-transparent text-white/25 hover:text-white/50 hover:border-white/15'}`}>
-                                        All
-                                    </button>
-                                    {activeCats.map(cat => {
-                                        const count = projectTemplates.filter(t => categorize(t).includes(cat.key)).length;
+                                {/* Bottom overlay */}
+                                <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 z-30 bg-gradient-to-t from-black/95 via-black/60 to-transparent">
+                                    {allAnn.length > 0 ? (() => {
+                                        const a = allAnn[annIdx] || allAnn[0];
+                                        if (!a) return null;
+                                        const TYPES: Record<string, { color: string; label: string }> = {
+                                            feature: { color: '#D40A12', label: 'New Feature' },
+                                            update: { color: '#3B82F6', label: 'Update' },
+                                            fix: { color: '#22C55E', label: 'Fix' },
+                                        };
+                                        const c = TYPES[a.type] || TYPES.update;
                                         return (
-                                            <button key={cat.key} onClick={() => setTemplateFilter(templateFilter === cat.key ? 'all' : cat.key)}
-                                                className={`px-2.5 py-1 rounded-full text-[8px] font-bold uppercase tracking-[1px] transition-all cursor-pointer border ${templateFilter === cat.key ? '' : 'border-white/[0.06] bg-transparent text-white/25 hover:text-white/50 hover:border-white/15'}`}
-                                                style={templateFilter === cat.key ? { borderColor: `${cat.color}50`, backgroundColor: `${cat.color}18`, color: cat.color } : {}}>
-                                                {cat.label} <span className="opacity-50 ml-0.5">{count}</span>
-                                            </button>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="text-[8px] font-bold px-2.5 py-1 rounded-md uppercase tracking-[2px] border border-white/10 backdrop-blur-md" style={{ background: `${c.color}15`, color: c.color }}>
+                                                        {c.label}
+                                                    </span>
+                                                </div>
+                                                <h1 className="text-[24px] sm:text-[32px] lg:text-[40px] font-['Anton'] uppercase leading-[0.9] tracking-[1px] text-white drop-shadow-2xl">
+                                                    {a.title}
+                                                </h1>
+                                                {a.body && <p className="text-[11px] sm:text-[12px] text-white/60 mt-2 max-w-xl leading-relaxed line-clamp-2 drop-shadow-lg">{a.body}</p>}
+                                                {allAnn.length > 1 && (
+                                                    <div className="flex items-center gap-2.5 mt-4">
+                                                        {allAnn.map((_: any, i: number) => (
+                                                            <button key={i} onClick={() => setAnnIdx(i)}
+                                                                className={`rounded-full transition-all cursor-pointer border-none shadow-lg ${i === annIdx ? 'w-8 h-1.5 bg-[#D40A12]' : 'w-2 h-1.5 bg-white/20 hover:bg-white/40'}`} />
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })() : (
+                                        <div className="flex items-end justify-between gap-4">
+                                            <div>
+                                                <h1 className="text-[28px] sm:text-[36px] font-['Anton'] uppercase leading-[0.9] tracking-[1px] text-white">
+                                                    {greeting}, {name}
+                                                </h1>
+                                                <p className="text-[11px] text-white/40 mt-2">Welcome to your creative studio</p>
+                                            </div>
+                                            <Link href="/project/new">
+                                                <button className="bg-[#D40A12] text-white px-6 py-3 font-bold text-[10px] uppercase tracking-[2px] hover:brightness-110 transition-all flex items-center gap-2 cursor-pointer rounded-xl border-none shadow-[0_2px_12px_rgba(212,10,18,0.3)]">
+                                                    Create Project <ArrowRight size={14} />
+                                                </button>
+                                            </Link>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+
+                        {/* ═══ RECENT PROJECTS ═══ */}
+                        {myProjects.length > 0 && (
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center justify-between px-1">
+                                    <span className="text-[11px] font-bold tracking-[2px] uppercase text-white/40">Continue Working</span>
+                                    <Link href="/library" className="text-[10px] font-bold text-white/30 uppercase tracking-[1.5px] hover:text-white/60 transition-all no-underline">
+                                        View All →
+                                    </Link>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {myProjects.slice(0, 3).map(p => {
+                                        const phase = getPhase(p);
+                                        return (
+                                            <div
+                                                key={p.id}
+                                                className="aspect-video rounded-xl overflow-hidden relative cursor-pointer group border border-white/[0.06] hover:border-white/[0.15] hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:-translate-y-1 transition-all duration-300"
+                                                onClick={() => nav(p)}
+                                            >
+                                                {/* Thumbnail */}
+                                                {p.previewImage ? (
+                                                    <img src={p.previewImage} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" loading="lazy" />
+                                                ) : (
+                                                    <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-[#1a1a1a] via-[#161616] to-[#111111] flex items-center justify-center">
+                                                        <Film size={28} className="text-white/[0.06]" />
+                                                    </div>
+                                                )}
+
+                                                {/* Phase badge */}
+                                                <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
+                                                    {(p as any).is_sample && (
+                                                        <span className="bg-[#D40A12] text-white text-[6px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded shadow-lg">Sample</span>
+                                                    )}
+                                                    <span className="text-[7px] font-bold uppercase tracking-widest px-2 py-1 rounded backdrop-blur-md shadow-lg"
+                                                        style={{ background: `${phase.color}30`, color: phase.color, border: `1px solid ${phase.color}40` }}
+                                                    >{phase.label}</span>
+                                                </div>
+
+                                                {/* Gradient overlay */}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none" />
+
+                                                {/* Bottom info */}
+                                                <div className="absolute bottom-0 left-0 right-0 z-10">
+                                                    <div className="h-[3px] bg-white/[0.04]">
+                                                        <div className="h-full rounded-full transition-all duration-700"
+                                                            style={{ width: `${phase.progress}%`, background: phase.color, boxShadow: `0 0 8px ${phase.color}` }}
+                                                        />
+                                                    </div>
+                                                    <div className="p-3 flex items-end justify-between">
+                                                        <div>
+                                                            <span className="text-[10px] font-bold text-white uppercase tracking-[1px] truncate block drop-shadow-md">{p.title}</span>
+                                                            <span className="text-[8px] text-white/30 uppercase tracking-wider mt-0.5 block">
+                                                                {(pTypes[p.id] || p.type) === 'movie' ? 'Film' : 'Series'}
+                                                            </span>
+                                                        </div>
+                                                        <ArrowRight size={12} className="text-white/20 group-hover:text-white/60 group-hover:translate-x-0.5 transition-all shrink-0 mb-0.5" />
+                                                    </div>
+                                                </div>
+                                            </div>
                                         );
                                     })}
                                 </div>
-                                {/* Netflix-style horizontal scroll */}
-                                <div className="relative group/tstrip">
-                                    <div className="flex gap-2.5 overflow-x-auto no-scrollbar scroll-smooth pb-1 px-1"
-                                        onWheel={e => { const el = e.currentTarget; el.scrollLeft += e.deltaY; }}>
-                                        {filtered.map(t => (
-                                            <button
-                                                key={t.id}
-                                                disabled={cloningId === t.id}
-                                                onClick={async () => {
-                                                    setCloningId(t.id);
-                                                    try {
-                                                        const res = await cloneProject(t.id);
-                                                        toast.success(`Cloned: ${res.title}`);
-                                                        if (auth.currentUser) {
-                                                            invalidateDashboardCache(auth.currentUser.uid);
-                                                            const updated = await fetchUserProjectsBasic(auth.currentUser.uid);
-                                                            setMyProjects(updated);
-                                                        }
-                                                        router.push(`/project/${res.id}`);
-                                                    } catch (e: any) {
-                                                        toast.error(e?.response?.data?.detail || 'Clone failed');
-                                                    } finally { setCloningId(null); }
-                                                }}
-                                                className="group relative shrink-0 w-[260px] sm:w-[300px] lg:w-[320px] rounded-xl border border-white/[0.04] bg-white/[0.015] overflow-hidden text-left transition-all hover:border-white/[0.1] hover:bg-white/[0.03] hover:scale-[1.03] cursor-pointer disabled:opacity-50"
-                                            >
-                                                {/* Preview */}
-                                                <div className="aspect-video relative bg-[#080808] overflow-hidden">
-                                                    {(t.preview_image || t.moodboard_image_url) ? (
-                                                        <img src={t.preview_image || t.moodboard_image_url || ''} alt="" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-[1.05] transition-all duration-500" loading="lazy" />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center"><Film size={16} className="text-white/[0.04]" /></div>
-                                                    )}
-                                                    <div className="absolute top-1.5 left-1.5">
-                                                        <span className="text-[6px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-black/50 backdrop-blur-sm text-white/60 border border-white/[0.06]">
-                                                            {t.type === 'movie' ? 'Film' : t.type === 'ad' ? 'Ad' : 'Series'}
-                                                        </span>
-                                                    </div>
-                                                    {cloningId === t.id && (
-                                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center"><Loader2 size={18} className="animate-spin text-[#E50914]" /></div>
-                                                    )}
-                                                    {/* Clone overlay on hover */}
-                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#E50914] text-white text-[8px] font-bold uppercase tracking-wider">
-                                                            <Copy size={9} /> Clone & Start
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                {/* Info */}
-                                                <div className="p-2.5">
-                                                    <h3 className="text-[10px] font-bold text-white/70 group-hover:text-white transition-colors truncate">{t.title}</h3>
-                                                    <div className="flex items-center gap-1.5 mt-1">
-                                                        <span className="text-[7px] text-white/20 font-mono uppercase">{t.genre}</span>
-                                                        {t.scene_count > 0 && <span className="text-[7px] text-white/10">· {t.scene_count} scenes</span>}
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
                             </div>
-                        );
-                    })()}
-
-                    {/* ═══ DAILY INSPIRATION (persona-aware placement) ═══ */}
-                    {userGoal === 'explore' ? (
-                        /* Explore users: inspiration first, above templates */
-                        null /* rendered above templates via persona logic */
-                    ) : (
-                        <DailyInspiration />
-                    )}
-
-
-
-                    {/* ═══ PERSONA QUICK LINKS ═══ */}
-                    {userGoal && (
-                        <div className="shrink-0 px-1">
-                            <div className="flex gap-2">
-                                {userGoal === 'social_clips' && (
-                                    <Link href="/playground" data-agent="nav-playground" className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border border-[#E50914]/15 bg-[#E50914]/[0.04] hover:bg-[#E50914]/[0.08] hover:border-[#E50914]/25 transition-all no-underline group">
-                                        <Zap size={16} className="text-[#E50914]/60 group-hover:text-[#E50914]" />
-                                        <div><span className="text-[10px] font-bold text-white/60 group-hover:text-white block">Quick Create</span><span className="text-[8px] text-white/20">Jump to Playground</span></div>
-                                    </Link>
-                                )}
-                                {userGoal === 'brand_content' && (
-                                    <div className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border border-[#D4A843]/15 bg-[#D4A843]/[0.04] cursor-pointer hover:bg-[#D4A843]/[0.08] transition-all" onClick={() => document.getElementById('tour-templates')?.scrollIntoView({ behavior: 'smooth' })}>
-                                        <Copy size={16} className="text-[#D4A843]/60" />
-                                        <div><span className="text-[10px] font-bold text-white/60 block">Browse Templates</span><span className="text-[8px] text-white/20">Ad & brand content starters</span></div>
-                                    </div>
-                                )}
-                                {userGoal === 'explore' && (
-                                    <Link href="/explore" className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border border-[#10B981]/15 bg-[#10B981]/[0.04] hover:bg-[#10B981]/[0.08] hover:border-[#10B981]/25 transition-all no-underline group">
-                                        <Eye size={16} className="text-[#10B981]/60 group-hover:text-[#10B981]" />
-                                        <div><span className="text-[10px] font-bold text-white/60 group-hover:text-white block">Explore Community</span><span className="text-[8px] text-white/20">See what others are creating</span></div>
-                                    </Link>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                </div>
-            </div>
-
-            {/* Modals */}
-            {projectToDelete && <DeleteConfirmModal title={`DELETE: ${projectToDelete.title}`} message="This action is irreversible." isDeleting={isDeleting} onConfirm={handleDelete} onCancel={() => setProjectToDelete(null)} />}
-            {showAllProjects && (
-                <div className="fixed inset-0 z-[60] bg-black/92 backdrop-blur-md flex flex-col" onClick={() => setShowAllProjects(false)}>
-                    <div className="max-w-[1400px] w-full mx-auto p-4 sm:p-8 pt-[72px] flex-1 overflow-y-auto no-scrollbar" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between mb-8">
-                            <h2 className="text-2xl font-['Anton'] uppercase tracking-wide">All Projects ({myProjects.length})</h2>
-                            <button onClick={() => setShowAllProjects(false)} className="text-white/20 hover:text-white cursor-pointer text-sm">✕</button>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                            <Link href="/project/new" className="aspect-video border border-dashed border-white/[0.05] flex flex-col items-center justify-center text-white/15 hover:text-[#E50914] hover:border-[#E50914]/25 transition-all rounded-xl no-underline"><Plus size={28} /><span className="text-[10px] mt-2 uppercase tracking-[2px] font-semibold">New</span></Link>
-                            {myProjects.map(p => (
-                                <div key={p.id} className="aspect-video bg-black border border-white/[0.04] rounded-xl overflow-hidden relative cursor-pointer group hover:border-white/[0.12] transition-all"
-                                    onClick={() => { setShowAllProjects(false); nav(p); }}>
-                                    {p.previewImage ? <img src={p.previewImage} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" /> : <div className="w-full h-full bg-[#060606] flex items-center justify-center"><Film size={24} className="opacity-[0.03]" /></div>}
-                                    <div className="absolute bottom-0 p-3 w-full bg-gradient-to-t from-black via-black/60 to-transparent"><span className="text-white text-[10px] font-bold uppercase tracking-widest block truncate">{p.title}</span></div>
-                                </div>
-                            ))}
-                        </div>
+                        )}
                     </div>
                 </div>
-            )}
 
-            <TourOverlay step={tourStep} steps={DASHBOARD_TOUR_STEPS} onNext={tourNext} onComplete={completeTour} />
-            {shareProject && <ShareProjectModal projectId={shareProject.id} projectTitle={shareProject.title} currentTeamIds={shareProject.team_ids || []} currentIsGlobal={shareProject.is_global || false} onClose={() => setShareProject(null)} onSuccess={() => { if (auth.currentUser) { invalidateDashboardCache(auth.currentUser.uid); fetchUserProjectsBasic(auth.currentUser.uid).then(setMyProjects); } }} />}
+                {projectToDelete && <DeleteConfirmModal title={`DELETE: ${projectToDelete.title}`} message="This action is irreversible." isDeleting={isDeleting} onConfirm={handleDelete} onCancel={() => setProjectToDelete(null)} />}
 
-            {/* ═══ COMMAND PALETTE (⌘K) ═══ */}
-            <CommandPalette projects={myProjects} open={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
+                <TourOverlay step={tourStep} steps={DASHBOARD_TOUR_STEPS} onNext={tourNext} onComplete={completeTour} />
+                {shareProject && <ShareProjectModal projectId={shareProject.id} projectTitle={shareProject.title} currentTeamIds={shareProject.team_ids || []} currentIsGlobal={shareProject.is_global || false} onClose={() => setShareProject(null)} onSuccess={() => { if (auth.currentUser) { invalidateDashboardCache(auth.currentUser.uid); fetchUserProjectsBasic(auth.currentUser.uid).then(setMyProjects); } }} />}
 
-            {/* ═══ WELCOME BACK MODAL ═══ */}
-            <WelcomeBackModal announcements={allAnn} />
+                {/* ═══ COMMAND PALETTE (⌘K) ═══ */}
+                <CommandPalette projects={myProjects} open={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />
 
-        </main>
+                {/* ═══ WELCOME BACK MODAL ═══ */}
+                <WelcomeBackModal announcements={allAnn} />
+
+            </main>
 
 
-        {/* CMD+K Hint (desktop) */}
-        <button onClick={() => setCmdPaletteOpen(true)} className="hidden sm:flex fixed bottom-5 left-5 z-40 items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-[9px] font-mono text-white/15 hover:text-white/30 hover:border-white/[0.1] transition-all cursor-pointer">
-            <Command size={10} />K
-        </button>
+            {/* CMD+K Hint (desktop) */}
+            <button onClick={() => setCmdPaletteOpen(true)} className="hidden sm:flex fixed bottom-6 left-6 z-40 items-center gap-2 px-4 py-2 rounded-lg bg-black/80 backdrop-blur-md border border-white/[0.08] text-[10px] font-mono text-white/30 hover:text-white/60 hover:border-white/[0.15] hover:bg-white/[0.05] transition-all cursor-pointer shadow-lg">
+                <Command size={12} />K
+            </button>
         </>
     );
 }

@@ -267,14 +267,14 @@ export default function AdminKlingTemplatesPage() {
                         return (
                             <div key={t.id}
                                 className={`rounded-lg overflow-hidden border-2 transition-all ${
-                                    t.visible ? "border-green-600/50 bg-[#0A0A0A]" : "border-[#222] bg-[#080808] opacity-60"
+                                    t.visible ? "border-green-600/50 bg-[#0A0A0A]" : "border-[#222] bg-[#161616] opacity-60"
                                 }`}>
-                                <div className="aspect-video relative bg-[#111]">
+                                <div className="aspect-video relative bg-[#1a1a1a]">
                                     {t.previewVideoUrl ? (
                                         <video src={t.previewVideoUrl} autoPlay muted loop playsInline className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center"
-                                            style={{ background: `linear-gradient(135deg, ${t.accent}20, #0a0a0a)` }}>
+                                            style={{ background: `linear-gradient(135deg, ${t.accent}20, #1a1a1a)` }}>
                                             <Video size={28} className="text-[#333]" />
                                         </div>
                                     )}
@@ -344,7 +344,7 @@ export default function AdminKlingTemplatesPage() {
                                             const meta = EMOTION_FAMILIES[emo];
                                             setEditing({ ...editing, emotionFamily: emo, accent: meta.accent, emoji: meta.emoji });
                                         }}
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-cyan-600">
+                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-cyan-600">
                                         {emoEntries.map(([key, meta]) => (
                                             <option key={key} value={key}>{meta.emoji} {meta.label} — {meta.writer}</option>
                                         ))}
@@ -353,7 +353,7 @@ export default function AdminKlingTemplatesPage() {
                                 <FormField label="Required Images">
                                     <select value={editing.requiredImages}
                                         onChange={(e) => setEditing({ ...editing, requiredImages: Number(e.target.value) })}
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-cyan-600">
+                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-cyan-600">
                                         <option value={0}>0 (Text-to-Video)</option>
                                         <option value={1}>1 (Image-to-Video)</option>
                                     </select>
@@ -364,7 +364,7 @@ export default function AdminKlingTemplatesPage() {
                             <FormField label="Order">
                                 <input type="number" value={editing.order}
                                     onChange={(e) => setEditing({ ...editing, order: Number(e.target.value) })}
-                                    className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-cyan-600" />
+                                    className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-cyan-600" />
                             </FormField>
 
                             {/* Title + Subtitle */}
@@ -373,13 +373,13 @@ export default function AdminKlingTemplatesPage() {
                                     <input value={editing.title}
                                         onChange={(e) => setEditing({ ...editing, title: e.target.value })}
                                         placeholder="Tender Moment"
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-cyan-600" />
+                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-cyan-600" />
                                 </FormField>
                                 <FormField label="Subtitle">
                                     <input value={editing.subtitle}
                                         onChange={(e) => setEditing({ ...editing, subtitle: e.target.value })}
                                         placeholder="Chekhov — soft, intimate"
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-cyan-600" />
+                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-cyan-600" />
                                 </FormField>
                             </div>
 
@@ -392,13 +392,13 @@ export default function AdminKlingTemplatesPage() {
                                             className="w-10 h-8 bg-transparent border border-[#333] rounded cursor-pointer" />
                                         <input value={editing.accent}
                                             onChange={(e) => setEditing({ ...editing, accent: e.target.value })}
-                                            className="flex-1 bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-cyan-600" />
+                                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-cyan-600" />
                                     </div>
                                 </FormField>
                                 <FormField label="Emoji">
                                     <input value={editing.emoji}
                                         onChange={(e) => setEditing({ ...editing, emoji: e.target.value })}
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-cyan-600" />
+                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-cyan-600" />
                                 </FormField>
                             </div>
 
@@ -407,7 +407,7 @@ export default function AdminKlingTemplatesPage() {
                                 <input value={editing.previewVideoUrl}
                                     onChange={(e) => setEditing({ ...editing, previewVideoUrl: e.target.value })}
                                     placeholder="https://firebasestorage.googleapis.com/..."
-                                    className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-cyan-600" />
+                                    className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-cyan-600" />
                                 {editing.previewVideoUrl && (
                                     <video src={editing.previewVideoUrl} autoPlay muted loop playsInline
                                         className="w-full h-32 object-cover rounded mt-2 border border-[#222]" />
@@ -420,7 +420,7 @@ export default function AdminKlingTemplatesPage() {
                                     onChange={(e) => setEditing({ ...editing, promptText: e.target.value })}
                                     placeholder="Full Kling 3.0 prompt..."
                                     rows={8}
-                                    className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-cyan-600 resize-y" />
+                                    className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-cyan-600 resize-y" />
                             </FormField>
 
                             {/* Visible toggle */}

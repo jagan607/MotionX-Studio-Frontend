@@ -40,20 +40,20 @@ export default function PlaygroundGenerationGrid({
     if (generations.length === 0) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-                <div className="w-20 h-20 rounded-2xl bg-[#0a0a0a] border border-[#1a1a1a] flex items-center justify-center mb-5">
+                <div className="w-20 h-20 rounded-2xl bg-[#1a1a1a] border border-[#1a1a1a] flex items-center justify-center mb-5">
                     <Zap size={32} className="text-[#222]" />
                 </div>
                 <h3 className="text-lg font-bold text-white/80 mb-2">Create your first generation</h3>
                 <p className="text-[12px] text-[#555] max-w-[360px] leading-relaxed">
                     Type a prompt below, tag your assets with{" "}
-                    <span className="text-[#E50914] font-mono font-bold">@</span>, and hit{" "}
+                    <span className="text-[#D40A12] font-mono font-bold">@</span>, and hit{" "}
                     <span className="text-white/80 font-semibold">Generate</span> to bring your ideas to life.
                 </p>
                 <div className="flex items-center gap-3 mt-6">
                     {["@Character", "@Location", "@Product"].map((tag) => (
                         <span
                             key={tag}
-                            className="text-[9px] font-mono text-[#E50914]/60 bg-[#E50914]/5 border border-[#E50914]/10 px-2.5 py-1 rounded-md"
+                            className="text-[9px] font-mono text-[#D40A12]/60 bg-[#D40A12]/5 border border-[#D40A12]/10 px-2.5 py-1 rounded-md"
                         >
                             {tag}
                         </span>

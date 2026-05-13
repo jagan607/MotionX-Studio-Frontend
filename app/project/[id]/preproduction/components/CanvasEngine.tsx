@@ -28,7 +28,7 @@ const MIN_SCALE = 0.15;
 const MAX_SCALE = 3;
 const ZOOM_SENSITIVITY = 0.002;
 
-export function CanvasEngine({ children, onTransformChange, initialTransform, accentColor = "rgba(229, 9, 20, 0.08)", backgroundImageUrl, onReady }: CanvasEngineProps) {
+export function CanvasEngine({ children, onTransformChange, initialTransform, accentColor = "rgba(212, 10, 18, 0.08)", backgroundImageUrl, onReady }: CanvasEngineProps) {
     const [transform, setTransform] = useState<CanvasTransform>({
         x: initialTransform?.x ?? 0,
         y: initialTransform?.y ?? 0,
@@ -173,7 +173,7 @@ export function CanvasEngine({ children, onTransformChange, initialTransform, ac
         <div
             ref={containerRef}
             className="absolute inset-0 overflow-hidden select-none"
-            style={{ cursor: "grab", background: "#080808" }}
+            style={{ cursor: "grab", background: "#161616" }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}

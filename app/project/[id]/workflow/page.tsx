@@ -241,7 +241,7 @@ export default function WorkflowLabPage() {
     // ══════════════════════════════════════════════
 
     return (
-        <div className="fixed inset-0 bg-[#030303] text-white overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-[#111111] text-white overflow-hidden flex flex-col">
             <style jsx global>{`
                 @keyframes wfFadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes wfPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }

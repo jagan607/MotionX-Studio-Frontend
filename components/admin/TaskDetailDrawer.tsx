@@ -78,7 +78,7 @@ export default function TaskDetailDrawer({ task, onClose }: TaskDetailDrawerProp
             case "PROCESSING": return "text-yellow-400 border-yellow-400/30 bg-yellow-400/10";
             case "COMPLETED": return "text-green-500 border-green-500/30 bg-green-500/10";
             case "FAILED": return "text-red-500 border-red-500/30 bg-red-500/10";
-            default: return "text-[#666] border-[#333] bg-[#111]";
+            default: return "text-[#666] border-[#333] bg-[#1a1a1a]";
         }
     };
 
@@ -98,7 +98,7 @@ export default function TaskDetailDrawer({ task, onClose }: TaskDetailDrawerProp
 
                     {/* Drawer Panel */}
                     <motion.div
-                        className="fixed top-0 right-0 h-full w-[500px] max-w-[90vw] bg-[#080808] border-l border-[#222] z-[100] flex flex-col shadow-2xl shadow-black/50"
+                        className="fixed top-0 right-0 h-full w-[500px] max-w-[90vw] bg-[#161616] border-l border-[#222] z-[100] flex flex-col shadow-2xl shadow-black/50"
                         initial={{ x: "100%" }}
                         animate={{ x: 0 }}
                         exit={{ x: "100%" }}
@@ -187,7 +187,7 @@ export default function TaskDetailDrawer({ task, onClose }: TaskDetailDrawerProp
                                             </pre>
                                             <button
                                                 onClick={() => copyToClipboard(task.prompt!)}
-                                                className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-[#444] hover:text-white opacity-0 group-hover:opacity-100 transition-all bg-[#111] border border-[#2A2A2A] cursor-pointer"
+                                                className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-[#444] hover:text-white opacity-0 group-hover:opacity-100 transition-all bg-[#1a1a1a] border border-[#2A2A2A] cursor-pointer"
                                                 title="Copy prompt"
                                             >
                                                 <Copy size={10} />
@@ -207,7 +207,7 @@ export default function TaskDetailDrawer({ task, onClose }: TaskDetailDrawerProp
                                     <SectionLabel icon={<Cpu size={10} />} label="Raw Metadata" />
                                     <div className="flex flex-wrap gap-1 mt-2">
                                         {Object.entries(task.metadata).map(([k, v]) => (
-                                            <span key={k} className="text-[8px] font-mono text-[#888] bg-[#111] border border-[#2A2A2A] px-1.5 py-0.5 uppercase tracking-wider">
+                                            <span key={k} className="text-[8px] font-mono text-[#888] bg-[#1a1a1a] border border-[#2A2A2A] px-1.5 py-0.5 uppercase tracking-wider">
                                                 {k}: {String(v)}
                                             </span>
                                         ))}

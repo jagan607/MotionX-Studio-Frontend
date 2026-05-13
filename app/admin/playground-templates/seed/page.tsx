@@ -122,7 +122,7 @@ export default function SeedPlaygroundTemplatesPage() {
 
             {/* Log output */}
             {log.length > 0 && (
-                <div className="p-4 border-2 border-[#222] bg-[#080808] font-mono text-xs space-y-0.5 max-h-[60vh] overflow-y-auto">
+                <div className="p-4 border-2 border-[#222] bg-[#161616] font-mono text-xs space-y-0.5 max-h-[60vh] overflow-y-auto">
                     {log.map((line, i) => (
                         <div key={i} className={`${
                             line.startsWith("❌") ? "text-red-400" :

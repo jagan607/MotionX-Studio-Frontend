@@ -85,7 +85,7 @@ export default function PricingPage() {
     const terminalToast = (message: string, type: "success" | "error" | "info") => {
         const config = {
             success: { icon: "✓", color: "#00FF00", border: "rgba(0,255,0,0.2)" },
-            error:   { icon: "✕", color: "#E50914", border: "rgba(229,9,20,0.3)" },
+            error:   { icon: "✕", color: "#D40A12", border: "rgba(212,10,18,0.3)" },
             info:    { icon: "ℹ", color: "#F59E0B", border: "rgba(245,158,11,0.25)" },
         }[type];
         toast(message, {
@@ -151,15 +151,15 @@ export default function PricingPage() {
     }, [subscribe, loading, router, currency, fromTopUp]);
 
     return (
-        <div className="min-h-screen bg-[#050505] text-[#EDEDED] flex flex-col font-sans selection:bg-[#E50914] selection:text-white">
+        <div className="min-h-screen bg-[#111111] text-[#EDEDED] flex flex-col font-sans selection:bg-[#D40A12] selection:text-white">
             <Toaster position="bottom-right" />
 
             {/* --- HEADER --- */}
-            <div className="flex justify-between items-end px-6 md:px-10 py-6 border-b border-white/[0.06] bg-[#030303]/85 backdrop-blur-xl sticky top-0 z-50">
+            <div className="flex justify-between items-end px-6 md:px-10 py-6 border-b border-white/[0.06] bg-[#111111]/85 backdrop-blur-xl sticky top-0 z-50">
                 <Link href="/dashboard" className="no-underline group">
                     <div>
                         <h1 className="font-anton text-2xl uppercase leading-none tracking-[0.5px] text-white group-hover:opacity-80 transition-opacity">
-                            Motion X <span className="text-[#E50914]">Studio</span>
+                            Motion X <span className="text-[#D40A12]">Studio</span>
                         </h1>
                         <p className="text-[9px] text-[#999] tracking-[3px] font-bold mt-1.5 uppercase">
                             Plans & Pricing
@@ -167,7 +167,7 @@ export default function PricingPage() {
                     </div>
                 </Link>
                 <Link href="/dashboard">
-                    <button className="bg-[#111] border border-[#222] text-[#EDEDED] px-5 py-2 text-[10px] font-bold tracking-[2px] hover:bg-[#1A1A1A] hover:border-[#444] transition-all uppercase flex items-center gap-2 rounded-md">
+                    <button className="bg-[#1a1a1a] border border-[#222] text-[#EDEDED] px-5 py-2 text-[10px] font-bold tracking-[2px] hover:bg-[#1A1A1A] hover:border-[#444] transition-all uppercase flex items-center gap-2 rounded-md">
                         Dashboard <ArrowRight size={14} className="text-[#666]" />
                     </button>
                 </Link>
@@ -177,7 +177,7 @@ export default function PricingPage() {
             <div className="flex-1 flex flex-col items-center py-16 px-4 md:px-8 relative">
                 {/* ... (Title Section) ... */}
                 <div className="text-center mb-16 max-w-3xl z-10">
-                    <p className="text-[#E50914] text-[10px] font-semibold tracking-[3px] mb-4 uppercase">
+                    <p className="text-[#D40A12] text-[10px] font-semibold tracking-[3px] mb-4 uppercase">
                         PLANS & PRICING
                     </p>
                     <h1 className="text-5xl md:text-7xl text-white mb-6 uppercase tracking-tight font-anton">
@@ -241,12 +241,12 @@ export default function PricingPage() {
                 {/* ═══ WHAT 100 CREDITS GETS YOU ═══ */}
                 <div className="w-full max-w-[1400px] mt-16 z-10">
                     <div className="text-center mb-10">
-                        <p className="text-[#E50914] text-[9px] font-semibold tracking-[3px] mb-3 uppercase">Credit Value</p>
+                        <p className="text-[#D40A12] text-[9px] font-semibold tracking-[3px] mb-3 uppercase">Credit Value</p>
                         <h2 className="text-3xl md:text-4xl text-white font-anton uppercase tracking-tight">What 100 Credits Gets You</h2>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {[
-                            { icon: <Film size={20} />, count: "~33", label: "AI Videos", sub: "10s cinematic clips", color: "#E50914" },
+                            { icon: <Film size={20} />, count: "~33", label: "AI Videos", sub: "10s cinematic clips", color: "#D40A12" },
                             { icon: <ImageIcon size={20} />, count: "~100", label: "AI Images", sub: "Storyboard frames", color: "#3B82F6" },
                             { icon: <Mic size={20} />, count: "~50", label: "Voiceovers", sub: "AI voice generation", color: "#8B5CF6" },
                             { icon: <Sparkles size={20} />, count: "~20", label: "Lip Syncs", sub: "Video lip sync", color: "#F59E0B" },
@@ -266,7 +266,7 @@ export default function PricingPage() {
                 {/* ═══ FAQ ═══ */}
                 <div className="w-full max-w-[700px] mt-20 z-10">
                     <div className="text-center mb-8">
-                        <p className="text-[#E50914] text-[9px] font-semibold tracking-[3px] mb-3 uppercase">FAQ</p>
+                        <p className="text-[#D40A12] text-[9px] font-semibold tracking-[3px] mb-3 uppercase">FAQ</p>
                         <h2 className="text-3xl text-white font-anton uppercase tracking-tight">Common Questions</h2>
                     </div>
                     <div className="bg-[#0A0A0A] border border-[#1A1A1A] rounded-xl px-6">
@@ -290,8 +290,8 @@ export default function PricingPage() {
 
                 {/* --- ENTERPRISE CARD --- */}
                 <div className="w-full max-w-[1400px] mt-12 z-10">
-                    <div className="border border-[#222] bg-[#080808] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group rounded-lg">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#E50914] opacity-5 blur-[100px] rounded-full pointer-events-none group-hover:opacity-10 transition-opacity" />
+                    <div className="border border-[#222] bg-[#161616] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group rounded-lg">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#D40A12] opacity-5 blur-[100px] rounded-full pointer-events-none group-hover:opacity-10 transition-opacity" />
                         <div className="text-left">
                             <h2 className="text-3xl md:text-4xl text-white font-anton uppercase mb-2">Enterprise</h2>
                             <p className="text-[#888] text-sm max-w-xl">Dedicated GPU clusters, custom AI model fine-tuning, and API access.</p>

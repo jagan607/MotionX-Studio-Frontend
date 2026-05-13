@@ -33,7 +33,7 @@ interface Option<T extends string> {
    QUESTION DEFINITIONS
    ═══════════════════════════════════════════════ */
 const GOAL_OPTIONS: Option<GoalKey>[] = [
-    { key: "social_clips",   icon: <Smartphone size={22} />, title: "Social Media Clips",    subtitle: "Reels, TikToks, YouTube Shorts",      accent: "#E50914" },
+    { key: "social_clips",   icon: <Smartphone size={22} />, title: "Social Media Clips",    subtitle: "Reels, TikToks, YouTube Shorts",      accent: "#D40A12" },
     { key: "short_film",     icon: <Film size={22} />,       title: "Short Films & Music Videos", subtitle: "Cinematic storytelling",          accent: "#3B82F6" },
     { key: "brand_content",  icon: <Megaphone size={22} />,  title: "Ads & Brand Content",   subtitle: "Product promos, commercials",          accent: "#D4A843" },
     { key: "explore",        icon: <Sparkles size={22} />,   title: "Explore AI Filmmaking",  subtitle: "Curious — just want to try it out",   accent: "#10B981" },
@@ -419,19 +419,19 @@ export default function OnboardingPage() {
 
     if (!uid) {
         return (
-            <div className="h-screen w-screen bg-[#050505] flex items-center justify-center">
-                <Disc size={24} className="animate-spin text-[#E50914]" />
+            <div className="h-screen w-screen bg-[#111111] flex items-center justify-center">
+                <Disc size={24} className="animate-spin text-[#D40A12]" />
             </div>
         );
     }
 
     return (
-        <div className="fixed inset-0 bg-[#050505] text-white overflow-hidden flex flex-col z-[9999]">
+        <div className="fixed inset-0 bg-[#111111] text-white overflow-hidden flex flex-col z-[9999]">
             <style jsx global>{`
                 @keyframes onb-fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes onb-fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-12px); } }
                 @keyframes onb-cardIn { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
-                @keyframes onb-pulse { 0%,100% { box-shadow: 0 0 20px rgba(229,9,20,0.15); } 50% { box-shadow: 0 0 40px rgba(229,9,20,0.3); } }
+                @keyframes onb-pulse { 0%,100% { box-shadow: 0 0 20px rgba(212,10,18,0.15); } 50% { box-shadow: 0 0 40px rgba(212,10,18,0.3); } }
                 @keyframes onb-breathe { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
                 @keyframes onb-shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
                 .onb-fade-in { animation: onb-fadeIn 0.5s ease both; }
@@ -441,7 +441,7 @@ export default function OnboardingPage() {
             {/* ── Ambient Background ── */}
             <div className="absolute inset-0 pointer-events-none">
                 <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.1 }} src={AMBIENT_VIDEO} />
-                <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #050505 0%, rgba(5,5,5,0.8) 30%, rgba(5,5,5,0.6) 60%, #050505 100%)" }} />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(to top, #111111 0%, rgba(5,5,5,0.8) 30%, rgba(5,5,5,0.6) 60%, #111111 100%)" }} />
                 <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 20%, rgba(5,5,5,0.95) 80%)" }} />
                 <div className="absolute inset-0 opacity-[0.02]"
                     style={{
@@ -453,7 +453,7 @@ export default function OnboardingPage() {
             {/* ── Header ── */}
             <div className="relative z-10 flex items-center justify-between px-8 py-6">
                 <div className="flex items-center gap-2">
-                    <Disc size={10} fill="#E50914" color="#E50914" className="animate-pulse" />
+                    <Disc size={10} fill="#D40A12" color="#D40A12" className="animate-pulse" />
                     <span className="text-[10px] font-mono tracking-[3px] uppercase text-white/40">MotionX Studio</span>
                 </div>
                 <button
@@ -474,7 +474,7 @@ export default function OnboardingPage() {
                                 className="h-full rounded-full transition-all duration-500 ease-out"
                                 style={{
                                     width: i < currentStep ? "100%" : i === currentStep ? "50%" : "0%",
-                                    background: i === 3 ? "linear-gradient(90deg, #10B981, #34D399)" : "linear-gradient(90deg, #E50914, #FF4D58)",
+                                    background: i === 3 ? "linear-gradient(90deg, #10B981, #34D399)" : "linear-gradient(90deg, #D40A12, #FF4D58)",
                                 }}
                             />
                         </div>
@@ -570,7 +570,7 @@ export default function OnboardingPage() {
 
                                 {templatesLoading ? (
                                     <div className="flex flex-col items-center justify-center py-20">
-                                        <Loader2 size={28} className="animate-spin text-[#E50914] mb-3" />
+                                        <Loader2 size={28} className="animate-spin text-[#D40A12] mb-3" />
                                         <span className="text-[10px] font-mono text-white/30 uppercase tracking-[2px]">Loading templates...</span>
                                     </div>
                                 ) : templateProjects.length === 0 ? (
@@ -590,7 +590,7 @@ export default function OnboardingPage() {
                                                     className="group relative aspect-video rounded-xl border overflow-hidden text-left transition-all duration-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                                                     style={{
                                                         animation: `onb-cardIn 0.5s ease ${i * 80}ms both`,
-                                                        borderColor: isCloning ? "#E50914" : "rgba(255,255,255,0.08)",
+                                                        borderColor: isCloning ? "#D40A12" : "rgba(255,255,255,0.08)",
                                                         background: "rgba(255,255,255,0.02)",
                                                     }}
                                                 >
@@ -602,7 +602,7 @@ export default function OnboardingPage() {
                                                             className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-all duration-500"
                                                         />
                                                     ) : (
-                                                        <div className="absolute inset-0 bg-gradient-to-br from-[#111] to-[#0a0a0a] flex items-center justify-center">
+                                                        <div className="absolute inset-0 bg-gradient-to-br from-[#111] to-[#1a1a1a] flex items-center justify-center">
                                                             <Film size={28} className="text-white/10" />
                                                         </div>
                                                     )}
@@ -614,10 +614,10 @@ export default function OnboardingPage() {
                                                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
                                                         {isCloning ? (
                                                             <div className="bg-black/80 backdrop-blur-sm rounded-full p-3">
-                                                                <Loader2 size={20} className="animate-spin text-[#E50914]" />
+                                                                <Loader2 size={20} className="animate-spin text-[#D40A12]" />
                                                             </div>
                                                         ) : (
-                                                            <div className="bg-[#E50914]/90 backdrop-blur-sm rounded-full p-3 shadow-lg shadow-[#E50914]/30">
+                                                            <div className="bg-[#D40A12]/90 backdrop-blur-sm rounded-full p-3 shadow-lg shadow-[#D40A12]/30">
                                                                 <Copy size={18} className="text-white" />
                                                             </div>
                                                         )}
@@ -681,14 +681,14 @@ export default function OnboardingPage() {
                                 {/* Main input */}
                                 <div className="max-w-xl mx-auto mb-6">
                                     <div className={`rounded-2xl border p-5 transition-all duration-300 ${
-                                        idea ? "border-[#E50914]/30 bg-[#E50914]/[0.03] shadow-[0_0_40px_rgba(229,9,20,0.08)]" : "border-white/[0.08] bg-white/[0.03]"
-                                    } focus-within:border-[#E50914]/40`}>
+                                        idea ? "border-[#D40A12]/30 bg-[#D40A12]/[0.03] shadow-[0_0_40px_rgba(212,10,18,0.08)]" : "border-white/[0.08] bg-white/[0.03]"
+                                    } focus-within:border-[#D40A12]/40`}>
                                         <textarea
                                             value={idea}
                                             onChange={(e) => setIdea(e.target.value)}
                                             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleCreateProject(); } }}
                                             placeholder={preset.placeholder}
-                                            className="w-full bg-transparent text-[15px] text-white placeholder-white/20 focus:outline-none resize-none leading-relaxed caret-[#E50914] min-h-[60px]"
+                                            className="w-full bg-transparent text-[15px] text-white placeholder-white/20 focus:outline-none resize-none leading-relaxed caret-[#D40A12] min-h-[60px]"
                                             rows={2}
                                             disabled={isCreating}
                                             autoFocus
@@ -720,9 +720,9 @@ export default function OnboardingPage() {
                                         disabled={!idea.trim() || isCreating}
                                         className="inline-flex items-center gap-3 px-10 py-4 rounded-xl text-[12px] font-bold tracking-[2px] uppercase transition-all duration-300 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed border-none"
                                         style={{
-                                            background: idea.trim() ? "linear-gradient(135deg, #E50914, #B30710)" : "rgba(255,255,255,0.05)",
+                                            background: idea.trim() ? "linear-gradient(135deg, #D40A12, #B30710)" : "rgba(255,255,255,0.05)",
                                             color: idea.trim() ? "white" : "rgba(255,255,255,0.3)",
-                                            boxShadow: idea.trim() ? "0 8px 32px rgba(229,9,20,0.3)" : "none",
+                                            boxShadow: idea.trim() ? "0 8px 32px rgba(212,10,18,0.3)" : "none",
                                             animation: idea.trim() ? "onb-pulse 3s ease-in-out infinite" : "none",
                                         }}
                                     >
@@ -757,9 +757,9 @@ export default function OnboardingPage() {
                             disabled={!selectedKey || isTransitioning || isSaving}
                             className="flex items-center gap-3 px-10 py-4 rounded-xl text-[12px] font-bold tracking-[2px] uppercase transition-all duration-300 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed border-none"
                             style={{
-                                background: selectedKey ? "linear-gradient(135deg, #E50914, #B30710)" : "rgba(255,255,255,0.05)",
+                                background: selectedKey ? "linear-gradient(135deg, #D40A12, #B30710)" : "rgba(255,255,255,0.05)",
                                 color: selectedKey ? "white" : "rgba(255,255,255,0.3)",
-                                boxShadow: selectedKey ? "0 8px 32px rgba(229,9,20,0.3)" : "none",
+                                boxShadow: selectedKey ? "0 8px 32px rgba(212,10,18,0.3)" : "none",
                             }}
                         >
                             Continue

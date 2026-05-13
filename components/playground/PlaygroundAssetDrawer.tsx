@@ -98,8 +98,8 @@ export default function PlaygroundAssetDrawer() {
             <div className="px-4 py-4 border-b border-white/[0.06] shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Layers size={14} className="text-[#E50914]" />
-                        <span className="text-[10px] font-mono text-[#E50914] uppercase tracking-[3px] font-bold">Assets</span>
+                        <Layers size={14} className="text-[#D40A12]" />
+                        <span className="text-[10px] font-mono text-[#D40A12] uppercase tracking-[3px] font-bold">Assets</span>
                     </div>
                     <button
                         onClick={() => setAssetDrawerOpen(false)}
@@ -174,14 +174,14 @@ export default function PlaygroundAssetDrawer() {
                 {/* Empty state */}
                 {!assetsLoading && activeAssets.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-10 text-center">
-                        <div className="w-12 h-12 rounded-xl border border-[#1a1a1a] bg-[#0a0a0a] flex items-center justify-center mb-3">
+                        <div className="w-12 h-12 rounded-xl border border-[#1a1a1a] bg-[#1a1a1a] flex items-center justify-center mb-3">
                             <activeTabConfig.icon size={18} style={{ color: activeTabConfig.color, opacity: 0.3 }} />
                         </div>
                         <p className="text-[10px] text-[#444] uppercase tracking-widest font-semibold mb-1">
                             No {activeTab} yet
                         </p>
                         <p className="text-[9px] text-[#333] max-w-[160px] leading-relaxed">
-                            Create your first {activeTab.slice(0, -1)} to use it in prompts with <span className="text-[#E50914] font-mono">@</span>
+                            Create your first {activeTab.slice(0, -1)} to use it in prompts with <span className="text-[#D40A12] font-mono">@</span>
                         </p>
                     </div>
                 )}

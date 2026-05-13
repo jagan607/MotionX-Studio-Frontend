@@ -81,11 +81,11 @@ export default function ShareProjectModal({
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-            <div className="relative z-10 w-full max-w-lg bg-[#080808] border border-[#222] shadow-2xl rounded-xl">
+            <div className="relative z-10 w-full max-w-lg bg-[#161616] border border-[#222] shadow-2xl rounded-xl">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-[#222]">
                     <div className="flex items-center gap-3">
-                        <Globe size={18} className="text-[#E50914]" />
+                        <Globe size={18} className="text-[#D40A12]" />
                         <div>
                             <h3 className="font-anton text-xl text-white uppercase tracking-wide">Share Project</h3>
                             <p className="text-[9px] font-mono text-[#555] mt-0.5 truncate max-w-[280px]">{projectTitle}</p>
@@ -154,7 +154,7 @@ export default function ShareProjectModal({
                                                 onClick={() => toggleTeam(team.id)}
                                                 className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${isSelected
                                                     ? "bg-purple-500/5"
-                                                    : "bg-transparent hover:bg-[#111]"
+                                                    : "bg-transparent hover:bg-[#1a1a1a]"
                                                     }`}
                                             >
                                                 <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected
@@ -166,7 +166,7 @@ export default function ShareProjectModal({
                                                 <div className="flex-1 min-w-0">
                                                     <span className="text-xs text-white font-bold block">{team.name}</span>
                                                 </div>
-                                                <span className="text-[8px] font-mono text-[#555] bg-[#111] border border-[#222] px-1.5 py-0.5 rounded uppercase tracking-widest shrink-0">
+                                                <span className="text-[8px] font-mono text-[#555] bg-[#1a1a1a] border border-[#222] px-1.5 py-0.5 rounded uppercase tracking-widest shrink-0">
                                                     {team.members?.length || 0} members
                                                 </span>
                                             </button>
@@ -188,7 +188,7 @@ export default function ShareProjectModal({
                         <button
                             onClick={handleSubmit}
                             disabled={submitting}
-                            className="flex items-center gap-2 bg-white text-black hover:bg-[#E50914] hover:text-white px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50 rounded-lg"
+                            className="flex items-center gap-2 bg-white text-black hover:bg-[#D40A12] hover:text-white px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50 rounded-lg"
                         >
                             {submitting ? (
                                 <><Loader2 size={13} className="animate-spin" /> Saving...</>

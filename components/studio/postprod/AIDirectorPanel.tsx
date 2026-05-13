@@ -147,13 +147,13 @@ export default function AIDirectorPanel({
             animate={{ width: "100%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="h-full border-l border-[#1a1a1a] bg-[#080808] flex flex-col overflow-hidden shrink-0"
+            className="h-full border-l border-[#1a1a1a] bg-[#161616] flex flex-col overflow-hidden shrink-0"
         >
             {/* Header */}
             <div className="px-4 py-3 border-b border-[#1a1a1a] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded bg-[#E50914]/20 flex items-center justify-center">
-                        <Sparkles size={11} className="text-[#E50914]" />
+                    <div className="w-5 h-5 rounded bg-[#D40A12]/20 flex items-center justify-center">
+                        <Sparkles size={11} className="text-[#D40A12]" />
                     </div>
                     <span className="text-[10px] font-bold tracking-[2px] text-white uppercase">AI Director</span>
                 </div>
@@ -170,7 +170,7 @@ export default function AIDirectorPanel({
                         onClick={() => setScope(s)}
                         className={`flex-1 py-1 rounded text-[8px] font-bold tracking-[2px] uppercase transition-all ${
                             scope === s
-                                ? "bg-[#E50914]/20 text-[#E50914]"
+                                ? "bg-[#D40A12]/20 text-[#D40A12]"
                                 : "text-neutral-600 hover:text-neutral-400"
                         }`}
                     >
@@ -190,7 +190,7 @@ export default function AIDirectorPanel({
                                 setPrompt(cmd.prompt);
                                 inputRef.current?.focus();
                             }}
-                            className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[#111] border border-[#1a1a1a] hover:border-[#333] text-[8px] text-neutral-400 hover:text-white tracking-wider transition-all"
+                            className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[#1a1a1a] border border-[#1a1a1a] hover:border-[#333] text-[8px] text-neutral-400 hover:text-white tracking-wider transition-all"
                         >
                             {cmd.icon}
                             <span className="truncate">{cmd.label}</span>
@@ -217,13 +217,13 @@ export default function AIDirectorPanel({
                             entry.status === "success"
                                 ? "border-emerald-900/30 bg-emerald-900/5"
                                 : entry.status === "processing"
-                                ? "border-[#E50914]/20 bg-[#E50914]/5"
+                                ? "border-[#D40A12]/20 bg-[#D40A12]/5"
                                 : "border-red-900/30 bg-red-900/5"
                         }`}
                     >
                         <div className="flex items-start gap-2">
                             {entry.status === "processing" ? (
-                                <Loader2 size={10} className="animate-spin text-[#E50914] mt-0.5 shrink-0" />
+                                <Loader2 size={10} className="animate-spin text-[#D40A12] mt-0.5 shrink-0" />
                             ) : entry.status === "success" ? (
                                 <Sparkles size={10} className="text-emerald-500 mt-0.5 shrink-0" />
                             ) : (
@@ -256,14 +256,14 @@ export default function AIDirectorPanel({
                             }
                         }}
                         placeholder="e.g. 'Make this more cinematic'..."
-                        className="w-full bg-[#111] border border-[#222] rounded-lg px-3 py-2.5 pr-10 text-[10px] text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#E50914]/50 transition-colors"
+                        className="w-full bg-[#1a1a1a] border border-[#222] rounded-lg px-3 py-2.5 pr-10 text-[10px] text-white placeholder:text-neutral-600 resize-none focus:outline-none focus:border-[#D40A12]/50 transition-colors"
                         rows={2}
                         disabled={isProcessing}
                     />
                     <button
                         onClick={handleSubmit}
                         disabled={!prompt.trim() || isProcessing}
-                        className="absolute right-2 bottom-2 p-1.5 rounded bg-[#E50914] text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#ff1a25] transition-all"
+                        className="absolute right-2 bottom-2 p-1.5 rounded bg-[#D40A12] text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#ff1a25] transition-all"
                     >
                         {isProcessing ? (
                             <Loader2 size={11} className="animate-spin" />

@@ -28,7 +28,7 @@ export default function GlobalControls({ controls, onChange }: GlobalControlsPro
                 onClick={() => setOpen(!open)}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[8px] font-bold tracking-[2px] uppercase transition-all ${
                     open
-                        ? "bg-[#E50914]/20 text-[#E50914] border border-[#E50914]/30"
+                        ? "bg-[#D40A12]/20 text-[#D40A12] border border-[#D40A12]/30"
                         : "bg-black/60 backdrop-blur-sm text-neutral-400 border border-white/10 hover:border-white/20"
                 }`}
             >
@@ -39,7 +39,7 @@ export default function GlobalControls({ controls, onChange }: GlobalControlsPro
 
             {/* Panel */}
             {open && (
-                <div className="absolute bottom-10 right-0 w-56 bg-[#0a0a0a]/95 backdrop-blur-xl border border-[#222] rounded-lg p-3 space-y-3 shadow-2xl">
+                <div className="absolute bottom-10 right-0 w-56 bg-[#1a1a1a]/95 backdrop-blur-xl border border-[#222] rounded-lg p-3 space-y-3 shadow-2xl">
                     {/* Style */}
                     <ControlRow label="Style">
                         <div className="flex gap-1 flex-wrap">
@@ -49,8 +49,8 @@ export default function GlobalControls({ controls, onChange }: GlobalControlsPro
                                     onClick={() => onChange({ ...controls, style: s })}
                                     className={`px-2 py-1 rounded text-[7px] font-bold tracking-widest uppercase transition-all ${
                                         controls.style === s
-                                            ? "bg-[#E50914] text-white"
-                                            : "bg-[#111] text-neutral-500 hover:text-white"
+                                            ? "bg-[#D40A12] text-white"
+                                            : "bg-[#1a1a1a] text-neutral-500 hover:text-white"
                                     }`}
                                 >
                                     {s.replace("_", " ")}
@@ -68,8 +68,8 @@ export default function GlobalControls({ controls, onChange }: GlobalControlsPro
                                     onClick={() => onChange({ ...controls, pacing: p })}
                                     className={`flex-1 py-1 rounded text-[7px] font-bold tracking-widest uppercase transition-all ${
                                         controls.pacing === p
-                                            ? "bg-[#E50914] text-white"
-                                            : "bg-[#111] text-neutral-500 hover:text-white"
+                                            ? "bg-[#D40A12] text-white"
+                                            : "bg-[#1a1a1a] text-neutral-500 hover:text-white"
                                     }`}
                                 >
                                     {p}
@@ -87,8 +87,8 @@ export default function GlobalControls({ controls, onChange }: GlobalControlsPro
                                     onClick={() => onChange({ ...controls, mood: m })}
                                     className={`px-2 py-1 rounded text-[7px] font-bold tracking-widest uppercase transition-all ${
                                         controls.mood === m
-                                            ? "bg-[#E50914] text-white"
-                                            : "bg-[#111] text-neutral-500 hover:text-white"
+                                            ? "bg-[#D40A12] text-white"
+                                            : "bg-[#1a1a1a] text-neutral-500 hover:text-white"
                                     }`}
                                 >
                                     {m}

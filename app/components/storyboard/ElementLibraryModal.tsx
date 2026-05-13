@@ -143,7 +143,7 @@ export const ElementLibraryModal: React.FC<ElementLibraryModalProps> = ({
                                         </div>
                                         {/* <button
                                             onClick={() => setView('create')}
-                                            className="px-3 py-1.5 bg-[#E50914] hover:bg-[#b0070f] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors"
+                                            className="px-3 py-1.5 bg-[#D40A12] hover:bg-[#b0070f] text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors"
                                         >
                                             <Plus size={14} /> Create Custom
                                         </button> */}
@@ -168,7 +168,7 @@ export const ElementLibraryModal: React.FC<ElementLibraryModalProps> = ({
                                                     <div
                                                         key={el.id}
                                                         className={`group relative aspect-[3/4] bg-neutral-900 rounded-xl overflow-hidden border transition-all cursor-pointer
-                                                            ${isSelecting ? 'border-[#E50914] ring-1 ring-[#E50914]' : 'border-white/[0.05] hover:border-white/[0.3]'}
+                                                            ${isSelecting ? 'border-[#D40A12] ring-1 ring-[#D40A12]' : 'border-white/[0.05] hover:border-white/[0.3]'}
                                                         `}
                                                         onClick={async (e) => {
                                                             e.stopPropagation();
@@ -232,7 +232,7 @@ export const ElementLibraryModal: React.FC<ElementLibraryModalProps> = ({
                                                         {/* Selection Overlay (Loader) */}
                                                         {isSelecting && (
                                                             <div className="absolute inset-0 flex flex-col items-center justify-center z-20 animate-in fade-in duration-200">
-                                                                <Loader2 size={24} className="text-[#E50914] animate-spin mb-2" />
+                                                                <Loader2 size={24} className="text-[#D40A12] animate-spin mb-2" />
                                                                 <span className="text-[10px] font-bold text-white tracking-wider">SELECTING</span>
                                                             </div>
                                                         )}
@@ -323,7 +323,7 @@ export const ElementLibraryModal: React.FC<ElementLibraryModalProps> = ({
                                     <button
                                         onClick={handleSubmitCreate}
                                         disabled={!selectedFile || !newName || isSubmitting}
-                                        className="w-full py-3 bg-[#E50914] hover:bg-[#b0070f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+                                        className="w-full py-3 bg-[#D40A12] hover:bg-[#b0070f] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2"
                                     >
                                         {isSubmitting && <Loader2 size={14} className="animate-spin" />}
                                         Create Element

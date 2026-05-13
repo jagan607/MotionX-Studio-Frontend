@@ -177,10 +177,10 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
 
             {/* MAIN CONTAINER */}
-            <div className="w-[900px] h-[600px] bg-[#050505] border border-[#222] flex flex-col shadow-2xl shadow-black relative overflow-hidden">
+            <div className="w-[900px] h-[600px] bg-[#111111] border border-[#222] flex flex-col shadow-2xl shadow-black relative overflow-hidden">
 
                 {/* HEADER */}
-                <div className="h-16 border-b border-[#222] bg-[#080808] flex items-center justify-between px-6 shrink-0">
+                <div className="h-16 border-b border-[#222] bg-[#161616] flex items-center justify-between px-6 shrink-0">
                     <div className="flex items-center gap-3">
                         <Database size={16} className="text-red-600" />
                         <div>
@@ -200,7 +200,7 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                 <div className="flex-1 flex overflow-hidden">
 
                     {/* LEFT: EPISODE LIST (Master) */}
-                    <div className="w-[280px] border-r border-[#222] bg-[#050505] flex flex-col">
+                    <div className="w-[280px] border-r border-[#222] bg-[#111111] flex flex-col">
                         <div className="p-3 border-b border-[#222] bg-[#0A0A0A]">
                             <div className="text-[10px] font-bold text-[#555] uppercase tracking-widest flex items-center gap-2">
                                 <Layers size={12} /> Project Reels
@@ -222,7 +222,7 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                                         onClick={() => setActiveEpisodeId(ep.id)}
                                         className={`w-full text-left px-4 py-3 border transition-all flex items-center gap-3 group
                                         ${activeEpisodeId === ep.id
-                                                ? "bg-[#111] border-[#333] border-l-2 border-l-red-600 text-white"
+                                                ? "bg-[#1a1a1a] border-[#333] border-l-2 border-l-red-600 text-white"
                                                 : "bg-transparent border-transparent text-[#666] hover:bg-[#0E0E0E] hover:text-[#CCC]"}`}
                                     >
                                         {/* CHECKBOX for Whole Episode */}
@@ -255,7 +255,7 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                     </div>
 
                     {/* RIGHT: SCENE LIST (Detail) */}
-                    <div className="flex-1 bg-[#020202] flex flex-col relative">
+                    <div className="flex-1 bg-[#111111] flex flex-col relative">
 
                         {/* Loading Overlay */}
                         {activeEpisodeId && loadingEp === activeEpisodeId && (
@@ -290,7 +290,7 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                                                 className={`p-4 border transition-all cursor-pointer flex gap-4 group
                                                 ${isSelected
                                                         ? "bg-[#0A0A0A] border-green-900/50 shadow-[inset_0_0_20px_rgba(20,83,45,0.1)]"
-                                                        : "bg-[#050505] border-[#151515] hover:border-[#333] hover:bg-[#080808]"}`}
+                                                        : "bg-[#111111] border-[#151515] hover:border-[#333] hover:bg-[#161616]"}`}
                                             >
                                                 {/* Checkbox Visual */}
                                                 <div className={`w-5 h-5 rounded-sm border flex items-center justify-center shrink-0 mt-0.5 transition-colors
@@ -304,7 +304,7 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                                                         <span className={`text-xs font-bold uppercase tracking-wider truncate ${isSelected ? "text-white" : "text-[#888]"}`}>
                                                             {header}
                                                         </span>
-                                                        <span className="text-[9px] font-mono text-[#444] bg-[#111] px-1.5 py-0.5 rounded-sm">
+                                                        <span className="text-[9px] font-mono text-[#444] bg-[#1a1a1a] px-1.5 py-0.5 rounded-sm">
                                                             SC {String(scene.scene_number).padStart(2, '0')}
                                                         </span>
                                                     </div>
@@ -334,7 +334,7 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                 </div>
 
                 {/* FOOTER */}
-                <div className="h-16 border-t border-[#222] bg-[#050505] flex items-center justify-between px-6 shrink-0">
+                <div className="h-16 border-t border-[#222] bg-[#111111] flex items-center justify-between px-6 shrink-0">
                     <div className="flex items-center gap-4">
                         <div className="text-[10px] font-bold text-[#666] uppercase tracking-widest">
                             Selection: <span className="text-white">{selectedRefs.length} items</span>
@@ -358,7 +358,7 @@ export const ContextSelectorModal: React.FC<ContextSelectorModalProps> = ({
                     <div className="flex gap-3">
                         <button
                             onClick={onClose}
-                            className="px-6 py-2.5 border border-[#333] text-[10px] font-bold text-[#666] hover:text-white hover:bg-[#111] uppercase tracking-widest transition-all rounded-sm"
+                            className="px-6 py-2.5 border border-[#333] text-[10px] font-bold text-[#666] hover:text-white hover:bg-[#1a1a1a] uppercase tracking-widest transition-all rounded-sm"
                         >
                             Cancel
                         </button>

@@ -216,14 +216,14 @@ export default function AdminTemplatesPage() {
                             className={`rounded-lg overflow-hidden border-2 transition-all ${
                                 t.is_dashboard_template
                                     ? "border-green-600/50 bg-[#0A0A0A]"
-                                    : "border-[#222] bg-[#080808] opacity-60"
+                                    : "border-[#222] bg-[#161616] opacity-60"
                             }`}
                         >
                             {/* Thumbnail — click to toggle */}
                             <button
                                 onClick={() => toggleTemplate(t.id, t.is_dashboard_template)}
                                 disabled={toggling === t.id}
-                                className="w-full aspect-video relative bg-[#111] cursor-pointer border-none p-0 block"
+                                className="w-full aspect-video relative bg-[#1a1a1a] cursor-pointer border-none p-0 block"
                             >
                                 {t.moodboard_image_url ? (
                                     <img
@@ -232,7 +232,7 @@ export default function AdminTemplatesPage() {
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-[#111]">
+                                    <div className="w-full h-full flex items-center justify-center bg-[#1a1a1a]">
                                         <Film size={28} className="text-[#333]" />
                                     </div>
                                 )}

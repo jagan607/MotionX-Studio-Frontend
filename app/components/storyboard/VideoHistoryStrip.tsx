@@ -89,7 +89,7 @@ export const VideoHistoryStrip: React.FC<VideoHistoryStripProps> = ({
                                 className="w-full h-full object-cover rounded-md"
                                 style={{
                                     border: isActive
-                                        ? '2px solid #E50914'
+                                        ? '2px solid #D40A12'
                                         : '2px solid rgba(255,255,255,0.08)',
                                     transition: 'border-color 0.2s',
                                 }}
@@ -104,7 +104,7 @@ export const VideoHistoryStrip: React.FC<VideoHistoryStripProps> = ({
 
                             {/* Active Indicator Dot */}
                             {isActive && (
-                                <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#E50914] shadow-[0_0_6px_rgba(229,9,20,0.6)]" />
+                                <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#D40A12] shadow-[0_0_6px_rgba(212,10,18,0.6)]" />
                             )}
 
                             {/* Tooltip */}

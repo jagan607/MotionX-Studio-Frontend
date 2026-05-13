@@ -83,7 +83,7 @@ export const CastingTab: React.FC<CastingTabProps> = ({
                         <div style={{
                             height: '220px',
                             width: '100%',
-                            backgroundColor: '#0a0a0a',
+                            backgroundColor: '#1a1a1a',
                             backgroundImage: hasVisual ? `url(${imageUrl})` : 'none',
                             backgroundSize: 'cover',
                             backgroundPosition: 'top center',

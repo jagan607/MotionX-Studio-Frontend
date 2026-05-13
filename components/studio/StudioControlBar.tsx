@@ -50,14 +50,14 @@ export const StudioControlBar: React.FC<StudioControlBarProps> = ({
                     {/* NEW: Script Editor Button */}
                     <button
                         onClick={() => router.push(`/project/${project.id}/script`)}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#111] border border-[#333] hover:border-white rounded text-[10px] font-bold text-white tracking-widest transition-all"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] hover:border-white rounded text-[10px] font-bold text-white tracking-widest transition-all"
                     >
                         <FileText size={12} /> SCRIPT
                     </button>
 
                     <button
                         onClick={() => router.push(`/project/${project.id}/assets`)}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#111] border border-[#333] hover:border-white rounded text-[10px] font-bold text-white tracking-widest transition-all"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#333] hover:border-white rounded text-[10px] font-bold text-white tracking-widest transition-all"
                     >
                         <Users size={12} /> ASSETS
                     </button>
@@ -65,7 +65,7 @@ export const StudioControlBar: React.FC<StudioControlBarProps> = ({
             </div>
 
             {/* BOTTOM ROW: CONTROLS & STATS */}
-            <div className="flex items-center justify-between px-8 py-3 bg-[#050505] border-t border-[#1a1a1a]">
+            <div className="flex items-center justify-between px-8 py-3 bg-[#111111] border-t border-[#1a1a1a]">
 
                 {/* Episode Selector */}
                 <div className="flex items-center gap-4">

@@ -23,7 +23,7 @@ const TYPE_COLORS: Record<NodeType, string> = {
     scene: "#FFFFFF",
     character: "#D4A843",
     location: "#4A90E2",
-    moodboard: "#E50914",
+    moodboard: "#D40A12",
     product: "#10B981",
 };
 

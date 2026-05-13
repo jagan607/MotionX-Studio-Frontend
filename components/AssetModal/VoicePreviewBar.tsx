@@ -23,7 +23,7 @@ export const VoicePreviewBar: React.FC<VoicePreviewBarProps> = ({
             <div className="text-[10px] font-bold text-neutral-500 mb-3 tracking-widest uppercase">
                 Voice Configuration
             </div>
-            <div className="p-3 bg-[#0a0a0a] border border-neutral-800 rounded-lg flex items-center justify-between hover:border-neutral-700 transition-colors">
+            <div className="p-3 bg-[#1a1a1a] border border-neutral-800 rounded-lg flex items-center justify-between hover:border-neutral-700 transition-colors">
                 <div className="flex items-center gap-3">
                     <div
                         onClick={(e) => { e.stopPropagation(); onPlay(); }}

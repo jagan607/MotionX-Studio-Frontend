@@ -57,14 +57,14 @@ export const LocationsTab: React.FC<LocationsTabProps> = ({
                             display: 'flex',
                             flexDirection: 'column',
                             position: 'relative',
-                            backgroundColor: '#050505'
+                            backgroundColor: '#111111'
                         }}
                     >
                         {/* 1. IMAGE AREA */}
                         <div style={{
                             height: '220px',
                             width: '100%',
-                            backgroundColor: '#0a0a0a',
+                            backgroundColor: '#1a1a1a',
                             position: 'relative',
                             display: 'flex',
                             alignItems: 'center',

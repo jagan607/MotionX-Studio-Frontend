@@ -129,7 +129,7 @@ const Badge = ({ children }: { children: React.ReactNode }) => (
     variants={fadeUp}
     className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/[0.06] bg-white/[0.02] text-[11px] font-semibold tracking-[0.2em] uppercase text-neutral-500 mb-6"
   >
-    <Sparkles size={12} className="text-[#E50914]" />
+    <Sparkles size={12} className="text-[#D40A12]" />
     {children}
   </motion.span>
 );
@@ -231,14 +231,14 @@ const AnimatedCounter = ({ target, suffix = "" }: { target: number; suffix?: str
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ROTATING_TAGLINES = [
-  "Direct your film without a crew",
-  "Visualize scenes before production",
-  "Edit your footage with AI",
-  "Maintain consistency across every shot",
+  "Your script. Your vision. AI-powered production.",
+  "No cameras. No crews. No compromise.",
+  "Full creative control — from frame one to final cut.",
+  "Consistent characters, sets, and cinematography — every shot.",
 ];
 
 const HeroSection = () => {
-  const headline = "Script to Film";
+  const headline = "Direct the Impossible";
   const [countdownDone, setCountdownDone] = useState(false);
   const [countdownNum, setCountdownNum] = useState(3);
   const { displayText, isComplete } = useTypingEffect(headline, 65, countdownDone ? 400 : 99999);
@@ -354,14 +354,14 @@ const HeroSection = () => {
       ))}
 
       {/* Overlays */}
-      <div className="absolute inset-0 z-[1] bg-[#050505]/70" />
-      <div className="absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,transparent_15%,#050505_75%)]" />
-      <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-[#050505] to-transparent z-[2]" />
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#050505] to-transparent z-[2]" />
+      <div className="absolute inset-0 z-[1] bg-[#111111]/70" />
+      <div className="absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,transparent_15%,#111111_75%)]" />
+      <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-[#111111] to-transparent z-[2]" />
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#111111] to-transparent z-[2]" />
 
       {/* ── Film Countdown Overlay ── */}
       <div
-        className="absolute inset-0 z-30 flex items-center justify-center bg-[#050505] pointer-events-none"
+        className="absolute inset-0 z-30 flex items-center justify-center bg-[#111111] pointer-events-none"
         style={{
           opacity: countdownDone ? 0 : 1,
           transition: 'opacity 0.6s ease-out',
@@ -385,7 +385,7 @@ const HeroSection = () => {
           {countdownNum === 0 && (
             <span
               style={{ fontFamily: "Anton, sans-serif" }}
-              className="text-2xl tracking-[0.3em] uppercase text-[#E50914] mt-6 animate-fade-up"
+              className="text-2xl tracking-[0.3em] uppercase text-[#D40A12] mt-6 animate-fade-up"
             >
               Action
             </span>
@@ -420,8 +420,8 @@ const HeroSection = () => {
       {/* Viewfinder Metadata (Desktop Only) */}
       <div className="hidden md:flex absolute top-[76px] left-8 z-20 pointer-events-none items-center gap-3">
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-[#E50914]" style={{ animation: "rec-blink 1.5s ease-in-out infinite" }} />
-          <span className="text-[9px] font-bold tracking-[0.25em] text-[#E50914] uppercase">Rec</span>
+          <div className="w-2 h-2 rounded-full bg-[#D40A12]" style={{ animation: "rec-blink 1.5s ease-in-out infinite" }} />
+          <span className="text-[9px] font-bold tracking-[0.25em] text-[#D40A12] uppercase">Rec</span>
         </div>
         <div className="w-[1px] h-3 bg-white/10" />
         <span className="text-[9px] tracking-[0.2em] text-white/25 font-mono">SCENE 01</span>
@@ -441,10 +441,10 @@ const HeroSection = () => {
       {/* Hero Content */}
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto pt-32 md:pt-40">
         {/* Badge */}
-        <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#E50914]/30 bg-[#E50914]/10 backdrop-blur-md mb-6">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#E50914]" style={{ animation: "pulse-dot 2s ease-in-out infinite" }} />
+        <div className="animate-fade-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#D40A12]/30 bg-[#D40A12]/10 backdrop-blur-md mb-6">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#D40A12]" style={{ animation: "pulse-dot 2s ease-in-out infinite" }} />
           <span className="text-[11px] font-bold tracking-[0.25em] uppercase text-white drop-shadow-lg">
-            AI Filmmaking Engine
+            AI-Powered Film Studio
           </span>
         </div>
 
@@ -463,7 +463,7 @@ const HeroSection = () => {
         >
           {displayText}
           <span
-            className="inline-block w-[4px] ml-2 bg-[#E50914] align-middle"
+            className="inline-block w-[4px] ml-2 bg-[#D40A12] align-middle"
             style={{
               height: "clamp(36px, 9vw, 80px)",
               animation: "typing-cursor 0.8s step-end infinite",
@@ -489,8 +489,8 @@ const HeroSection = () => {
 
         {/* Static Subheadline */}
         <p className="animate-fade-up-delay text-sm md:text-base mt-3 max-w-2xl mx-auto font-sans text-neutral-500 leading-relaxed tracking-wide drop-shadow-xl">
-          From script to final film — all in one studio. MotionX is an AI-native filmmaking engine that lets you{" "}
-          <span className="text-neutral-300 font-medium">direct, generate, and edit</span> films in a single workflow.
+          The world&apos;s first AI film studio. Write your script, design your world, generate cinematic footage, and{" "}
+          <span className="text-neutral-300 font-medium">deliver a finished film</span> — all in one workspace.
         </p>
 
         {/* CTAs */}
@@ -498,9 +498,9 @@ const HeroSection = () => {
           {!IS_MAINTENANCE_MODE && (
             <Link
               href="/login"
-              className="w-full sm:w-auto justify-center px-8 py-3.5 sm:px-10 sm:py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(229,9,20,0.5)] flex items-center gap-3 backdrop-blur-md"
+              className="w-full sm:w-auto justify-center px-8 py-3.5 sm:px-10 sm:py-4 bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(212,10,18,0.5)] flex items-center gap-3 backdrop-blur-md"
             >
-              <Play size={14} fill="currentColor" /> Start Creating Your Film
+              <Play size={14} fill="currentColor" /> Start Directing
             </Link>
           )}
           <a
@@ -518,8 +518,8 @@ const HeroSection = () => {
       {!IS_MAINTENANCE_MODE && (
         <div className="relative z-10 w-full mt-12 md:mt-16 overflow-hidden">
           {/* Edge fade masks */}
-          <div className="absolute left-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
-          <div className="absolute right-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-l from-[#050505] to-transparent z-10 pointer-events-none" />
+          <div className="absolute left-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-r from-[#111111] to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-24 md:w-40 bg-gradient-to-l from-[#111111] to-transparent z-10 pointer-events-none" />
 
           {/* Scrolling track: duplicated for seamless loop */}
           <div
@@ -636,7 +636,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <main className="bg-[#050505] min-h-screen text-[#EAEAEA] overflow-x-hidden relative">
+    <main className="bg-[#111111] min-h-screen text-[#EAEAEA] overflow-x-hidden relative">
 
       {/* ──────── CUSTOM ANIMATIONS ──────── */}
       <style jsx global>{`
@@ -649,8 +649,8 @@ export default function LandingPage() {
           to { opacity: 1; transform: translateY(0); }
         }
         @keyframes pulse-dot {
-          0%, 100% { opacity: 1; box-shadow: 0 0 6px #E50914; }
-          50% { opacity: 0.4; box-shadow: 0 0 12px #E50914; }
+          0%, 100% { opacity: 1; box-shadow: 0 0 6px #D40A12; }
+          50% { opacity: 0.4; box-shadow: 0 0 12px #D40A12; }
         }
         @keyframes marquee-scroll {
           0% { transform: translateX(0); }
@@ -673,12 +673,12 @@ export default function LandingPage() {
           50% { opacity: 0.2; }
         }
         @keyframes subtle-glow {
-          0%, 100% { box-shadow: 0 0 15px rgba(229, 9, 20, 0.15); }
-          50% { box-shadow: 0 0 30px rgba(229, 9, 20, 0.3); }
+          0%, 100% { box-shadow: 0 0 15px rgba(212, 10, 18, 0.15); }
+          50% { box-shadow: 0 0 30px rgba(212, 10, 18, 0.3); }
         }
         @keyframes countdown-pulse {
           0%, 100% { transform: scale(1); border-color: rgba(255,255,255,0.2); }
-          50% { transform: scale(1.05); border-color: rgba(229, 9, 20, 0.4); }
+          50% { transform: scale(1.05); border-color: rgba(212, 10, 18, 0.4); }
         }
         @keyframes scroll-bounce {
           0%, 100% { transform: translateY(0); }
@@ -707,9 +707,9 @@ export default function LandingPage() {
           background: linear-gradient(
             90deg,
             #ffffff 0%,
-            #E50914 25%,
+            #D40A12 25%,
             #ffffff 50%,
-            #E50914 75%,
+            #D40A12 75%,
             #ffffff 100%
           );
           background-size: 200% auto;
@@ -738,7 +738,7 @@ export default function LandingPage() {
           left: 0;
           width: 50%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(229,9,20,0.4), transparent);
+          background: linear-gradient(90deg, transparent, rgba(212,10,18,0.4), transparent);
           animation: glow-sweep 4s ease-in-out infinite;
         }
 
@@ -756,7 +756,7 @@ export default function LandingPage() {
         }
         .card-tilt:hover {
           transform: perspective(800px) rotateY(-2deg) rotateX(2deg) translateY(-4px);
-          box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 30px rgba(229,9,20,0.05);
+          box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 30px rgba(212,10,18,0.05);
         }
 
         /* ── Screenshot parallax container ── */
@@ -769,16 +769,16 @@ export default function LandingPage() {
 
         /* ── Pulsing border ── */
         @keyframes border-pulse {
-          0%, 100% { border-color: rgba(229,9,20,0.1); }
-          50% { border-color: rgba(229,9,20,0.25); }
+          0%, 100% { border-color: rgba(212,10,18,0.1); }
+          50% { border-color: rgba(212,10,18,0.25); }
         }
 
         /* ── Red glow shadow for screenshots ── */
         .red-glow {
-          box-shadow: 0 8px 40px rgba(229, 9, 20, 0.12), 0 0 80px rgba(229, 9, 20, 0.06);
+          box-shadow: 0 8px 40px rgba(212, 10, 18, 0.12), 0 0 80px rgba(212, 10, 18, 0.06);
         }
         .red-glow:hover {
-          box-shadow: 0 12px 50px rgba(229, 9, 20, 0.2), 0 0 100px rgba(229, 9, 20, 0.1);
+          box-shadow: 0 12px 50px rgba(212, 10, 18, 0.2), 0 0 100px rgba(212, 10, 18, 0.1);
         }
       `}</style>
 
@@ -796,7 +796,7 @@ export default function LandingPage() {
         {[...Array(12)].map((_, i) => (
           <div
             key={i}
-            className="absolute rounded-full bg-[#E50914]"
+            className="absolute rounded-full bg-[#D40A12]"
             style={{
               width: `${2 + (i % 3)}px`,
               height: `${2 + (i % 3)}px`,
@@ -814,14 +814,14 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════════════════════════════════ */}
       <nav
         className={`fixed left-0 w-full z-50 transition-all duration-500 ${IS_MAINTENANCE_MODE ? 'top-9' : 'top-0'} ${scrolled
-          ? "py-3 bg-[#050505]/80 backdrop-blur-xl border-b border-white/[0.04]"
+          ? "py-3 bg-[#111111]/80 backdrop-blur-xl border-b border-white/[0.04]"
           : "py-5 bg-transparent"
           }`}
       >
         <div className="max-w-[1400px] mx-auto px-6 md:px-10 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
             <div
-              className="w-2 h-2 rounded-full bg-[#E50914] shadow-[0_0_8px_#E50914]"
+              className="w-2 h-2 rounded-full bg-[#D40A12] shadow-[0_0_8px_#D40A12]"
               style={{ animation: "pulse-dot 2.5s ease-in-out infinite" }}
             />
             <span
@@ -867,7 +867,7 @@ export default function LandingPage() {
             {!IS_MAINTENANCE_MODE && (
               <Link
                 href="/login"
-                className="px-5 py-2 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_20px_rgba(229,9,20,0.3)]"
+                className="px-5 py-2 bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[11px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_20px_rgba(212,10,18,0.3)]"
               >
                 Start Creating
               </Link>
@@ -886,14 +886,14 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════════════════════════════════ */}
       <Section className="py-20 px-6 md:px-10 border-y border-white/[0.04]">
         <div className="max-w-[1200px] mx-auto">
-          <motion.p variants={fadeUp} className="text-center text-[11px] font-semibold tracking-[0.25em] uppercase text-neutral-600 mb-12">
-            Trusted by independent filmmakers and creative studios
+          <motion.p variants={fadeUp} className="text-center text-[11px] font-semibold tracking-[0.25em] uppercase text-neutral-500 mb-12">
+            Trusted by filmmakers, studios, and creative teams worldwide
           </motion.p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             {[
-              { value: 300, suffix: "+", label: "Minutes of film produced monthly", sub: "by filmmakers & studios" },
+              { value: 500, suffix: "+", label: "Minutes of cinema produced monthly", sub: "across shorts, series & features" },
               { value: 10, suffix: "x", label: "Faster than traditional production", sub: "from script to final cut" },
-              { value: 90, suffix: "%", label: "Lower cost than crew-based shoots", sub: "no cameras, crews, or delays" },
+              { value: 90, suffix: "%", label: "Lower cost than crew-based shoots", sub: "no cameras, crews, or locations" },
             ].map((stat, i) => (
               <motion.div key={i} variants={fadeUp} custom={i} className="text-center">
                 <div
@@ -910,7 +910,7 @@ export default function LandingPage() {
 
           {/* Content types produced */}
           <motion.div variants={fadeUp} custom={3} className="mt-14 flex flex-wrap items-center justify-center gap-3">
-            {["Short Films", "Feature Films", "Series & Episodes", "Music Videos", "Branded Cinema"].map((tag) => (
+            {["Short Films", "Feature Films", "Series & Episodes", "Music Videos", "Branded Content", "Micro-Dramas"].map((tag) => (
               <span
                 key={tag}
                 className="px-4 py-2 rounded-full border border-white/[0.06] bg-white/[0.02] text-[11px] tracking-wider uppercase text-neutral-500"
@@ -922,9 +922,9 @@ export default function LandingPage() {
 
           {/* Powered by */}
           <motion.div variants={fadeUp} custom={4} className="mt-8 flex items-center justify-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#E50914]" />
-            <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-neutral-600">
-              Powered by Seedance 2.0
+            <div className="w-1.5 h-1.5 rounded-full bg-[#D40A12]" />
+            <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-neutral-500">
+              Powered by Seedance 2.0 · Gemini · Wan2.1
             </span>
           </motion.div>
         </div>
@@ -950,7 +950,7 @@ export default function LandingPage() {
             style={{ fontFamily: "Anton, sans-serif" }}
             className="text-4xl md:text-7xl uppercase tracking-tight leading-[0.95]"
           >
-            MotionX doesn&apos;t generate videos.
+            MotionX doesn&apos;t generate clips.
           </motion.h2>
           <motion.h2
             variants={blurIn}
@@ -958,15 +958,15 @@ export default function LandingPage() {
             style={{ fontFamily: "Anton, sans-serif" }}
             className="text-4xl md:text-7xl uppercase tracking-tight leading-[0.95] shimmer-text mt-2"
           >
-            It helps you make films.
+            It directs cinema.
           </motion.h2>
           <motion.p
             variants={fadeUp}
             custom={3}
             className="text-lg md:text-xl text-neutral-500 mt-8 max-w-2xl mx-auto leading-relaxed"
           >
-            We don&apos;t help you make more videos faster. We give filmmakers a new way to make films —
-            with AI as your crew, your camera, and your editing suite.
+            Other tools generate random content. MotionX gives filmmakers full directorial control —
+            your vision drives every shot, scene, and cut. AI is your crew, not your replacement.
           </motion.p>
         </div>
       </Section>
@@ -987,7 +987,7 @@ export default function LandingPage() {
               className="text-4xl md:text-6xl uppercase tracking-tight"
             >
               A new way to{" "}
-              <span className="text-[#E50914]">make films</span>
+              <span className="text-[#D40A12]">make films</span>
             </motion.h2>
           </div>
 
@@ -996,7 +996,7 @@ export default function LandingPage() {
               {
                 icon: Clapperboard,
                 title: "Direct Without a Crew",
-                desc: "Go from script to screen with AI as your production team. No scheduling, no logistics, no delays.",
+                desc: "Go from script to screen with AI as your entire production team. No scheduling, no logistics, no compromises.",
                 accent: "🎬",
               },
               {
@@ -1022,7 +1022,7 @@ export default function LandingPage() {
                 key={i}
                 variants={scaleUp}
                 custom={i}
-                className="card-tilt group relative p-8 md:p-10 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#E50914]/20 hover:bg-white/[0.03] transition-all duration-500"
+                className="card-tilt group relative p-8 md:p-10 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#D40A12]/20 hover:bg-white/[0.03] transition-all duration-500"
               >
                 <div className="text-4xl mb-6" style={{ animation: `float ${3 + i * 0.5}s ease-in-out infinite` }}>{card.accent}</div>
                 <h3
@@ -1032,7 +1032,7 @@ export default function LandingPage() {
                   {card.title}
                 </h3>
                 <p className="text-[14px] text-neutral-500 leading-relaxed">{card.desc}</p>
-                <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#E50914]/0 to-transparent group-hover:via-[#E50914]/30 transition-all duration-500" />
+                <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#D40A12]/0 to-transparent group-hover:via-[#D40A12]/30 transition-all duration-500" />
               </motion.div>
             ))}
           </div>
@@ -1055,11 +1055,11 @@ export default function LandingPage() {
               style={{ fontFamily: "Anton, sans-serif" }}
               className="text-4xl md:text-6xl uppercase leading-[0.95] tracking-tight mb-6"
             >
-              Not just AI generation, {" "}
-              <span className="text-[#E50914]">real filmmaking control</span>
+              Not random AI clips — {" "}
+              <span className="text-[#D40A12]">full directorial control</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-lg text-neutral-500 leading-relaxed mb-8">
-              MotionX is built around how directors think. Instead of generating random clips, you control every creative decision.
+              MotionX is built around how directors think. You control framing, lighting, pacing, and performance — AI handles the execution.
             </motion.p>
             <motion.p variants={fadeUp} custom={2} className="text-base text-neutral-400 leading-relaxed">
               This allows filmmakers to produce <span className="text-white font-medium">cohesive, cinematic content</span> — not just isolated AI clips.
@@ -1078,10 +1078,10 @@ export default function LandingPage() {
                 key={i}
                 variants={fadeUp}
                 custom={i}
-                className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#E50914]/15 transition-all group"
+                className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#D40A12]/15 transition-all group"
               >
-                <div className="w-10 h-10 rounded-lg bg-[#E50914]/10 flex items-center justify-center mb-4 group-hover:bg-[#E50914]/15 transition-colors">
-                  <feat.icon size={18} className="text-[#E50914]" />
+                <div className="w-10 h-10 rounded-lg bg-[#D40A12]/10 flex items-center justify-center mb-4 group-hover:bg-[#D40A12]/15 transition-colors">
+                  <feat.icon size={18} className="text-[#D40A12]" />
                 </div>
                 <h4 style={{ fontFamily: "Anton, sans-serif" }} className="text-base uppercase tracking-wide mb-1">
                   {feat.title}
@@ -1106,7 +1106,7 @@ export default function LandingPage() {
               className="text-4xl md:text-6xl uppercase tracking-tight"
             >
               From script to final film{" "}
-              <span className="text-[#E50914]">in one workflow</span>
+              <span className="text-[#D40A12]">in one workflow</span>
             </motion.h2>
           </div>
 
@@ -1158,10 +1158,10 @@ export default function LandingPage() {
                 {/* Text */}
                 <div className="flex-1 w-full md:max-w-md">
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-[#E50914]/10 border border-[#E50914]/20 flex items-center justify-center flex-shrink-0" style={{ animation: 'border-pulse 3s ease-in-out infinite' }}>
+                    <div className="w-12 h-12 rounded-full bg-[#D40A12]/10 border border-[#D40A12]/20 flex items-center justify-center flex-shrink-0" style={{ animation: 'border-pulse 3s ease-in-out infinite' }}>
                       <span
                         style={{ fontFamily: "Anton, sans-serif" }}
-                        className="text-[#E50914] text-lg"
+                        className="text-[#D40A12] text-lg"
                       >
                         {item.step}
                       </span>
@@ -1199,7 +1199,7 @@ export default function LandingPage() {
               className="text-4xl md:text-6xl uppercase tracking-tight"
             >
               Your complete{" "}
-              <span className="text-[#E50914]">filmmaking studio</span>
+              <span className="text-[#D40A12]">filmmaking studio</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-neutral-500 mt-4 text-base md:text-lg max-w-xl mx-auto">
               Everything you need, from first draft to final export
@@ -1240,7 +1240,7 @@ export default function LandingPage() {
                 key={i}
                 variants={scaleUp}
                 custom={i}
-                className="card-tilt red-glow group relative rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#E50914]/20 hover:bg-white/[0.03] transition-all duration-500 overflow-hidden"
+                className="card-tilt red-glow group relative rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-[#D40A12]/20 hover:bg-white/[0.03] transition-all duration-500 overflow-hidden"
               >
                 {/* Screenshot */}
                 <div className="relative h-48 overflow-hidden">
@@ -1250,7 +1250,7 @@ export default function LandingPage() {
                     className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/60 to-transparent" />
                   <div className="absolute bottom-4 left-6 text-3xl">{card.phase}</div>
                 </div>
 
@@ -1262,7 +1262,7 @@ export default function LandingPage() {
                   >
                     {card.title}
                   </h3>
-                  <p className="text-[12px] text-[#E50914] font-medium tracking-wider uppercase mb-4">
+                  <p className="text-[12px] text-[#D40A12] font-medium tracking-wider uppercase mb-4">
                     {card.subtitle}
                   </p>
                   <p className="text-[14px] text-neutral-500 leading-relaxed mb-6">
@@ -1279,7 +1279,7 @@ export default function LandingPage() {
                     ))}
                   </div>
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#E50914]/0 to-transparent group-hover:via-[#E50914]/30 transition-all duration-500" />
+                <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#D40A12]/0 to-transparent group-hover:via-[#D40A12]/30 transition-all duration-500" />
               </motion.div>
             ))}
           </div>
@@ -1299,7 +1299,7 @@ export default function LandingPage() {
               className="text-4xl md:text-6xl uppercase tracking-tight"
             >
               Powerful tools for{" "}
-              <span className="text-[#E50914]">every stage</span>
+              <span className="text-[#D40A12]">every stage</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-neutral-500 mt-4 text-base md:text-lg max-w-xl mx-auto">
               A closer look at the tools that power your filmmaking workflow
@@ -1354,7 +1354,7 @@ export default function LandingPage() {
               style={{ fontFamily: "Anton, sans-serif" }}
               className="text-4xl md:text-6xl uppercase tracking-tight"
             >
-              Films made with <span className="text-[#E50914]">MotionX</span>
+              Films made with <span className="text-[#D40A12]">MotionX</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-neutral-500 mt-4 text-base md:text-lg max-w-xl mx-auto">
               Real cinematic clips — directed, generated, and edited entirely in MotionX Studio
@@ -1390,7 +1390,7 @@ export default function LandingPage() {
                 style={{ fontFamily: "Anton, sans-serif" }}
                 className="text-4xl md:text-6xl uppercase leading-[0.95] tracking-tight mb-6"
               >
-                Built for <span className="text-[#E50914]">studios</span><br />
+                Built for <span className="text-[#D40A12]">studios</span><br />
                 and teams
               </motion.h2>
               <motion.p variants={fadeUp} custom={1} className="text-lg text-neutral-500 leading-relaxed mb-6">
@@ -1404,7 +1404,7 @@ export default function LandingPage() {
                   href={CALENDLY_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_30px_rgba(229,9,20,0.3)]"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_30px_rgba(212,10,18,0.3)]"
                 >
                   Talk to Enterprise Sales <ArrowRight size={14} />
                 </a>
@@ -1425,7 +1425,7 @@ export default function LandingPage() {
                   custom={i}
                   className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.1] transition-all"
                 >
-                  <feat.icon size={22} className="text-[#E50914] mb-4" />
+                  <feat.icon size={22} className="text-[#D40A12] mb-4" />
                   <h4
                     style={{ fontFamily: "Anton, sans-serif" }}
                     className="text-base uppercase tracking-wide mb-2"
@@ -1450,19 +1450,19 @@ export default function LandingPage() {
             style={{ fontFamily: "Anton, sans-serif" }}
             className="text-4xl md:text-7xl uppercase tracking-tight mb-6"
           >
-            Start making{" "}
-            <span className="text-[#E50914]">your film</span>
+            Your film starts{" "}
+            <span className="text-[#D40A12]">here</span>
           </motion.h2>
           <motion.p variants={fadeUp} custom={1} className="text-neutral-500 text-lg mb-10 max-w-lg mx-auto">
-            From script to final cut — your AI filmmaking studio is ready.
+            From script to final cut — your AI production crew is standing by.
           </motion.p>
           <motion.div variants={fadeUp} custom={2} className="flex flex-col sm:flex-row items-center justify-center gap-4">
             {!IS_MAINTENANCE_MODE && (
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 px-10 py-4 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[13px] font-bold tracking-[0.12em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(229,9,20,0.25)]"
+                className="inline-flex items-center gap-2 px-10 py-4 bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[13px] font-bold tracking-[0.12em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(212,10,18,0.25)]"
               >
-                Start Creating Your Film <ArrowRight size={16} />
+                Start Directing <ArrowRight size={16} />
               </Link>
             )}
             <a
@@ -1480,12 +1480,12 @@ export default function LandingPage() {
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* 11. FOOTER                                                         */}
       {/* ════════════════════════════════════════════════════════════════════ */}
-      <footer className="bg-[#020202] pt-20 pb-10 px-6 md:px-10">
+      <footer className="bg-[#111111] pt-20 pb-10 px-6 md:px-10">
         <div className="max-w-[1400px] mx-auto">
           {/* Positioning Line */}
           <div className="mb-16 max-w-2xl">
             <p className="text-[14px] text-neutral-600 leading-relaxed italic">
-              MotionX doesn&apos;t generate videos. It helps you make films.
+              MotionX doesn&apos;t generate clips. It directs cinema.
             </p>
           </div>
 
@@ -1544,7 +1544,7 @@ export default function LandingPage() {
       {!IS_MAINTENANCE_MODE && (
         <Link
           href="/login"
-          className={`fixed bottom-6 right-6 z-50 px-6 py-3 bg-[#E50914] hover:bg-[#ff1a25] text-white text-[11px] font-bold tracking-[0.15em] uppercase rounded-full shadow-lg transition-all duration-500 flex items-center gap-2 ${showSticky
+          className={`fixed bottom-6 right-6 z-50 px-6 py-3 bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[11px] font-bold tracking-[0.15em] uppercase rounded-full shadow-lg transition-all duration-500 flex items-center gap-2 ${showSticky
             ? "translate-y-0 opacity-100"
             : "translate-y-4 opacity-0 pointer-events-none"
             }`}

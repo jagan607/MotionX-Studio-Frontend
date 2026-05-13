@@ -39,7 +39,7 @@ export const ReelSidebar: React.FC<ReelSidebarProps> = ({
     className = ""
 }) => {
     return (
-        <div id="tour-studio-sidebar" className={`w-[280px] bg-[#050505] border-r border-white/[0.06] flex flex-col shrink-0 ${className}`}>
+        <div id="tour-studio-sidebar" className={`w-[280px] bg-[#111111] border-r border-white/[0.06] flex flex-col shrink-0 ${className}`}>
 
             {/* --- REEL LIST SECTION --- */}
             <div className="p-6 border-b border-white/[0.06] flex-1 overflow-y-auto">
@@ -58,12 +58,12 @@ export const ReelSidebar: React.FC<ReelSidebarProps> = ({
                                 onClick={() => onSelectEpisode(ep.id)}
                                 className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-bold tracking-widest uppercase transition-all rounded-lg group
                                 ${isActive
-                                        ? "bg-white/[0.04] text-white border border-white/[0.08] border-l-2 border-l-[#E50914]"
+                                        ? "bg-white/[0.04] text-white border border-white/[0.08] border-l-2 border-l-[#D40A12]"
                                         : "text-neutral-600 hover:text-neutral-300 hover:bg-white/[0.02] border border-transparent"
                                     }`}
                             >
                                 <div className="flex items-center gap-3 overflow-hidden">
-                                    <Film size={14} className={isActive ? "text-[#E50914]" : "text-neutral-700 group-hover:text-neutral-500"} />
+                                    <Film size={14} className={isActive ? "text-[#D40A12]" : "text-neutral-700 group-hover:text-neutral-500"} />
                                     <span className="truncate max-w-[140px]" title={ep.title}>
                                         {ep.title || `EPISODE ${ep.episode_number}`}
                                     </span>
@@ -74,13 +74,13 @@ export const ReelSidebar: React.FC<ReelSidebarProps> = ({
                                         {onEditEpisode && (
                                             <div
                                                 onClick={(e) => { e.stopPropagation(); onEditEpisode(ep.id); }}
-                                                className="w-5 h-5 flex items-center justify-center rounded-full bg-[#E50914]/20 text-red-400 hover:bg-[#E50914] hover:text-white transition-colors border border-[#E50914]/30"
+                                                className="w-5 h-5 flex items-center justify-center rounded-full bg-[#D40A12]/20 text-red-400 hover:bg-[#D40A12] hover:text-white transition-colors border border-[#D40A12]/30"
                                                 title="Edit Script"
                                             >
                                                 <Layers size={10} />
                                             </div>
                                         )}
-                                        <div className="w-1.5 h-1.5 bg-[#E50914] rounded-full animate-pulse shadow-[0_0_8px_rgba(229,9,20,0.6)]" />
+                                        <div className="w-1.5 h-1.5 bg-[#D40A12] rounded-full animate-pulse shadow-[0_0_8px_rgba(212,10,18,0.6)]" />
                                     </div>
                                 )}
                             </button>
@@ -108,10 +108,10 @@ export const ReelSidebar: React.FC<ReelSidebarProps> = ({
             </div>
 
             {/* --- METADATA FOOTER --- */}
-            <div className="p-6 mt-auto bg-[#050505]">
+            <div className="p-6 mt-auto bg-[#111111]">
                 <div className="p-4 bg-white/[0.02] border border-white/[0.06] rounded-lg flex flex-col gap-2.5 relative overflow-hidden">
                     {/* Decorative accent */}
-                    <div className="absolute top-0 left-0 w-1 h-full bg-[#E50914]/25 rounded-full" />
+                    <div className="absolute top-0 left-0 w-1 h-full bg-[#D40A12]/25 rounded-full" />
 
                     <div className="flex justify-between items-center text-[9px] text-neutral-600 pl-3">
                         <span>Scenes</span>

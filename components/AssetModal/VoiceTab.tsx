@@ -43,7 +43,7 @@ export const VoiceTab: React.FC<VoiceTabProps> = ({
                         value={voiceSearch}
                         onChange={(e) => setVoiceSearch(e.target.value)}
                         style={{
-                            width: '100%', padding: '10px 10px 10px 35px', backgroundColor: '#050505',
+                            width: '100%', padding: '10px 10px 10px 35px', backgroundColor: '#111111',
                             border: '1px solid #222', borderRadius: '6px', color: 'white', fontSize: '12px', outline: 'none',
                             boxSizing: 'border-box'
                         }}
@@ -53,7 +53,7 @@ export const VoiceTab: React.FC<VoiceTabProps> = ({
 
             {/* 2. SCROLLABLE LIST SECTION */}
             {/* FIX: flex: 1 takes up remaining space, overflowY: auto enables scrolling ONLY here */}
-            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #222', borderRadius: '6px', backgroundColor: '#050505', minHeight: 0 }}>
+            <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #222', borderRadius: '6px', backgroundColor: '#111111', minHeight: 0 }}>
                 {isLoadingVoices ? (
                     <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', flexDirection: 'column', gap: '10px' }}>
                         <Loader2 className="force-spin" size={24} />

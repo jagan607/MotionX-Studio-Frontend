@@ -194,7 +194,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
 
     if (!activeScene) {
         return (
-            <div className="w-full h-full flex flex-col items-center justify-center text-center opacity-40 gap-4 bg-[#080808]">
+            <div className="w-full h-full flex flex-col items-center justify-center text-center opacity-40 gap-4 bg-[#161616]">
                 <div className="w-16 h-16 rounded-full border border-[#333] flex items-center justify-center bg-[#0A0A0A]">
                     <Save size={24} className="text-[#666]" />
                 </div>
@@ -227,7 +227,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                     <select
                         value={locationId}
                         onChange={handleLocationSelect}
-                        className={`w-full bg-[#111] border border-[#222] text-xs font-bold uppercase rounded-md py-2.5 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer
+                        className={`w-full bg-[#1a1a1a] border border-[#222] text-xs font-bold uppercase rounded-md py-2.5 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer
                             ${!locationId || locationId.startsWith('__raw__') ? 'text-yellow-600 border-yellow-900/30' : 'text-white'}
                         `}
                     >
@@ -253,7 +253,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                     <select
                         value={timeOfDay}
                         onChange={(e) => { setTimeOfDay(e.target.value); setIsDirty(true); }}
-                        className="w-full bg-[#111] border border-[#222] text-xs font-mono text-[#CCC] rounded-md py-2.5 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer"
+                        className="w-full bg-[#1a1a1a] border border-[#222] text-xs font-mono text-[#CCC] rounded-md py-2.5 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer"
                     >
                         <option value="DAY">DAY</option>
                         <option value="NIGHT">NIGHT</option>
@@ -288,7 +288,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                     onChange={(e) => { setSummary(e.target.value); setIsDirty(true); }}
                     placeholder="Describe the visual action..."
                     disabled={isProcessing}
-                    className={`w-full ${isWide ? 'h-36' : 'h-28'} bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#333] text-sm text-white p-3 rounded-lg focus:outline-none focus:border-red-500/30 focus:bg-[#111] focus:shadow-[inset_0_1px_4px_rgba(0,0,0,0.4)] resize-none leading-relaxed placeholder:text-[#333] transition-all shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)] ${isProcessing ? 'opacity-40' : ''}`}
+                    className={`w-full ${isWide ? 'h-36' : 'h-28'} bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#333] text-sm text-white p-3 rounded-lg focus:outline-none focus:border-red-500/30 focus:bg-[#1a1a1a] focus:shadow-[inset_0_1px_4px_rgba(0,0,0,0.4)] resize-none leading-relaxed placeholder:text-[#333] transition-all shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)] ${isProcessing ? 'opacity-40' : ''}`}
                 />
                 {isProcessing && (
                     <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 backdrop-blur-[2px]">
@@ -338,7 +338,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                 {onUpdateCast && (
                     <div className="relative">
                         <select
-                            className="appearance-none pl-3 pr-8 py-1.5 bg-[#111] border border-[#222] text-[#666] hover:text-[#888] hover:border-[#333] text-[10px] font-bold uppercase rounded-full outline-none cursor-pointer transition-colors focus:border-[#444] focus:text-white"
+                            className="appearance-none pl-3 pr-8 py-1.5 bg-[#1a1a1a] border border-[#222] text-[#666] hover:text-[#888] hover:border-[#333] text-[10px] font-bold uppercase rounded-full outline-none cursor-pointer transition-colors focus:border-[#444] focus:text-white"
                             onChange={(e) => { if (e.target.value) { handleAddCharacter(e.target.value); e.target.value = ""; } }}
                             value=""
                         >
@@ -371,7 +371,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                 {onUpdateScene && (
                     <div className="relative">
                         <select
-                            className="appearance-none pl-3 pr-8 py-1.5 bg-[#111] border border-[#222] text-[#666] hover:text-[#888] hover:border-[#333] text-[10px] font-bold uppercase rounded-full outline-none cursor-pointer transition-colors focus:border-[#444] focus:text-white"
+                            className="appearance-none pl-3 pr-8 py-1.5 bg-[#1a1a1a] border border-[#222] text-[#666] hover:text-[#888] hover:border-[#333] text-[10px] font-bold uppercase rounded-full outline-none cursor-pointer transition-colors focus:border-[#444] focus:text-white"
                             onChange={(e) => { if (e.target.value) { handleAddProduct(e.target.value); e.target.value = ""; } }}
                             value=""
                         >
@@ -453,7 +453,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                     value={instruction}
                     onChange={(e) => setInstruction(e.target.value)}
                     placeholder="Ask AI to rewrite, expand, or adjust tone..."
-                    className={`w-full p-3 pr-12 text-xs rounded-lg bg-[#0A0A0A] border border-[#1E1E1E] hover:border-[#333] text-white font-mono focus:outline-none focus:border-red-500/30 focus:bg-[#111] focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all resize-none ${isWide ? 'h-24' : 'h-20'} placeholder:text-[#333]`}
+                    className={`w-full p-3 pr-12 text-xs rounded-lg bg-[#0A0A0A] border border-[#1E1E1E] hover:border-[#333] text-white font-mono focus:outline-none focus:border-red-500/30 focus:bg-[#1a1a1a] focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all resize-none ${isWide ? 'h-24' : 'h-20'} placeholder:text-[#333]`}
                 />
                 <button
                     onClick={() => onExecuteAi(instruction)}
@@ -470,7 +470,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
     // ─── WIDE LAYOUT (Two-column modal) ───
     if (isWide) {
         return (
-            <div className="flex flex-col h-full bg-[#050505] text-[#EEE] font-sans">
+            <div className="flex flex-col h-full bg-[#111111] text-[#EEE] font-sans">
                 <div className="flex-1 overflow-y-auto p-6">
                     <div className="grid grid-cols-[1.2fr_1fr] gap-8">
                         {/* LEFT COLUMN: Content & AI */}
@@ -491,7 +491,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                 </div>
 
                 {/* FOOTER */}
-                <div className="px-6 py-4 bg-[#050505] border-t border-[#111] shrink-0 flex items-center justify-between">
+                <div className="px-6 py-4 bg-[#111111] border-t border-[#111] shrink-0 flex items-center justify-between">
                     <button
                         onClick={onCancelSelection}
                         className="px-5 py-2.5 text-[10px] font-bold tracking-widest uppercase text-white/40 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
@@ -508,7 +508,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                                     if (isDirty) handleSaveChanges();
                                     onEnterProduction();
                                 }}
-                                className="flex items-center gap-2 px-6 py-2.5 text-[10px] font-bold tracking-widest uppercase text-white bg-[#E50914] hover:bg-[#F6121D] rounded-lg transition-colors shadow-[0_0_20px_rgba(229,9,20,0.3)] cursor-pointer"
+                                className="flex items-center gap-2 px-6 py-2.5 text-[10px] font-bold tracking-widest uppercase text-white bg-[#D40A12] hover:bg-[#F6121D] rounded-lg transition-colors shadow-[0_0_20px_rgba(212,10,18,0.3)] cursor-pointer"
                             >
                                 <Play size={12} className="fill-current" />
                                 Enter Production
@@ -522,7 +522,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
 
     // ─── NARROW LAYOUT (Original single-column for SceneBin) ───
     return (
-        <div className="flex flex-col h-full bg-[#050505] text-[#EEE] font-sans">
+        <div className="flex flex-col h-full bg-[#111111] text-[#EEE] font-sans">
 
 
 
@@ -541,7 +541,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                             <select
                                 value={locationId}
                                 onChange={handleLocationSelect}
-                                className={`w-full bg-[#111] border border-[#222] text-xs font-bold uppercase rounded-md py-2.5 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer
+                                className={`w-full bg-[#1a1a1a] border border-[#222] text-xs font-bold uppercase rounded-md py-2.5 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer
                                     ${!locationId || locationId.startsWith('__raw__') ? 'text-yellow-600 border-yellow-900/30' : 'text-white'}
                                 `}
                             >
@@ -568,7 +568,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                             <select
                                 value={timeOfDay}
                                 onChange={(e) => { setTimeOfDay(e.target.value); setIsDirty(true); }}
-                                className="w-full bg-[#111] border border-[#222] text-xs font-mono text-[#CCC] rounded-md py-2.5 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer"
+                                className="w-full bg-[#1a1a1a] border border-[#222] text-xs font-mono text-[#CCC] rounded-md py-2.5 pl-9 pr-3 outline-none focus:border-[#444] focus:bg-[#161616] transition-colors appearance-none cursor-pointer"
                             >
                                 <option value="DAY">DAY</option>
                                 <option value="NIGHT">NIGHT</option>
@@ -603,7 +603,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                             onChange={(e) => { setSummary(e.target.value); setIsDirty(true); }}
                             placeholder="Describe the visual action..."
                             disabled={isProcessing}
-                            className={`w-full h-28 bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#333] text-sm text-white p-3 rounded-lg focus:outline-none focus:border-red-500/30 focus:bg-[#111] focus:shadow-[inset_0_1px_4px_rgba(0,0,0,0.4)] resize-none leading-relaxed placeholder:text-[#333] transition-all shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)] ${isProcessing ? 'opacity-40' : ''}`}
+                            className={`w-full h-28 bg-[#0C0C0C] border border-[#1A1A1A] hover:border-[#333] text-sm text-white p-3 rounded-lg focus:outline-none focus:border-red-500/30 focus:bg-[#1a1a1a] focus:shadow-[inset_0_1px_4px_rgba(0,0,0,0.4)] resize-none leading-relaxed placeholder:text-[#333] transition-all shadow-[inset_0_1px_3px_rgba(0,0,0,0.2)] ${isProcessing ? 'opacity-40' : ''}`}
                         />
                         {isProcessing && (
                             <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 backdrop-blur-[2px]">
@@ -656,7 +656,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                         {onUpdateCast && (
                             <div className="relative">
                                 <select
-                                    className="appearance-none pl-3 pr-8 py-1.5 bg-[#111] border border-[#222] text-[#666] hover:text-[#888] hover:border-[#333] text-[10px] font-bold uppercase rounded-full outline-none cursor-pointer transition-colors focus:border-[#444] focus:text-white"
+                                    className="appearance-none pl-3 pr-8 py-1.5 bg-[#1a1a1a] border border-[#222] text-[#666] hover:text-[#888] hover:border-[#333] text-[10px] font-bold uppercase rounded-full outline-none cursor-pointer transition-colors focus:border-[#444] focus:text-white"
                                     onChange={(e) => { if (e.target.value) { handleAddCharacter(e.target.value); e.target.value = ""; } }}
                                     value=""
                                 >
@@ -693,7 +693,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                             {onUpdateScene && (
                                 <div className="relative">
                                     <select
-                                        className="appearance-none pl-3 pr-8 py-1.5 bg-[#111] border border-[#222] text-[#666] hover:text-[#888] hover:border-[#333] text-[10px] font-bold uppercase rounded-full outline-none cursor-pointer transition-colors focus:border-[#444] focus:text-white"
+                                        className="appearance-none pl-3 pr-8 py-1.5 bg-[#1a1a1a] border border-[#222] text-[#666] hover:text-[#888] hover:border-[#333] text-[10px] font-bold uppercase rounded-full outline-none cursor-pointer transition-colors focus:border-[#444] focus:text-white"
                                         onChange={(e) => { if (e.target.value) { handleAddProduct(e.target.value); e.target.value = ""; } }}
                                         value=""
                                     >
@@ -814,7 +814,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
                             value={instruction}
                             onChange={(e) => setInstruction(e.target.value)}
                             placeholder="Ask AI to rewrite, expand, or adjust tone..."
-                            className="w-full p-3 pr-12 text-xs rounded-lg bg-[#0A0A0A] border border-[#1E1E1E] hover:border-[#333] text-white font-mono focus:outline-none focus:border-red-500/30 focus:bg-[#111] focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all resize-none h-20 placeholder:text-[#333]"
+                            className="w-full p-3 pr-12 text-xs rounded-lg bg-[#0A0A0A] border border-[#1E1E1E] hover:border-[#333] text-white font-mono focus:outline-none focus:border-red-500/30 focus:bg-[#1a1a1a] focus:shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] transition-all resize-none h-20 placeholder:text-[#333]"
                         />
                         <button
                             onClick={() => onExecuteAi(instruction)}
@@ -830,7 +830,7 @@ export const DirectorConsole: React.FC<DirectorConsoleProps> = ({
             </div>
 
             {/* FOOTER */}
-            <div className="p-4 bg-[#050505] border-t border-[#111] shrink-0">
+            <div className="p-4 bg-[#111111] border-t border-[#111] shrink-0">
                 <button
                     onClick={handleSaveChanges}
                     disabled={!isDirty}

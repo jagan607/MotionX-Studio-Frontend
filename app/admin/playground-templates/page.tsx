@@ -315,11 +315,11 @@ export default function AdminPlaygroundTemplatesPage() {
                             className={`rounded-lg overflow-hidden border-2 transition-all ${
                                 t.visible
                                     ? "border-green-600/50 bg-[#0A0A0A]"
-                                    : "border-[#222] bg-[#080808] opacity-60"
+                                    : "border-[#222] bg-[#161616] opacity-60"
                             }`}
                         >
                             {/* Video preview */}
-                            <div className="aspect-video relative bg-[#111]">
+                            <div className="aspect-video relative bg-[#1a1a1a]">
                                 {t.previewVideoUrl ? (
                                     <video
                                         src={t.previewVideoUrl}
@@ -331,7 +331,7 @@ export default function AdminPlaygroundTemplatesPage() {
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center"
-                                        style={{ background: `linear-gradient(135deg, ${t.accent}20, #0a0a0a)` }}>
+                                        style={{ background: `linear-gradient(135deg, ${t.accent}20, #1a1a1a)` }}>
                                         <Video size={28} className="text-[#333]" />
                                     </div>
                                 )}
@@ -432,7 +432,7 @@ export default function AdminPlaygroundTemplatesPage() {
                                                 : { style: "", fightType: "hand", requiredImages: 2, accent: "#EF4444", emoji: "👊" };
                                             setEditing({ ...editing, family: fam, ...defaults });
                                         }}
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
+                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
                                     >
                                         {FAMILY_OPTIONS.map((o) => (
                                             <option key={o.value} value={o.value}>{o.label}</option>
@@ -453,7 +453,7 @@ export default function AdminPlaygroundTemplatesPage() {
                                                     emoji: opt?.emoji || editing.emoji,
                                                 });
                                             }}
-                                            className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
+                                            className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
                                         >
                                             {STYLE_OPTIONS.map((o) => (
                                                 <option key={o.value} value={o.value}>{o.emoji} {o.label}</option>
@@ -473,7 +473,7 @@ export default function AdminPlaygroundTemplatesPage() {
                                                     emoji: opt?.emoji || editing.emoji,
                                                 });
                                             }}
-                                            className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
+                                            className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
                                         >
                                             {FIGHT_OPTIONS.map((o) => (
                                                 <option key={o.value} value={o.value}>{o.emoji} {o.label}</option>
@@ -489,7 +489,7 @@ export default function AdminPlaygroundTemplatesPage() {
                                     <select
                                         value={editing.duration}
                                         onChange={(e) => setEditing({ ...editing, duration: e.target.value })}
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
+                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
                                     >
                                         <option value="5">5s</option>
                                         <option value="10">10s</option>
@@ -501,14 +501,14 @@ export default function AdminPlaygroundTemplatesPage() {
                                         type="number"
                                         value={editing.order}
                                         onChange={(e) => setEditing({ ...editing, order: Number(e.target.value) })}
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
+                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
                                     />
                                 </FormField>
                                 <FormField label="Required Images">
                                     <select
                                         value={editing.requiredImages}
                                         onChange={(e) => setEditing({ ...editing, requiredImages: Number(e.target.value) as 1 | 2 })}
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
+                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
                                     >
                                         <option value={1}>1 (Transform)</option>
                                         <option value={2}>2 (Fight)</option>
@@ -523,7 +523,7 @@ export default function AdminPlaygroundTemplatesPage() {
                                         value={editing.title}
                                         onChange={(e) => setEditing({ ...editing, title: e.target.value })}
                                         placeholder="Ground / Land"
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-red-600"
+                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-red-600"
                                     />
                                 </FormField>
                                 <FormField label="Subtitle">
@@ -531,7 +531,7 @@ export default function AdminPlaygroundTemplatesPage() {
                                         value={editing.subtitle}
                                         onChange={(e) => setEditing({ ...editing, subtitle: e.target.value })}
                                         placeholder="5s Transformation"
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-red-600"
+                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-red-600"
                                     />
                                 </FormField>
                             </div>
@@ -549,7 +549,7 @@ export default function AdminPlaygroundTemplatesPage() {
                                         <input
                                             value={editing.accent}
                                             onChange={(e) => setEditing({ ...editing, accent: e.target.value })}
-                                            className="flex-1 bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
+                                            className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
                                         />
                                     </div>
                                 </FormField>
@@ -557,7 +557,7 @@ export default function AdminPlaygroundTemplatesPage() {
                                     <input
                                         value={editing.emoji}
                                         onChange={(e) => setEditing({ ...editing, emoji: e.target.value })}
-                                        className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
+                                        className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-red-600"
                                     />
                                 </FormField>
                             </div>
@@ -568,7 +568,7 @@ export default function AdminPlaygroundTemplatesPage() {
                                     value={editing.previewVideoUrl}
                                     onChange={(e) => setEditing({ ...editing, previewVideoUrl: e.target.value })}
                                     placeholder="https://firebasestorage.googleapis.com/..."
-                                    className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-red-600"
+                                    className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-red-600"
                                 />
                                 {editing.previewVideoUrl && (
                                     <video
@@ -586,7 +586,7 @@ export default function AdminPlaygroundTemplatesPage() {
                                     onChange={(e) => setEditing({ ...editing, promptText: e.target.value })}
                                     placeholder="Full Seedance 2.0 prompt for this template..."
                                     rows={8}
-                                    className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-red-600 resize-y"
+                                    className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-sm font-mono text-white placeholder-[#444] focus:outline-none focus:border-red-600 resize-y"
                                 />
                             </FormField>
 

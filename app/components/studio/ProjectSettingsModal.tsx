@@ -109,10 +109,10 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="w-full max-w-2xl bg-[#050505] border border-[#222] shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="w-full max-w-2xl bg-[#111111] border border-[#222] shadow-2xl flex flex-col max-h-[90vh]">
 
                 {/* HEADER */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-[#222] bg-[#080808]">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-[#222] bg-[#161616]">
                     <div className="flex items-center gap-2">
                         <Sliders size={16} className="text-red-600" />
                         <h2 className="text-sm font-bold text-white uppercase tracking-widest">Project Configuration</h2>
@@ -188,7 +188,7 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({
                 </div>
 
                 {/* FOOTER */}
-                <div className="p-6 border-t border-[#222] bg-[#080808] flex justify-end gap-3">
+                <div className="p-6 border-t border-[#222] bg-[#161616] flex justify-end gap-3">
                     <button onClick={onClose} disabled={isSaving} className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-[#666] hover:text-white transition-colors">
                         Cancel
                     </button>

@@ -59,7 +59,7 @@ function ToolBtn({
                 disabled
                     ? "text-neutral-700 cursor-not-allowed"
                     : active
-                    ? "bg-[#E50914]/20 text-[#E50914] hover:bg-[#E50914]/30"
+                    ? "bg-[#D40A12]/20 text-[#D40A12] hover:bg-[#D40A12]/30"
                     : "text-neutral-500 hover:text-white hover:bg-[#1a1a1a]"
             }`}
             title={title}
@@ -99,7 +99,7 @@ export default function TransportControls({
     hasVideo,
 }: TransportControlsProps) {
     return (
-        <div className="h-10 bg-[#080808] border-y border-[#1a1a1a] flex items-center justify-between px-3 shrink-0 gap-1">
+        <div className="h-10 bg-[#161616] border-y border-[#1a1a1a] flex items-center justify-between px-3 shrink-0 gap-1">
             {/* LEFT: Undo/Redo + Timecodes */}
             <div className="flex items-center gap-1 min-w-[200px]">
                 <ToolBtn onClick={onUndo} title="Undo (⌘Z)" disabled={!canUndo}>
@@ -130,8 +130,8 @@ export default function TransportControls({
                     onClick={onTogglePlay}
                     className={`p-2 rounded-full mx-1 transition-all ${
                         isPlaying
-                            ? "bg-[#E50914] text-white shadow-lg shadow-[#E50914]/25"
-                            : "bg-[#1a1a1a] text-white hover:bg-[#E50914] hover:shadow-lg hover:shadow-[#E50914]/25"
+                            ? "bg-[#D40A12] text-white shadow-lg shadow-[#D40A12]/25"
+                            : "bg-[#1a1a1a] text-white hover:bg-[#D40A12] hover:shadow-lg hover:shadow-[#D40A12]/25"
                     }`}
                     title="Play/Pause (Space)"
                 >
@@ -176,9 +176,9 @@ export default function TransportControls({
                     <Repeat size={13} />
                 </ToolBtn>
                 {loopingClipName && (
-                    <div className="flex items-center gap-1.5 ml-1 px-2 py-0.5 rounded bg-[#E50914]/10 border border-[#E50914]/20">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#E50914] animate-pulse" />
-                        <span className="text-[8px] font-mono text-[#E50914] tracking-wider uppercase">
+                    <div className="flex items-center gap-1.5 ml-1 px-2 py-0.5 rounded bg-[#D40A12]/10 border border-[#D40A12]/20">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#D40A12] animate-pulse" />
+                        <span className="text-[8px] font-mono text-[#D40A12] tracking-wider uppercase">
                             LOOP: {loopingClipName.length > 12 ? loopingClipName.slice(0, 12) + "…" : loopingClipName}
                         </span>
                     </div>

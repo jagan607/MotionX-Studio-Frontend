@@ -80,7 +80,7 @@ export const ZoomOverlay: React.FC<ZoomOverlayProps> = ({ media, onClose, styles
                                     padding: '8px 20px',
                                     borderRadius: '20px',
                                     border: 'none',
-                                    backgroundColor: mode === 'original' ? '#E50914' : 'transparent',
+                                    backgroundColor: mode === 'original' ? '#D40A12' : 'transparent',
                                     color: 'white',
                                     fontWeight: 'bold',
                                     cursor: 'pointer',

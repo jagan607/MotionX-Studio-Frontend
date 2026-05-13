@@ -77,14 +77,14 @@ export default function ProfilePage() {
     // --- RENDER ---
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+            <div className="min-h-screen bg-[#111111] flex items-center justify-center">
                 <Loader2 className="animate-spin text-[#333]" size={28} />
             </div>
         );
     }
 
     return (
-        <main className="min-h-screen bg-[#050505] py-14 px-5">
+        <main className="min-h-screen bg-[#111111] py-14 px-5">
             <div className="max-w-[880px] mx-auto">
 
                 {/* HEADER & NAV */}

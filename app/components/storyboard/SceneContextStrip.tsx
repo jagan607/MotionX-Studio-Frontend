@@ -85,7 +85,7 @@ export const SceneContextStrip: React.FC<SceneContextStripProps> = ({
                 {/* Scene Identity */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexShrink: 0 }}>
                     <div style={{
-                        color: '#E50914',
+                        color: '#D40A12',
                         fontFamily: 'Anton, sans-serif',
                         fontSize: '24px',
                         letterSpacing: '1px',
@@ -252,20 +252,20 @@ export const SceneContextStrip: React.FC<SceneContextStripProps> = ({
                             <button
                                 onClick={onEditMood}
                                 style={{
-                                    fontSize: '8px', fontWeight: 'bold', color: '#E50914',
+                                    fontSize: '8px', fontWeight: 'bold', color: '#D40A12',
                                     backgroundColor: 'transparent',
-                                    border: '1px solid rgba(229, 9, 20, 0.15)',
+                                    border: '1px solid rgba(212, 10, 18, 0.15)',
                                     borderRadius: '3px', padding: '3px 8px',
                                     cursor: 'pointer', textTransform: 'uppercase',
                                     letterSpacing: '0.5px', transition: 'all 0.2s'
                                 }}
                                 onMouseOver={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'rgba(229, 9, 20, 0.06)';
-                                    e.currentTarget.style.borderColor = 'rgba(229, 9, 20, 0.3)';
+                                    e.currentTarget.style.backgroundColor = 'rgba(212, 10, 18, 0.06)';
+                                    e.currentTarget.style.borderColor = 'rgba(212, 10, 18, 0.3)';
                                 }}
                                 onMouseOut={(e) => {
                                     e.currentTarget.style.backgroundColor = 'transparent';
-                                    e.currentTarget.style.borderColor = 'rgba(229, 9, 20, 0.15)';
+                                    e.currentTarget.style.borderColor = 'rgba(212, 10, 18, 0.15)';
                                 }}
                             >
                                 EDIT
@@ -293,7 +293,7 @@ export const SceneContextStrip: React.FC<SceneContextStripProps> = ({
                         justifyContent: 'space-between',
                         padding: '10px 16px',
                         borderBottom: '1px solid #151515',
-                        backgroundColor: '#080808'
+                        backgroundColor: '#161616'
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <FileText size={12} style={{ color: '#555' }} />
@@ -426,7 +426,7 @@ export const SceneContextStrip: React.FC<SceneContextStripProps> = ({
                                                 <div style={{
                                                     fontSize: '10px',
                                                     fontWeight: '700',
-                                                    color: '#E50914',
+                                                    color: '#D40A12',
                                                     letterSpacing: '1px',
                                                     textTransform: 'uppercase',
                                                     marginBottom: '3px'

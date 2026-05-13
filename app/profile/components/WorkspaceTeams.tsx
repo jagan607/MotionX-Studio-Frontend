@@ -195,17 +195,17 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
     return (
         <>
             {/* ═══ WORKSPACE TEAMS SECTION ═══ */}
-            <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl">
+            <div className="bg-[#161616] border border-[#1a1a1a] rounded-xl">
                 {/* Header */}
                 <div className="flex items-center gap-3 p-5 border-b border-[#1a1a1a]">
-                    <FolderKanban size={16} className="text-[#E50914]" />
+                    <FolderKanban size={16} className="text-[#D40A12]" />
                     <h3 className="text-sm font-bold text-white uppercase tracking-wide">Workspace Teams</h3>
                     <span className="text-[9px] font-mono text-[#555] ml-auto mr-3">
                         {teams.length} team{teams.length !== 1 ? "s" : ""}
                     </span>
                     <button
                         onClick={openCreateModal}
-                        className="flex items-center gap-1.5 bg-white text-black hover:bg-[#E50914] hover:text-white px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest transition-all rounded-md"
+                        className="flex items-center gap-1.5 bg-white text-black hover:bg-[#D40A12] hover:text-white px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest transition-all rounded-md"
                     >
                         <Plus size={12} /> Create Team
                     </button>
@@ -263,7 +263,7 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
                                             </td>
                                             <td className="p-4">
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="text-[9px] font-mono text-[#888] bg-[#111] border border-[#222] px-2 py-0.5 rounded">
+                                                    <span className="text-[9px] font-mono text-[#888] bg-[#1a1a1a] border border-[#222] px-2 py-0.5 rounded">
                                                         <Users size={10} className="inline mr-1 -mt-px" />
                                                         {team.members?.length || 0}
                                                     </span>
@@ -283,7 +283,7 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
                                             <td className="p-4">
                                                 <span className={`text-[9px] font-mono px-2 py-0.5 rounded border ${teamProjects.length > 0
                                                     ? "text-purple-400 bg-purple-900/10 border-purple-900/30"
-                                                    : "text-[#555] bg-[#111] border-[#222]"
+                                                    : "text-[#555] bg-[#1a1a1a] border-[#222]"
                                                     }`}>
                                                     <Film size={10} className="inline mr-1 -mt-px" />
                                                     {teamProjects.length} project{teamProjects.length !== 1 ? "s" : ""}
@@ -302,7 +302,7 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
                                                         onClick={() => handleDelete(team)}
                                                         disabled={deletingTeamId === team.id}
                                                         title="Delete team"
-                                                        className="p-2 text-[#666] hover:text-[#E50914] hover:bg-[#E50914]/10 rounded-md transition-all disabled:opacity-50 inline-flex items-center justify-center"
+                                                        className="p-2 text-[#666] hover:text-[#D40A12] hover:bg-[#D40A12]/10 rounded-md transition-all disabled:opacity-50 inline-flex items-center justify-center"
                                                     >
                                                         {deletingTeamId === team.id ? (
                                                             <Loader2 size={13} className="animate-spin" />
@@ -326,7 +326,7 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
                                                                 {teamProjects.map((p) => (
                                                                     <div
                                                                         key={p.id}
-                                                                        className="flex items-center gap-1.5 text-[9px] font-mono text-[#aaa] bg-[#111] border border-[#222] pl-2.5 pr-1 py-1 rounded-md group/pill"
+                                                                        className="flex items-center gap-1.5 text-[9px] font-mono text-[#aaa] bg-[#1a1a1a] border border-[#222] pl-2.5 pr-1 py-1 rounded-md group/pill"
                                                                     >
                                                                         <Film size={10} className="text-purple-400 shrink-0" />
                                                                         <Link
@@ -342,7 +342,7 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
                                                                         <button
                                                                             onClick={() => handleUpdateProjectTeams(p, team.id, "remove")}
                                                                             disabled={updatingProjectId === p.id}
-                                                                            className="p-1 text-[#555] hover:text-[#E50914] hover:bg-[#E50914]/10 rounded transition-all opacity-0 group-hover/pill:opacity-100 disabled:opacity-50"
+                                                                            className="p-1 text-[#555] hover:text-[#D40A12] hover:bg-[#D40A12]/10 rounded transition-all opacity-0 group-hover/pill:opacity-100 disabled:opacity-50"
                                                                             title="Remove from team"
                                                                         >
                                                                             {updatingProjectId === p.id ? (
@@ -417,7 +417,7 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
 
             {/* ═══ GLOBAL PROJECTS SECTION ═══ */}
             {globalProjects.length > 0 && (
-                <div className="bg-[#080808] border border-[#1a1a1a] rounded-xl overflow-hidden">
+                <div className="bg-[#161616] border border-[#1a1a1a] rounded-xl overflow-hidden">
                     <div className="flex items-center gap-3 p-5 border-b border-[#1a1a1a]">
                         <Globe size={16} className="text-blue-400" />
                         <h3 className="text-sm font-bold text-white uppercase tracking-wide">Global Workspace Projects</h3>
@@ -431,11 +431,11 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
                                 <Link
                                     key={p.id}
                                     href={`/project/${p.id}/studio`}
-                                    className="flex items-center gap-2 text-[10px] font-mono text-white bg-[#111] border border-[#222] px-3 py-2 rounded-lg hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group"
+                                    className="flex items-center gap-2 text-[10px] font-mono text-white bg-[#1a1a1a] border border-[#222] px-3 py-2 rounded-lg hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group"
                                 >
                                     <Globe size={11} className="text-blue-400 shrink-0" />
                                     <span className="truncate max-w-[200px]">{p.title}</span>
-                                    <span className="text-[7px] text-[#555] uppercase bg-[#0a0a0a] px-1.5 py-0.5 rounded">
+                                    <span className="text-[7px] text-[#555] uppercase bg-[#1a1a1a] px-1.5 py-0.5 rounded">
                                         {p.type === 'movie' ? 'Feature Film' : 'Series'}
                                     </span>
                                 </Link>
@@ -450,11 +450,11 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
                 <div className="fixed inset-0 z-[100] flex items-center justify-center">
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={closeModal} />
 
-                    <div className="relative z-10 w-full max-w-lg bg-[#080808] border border-[#222] shadow-2xl rounded-xl">
+                    <div className="relative z-10 w-full max-w-lg bg-[#161616] border border-[#222] shadow-2xl rounded-xl">
                         {/* Header */}
                         <div className="flex items-center justify-between p-6 border-b border-[#222]">
                             <div className="flex items-center gap-3">
-                                <FolderKanban size={18} className="text-[#E50914]" />
+                                <FolderKanban size={18} className="text-[#D40A12]" />
                                 <h3 className="font-anton text-xl text-white uppercase tracking-wide">
                                     {editingTeam ? "Edit Team" : "Create Team"}
                                 </h3>
@@ -473,7 +473,7 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
                                     value={teamName}
                                     onChange={(e) => setTeamName(e.target.value)}
                                     placeholder="e.g. Design, Engineering, Marketing"
-                                    className="w-full bg-[#111] border border-[#333] text-white p-3 text-xs font-mono focus:border-[#E50914] outline-none transition-colors rounded-lg"
+                                    className="w-full bg-[#1a1a1a] border border-[#333] text-white p-3 text-xs font-mono focus:border-[#D40A12] outline-none transition-colors rounded-lg"
                                     onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                                 />
                             </div>
@@ -498,13 +498,13 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
                                                     type="button"
                                                     onClick={() => toggleMember(m.email)}
                                                     className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${isSelected
-                                                        ? "bg-[#E50914]/5"
-                                                        : "bg-transparent hover:bg-[#111]"
+                                                        ? "bg-[#D40A12]/5"
+                                                        : "bg-transparent hover:bg-[#1a1a1a]"
                                                         }`}
                                                 >
                                                     {/* Checkbox */}
                                                     <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected
-                                                        ? "bg-[#E50914] border-[#E50914]"
+                                                        ? "bg-[#D40A12] border-[#D40A12]"
                                                         : "border-[#444] bg-transparent"
                                                         }`}>
                                                         {isSelected && <Check size={10} className="text-white" />}
@@ -519,7 +519,7 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
                                                     </div>
 
                                                     {/* Role badge */}
-                                                    <span className="text-[8px] font-mono text-[#555] bg-[#111] border border-[#222] px-1.5 py-0.5 rounded uppercase tracking-widest shrink-0">
+                                                    <span className="text-[8px] font-mono text-[#555] bg-[#1a1a1a] border border-[#222] px-1.5 py-0.5 rounded uppercase tracking-widest shrink-0">
                                                         {m.role || "member"}
                                                     </span>
                                                 </button>
@@ -540,7 +540,7 @@ export default function WorkspaceTeams({ members, projects, refreshProjects }: W
                                 <button
                                     onClick={handleSubmit}
                                     disabled={submitting}
-                                    className="flex items-center gap-2 bg-white text-black hover:bg-[#E50914] hover:text-white px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50 rounded-lg"
+                                    className="flex items-center gap-2 bg-white text-black hover:bg-[#D40A12] hover:text-white px-6 py-2.5 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50 rounded-lg"
                                 >
                                     {submitting ? (
                                         <><Loader2 size={13} className="animate-spin" /> Saving...</>

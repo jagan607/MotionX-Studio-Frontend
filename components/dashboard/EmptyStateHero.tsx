@@ -79,22 +79,22 @@ export default function EmptyStateHero() {
             />
             {/* Fallback gradient while video loads */}
             <div className={`absolute inset-0 transition-opacity duration-1000 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}
-                style={{ background: 'linear-gradient(135deg, #1a0000, #0a0a0a, #0a0505)' }} />
+                style={{ background: 'linear-gradient(135deg, #1a0000, #1a1a1a, #0a0505)' }} />
             {/* Video loading indicator */}
             {!videoLoaded && (
                 <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/40 backdrop-blur-sm border border-white/[0.04]">
-                    <div className="w-3 h-3 rounded-full border border-white/10 border-t-[#E50914]/40 animate-spin" />
+                    <div className="w-3 h-3 rounded-full border border-white/10 border-t-[#D40A12]/40 animate-spin" />
                     <span className="text-[8px] font-mono text-white/20 uppercase tracking-wider">Loading cinematic</span>
                 </div>
             )}
             {/* Dark overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-[#0a0a0a]/40" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-[#1a1a1a]/60 to-[#1a1a1a]/40" />
 
             {/* Content */}
             <div className="relative z-10 flex flex-col items-center text-center px-6 sm:px-10 py-12 sm:py-16 lg:py-20 max-w-2xl mx-auto w-full">
                 {/* Badge */}
                 <div className="flex items-center gap-2 mb-5" style={{ animation: "fadeIn 0.6s ease 0.15s both" }}>
-                    <div className="w-1.5 h-1.5 bg-[#E50914] rounded-full animate-pulse shadow-[0_0_8px_rgba(229,9,20,0.6)]" />
+                    <div className="w-1.5 h-1.5 bg-[#D40A12] rounded-full animate-pulse shadow-[0_0_8px_rgba(212,10,18,0.6)]" />
                     <span className="text-[9px] font-mono text-white/25 uppercase tracking-[3px]">Your studio is ready</span>
                 </div>
 
@@ -102,7 +102,7 @@ export default function EmptyStateHero() {
                 <h1 className="font-['Anton'] text-[32px] sm:text-[44px] lg:text-[52px] uppercase leading-[0.92] tracking-[2px] text-white mb-3"
                     style={{ animation: "fadeIn 0.6s ease 0.25s both" }}>
                     Your First Film Is<br />
-                    <span style={{ background: "linear-gradient(135deg, #E50914, #FF4D58)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                    <span style={{ background: "linear-gradient(135deg, #D40A12, #FF4D58)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                         One Idea Away
                     </span>
                 </h1>
@@ -114,14 +114,14 @@ export default function EmptyStateHero() {
                 {/* Input */}
                 <div className="w-full max-w-xl mb-4" style={{ animation: "fadeIn 0.6s ease 0.45s both" }}>
                     <div className={`rounded-2xl border p-4 transition-all duration-300 backdrop-blur-sm ${
-                        idea ? "border-[#E50914]/30 bg-[#E50914]/[0.04] shadow-[0_0_40px_rgba(229,9,20,0.1)]" : "border-white/[0.08] bg-white/[0.03]"
-                    } focus-within:border-[#E50914]/40`}>
+                        idea ? "border-[#D40A12]/30 bg-[#D40A12]/[0.04] shadow-[0_0_40px_rgba(212,10,18,0.1)]" : "border-white/[0.08] bg-white/[0.03]"
+                    } focus-within:border-[#D40A12]/40`}>
                         <textarea
                             value={idea}
                             onChange={e => setIdea(e.target.value)}
                             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleCreate(); } }}
                             placeholder="A tense standoff between a detective and an AI gone rogue in 2089..."
-                            className="w-full bg-transparent text-[14px] text-white placeholder-white/20 focus:outline-none resize-none leading-relaxed caret-[#E50914]"
+                            className="w-full bg-transparent text-[14px] text-white placeholder-white/20 focus:outline-none resize-none leading-relaxed caret-[#D40A12]"
                             rows={2}
                             disabled={isCreating}
                             autoFocus
@@ -144,9 +144,9 @@ export default function EmptyStateHero() {
                 <button onClick={handleCreate} disabled={!idea.trim() || isCreating}
                     className="flex items-center gap-3 px-10 py-3.5 rounded-xl text-[11px] font-bold tracking-[2px] uppercase transition-all cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed border-none"
                     style={{
-                        background: idea.trim() ? "linear-gradient(135deg, #E50914, #B30710)" : "rgba(255,255,255,0.05)",
+                        background: idea.trim() ? "linear-gradient(135deg, #D40A12, #B30710)" : "rgba(255,255,255,0.05)",
                         color: idea.trim() ? "white" : "rgba(255,255,255,0.3)",
-                        boxShadow: idea.trim() ? "0 8px 32px rgba(229,9,20,0.3)" : "none",
+                        boxShadow: idea.trim() ? "0 8px 32px rgba(212,10,18,0.3)" : "none",
                         animation: "fadeIn 0.6s ease 0.65s both",
                     }}>
                     {isCreating ? <><Loader2 size={14} className="animate-spin" /> Creating Your Film...</> : <><Sparkles size={14} /> Create & Start Directing <ArrowRight size={14} /></>}
@@ -156,17 +156,17 @@ export default function EmptyStateHero() {
                 {/* Or browse templates hint */}
                 <div className="flex items-center gap-3 text-[9px] text-white/15" style={{ animation: "fadeIn 0.6s ease 0.75s both" }}>
                     <div className="w-8 h-px bg-white/[0.06]" />
-                    <span>or browse <button className="text-[#E50914]/50 hover:text-[#E50914] transition-colors bg-transparent border-none cursor-pointer text-[9px] underline underline-offset-2" onClick={() => document.getElementById('tour-templates')?.scrollIntoView({ behavior: 'smooth' })}>templates</button> below</span>
+                    <span>or browse <button className="text-[#D40A12]/50 hover:text-[#D40A12] transition-colors bg-transparent border-none cursor-pointer text-[9px] underline underline-offset-2" onClick={() => document.getElementById('tour-templates')?.scrollIntoView({ behavior: 'smooth' })}>templates</button> below</span>
                     <div className="w-8 h-px bg-white/[0.06]" />
                 </div>
             </div>
 
             {/* Full-screen loading overlay when creating */}
             {isCreating && (
-                <div className="absolute inset-0 z-30 bg-[#030303]/80 backdrop-blur-sm flex flex-col items-center justify-center" style={{ animation: "fadeIn 0.3s ease" }}>
+                <div className="absolute inset-0 z-30 bg-[#111111]/80 backdrop-blur-sm flex flex-col items-center justify-center" style={{ animation: "fadeIn 0.3s ease" }}>
                     <div className="relative mb-4">
-                        <div className="w-16 h-16 rounded-full border-2 border-[#E50914]/20 border-t-[#E50914] animate-spin" />
-                        <Film size={20} className="text-[#E50914] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                        <div className="w-16 h-16 rounded-full border-2 border-[#D40A12]/20 border-t-[#D40A12] animate-spin" />
+                        <Film size={20} className="text-[#D40A12] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                     </div>
                     <span className="text-[11px] font-bold text-white/60 uppercase tracking-[3px]">Creating Your Film</span>
                     <span className="text-[9px] text-white/20 mt-2">Setting up script, characters & locations…</span>

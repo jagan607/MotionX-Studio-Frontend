@@ -158,7 +158,7 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                         : "50%",
                     transform: !currentStep.arrowSide ? "translateX(-50%)" : undefined,
                     borderWidth: "0 8px 8px 8px",
-                    borderColor: "transparent transparent #E50914 transparent",
+                    borderColor: "transparent transparent #D40A12 transparent",
                 };
             case "top":
                 return {
@@ -170,7 +170,7 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                         : "50%",
                     transform: !currentStep.arrowSide ? "translateX(-50%)" : undefined,
                     borderWidth: "8px 8px 0 8px",
-                    borderColor: "#E50914 transparent transparent transparent",
+                    borderColor: "#D40A12 transparent transparent transparent",
                 };
             case "left":
                 return {
@@ -178,7 +178,7 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                     right: "-8px",
                     top: "20px",
                     borderWidth: "8px 0 8px 8px",
-                    borderColor: "transparent transparent transparent #E50914",
+                    borderColor: "transparent transparent transparent #D40A12",
                 };
             case "right":
                 return {
@@ -186,7 +186,7 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                     left: "-8px",
                     top: "20px",
                     borderWidth: "8px 8px 8px 0",
-                    borderColor: "transparent #E50914 transparent transparent",
+                    borderColor: "transparent #D40A12 transparent transparent",
                 };
         }
     };
@@ -219,7 +219,7 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                     top: tooltipPos?.top ?? -9999,
                     left: tooltipPos?.left ?? -9999,
                     width: "300px",
-                    backgroundColor: "#E50914",
+                    backgroundColor: "#D40A12",
                     color: "white",
                     padding: "20px",
                     borderRadius: "2px",
@@ -287,7 +287,7 @@ export const TourOverlay = ({ step, steps, onNext, onComplete }: TourOverlayProp
                     style={{
                         marginTop: "15px",
                         backgroundColor: "white",
-                        color: "#E50914",
+                        color: "#D40A12",
                         border: "none",
                         padding: "8px 16px",
                         fontWeight: "bold",

@@ -150,7 +150,7 @@ export function CharacterSection({ project, characters, onRefresh }: CharacterSe
                         <div
                             data-agent="add-character"
                             onClick={handleCreateNew}
-                            className="group relative w-[240px] h-full min-h-[280px] flex flex-col items-center justify-center bg-[#080808]/50 border border-dashed border-white/[0.08] rounded-xl cursor-pointer hover:bg-white/[0.02] hover:border-white/[0.2] transition-colors"
+                            className="group relative w-[240px] h-full min-h-[280px] flex flex-col items-center justify-center bg-[#161616]/50 border border-dashed border-white/[0.08] rounded-xl cursor-pointer hover:bg-white/[0.02] hover:border-white/[0.2] transition-colors"
                         >
                             <div className="w-12 h-12 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center mb-3 transition-colors">
                                 <Plus size={20} className="text-white/50 group-hover:text-white" />

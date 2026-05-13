@@ -52,7 +52,7 @@ async function deleteAnnouncement(formData: FormData) {
 // --- HELPERS ---
 
 const TYPE_CONFIG: Record<string, { icon: any; color: string; label: string }> = {
-    feature: { icon: Sparkles, color: '#E50914', label: 'Feature' },
+    feature: { icon: Sparkles, color: '#D40A12', label: 'Feature' },
     update: { icon: Zap, color: '#3B82F6', label: 'Update' },
     fix: { icon: Wrench, color: '#22C55E', label: 'Fix' },
 };
@@ -62,14 +62,14 @@ function AnnouncementsListSkeleton() {
     return (
         <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-[#080808] border border-[#222] p-5 flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-[#111] animate-pulse shrink-0" style={{ animationDelay: `${i * 120}ms` }} />
+                <div key={i} className="bg-[#161616] border border-[#222] p-5 flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-[#1a1a1a] animate-pulse shrink-0" style={{ animationDelay: `${i * 120}ms` }} />
                     <div className="flex-1 min-w-0 space-y-2">
                         <div className="flex items-center gap-3">
-                            <div className="h-3 w-14 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 120 + 30}ms` }} />
+                            <div className="h-3 w-14 bg-[#1a1a1a] rounded animate-pulse" style={{ animationDelay: `${i * 120 + 30}ms` }} />
                             <div className="h-2.5 w-20 bg-[#0D0D0D] rounded animate-pulse" style={{ animationDelay: `${i * 120 + 60}ms` }} />
                         </div>
-                        <div className="h-5 w-48 bg-[#111] rounded animate-pulse" style={{ animationDelay: `${i * 120 + 40}ms` }} />
+                        <div className="h-5 w-48 bg-[#1a1a1a] rounded animate-pulse" style={{ animationDelay: `${i * 120 + 40}ms` }} />
                         <div className="h-3 w-3/4 bg-[#0D0D0D] rounded animate-pulse" style={{ animationDelay: `${i * 120 + 80}ms` }} />
                     </div>
                 </div>
@@ -106,10 +106,10 @@ async function AnnouncementsListSection() {
                         const date = new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
                         return (
-                            <div key={a.id} className={`bg-[#080808] border p-5 flex items-start gap-4 group transition-all ${a.active ? 'border-[#222] hover:border-[#333]' : 'border-[#1a1a1a] opacity-50'}`}>
+                            <div key={a.id} className={`bg-[#161616] border p-5 flex items-start gap-4 group transition-all ${a.active ? 'border-[#222] hover:border-[#333]' : 'border-[#1a1a1a] opacity-50'}`}>
                                 {/* Media Preview */}
                                 {a.media_url && (
-                                    <div className="w-20 h-14 rounded overflow-hidden shrink-0 border border-[#222] bg-[#111]">
+                                    <div className="w-20 h-14 rounded overflow-hidden shrink-0 border border-[#222] bg-[#1a1a1a]">
                                         {a.media_url.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
                                             <video src={a.media_url} muted playsInline className="w-full h-full object-cover" />
                                         ) : (
@@ -174,7 +174,7 @@ export default async function AnnouncementsPage() {
             {/* HEADER — renders instantly */}
             <div className="flex justify-between items-end border-b border-[#222] pb-6">
                 <div>
-                    <div className="flex items-center gap-2 text-[#E50914] mb-2">
+                    <div className="flex items-center gap-2 text-[#D40A12] mb-2">
                         <Megaphone size={18} />
                         <span className="text-[10px] font-mono tracking-widest uppercase">Broadcast System</span>
                     </div>
@@ -183,9 +183,9 @@ export default async function AnnouncementsPage() {
             </div>
 
             {/* CREATE FORM — Client Component with Upload (renders instantly) */}
-            <div className="bg-[#080808] border border-[#222] p-6">
+            <div className="bg-[#161616] border border-[#222] p-6">
                 <div className="flex items-center gap-3 mb-6 border-b border-[#222] pb-4">
-                    <Plus className="text-[#E50914]" size={16} />
+                    <Plus className="text-[#D40A12]" size={16} />
                     <h3 className="font-anton text-lg text-white uppercase tracking-wide">New Announcement</h3>
                 </div>
                 <AnnouncementForm onPublish={createAnnouncement} />
@@ -197,9 +197,9 @@ export default async function AnnouncementsPage() {
             </Suspense>
 
             {/* EMAIL BLAST SECTION (Client component — renders instantly) */}
-            <div className="bg-[#080808] border border-[#222] p-6">
+            <div className="bg-[#161616] border border-[#222] p-6">
                 <div className="flex items-center gap-3 mb-6 border-b border-[#222] pb-4">
-                    <Mail className="text-[#E50914]" size={16} />
+                    <Mail className="text-[#D40A12]" size={16} />
                     <h3 className="font-anton text-lg text-white uppercase tracking-wide">Email Blast</h3>
                     <span className="text-[8px] font-mono text-[#444] uppercase tracking-widest ml-auto">Compose &amp; Send</span>
                 </div>

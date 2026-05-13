@@ -162,12 +162,12 @@ export default function PlaygroundTemplatePicker() {
     const emoEntries = Object.entries(EMOTION_FAMILIES) as [EmotionFamily, typeof EMOTION_FAMILIES[EmotionFamily]][];
 
     return (
-        <div className="h-full flex flex-col bg-[#050505]">
+        <div className="h-full flex flex-col bg-[#111111]">
             {/* ── Header with model tabs ── */}
             <div className="px-3 py-3 border-b border-white/[0.06] shrink-0">
                 <div className="flex items-center gap-2 mb-2.5">
-                    <div className="w-5 h-5 rounded-md bg-[#E50914]/15 border border-[#E50914]/20 flex items-center justify-center">
-                        <Sparkles size={10} className="text-[#E50914]" />
+                    <div className="w-5 h-5 rounded-md bg-[#D40A12]/15 border border-[#D40A12]/20 flex items-center justify-center">
+                        <Sparkles size={10} className="text-[#D40A12]" />
                     </div>
                     <span className="text-[10px] font-mono text-white/50 uppercase tracking-[2px] font-bold">
                         Templates
@@ -248,7 +248,7 @@ export default function PlaygroundTemplatePicker() {
                     <div className="flex-1 overflow-y-auto no-scrollbar px-3 py-3 space-y-2">
                         {fsLoading ? (
                             <div className="flex items-center justify-center py-8 gap-2">
-                                <Loader2 size={14} className="animate-spin text-[#E50914]/50" />
+                                <Loader2 size={14} className="animate-spin text-[#D40A12]/50" />
                                 <span className="text-[9px] font-mono text-white/20">Loading templates…</span>
                             </div>
                         ) : (
@@ -352,7 +352,7 @@ function FilterChip({ active, onClick, label, activeColor, small }: {
                 small ? 'text-[7px] tracking-[1px]' : 'text-[8px] tracking-[1px]'
             }`}
             style={active
-                ? { borderColor: `${activeColor || '#E50914'}50`, backgroundColor: `${activeColor || '#E50914'}18`, color: activeColor || '#E50914' }
+                ? { borderColor: `${activeColor || '#D40A12'}50`, backgroundColor: `${activeColor || '#D40A12'}18`, color: activeColor || '#D40A12' }
                 : { borderColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.3)' }
             }>
             {label}
@@ -372,11 +372,11 @@ function TemplateCard({ template, index, isApplied, onClick }: {
     return (
         <button onClick={onClick} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}
             className={`w-full group relative rounded-xl border overflow-hidden text-left transition-all duration-300 cursor-pointer ${
-                isApplied ? "border-[#E50914]/40 bg-[#E50914]/10" : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]"
+                isApplied ? "border-[#D40A12]/40 bg-[#D40A12]/10" : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]"
             }`}
             style={{ animation: `tplCardIn 0.35s ease ${index * 50}ms both`, borderColor: isHovered && !isApplied ? `${template.accent}35` : undefined }}>
             <div className="h-[100px] w-full relative overflow-hidden">
-                <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${template.accent}20, ${template.accent}08, #0a0a0a)` }} />
+                <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${template.accent}20, ${template.accent}08, #1a1a1a)` }} />
                 {template.previewVideoUrl && (
                     <video src={template.previewVideoUrl} autoPlay muted loop playsInline preload="auto" className="absolute inset-0 w-full h-full object-cover" />
                 )}
@@ -394,8 +394,8 @@ function TemplateCard({ template, index, isApplied, onClick }: {
                 <p className="text-[8px] text-white/20 group-hover:text-white/35 transition-colors">{template.subtitle}</p>
                 {isApplied ? (
                     <div className="flex items-center gap-1 mt-2">
-                        <Wand2 size={9} className="text-[#E50914]" />
-                        <span className="text-[8px] font-mono text-[#E50914] uppercase tracking-[1px] font-bold">Applied ✓</span>
+                        <Wand2 size={9} className="text-[#D40A12]" />
+                        <span className="text-[8px] font-mono text-[#D40A12] uppercase tracking-[1px] font-bold">Applied ✓</span>
                     </div>
                 ) : (
                     <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -426,7 +426,7 @@ function KlingCard({ template, index, isApplied, onClick }: {
             }`}
             style={{ animation: `tplCardIn 0.35s ease ${index * 50}ms both`, borderColor: isHovered && !isApplied ? `${template.accent}35` : undefined }}>
             <div className="h-[100px] w-full relative overflow-hidden">
-                <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${template.accent}20, ${template.accent}08, #0a0a0a)` }} />
+                <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${template.accent}20, ${template.accent}08, #1a1a1a)` }} />
                 {template.previewVideoUrl && (
                     <video src={template.previewVideoUrl} autoPlay muted loop playsInline preload="auto" className="absolute inset-0 w-full h-full object-cover" />
                 )}

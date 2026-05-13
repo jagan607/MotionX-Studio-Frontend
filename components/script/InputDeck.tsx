@@ -422,7 +422,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
 
                         {showEpisodeDropdown && (
                             <div className="absolute top-full left-0 mt-1 w-full bg-[#1A1A1A] border border-[#333] rounded shadow-2xl shadow-black/80 z-[9999] overflow-hidden">
-                                <div className="px-4 py-2.5 border-b border-[#222] flex items-center justify-between bg-[#111]">
+                                <div className="px-4 py-2.5 border-b border-[#222] flex items-center justify-between bg-[#1a1a1a]">
                                     <span className="text-[9px] font-bold text-[#555] uppercase tracking-widest">Switch Episode</span>
                                     <span className="text-[9px] font-mono text-[#333]">{episodes.length}</span>
                                 </div>
@@ -554,7 +554,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     type="button"
                                     disabled={isUploading}
                                     onClick={() => { setRuntime(p.val); setRuntimeUnit(p.val >= 120 ? 'min' : 'sec'); setRuntimeError(false); }}
-                                    className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wide border transition-all cursor-pointer ${Number(runtime) === p.val ? 'bg-[#E50914]/20 border-[#E50914]/60 text-white' : 'bg-white/[0.04] border-white/[0.08] text-neutral-500 hover:border-white/20 hover:text-neutral-300'}`}
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wide border transition-all cursor-pointer ${Number(runtime) === p.val ? 'bg-[#D40A12]/20 border-[#D40A12]/60 text-white' : 'bg-white/[0.04] border-white/[0.08] text-neutral-500 hover:border-white/20 hover:text-neutral-300'}`}
                                 >
                                     {p.label}
                                 </button>
@@ -736,7 +736,7 @@ export const InputDeck: React.FC<InputDeckProps> = ({
                                     </>
                                 ) : (
                                     <>
-                                        <div className="w-16 h-16 rounded-full bg-[#111] flex items-center justify-center text-neutral-600 group-hover:text-white transition-colors">
+                                        <div className="w-16 h-16 rounded-full bg-[#1a1a1a] flex items-center justify-center text-neutral-600 group-hover:text-white transition-colors">
                                             <Upload size={24} />
                                         </div>
                                         <div className="text-center">
