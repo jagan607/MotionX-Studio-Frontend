@@ -201,7 +201,7 @@ function CinematicScanner({ processingStatus, detectedArchetype, phase, isTransi
 
                 <p className={`text-[10px] tracking-[1.5px] uppercase font-mono text-center mb-10 ${error ? "text-red-400/60" : "text-neutral-600"
                     }`}>
-                    {error ? error : isTransitioning ? "Entering scene editor" : "Do not close this window"}
+                    {error ? error : isTransitioning ? "Entering scene editor" : "The system is now running deep structural extraction on the script. Depending on the LLM\u2019s current load, this takes about a minute or two."}
                 </p>
 
                 {/* ═══ DUAL ENGINE STATUS CARDS ═══ */}

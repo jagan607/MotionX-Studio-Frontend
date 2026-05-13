@@ -180,7 +180,7 @@ export default function LibraryPage() {
                                         className="aspect-video bg-[#161616] border border-white/[0.06] rounded-xl overflow-hidden relative cursor-pointer group hover:border-white/[0.12] hover:-translate-y-1 transition-all duration-300"
                                         onClick={() => nav(p)}
                                     >
-                                        <LibraryImage src={p.previewImage} alt="" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity duration-500 group-hover:scale-105" />
+                                        <LibraryImage src={p.previewImage ?? undefined} alt="" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity duration-500 group-hover:scale-105" />
 
                                         {/* Phase badge */}
                                         <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5">
@@ -235,7 +235,7 @@ export default function LibraryPage() {
                                         onClick={() => nav(p)}
                                     >
                                         <div className="w-20 h-12 rounded-lg overflow-hidden bg-[#161616] shrink-0">
-                                            <LibraryImage src={p.previewImage} alt="" className="w-full h-full object-cover" />
+                                            <LibraryImage src={p.previewImage ?? undefined} alt="" className="w-full h-full object-cover" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <span className="text-[12px] font-semibold text-white/90 block truncate">{p.title}</span>
