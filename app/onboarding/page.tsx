@@ -33,22 +33,22 @@ interface Option<T extends string> {
    QUESTION DEFINITIONS
    ═══════════════════════════════════════════════ */
 const GOAL_OPTIONS: Option<GoalKey>[] = [
-    { key: "social_clips",   icon: <Smartphone size={22} />, title: "Social Media Clips",    subtitle: "Reels, TikToks, YouTube Shorts",      accent: "#D40A12" },
-    { key: "short_film",     icon: <Film size={22} />,       title: "Short Films & Music Videos", subtitle: "Cinematic storytelling",          accent: "#3B82F6" },
-    { key: "brand_content",  icon: <Megaphone size={22} />,  title: "Ads & Brand Content",   subtitle: "Product promos, commercials",          accent: "#D4A843" },
-    { key: "explore",        icon: <Sparkles size={22} />,   title: "Explore AI Filmmaking",  subtitle: "Curious — just want to try it out",   accent: "#10B981" },
+    { key: "social_clips",   icon: <Smartphone size={22} />, title: "Short-Form Content",        subtitle: "Reels, TikToks, Shorts — vertical, punchy, viral",  accent: "#D40A12" },
+    { key: "short_film",     icon: <Film size={22} />,       title: "Films & Music Videos",    subtitle: "Cinematic storytelling with full directorial control", accent: "#7C3AED" },
+    { key: "brand_content",  icon: <Megaphone size={22} />,  title: "Ads & Branded Cinema",    subtitle: "Product films, commercials, branded content",        accent: "#D4A843" },
+    { key: "explore",        icon: <Sparkles size={22} />,   title: "Just Exploring",          subtitle: "I want to see what's possible before committing",    accent: "#10B981" },
 ];
 
 const EXP_OPTIONS: Option<ExpKey>[] = [
-    { key: "beginner",      icon: <Egg size={22} />,    title: "I'm Completely New",    subtitle: "Never used AI video tools",     accent: "#10B981" },
-    { key: "intermediate",  icon: <Layers size={22} />, title: "I've Tried Some Tools", subtitle: "Runway, Pika, Kling, etc.",     accent: "#3B82F6" },
-    { key: "advanced",      icon: <Zap size={22} />,    title: "I'm a Pro",             subtitle: "Power user, filmmaker, editor", accent: "#D4A843" },
+    { key: "beginner",      icon: <Egg size={22} />,    title: "Completely New",          subtitle: "Never used AI video tools before",    accent: "#10B981" },
+    { key: "intermediate",  icon: <Layers size={22} />, title: "I've Tried Some Tools",   subtitle: "Runway, Pika, Kling, etc.",           accent: "#7C3AED" },
+    { key: "advanced",      icon: <Zap size={22} />,    title: "I'm a Pro",               subtitle: "Power user, filmmaker, or editor",   accent: "#D4A843" },
 ];
 
 const WORKFLOW_OPTIONS: Option<WorkflowKey>[] = [
-    { key: "template", icon: <LayoutTemplate size={22} />, title: "Start with a Template",     subtitle: "Pre-built projects I can customize", accent: "#10B981" },
-    { key: "script",   icon: <FileText size={22} />,       title: "I Have an Idea",           subtitle: "Describe my video concept",           accent: "#3B82F6" },
-    { key: "showcase", icon: <Eye size={22} />,             title: "Show Me What's Possible",  subtitle: "See examples first, then create",     accent: "#D4A843" },
+    { key: "template", icon: <LayoutTemplate size={22} />, title: "Start with a Template",     subtitle: "Pre-built projects you can customize",       accent: "#10B981" },
+    { key: "script",   icon: <FileText size={22} />,       title: "I Have a Vision",            subtitle: "Describe your concept and start directing",  accent: "#7C3AED" },
+    { key: "showcase", icon: <Eye size={22} />,             title: "Show Me What's Possible",  subtitle: "See community films first, then create",      accent: "#D4A843" },
 ];
 
 /* ═══════════════════════════════════════════════
@@ -82,12 +82,12 @@ const PERSONA_PRESETS: Record<GoalKey, PersonaPreset> = {
             "An aesthetic morning routine in a sun-filled apartment",
             "A skateboarding reel through empty city streets at sunset",
         ],
-        showcaseDescription: "MotionX creates scroll-stopping social content with cinematic AI. No cameras, no crew — just your idea.",
+        showcaseDescription: "MotionX creates scroll-stopping content with AI-powered production. No cameras, no crews, no compromise.",
         showcaseHighlights: [
             "9:16 vertical format, ready for Instagram, TikTok, Shorts",
             "AI generates characters, backgrounds, and cinematic camera moves",
-            "Go from idea to video in under 5 minutes",
-            "Professional-grade output that looks hand-crafted",
+            "Go from idea to finished video in under 5 minutes",
+            "Professional-grade output that rivals hand-crafted production",
         ],
     },
     short_film: {
@@ -104,9 +104,9 @@ const PERSONA_PRESETS: Record<GoalKey, PersonaPreset> = {
             "Two strangers share a taxi during a city-wide blackout",
             "An astronaut hallucinating memories of home on a solo mission to Mars",
         ],
-        showcaseDescription: "MotionX is a full AI filmmaking engine — from script to screen. Create cinematic short films with professional production value.",
+        showcaseDescription: "The world's first AI film studio — from script to final cut. Direct cinematic stories with full creative control.",
         showcaseHighlights: [
-            "AI generates characters, locations, and scene breakdowns from your idea",
+            "AI generates characters, locations, and scene breakdowns from your vision",
             "Professional cinematography with camera angles, lens choices & lighting",
             "Full post-production timeline with sound design & editing",
             "16:9 cinematic widescreen format",
@@ -148,12 +148,12 @@ const PERSONA_PRESETS: Record<GoalKey, PersonaPreset> = {
             "An underwater city where bioluminescent creatures light the streets",
             "A samurai standing alone in a field of tall grass, wind blowing",
         ],
-        showcaseDescription: "MotionX turns your wildest ideas into cinematic reality. Just describe what you imagine — AI handles the rest.",
+        showcaseDescription: "MotionX turns your wildest ideas into cinematic reality. Just describe what you imagine — AI directs the rest.",
         showcaseHighlights: [
             "Any genre, any style — realistic, anime, 3D animation",
             "AI creates characters, locations, camera moves from your description",
             "Full filmmaking pipeline: script → pre-production → production → post",
-            "30 free credits to experiment with",
+            "30 free credits to start directing",
         ],
     },
 };
@@ -200,9 +200,9 @@ export default function OnboardingPage() {
     }, [router]);
 
     const QUESTIONS = [
-        { id: "goal",     heading: "What brings you to MotionX?", subheading: "This helps us tailor your experience", options: GOAL_OPTIONS },
-        { id: "experience", heading: "What's your experience with AI video?", subheading: "We'll adjust the complexity for you", options: EXP_OPTIONS },
-        { id: "workflow", heading: "How would you like to start?", subheading: "You can always change this later", options: WORKFLOW_OPTIONS },
+        { id: "goal",     heading: "What are you here to create?", subheading: "This helps us tailor your experience", options: GOAL_OPTIONS },
+        { id: "experience", heading: "How much AI filmmaking experience do you have?", subheading: "We'll adjust the complexity for you", options: EXP_OPTIONS },
+        { id: "workflow", heading: "How do you want to begin?", subheading: "You can always change this later", options: WORKFLOW_OPTIONS },
     ] as const;
 
     const isQuestionPhase = currentStep < 3;

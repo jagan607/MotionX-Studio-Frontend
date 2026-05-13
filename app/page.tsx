@@ -12,7 +12,7 @@ import {
   Scissors, Eye, UserCheck, Volume2, VolumeX,
 } from "@/lib/lucide";
 import { motion, useInView } from "framer-motion";
-import { fetchGlobalFeed } from "@/lib/api";
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -278,31 +278,17 @@ const HeroSection = () => {
     return () => clearInterval(timer);
   }, [isComplete]);
 
-  // Fetch media from Firebase global feed (edge-cached, 50 items)
+  // Curated hero media — handpicked showcase videos
   useEffect(() => {
-    fetchGlobalFeed().then((shots: any[]) => {
-      // Filter to items with playable media
-      const pool = shots.filter((s: any) => s.video_url || s.image_url);
-
-      // ── Fisher-Yates (Knuth) Shuffle ──
-      // Guarantees uniform randomness unlike biased sort(() => 0.5 - Math.random())
-      for (let i = pool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [pool[i], pool[j]] = [pool[j], pool[i]];
-      }
-
-      // Take first 10 from shuffled pool
-      const selected = pool.slice(0, 10);
-
-      setHeroMedia(
-        selected.map((s: any) => ({
-          video_url: s.video_url,
-          image_url: s.image_url,
-        }))
-      );
-    }).catch((e) => {
-      console.warn("Global Feed fetching error:", e);
-    });
+    const CURATED_HERO_MEDIA = [
+      { video_url: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/Templates%2FKling%203%2Fplaygrounds_vzRHwyQfpCbmaHRYtVqFiwvf5zQ2_generations_gen_moens7tt_4d9byf_ca4ea6.mp4?alt=media&token=3c5d3936-2d7c-4302-9d64-91bd3f278f6d" },
+      { video_url: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/Templates%2FKling%203%2Fplayground_gen_moeo6013_k266f9.mp4?alt=media&token=ba26cf81-b06a-4024-ba4b-67de689561f4" },
+      { video_url: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/Templates%2FKling%203%2Fplayground_gen_moenzr2n_dv9tfs.mp4?alt=media&token=b4951f9a-6716-42e8-8922-1c3a86d276a2" },
+      { video_url: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/Templates%2FSeedance%2Fplayground_gen_mod13nz2_xst4ro.mp4?alt=media&token=171c1a3e-ebaa-4bb3-b72b-bb7327ec58dc" },
+      { video_url: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/Templates%2FSeedance%2F121b358e-afe5-49d2-b069-2e3db1aaabfd.mp4?alt=media&token=6139eb80-fdcc-482f-809a-54d1c8028564" },
+      { video_url: "https://firebasestorage.googleapis.com/v0/b/motionx-studio.firebasestorage.app/o/Templates%2FSeedance%2Fplayground_gen_moajk5qo_a3fll0.mp4?alt=media&token=0d951fa4-22b0-4bd3-b71a-dc8a4fb9f8da" },
+    ];
+    setHeroMedia(CURATED_HERO_MEDIA);
   }, []);
 
   // Cross-fade every 6 seconds
