@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import Link from "next/link";
 import {
@@ -26,6 +25,13 @@ interface ProjectData {
     created_at?: any;
     thumbnail_url?: string;
     is_public?: boolean;
+    metrics?: {
+        scene_count?: number;
+        character_count?: number;
+        location_count?: number;
+        prop_count?: number;
+        shot_count?: number;
+    };
 }
 
 export default function ProjectHub() {
@@ -36,120 +42,64 @@ export default function ProjectHub() {
     const [loading, setLoading] = useState(true);
     const [isSharing, setIsSharing] = useState(false);
     const [copied, setCopied] = useState(false);
-    const [counts, setCounts] = useState({ characters: 0, locations: 0, scenes: 0, shots: 0, generatedShots: 0, animatedShots: 0 });
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!projectId) return;
         let cancelled = false;
 
-        // Wait for Firebase Auth to be fully ready before touching Firestore.
-        // During client-side navigation, auth.currentUser may exist but the
-        // Firestore SDK's internal auth-token pipeline can still be mid-sync,
-        // causing getDoc() to hang indefinitely on the channel connection.
-        const unsubAuth = onAuthStateChanged(auth, async (user) => {
-            if (!user || cancelled) return;
-            unsubAuth(); // Only need the first emission
-
+        const loadProject = async () => {
             try {
-                // Timeout safety net — if Firestore still hangs, don't spin forever
-                const snap = await Promise.race([
-                    getDoc(doc(db, "projects", projectId)),
-                    new Promise<never>((_, reject) =>
-                        setTimeout(() => reject(new Error("Firestore getDoc timeout")), 8000)
-                    ),
-                ]);
+                const snap = await getDoc(doc(db, "projects", projectId));
                 if (cancelled) return;
-                if (!snap.exists()) { router.push("/dashboard"); return; }
-                const projData = snap.data() as ProjectData;
-                setProject(projData);
-                setLoading(false); // Show UI immediately — counts load in background
-
-                // Background: fetch counts for progress indicators (non-blocking)
-                (async () => {
-                    try {
-                        const [charSnap, locSnap] = await Promise.all([
-                            getDocs(collection(db, "projects", projectId, "characters")),
-                            getDocs(collection(db, "projects", projectId, "locations")),
-                        ]);
-
-                        let sceneCount = 0;
-                        let shotCount = 0;
-                        let generatedCount = 0;
-                        let animatedCount = 0;
-                        const epId = projData.script_status === 'empty' ? null : (snap.data()?.default_episode_id || 'main');
-                        if (epId) {
-                            const scenesSnap = await getDocs(collection(db, "projects", projectId, "episodes", epId, "scenes"));
-                            sceneCount = scenesSnap.size;
-                            const shotSnaps = await Promise.all(
-                                scenesSnap.docs.map(s => getDocs(collection(db, "projects", projectId, "episodes", epId, "scenes", s.id, "shots")))
-                            );
-                            for (const shotsSnap of shotSnaps) {
-                                shotCount += shotsSnap.size;
-                                shotsSnap.forEach(s => {
-                                    const d = s.data();
-                                    if (d.image_url) generatedCount++;
-                                    if (d.video_url) animatedCount++;
-                                });
-                            }
-                        }
-
-                        if (!cancelled) {
-                            setCounts({
-                                characters: charSnap.size,
-                                locations: locSnap.size,
-                                scenes: sceneCount,
-                                shots: shotCount,
-                                generatedShots: generatedCount,
-                                animatedShots: animatedCount,
-                            });
-                        }
-                    } catch (e) {
-                        console.debug("[ProjectHub] Counts fetch (non-critical):", e);
-                    }
-                })();
+                if (!snap.exists()) {
+                    router.push("/dashboard");
+                    return;
+                }
+                setProject(snap.data() as ProjectData);
             } catch (e) {
                 console.error("[ProjectHub] Load failed:", e);
                 if (!cancelled) {
-                    // On timeout or error, redirect to dashboard
-                    router.push("/dashboard");
+                    setError("Failed to load project. Please try again.");
                 }
+            } finally {
+                if (!cancelled) setLoading(false);
             }
-        });
+        };
 
-        return () => { cancelled = true; unsubAuth(); };
+        loadProject();
+        return () => { cancelled = true; };
     }, [projectId, router]);
 
+    const m = project?.metrics;
     const scriptStatus = project?.script_status || "empty";
     const hasScript = scriptStatus !== "empty" && scriptStatus !== "pending";
     const isProductionReady = scriptStatus === "production_ready" || scriptStatus === "ready" || scriptStatus === "assets_pending";
 
-    // Compute phase progress (must be before early return — Rules of Hooks)
+    // Compute phase progress from denormalized metrics
     const preProgress = useMemo(() => {
         let score = 0;
         if (hasScript) score += 40;
-        if (counts.characters > 0) score += 30;
-        if (counts.locations > 0) score += 30;
+        if ((m?.character_count ?? 0) > 0) score += 30;
+        if ((m?.location_count ?? 0) > 0) score += 30;
         return Math.min(score, 100);
-    }, [hasScript, counts]);
+    }, [hasScript, m]);
 
     const prodProgress = useMemo(() => {
-        if (counts.shots === 0) return 0;
-        // Weight: having scenes (20%), having shots (20%), generated images (30%), animated (30%)
+        const shotCount = m?.shot_count ?? 0;
+        const sceneCount = m?.scene_count ?? 0;
+        if (shotCount === 0 && sceneCount === 0) return 0;
         let score = 0;
-        if (counts.scenes > 0) score += 20;
-        if (counts.shots > 0) score += 20;
-        if (counts.shots > 0) {
-            score += Math.round((counts.generatedShots / counts.shots) * 30);
-            score += Math.round((counts.animatedShots / counts.shots) * 30);
-        }
+        if (sceneCount > 0) score += 40;
+        if (shotCount > 0) score += 60;
         return Math.min(score, 100);
-    }, [counts]);
+    }, [m]);
 
     const postProgress = useMemo(() => {
-        // Post-production starts once we have animated shots
-        if (counts.animatedShots === 0) return 0;
-        return 10; // Base progress when there are animated shots to edit
-    }, [counts]);
+        // Post-production starts once we have shots
+        if ((m?.shot_count ?? 0) === 0) return 0;
+        return 10;
+    }, [m]);
 
     const handleShare = async () => {
         if (!project) return;
@@ -190,6 +140,30 @@ export default function ProjectHub() {
         }
     };
 
+    if (error) {
+        return (
+            <div className="absolute inset-0 bg-[#111111] flex flex-col items-center justify-center gap-5 z-50">
+                <div className="w-12 h-12 rounded-full border-2 border-red-500/20 flex items-center justify-center">
+                    <span className="text-red-400 text-lg">!</span>
+                </div>
+                <span className="text-[11px] font-mono text-white/40 text-center max-w-xs">{error}</span>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => { setError(null); setLoading(true); window.location.reload(); }}
+                        className="px-4 py-2 text-[10px] font-mono tracking-widest text-white/60 border border-white/10 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                    >
+                        RETRY
+                    </button>
+                    <Link href="/dashboard"
+                        className="px-4 py-2 text-[10px] font-mono tracking-widest text-white/30 border border-white/[0.06] rounded-lg hover:bg-white/5 transition-colors"
+                    >
+                        DASHBOARD
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     if (loading || !project) {
         return (
             <div className="absolute inset-0 bg-[#111111] flex flex-col items-center justify-center gap-4 z-50">
@@ -216,8 +190,8 @@ export default function ProjectHub() {
             available: true,
             progress: preProgress,
             quickStats: [
-                { value: counts.characters, label: "Characters" },
-                { value: counts.locations, label: "Locations" },
+                { value: m?.character_count ?? 0, label: "Characters" },
+                { value: m?.location_count ?? 0, label: "Locations" },
             ],
         },
         {
@@ -232,9 +206,9 @@ export default function ProjectHub() {
             accentMid: "rgba(212, 10, 18, 0.25)",
             available: true,
             progress: prodProgress,
-            quickStats: counts.shots > 0 ? [
-                { value: counts.scenes, label: "Scenes" },
-                { value: counts.shots, label: "Shots" },
+            quickStats: (m?.shot_count ?? 0) > 0 ? [
+                { value: m?.scene_count ?? 0, label: "Scenes" },
+                { value: m?.shot_count ?? 0, label: "Shots" },
             ] : [],
         },
         {
@@ -249,8 +223,8 @@ export default function ProjectHub() {
             accentMid: "rgba(168, 85, 247, 0.25)",
             available: true,
             progress: postProgress,
-            quickStats: counts.animatedShots > 0 ? [
-                { value: counts.animatedShots, label: "Clips" },
+            quickStats: (m?.shot_count ?? 0) > 0 ? [
+                { value: m?.shot_count ?? 0, label: "Shots" },
             ] : [],
         },
 
@@ -378,9 +352,9 @@ export default function ProjectHub() {
                 <div className="flex items-center gap-5 mt-8 px-6 py-3 rounded-2xl bg-white/[0.02] border border-white/[0.04] backdrop-blur-sm">
                     <StatusPill icon={FileText} label="Script" status={hasScript ? "done" : "empty"} />
                     <div className="w-[1px] h-4 bg-white/[0.06]" />
-                    <StatusPill icon={Users} label={`${counts.characters} Characters`} status={counts.characters > 0 ? "done" : "empty"} />
+                    <StatusPill icon={Users} label={`${m?.character_count ?? 0} Characters`} status={(m?.character_count ?? 0) > 0 ? "done" : "empty"} />
                     <div className="w-[1px] h-4 bg-white/[0.06]" />
-                    <StatusPill icon={MapPin} label={`${counts.locations} Locations`} status={counts.locations > 0 ? "done" : "empty"} />
+                    <StatusPill icon={MapPin} label={`${m?.location_count ?? 0} Locations`} status={(m?.location_count ?? 0) > 0 ? "done" : "empty"} />
                 </div>
             </div>
 

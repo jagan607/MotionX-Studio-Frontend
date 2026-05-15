@@ -188,6 +188,16 @@ export const fetchScenes = async (projectId: string, containerId?: string) => {
     return res.data;
 };
 
+export const deleteScene = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string
+) => {
+    return await api.delete(
+        `/api/v1/script/scene/${projectId}/${episodeId}/${sceneId}`
+    );
+};
+
 export const fetchEpisodes = async (projectId: string) => {
     const res = await api.get(`/api/v1/project/${projectId}/episodes`);
     return res.data;

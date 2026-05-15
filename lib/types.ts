@@ -151,6 +151,15 @@ export interface Project {
     product_count?: number;
     script_status?: string;
 
+    // Denormalized project metrics (maintained by backend)
+    metrics?: {
+        scene_count?: number;
+        character_count?: number;
+        location_count?: number;
+        prop_count?: number;
+        shot_count?: number;
+    };
+
     // Quickstart onboarding fields
     is_quickstart?: boolean;
     selected_mood_id?: string;
