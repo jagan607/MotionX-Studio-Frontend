@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Sparkles, RefreshCcw } from "@/lib/lucide";
 import { CameraTransform } from '@/lib/types';
 import { CameraViewfinder, ImageProvider } from './InlineCameraGizmo';
+import { EMERGENCY_MODE, EMERGENCY_FALLBACK_IMAGE_PROVIDER } from '@/lib/emergencyConfig';
 
 export const DEFAULT_CAMERA: CameraTransform = { x: 0, y: 1.6, z: 3, rx: 0, ry: 0, fov: 50 };
 
@@ -33,7 +34,9 @@ export function CameraGizmoOverlay({
 }: CameraGizmoOverlayProps) {
     const [cam, setCam] = useState<CameraTransform>(initialTransform || DEFAULT_CAMERA);
     const [internalGenerating, setInternalGenerating] = useState(false);
-    const [provider, setProvider] = useState<ImageProvider>('gemini');
+    const [provider, setProvider] = useState<ImageProvider>(
+        EMERGENCY_MODE ? EMERGENCY_FALLBACK_IMAGE_PROVIDER as ImageProvider : 'gemini'
+    );
 
     const activeIsGenerating = isGenerating || internalGenerating;
     const shotTypeStr = getShotLabel(cam);
@@ -95,13 +98,15 @@ export function CameraGizmoOverlay({
 
                     {/* Provider picker */}
                     <div className="flex bg-white/[0.03] rounded-lg border border-white/[0.08] overflow-hidden">
+                        {!EMERGENCY_MODE && (
                         <button onClick={() => setProvider('gemini')}
                             className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer
                                 ${provider === 'gemini' ? 'bg-[#D40A12]/15 text-white' : 'text-neutral-500 hover:text-neutral-300'}`}>
                             Gemini
                         </button>
+                        )}
                         <button onClick={() => setProvider('luma-uni-1')}
-                            className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer border-l border-white/[0.08]
+                            className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${!EMERGENCY_MODE ? 'border-l border-white/[0.08]' : ''}
                                 ${provider === 'luma-uni-1' ? 'bg-[#D40A12]/15 text-white' : 'text-neutral-500 hover:text-neutral-300'}`}>
                             Uni
                         </button>

@@ -16,6 +16,7 @@ import { Shot, ImageHistoryEntry } from '@/lib/types';
 import { SHOT_TYPE_PRESETS, CAMERA_ANGLES } from '@/lib/shot-constants';
 import Image from 'next/image';
 import imageCompression from 'browser-image-compression';
+import { EMERGENCY_MODE, EMERGENCY_FALLBACK_IMAGE_PROVIDER } from '@/lib/emergencyConfig';
 
 interface CastMember { id: string; name: string; }
 interface Location { id: string; name: string; }
@@ -76,7 +77,9 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
     products = [],
 }) => {
     // --- State ---
-    const [imageProvider, setImageProvider] = useState<ImageProvider>('gemini');
+    const [imageProvider, setImageProvider] = useState<ImageProvider>(
+        EMERGENCY_MODE ? EMERGENCY_FALLBACK_IMAGE_PROVIDER as ImageProvider : 'gemini'
+    );
     const [modelTier, setModelTier] = useState<'flash' | 'pro'>('pro');
     const [aspectRatio, setAspectRatio] = useState<string>(
         projectAspectRatio || '16:9'
@@ -495,6 +498,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Model</label>
                                     <div className="flex gap-1.5 flex-wrap">
+                                        {!EMERGENCY_MODE && (
                                         <button
                                             type="button"
                                             onClick={() => setImageProvider('gemini')}
@@ -502,6 +506,7 @@ export const ImageConfigurationModal: React.FC<ImageConfigurationModalProps> = (
                                         >
                                             Gemini
                                         </button>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={() => setImageProvider('seedream')}

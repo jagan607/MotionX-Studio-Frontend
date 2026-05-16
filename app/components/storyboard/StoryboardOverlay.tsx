@@ -27,6 +27,7 @@ import { SetDesignPanel } from "./SetDesignPanel";
 import { WardrobePanel } from "./WardrobePanel";
 import { CinematographyPanel } from "./CinematographyPanel";
 import dynamic from 'next/dynamic';
+import { EMERGENCY_MODE, EMERGENCY_FALLBACK_IMAGE_PROVIDER } from '@/lib/emergencyConfig';
 const ParticleField = dynamic(() => import('./ParticleField'), { ssr: false });
 import { styles } from "./BoardStyles";
 
@@ -1044,7 +1045,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                                             shotMgr.updateShot(shot.id, "camera_transform", transform);
                                                             shotMgr.updateShot(shot.id, "camera_shot_type", typeStr);
                                                         }
-                                                        shotMgr.handleRenderShot(shot, currentScene, null, (provider as any) || 'gemini', continuityRefId, transform, typeStr);
+                                                        shotMgr.handleRenderShot(shot, currentScene, null, (provider as any) || (EMERGENCY_MODE ? EMERGENCY_FALLBACK_IMAGE_PROVIDER : 'gemini'), continuityRefId, transform, typeStr);
                                                     }}
                                                     onExpandGizmo={() => setActiveGizmoShotId(shot.id)}
                                                     onTopUp={() => setShowTopUp(true)}
@@ -1365,7 +1366,7 @@ export const StoryboardOverlay: React.FC<StoryboardOverlayProps> = ({
                                     shot,
                                     currentScene,
                                     null,
-                                    'gemini',
+                                    EMERGENCY_MODE ? EMERGENCY_FALLBACK_IMAGE_PROVIDER : 'gemini',
                                     continuityRefId,
                                     transform,
                                     typeStr

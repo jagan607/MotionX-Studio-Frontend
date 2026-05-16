@@ -16,6 +16,7 @@ import { TokenIcon } from '@/components/ui/TokenIcon';
 import { getErrorUIConfig, executeErrorAction } from '@/lib/errorDictionary';
 import { SHOT_TYPE_PRESETS, CAMERA_ANGLES } from '@/lib/shot-constants';
 import type { CameraTransform } from '@/lib/types';
+import { EMERGENCY_MODE } from '@/lib/emergencyConfig';
 import dynamic from 'next/dynamic';
 
 const InlineCameraGizmo = dynamic(() => import('./InlineCameraGizmo').then(m => ({ default: m.InlineCameraGizmo })), { ssr: false });
@@ -133,7 +134,7 @@ export const SortableShotCard = ({
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: shot.id });
 
     // --- Provider States ---
-    const [imageProvider, setImageProvider] = useState<'gemini' | 'seedream'>('gemini');
+    const [imageProvider, setImageProvider] = useState<'gemini' | 'seedream'>(EMERGENCY_MODE ? 'seedream' : 'gemini');
     const [modelTier, setModelTier] = useState<'flash' | 'pro'>('pro');
 
     // Linked State
@@ -711,7 +712,7 @@ export const SortableShotCard = ({
             <div className={`mt-auto pt-2 border-t border-white/[0.06] ${isMorphedByPrev ? 'opacity-30 pointer-events-none' : ''}`}>
 
                 {/* Lip Sync — only when video exists */}
-                {hasVideo && onLipSync && (
+                {hasVideo && onLipSync && !EMERGENCY_MODE && (
                     <button
                         onClick={onLipSync}
                         disabled={isBusy}
