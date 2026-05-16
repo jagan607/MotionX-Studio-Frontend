@@ -18,6 +18,7 @@ import { Loader2, PanelLeftOpen, PanelLeftClose, PanelRightOpen, PanelRightClose
 import { TourOverlay } from "@/components/tour/TourOverlay";
 import { PLAYGROUND_TOUR_STEPS } from "@/lib/tourConfigs";
 import { useTour } from "@/hooks/useTour";
+import { EMERGENCY_MODE, EMERGENCY_MESSAGES } from '@/lib/emergencyConfig';
 
 // Heavy components — dynamically loaded (only when user reaches /playground)
 const PlaygroundGenerationGrid = dynamic(() => import("@/components/playground/PlaygroundGenerationGrid"), { ssr: false });
@@ -27,6 +28,29 @@ const PlaygroundAnimateModal = dynamic(() => import("@/components/playground/Pla
 const PlaygroundTemplatePicker = dynamic(() => import("@/components/playground/PlaygroundTemplatePicker"), { ssr: false });
 
 export default function PlaygroundPage() {
+    // Emergency Mode: Block entire Playground
+    if (EMERGENCY_MODE) {
+        return (
+            <div className="fixed inset-0 bg-[#111111] flex flex-col items-center justify-center text-center px-6 pt-[64px]">
+                <div className="max-w-md space-y-6">
+                    <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+                        <span className="text-3xl">🔧</span>
+                    </div>
+                    <h1 className="text-2xl font-bold text-white tracking-tight">Playground Offline</h1>
+                    <p className="text-sm text-neutral-400 leading-relaxed">
+                        {EMERGENCY_MESSAGES.PLAYGROUND_DISABLED}
+                    </p>
+                    <a
+                        href="/dashboard"
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#D40A12] text-white text-sm font-bold hover:bg-[#ff0f1a] transition-colors no-underline"
+                    >
+                        ← Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <PricingProvider>
             <PlaygroundProvider>
