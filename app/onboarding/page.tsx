@@ -153,7 +153,7 @@ const PERSONA_PRESETS: Record<GoalKey, PersonaPreset> = {
             "Any genre, any style — realistic, anime, 3D animation",
             "AI creates characters, locations, camera moves from your description",
             "Full filmmaking pipeline: script → pre-production → production → post",
-            "30 free credits to start directing",
+            "10 free credits to start directing",
         ],
     },
 };
