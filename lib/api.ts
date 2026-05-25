@@ -5,6 +5,7 @@ import { Project, TaxonomyResponse } from "./types";
 import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getActiveWorkspaceSlug } from "@/app/context/WorkspaceContext";
+import { fireGlobalLimitTrigger } from "@/app/context/FreeTierLimitContext";
 
 // 1. Create the Axios Instance
 export const api = axios.create({
@@ -40,12 +41,38 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
+        // ── Free Tier Limit Gate ──
+        // Catch 403s with the FREE_TIER_LIMIT_REACHED error_code and trigger
+        // the upgrade modal as a side-effect. The promise is still rejected so
+        // calling components can clean up their own loading states.
+        if (
+            error.response?.status === 403 &&
+            error.response?.data?.error_code === "FREE_TIER_LIMIT_REACHED"
+        ) {
+            fireGlobalLimitTrigger(error.response.data);
+        }
+
         if (error.response && error.response.status === 401) {
             console.error("Unauthorized! Redirecting to login...");
         }
         return Promise.reject(error);
     }
 );
+
+/**
+ * Helper to check if an Axios error is a Free Tier limit rejection.
+ * Calling components can use this to suppress their own error toasts
+ * when the global upgrade modal is already handling the UX.
+ *
+ * Usage:
+ *   } catch (error) {
+ *       if (isFreeTierLimitError(error)) return; // modal already shown
+ *       toast.error(getApiErrorMessage(error));
+ *   }
+ */
+export const isFreeTierLimitError = (error: any): boolean =>
+    error?.response?.status === 403 &&
+    error?.response?.data?.error_code === "FREE_TIER_LIMIT_REACHED";
 
 // --- 4. PROJECT HELPERS ---
 

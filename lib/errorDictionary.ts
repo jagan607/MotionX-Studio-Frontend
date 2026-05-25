@@ -6,7 +6,7 @@
  */
 
 // ── Action Types ──
-export type ErrorActionType = 'retry' | 'edit' | 'wait' | 'topup' | 'reupload' | 'support';
+export type ErrorActionType = 'retry' | 'edit' | 'wait' | 'topup' | 'reupload' | 'support' | 'upgrade';
 
 // ── UI Config Shape ──
 export interface ErrorUIConfig {
@@ -95,6 +95,13 @@ export const ERROR_UI_DICTIONARY: Record<string, ErrorUIConfig> = {
         message: "An unexpected error occurred.",
         actionText: "Retry",
         actionType: "retry",
+    },
+    FREE_TIER_LIMIT_REACHED: {
+        icon: "🚀",
+        title: "Free Plan Limit",
+        message: "Upgrade to Pro to unlock unlimited access.",
+        actionText: "Upgrade",
+        actionType: "upgrade",
     },
 };
 
