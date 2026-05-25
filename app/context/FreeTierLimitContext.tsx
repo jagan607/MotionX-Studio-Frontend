@@ -55,7 +55,23 @@ export const setGlobalLimitTrigger = (
 
 /** Called by the Axios interceptor to fire the modal */
 export const fireGlobalLimitTrigger = (payload: FreeTierLimitPayload) => {
-    _trigger?.(payload);
+    if (_trigger) {
+        _trigger(payload);
+    } else {
+        console.warn(
+            "[FreeTierLimit] fireGlobalLimitTrigger called but provider not mounted yet. Retrying in 500ms...",
+            payload
+        );
+        // Retry after a short delay — covers race conditions where the interceptor
+        // fires before the React provider has registered its trigger function.
+        setTimeout(() => {
+            if (_trigger) {
+                _trigger(payload);
+            } else {
+                console.error("[FreeTierLimit] Provider still not mounted. 403 payload lost:", payload);
+            }
+        }, 500);
+    }
 };
 
 // ── Context ──────────────────────────────────────────────────────────

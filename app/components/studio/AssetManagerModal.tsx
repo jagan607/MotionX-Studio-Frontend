@@ -16,6 +16,7 @@ import {
     createAsset,
     triggerAssetGeneration,
     updateAsset,
+    isFreeTierLimitError,
 } from "@/lib/api";
 import { Asset, CharacterProfile, LocationProfile, ProductProfile, Project } from "@/lib/types";
 import { constructLocationPrompt, constructCharacterPrompt } from "@/lib/promptUtils";
@@ -233,7 +234,7 @@ export const AssetManagerModal: React.FC<AssetManagerModalProps> = ({
 
             return res.image_url;
         } catch (e) {
-            toastError("Generation failed");
+            if (!isFreeTierLimitError(e)) toastError("Generation failed");
             setGeneratingIds(prev => { const next = new Set(prev); next.delete(asset.id); return next; });
         }
     };

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, onSnapshot, collection, query, getDocs, updateDoc, setDoc, serverTimestamp, orderBy, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
-    fetchEpisodes, fetchProjectAssets, updateAsset, deleteAsset, triggerAssetGeneration,
+    fetchEpisodes, fetchProjectAssets, updateAsset, deleteAsset, triggerAssetGeneration, isFreeTierLimitError,
     api, checkJobStatus, fetchEpisodeScript, deleteScene,
 } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
@@ -608,7 +608,7 @@ export default function PreProductionCanvas() {
             toast.success("Generating...");
             setTimeout(fetchAssets, 1500);
             return res.image_url;
-        } catch { toast.error("Generation failed"); }
+        } catch (e) { if (!isFreeTierLimitError(e)) toast.error("Generation failed"); }
         finally { setGeneratingMap(prev => ({ ...prev, [assetId]: false })); }
     };
 

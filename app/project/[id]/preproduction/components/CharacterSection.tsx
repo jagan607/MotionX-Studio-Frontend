@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { CharacterProfile, Project, Scene } from "@/lib/types";
 import { CreativeBlock } from "./CreativeBlock";
-import { api, updateAsset, deleteAsset, triggerAssetGeneration } from "@/lib/api";
+import { api, updateAsset, deleteAsset, triggerAssetGeneration, isFreeTierLimitError } from "@/lib/api";
 import { AssetModal } from "@/components/AssetModal";
 import { useMediaViewer, MediaItem } from "@/app/context/MediaViewerContext";
 import { toast } from "react-hot-toast";
@@ -66,7 +66,7 @@ export function CharacterSection({ project, characters, onRefresh }: CharacterSe
             return res.image_url;
         } catch (e) {
             console.error(e);
-            toast.error("Generation Failed");
+            if (!isFreeTierLimitError(e)) toast.error("Generation Failed");
         } finally {
             setGeneratingMap(prev => ({ ...prev, [asset.id]: false }));
         }
@@ -115,7 +115,7 @@ export function CharacterSection({ project, characters, onRefresh }: CharacterSe
             onRefresh();
         } catch (error: any) {
             console.error("Generate error", error);
-            toast.error(error.response?.data?.detail || "Generation failed");
+            if (!isFreeTierLimitError(error)) toast.error(error.response?.data?.detail || "Generation failed");
         } finally {
             setGeneratingMap(prev => ({ ...prev, [char.id]: false }));
         }
