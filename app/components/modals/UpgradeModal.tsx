@@ -24,6 +24,10 @@ const LIMIT_TYPE_MESSAGES: Record<string, { headline: string; icon: string }> = 
         headline: "You've reached your free video generation limit",
         icon: "🎥",
     },
+    playground_images_generated: {
+        headline: "You've reached your free Playground limit",
+        icon: "🎨",
+    },
 };
 
 const DEFAULT_MESSAGE = {
