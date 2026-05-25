@@ -32,6 +32,10 @@ const LIMIT_TYPE_MESSAGES: Record<string, { headline: string; icon: string }> = 
         headline: "Unlock all moodboard options",
         icon: "🎭",
     },
+    ai_director: {
+        headline: "AI Director is a Pro feature",
+        icon: "🎬",
+    },
 };
 
 const DEFAULT_MESSAGE = {

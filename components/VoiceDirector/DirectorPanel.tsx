@@ -150,7 +150,7 @@ export default function DirectorPanel({
     // ── Text Send ────────────────────────────────────────────────
     const handleSend = useCallback(() => {
         const text = inputText.trim();
-        if (!text) return;
+        if (!text || isLocked) return;
         setInputText("");
         currentFinalTextRef.current = "";
         setIsSending(true);
@@ -169,12 +169,12 @@ export default function DirectorPanel({
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey && !isLocked) {
                 e.preventDefault();
                 handleSend();
             }
         },
-        [handleSend]
+        [handleSend, isLocked]
     );
 
     // ── Local Speech Recognition (Click-to-Toggle) ────────────────
@@ -581,12 +581,17 @@ export default function DirectorPanel({
                                 }}
                                 onKeyDown={handleKeyDown}
                                 placeholder={
-                                    isListening
-                                        ? "Speak now — your words appear here..."
-                                        : "Type a message..."
+                                    isLocked
+                                        ? "Upgrade to Pro to use AI Director"
+                                        : isListening
+                                            ? "Speak now — your words appear here..."
+                                            : "Type a message..."
                                 }
                                 rows={1}
+                                disabled={isLocked}
                                 className={`flex-1 bg-transparent text-[13px] text-white/90 placeholder:text-white/25 outline-none resize-none leading-[1.5] overflow-y-auto scrollbar-none ${
+                                    isLocked ? "opacity-50 cursor-not-allowed" : ""
+                                } ${
                                     isListening ? "placeholder:text-red-400/40 placeholder:animate-pulse" : ""
                                 }`}
                                 style={{ maxHeight: '100px' }}

@@ -18,6 +18,7 @@ import { useCallback, useRef, useState, useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useCredits } from "@/hooks/useCredits";
+import { useFreeTierLimit } from "@/app/context/FreeTierLimitContext";
 import { useVoiceDirector, VoiceAction } from "./useVoiceDirector";
 import DirectorPanel, { type ChatMessage } from "./DirectorPanel";
 import DirectorToggle from "./DirectorToggle";
@@ -1178,19 +1179,17 @@ export default function VoiceDirector() {
 
     // ── Upgrade Handler ──────────────────────────────────────────────
 
+    const { triggerUpgradeModal } = useFreeTierLimit();
+
     const handleUpgradeClick = useCallback(() => {
-        toast(
-            "Voice Director is a Pro feature. Upgrade your plan to unlock voice interaction.",
-            {
-                id: "voice-upgrade",
-                duration: 4000,
-                icon: "🎙️",
-                style: {
-                    borderLeft: "3px solid #D40A12",
-                },
-            }
-        );
-    }, []);
+        triggerUpgradeModal({
+            detail: "AI Director is a Pro feature. Upgrade to unlock voice and text interaction.",
+            error_code: "FREE_TIER_LIMIT_REACHED",
+            limit_type: "ai_director",
+            current_usage: 0,
+            limit: 0,
+        });
+    }, [triggerUpgradeModal]);
 
     // ── Voice Director Hook ──────────────────────────────────────────
 
