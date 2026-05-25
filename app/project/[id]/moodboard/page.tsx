@@ -10,13 +10,14 @@ import {
     Loader2, Check, Palette, Sun, Layers, CloudFog,
     ChevronRight, ChevronLeft, RefreshCw, AlertCircle,
     ArrowLeft, Sparkles, X, Trash2,
-    BrainCircuit, Upload
+    BrainCircuit, Upload, Lock
 } from "@/lib/lucide";
 import { toast } from "react-hot-toast";
 import { toastError, toastSuccess } from "@/lib/toast";
 import Link from "next/link";
 import CustomMoodboardModal, { CustomMoodboardResult } from "./CustomMoodboardModal";
 import { CreditCTA } from "@/components/ui/CreditCTA";
+import { useFreeTierLimit } from "@/app/context/FreeTierLimitContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -30,7 +31,7 @@ interface MoodOption {
     lighting: string;
     texture: string;
     atmosphere: string;
-    status: "generating" | "ready" | "failed";
+    status: "generating" | "ready" | "failed" | "locked";
     is_variation?: boolean;
     variation_source?: string;
 }
@@ -57,6 +58,7 @@ export default function MoodboardPage() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { triggerUpgradeModal } = useFreeTierLimit();
 
     const projectId = params.id as string;
     const paramEpisodeId = searchParams.get("episode_id");
@@ -83,7 +85,7 @@ export default function MoodboardPage() {
     const failedToastedIds = React.useRef<Set<string>>(new Set());
 
     const readyCount = moods.filter(m => m.status === "ready").length;
-    const resolvedCount = moods.filter(m => m.status === "ready" || m.status === "failed").length;
+    const resolvedCount = moods.filter(m => m.status === "ready" || m.status === "failed" || m.status === "locked").length;
     const totalCount = moods.length;
     const selectedMood = moods[selectedIdx] || null;
     const isApplied = selectedMood && appliedMoodId === selectedMood.id;
@@ -658,6 +660,15 @@ export default function MoodboardPage() {
                                     <span className="text-[11px] text-white/20 uppercase tracking-[3px] font-mono">Generation Failed</span>
                                 </div>
                             </div>
+                        ) : selectedMood.status === "locked" ? (
+                            <div className="absolute inset-0 bg-[#111111] flex items-center justify-center">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="w-16 h-16 rounded-full border border-white/[0.08] bg-white/[0.03] flex items-center justify-center">
+                                        <Lock size={24} className="text-white/20" />
+                                    </div>
+                                    <span className="text-[11px] text-amber-400/50 uppercase tracking-[3px] font-mono">Pro Only</span>
+                                </div>
+                            </div>
                         ) : (
                             <div className="absolute inset-0 bg-[#111111] overflow-hidden">
                                 <div className="absolute w-[55%] h-[55%] rounded-full bg-[#D40A12]/25 blur-[60px]"
@@ -798,6 +809,7 @@ export default function MoodboardPage() {
                                     {moods.map((mood, idx) => {
                                         const active = idx === selectedIdx;
                                         const hasImage = mood.status === "ready" && mood.image_url;
+                                        const isLocked = mood.status === "locked";
                                         const isMoodApplied = !isOnboarding && mood.id === appliedMoodId;
                                         return (
                                             <button key={mood.id}
@@ -808,10 +820,22 @@ export default function MoodboardPage() {
                                                 data-mood-atmosphere={mood.atmosphere || ""}
                                                 data-filmstrip-idx={idx}
                                                 data-agent={`mood-option-${idx + 1}`}
-                                                onClick={() => setSelectedIdx(idx)}
+                                                onClick={() => {
+                                                    if (isLocked) {
+                                                        triggerUpgradeModal({
+                                                            detail: "Upgrade to Pro to unlock all 5 moodboard options.",
+                                                            error_code: "FREE_TIER_LIMIT_REACHED",
+                                                            limit_type: "moodboards_free",
+                                                            current_usage: 2,
+                                                            limit: 2,
+                                                        });
+                                                        return;
+                                                    }
+                                                    setSelectedIdx(idx);
+                                                }}
                                                 className={`relative shrink-0 overflow-hidden transition-all duration-500 cursor-pointer group
                                                     ${idx > 0 ? 'border-l border-white/[0.03]' : ''}
-                                                    ${isMoodApplied ? 'opacity-100 ring-1 ring-emerald-500/50' : active ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
+                                                    ${isLocked ? 'opacity-50 hover:opacity-70' : isMoodApplied ? 'opacity-100 ring-1 ring-emerald-500/50' : active ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
                                                 style={{ width: `${100 / FILMSTRIP_PAGE_SIZE}%` }}
                                             >
                                                 {hasImage ? (
@@ -819,6 +843,16 @@ export default function MoodboardPage() {
                                                         className={`absolute inset-0 w-full h-full object-cover transition-all duration-700
                                                             ${isMoodApplied ? 'scale-100 brightness-[0.85]' : active ? 'scale-100 brightness-90' : 'scale-110 brightness-50 group-hover:brightness-75 group-hover:scale-105'}`}
                                                     />
+                                                ) : isLocked ? (
+                                                    <div className="absolute inset-0 bg-[#060606] overflow-hidden">
+                                                        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#111] to-[#0a0a0a]" />
+                                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 z-10">
+                                                            <div className="w-8 h-8 rounded-full border border-white/[0.08] bg-white/[0.03] flex items-center justify-center">
+                                                                <Lock size={12} className="text-white/20" />
+                                                            </div>
+                                                            <span className="text-[7px] font-bold text-amber-400/70 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider">Pro</span>
+                                                        </div>
+                                                    </div>
                                                 ) : (
                                                     <div className="absolute inset-0 bg-[#060606] overflow-hidden">
                                                         <div className="absolute w-[70%] h-[70%] rounded-full bg-[#D40A12]/20 blur-[25px]"
@@ -846,8 +880,8 @@ export default function MoodboardPage() {
                                                     </>
                                                 )}
 
-                                                {/* Delete button — hover-visible, hidden for applied */}
-                                                {!isMoodApplied && (
+                                                {/* Delete button — hover-visible, hidden for applied and locked */}
+                                                {!isMoodApplied && !isLocked && (
                                                     <div
                                                         onClick={(e) => handleDeleteMood(mood.id, e)}
                                                         className="absolute top-2 left-2 z-50 p-1.5 rounded-md bg-black/40 backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:border-red-500/50 transition-all cursor-pointer"
@@ -872,6 +906,12 @@ export default function MoodboardPage() {
                                                         <div className="flex items-center gap-1 mt-0.5">
                                                             <AlertCircle size={7} className="text-[#D40A12]/40" />
                                                             <span className="text-[7px] text-[#D40A12]/30 uppercase tracking-wider font-mono">Failed</span>
+                                                        </div>
+                                                    )}
+                                                    {isLocked && (
+                                                        <div className="flex items-center gap-1 mt-0.5">
+                                                            <Lock size={7} className="text-amber-400/40" />
+                                                            <span className="text-[7px] text-amber-400/30 uppercase tracking-wider font-mono">Locked</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -942,7 +982,7 @@ export default function MoodboardPage() {
                                 )}
                                 <button onClick={handleConfirm}
                                     data-agent="confirm-mood"
-                                    disabled={(isApplied && !isOnboarding) || phase !== "select" || selectedMood?.status === "failed"}
+                                    disabled={(isApplied && !isOnboarding) || phase !== "select" || selectedMood?.status === "failed" || selectedMood?.status === "locked"}
                                     className={`flex items-center gap-2 px-8 py-3 rounded-lg text-[11px] font-bold uppercase tracking-[2px] transition-all cursor-pointer
                                         ${isApplied && !isOnboarding
                                             ? 'bg-emerald-900/30 text-emerald-400/60 border border-emerald-500/20 cursor-default'

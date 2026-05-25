@@ -16,6 +16,7 @@ import {
     Video, PenTool, Box
 } from "@/lib/lucide";
 import { toast } from "react-hot-toast";
+import { TokenIcon } from "@/components/ui/TokenIcon";
 
 type ProjectType = "movie" | "micro_drama" | "adaptation" | "ad" | "trailer";
 type Phase = "prompt" | "processing" | "complete";
@@ -990,6 +991,9 @@ function NewProjectPageInner() {
                                                 }`}>
                                             {isSubmitting ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
                                             {isSubmitting ? 'Creating...' : 'Create Project'}
+                                            {!isSubmitting && (
+                                                <span className="inline-flex items-center gap-1 opacity-50 text-[8px] font-normal"><TokenIcon size={9} />1</span>
+                                            )}
                                         </button>
                                     )}
                                 </div>

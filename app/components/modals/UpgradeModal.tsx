@@ -28,6 +28,10 @@ const LIMIT_TYPE_MESSAGES: Record<string, { headline: string; icon: string }> = 
         headline: "You've reached your free Playground limit",
         icon: "🎨",
     },
+    moodboards_free: {
+        headline: "Unlock all moodboard options",
+        icon: "🎭",
+    },
 };
 
 const DEFAULT_MESSAGE = {
