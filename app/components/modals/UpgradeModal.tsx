@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Rocket, ArrowRight, Lock } from "@/lib/lucide";
 import { useFreeTierLimit } from "@/app/context/FreeTierLimitContext";
@@ -71,9 +71,16 @@ export default function UpgradeModal() {
         ? LIMIT_TYPE_MESSAGES[limitType] || DEFAULT_MESSAGE
         : DEFAULT_MESSAGE;
 
+    const searchParams = useSearchParams();
+    const isOnboarding = searchParams.get("onboarding") === "true";
+
     const handleUpgrade = () => {
         closeUpgradeModal();
-        router.push("/pricing");
+        if (isOnboarding) {
+            window.open("/pricing", "_blank");
+        } else {
+            router.push("/pricing");
+        }
     };
 
     return (
@@ -205,8 +212,17 @@ export default function UpgradeModal() {
                                 >
                                     <Rocket size={15} />
                                     Upgrade to Pro
-                                    <ArrowRight size={14} className="opacity-60" />
+                                    {isOnboarding ? (
+                                        <span className="text-[10px] opacity-60">↗</span>
+                                    ) : (
+                                        <ArrowRight size={14} className="opacity-60" />
+                                    )}
                                 </button>
+                                {isOnboarding && (
+                                    <p className="text-[10px] text-white/20 -mt-1 text-center">
+                                        Opens in a new tab — your project setup is safe
+                                    </p>
+                                )}
 
                                 <button
                                     onClick={closeUpgradeModal}

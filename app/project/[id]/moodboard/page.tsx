@@ -152,7 +152,7 @@ export default function MoodboardPage() {
 
             // Defer failure notifications until ALL options reach a terminal state.
             // This prevents alarming red toasts while generation is still in progress.
-            const terminalCount = options.filter(o => o.status === "ready" || o.status === "failed").length;
+            const terminalCount = options.filter(o => o.status === "ready" || o.status === "failed" || o.status === "locked").length;
             const failedCount = options.filter(o => o.status === "failed").length;
             if (options.length > 0 && terminalCount === options.length && !failedToastedIds.current.has("__summary__")) {
                 failedToastedIds.current.add("__summary__");
@@ -164,6 +164,13 @@ export default function MoodboardPage() {
                     });
                 }
             }
+
+            // Sort: unlocked first, locked last (stable sort preserves original Firestore order within each group)
+            options.sort((a, b) => {
+                const aLocked = a.status === "locked" ? 1 : 0;
+                const bLocked = b.status === "locked" ? 1 : 0;
+                return aLocked - bLocked;
+            });
 
             setMoods(options);
             setFirestoreLoaded(true);
@@ -563,16 +570,6 @@ export default function MoodboardPage() {
                         </div>
                     )}
 
-
-
-                    {selectedMood && (
-                        <button onClick={() => generateMoods(true)} disabled={isRegenerating}
-                            data-agent="regenerate-moods"
-                            className="flex items-center gap-2 px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-[1px] border border-white/[0.08] rounded-md hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer disabled:opacity-30">
-                            <RefreshCw size={12} className={isRegenerating ? "animate-spin" : ""} />
-                            Regenerate <span className="opacity-50 text-[9px] font-normal tracking-normal normal-case ml-1">· 2 cr</span>
-                        </button>
-                    )}
                     {/* Close — back to pre-production (hidden during onboarding) */}
                     {!isOnboarding && (
                         <Link href={preproductionUrl}
