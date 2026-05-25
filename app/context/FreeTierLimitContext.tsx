@@ -41,36 +41,21 @@ const DEFAULT_STATE: FreeTierLimitState = {
     usageLimit: 0,
 };
 
-// ── Module-Level Bridge ──────────────────────────────────────────────
-// Allows the Axios interceptor (non-React code) to trigger the modal.
-// The provider registers its dispatch here on mount and clears on unmount.
+// ── DOM Event Bridge ─────────────────────────────────────────────────
+// Uses window CustomEvent to cross webpack chunk boundaries.
+// The Axios interceptor (in api.ts) dispatches the event, and the
+// React provider listens for it. This is immune to module
+// instantiation issues that break the old module-level variable approach.
 
-let _trigger: ((payload: FreeTierLimitPayload) => void) | null = null;
-
-export const setGlobalLimitTrigger = (
-    fn: ((payload: FreeTierLimitPayload) => void) | null
-) => {
-    _trigger = fn;
-};
+const UPGRADE_MODAL_EVENT = "__mx_free_tier_limit__";
 
 /** Called by the Axios interceptor to fire the modal */
 export const fireGlobalLimitTrigger = (payload: FreeTierLimitPayload) => {
-    if (_trigger) {
-        _trigger(payload);
-    } else {
-        console.warn(
-            "[FreeTierLimit] fireGlobalLimitTrigger called but provider not mounted yet. Retrying in 500ms...",
-            payload
+    if (typeof window !== "undefined") {
+        console.log("[FreeTierLimit] Dispatching upgrade modal event:", payload.limit_type);
+        window.dispatchEvent(
+            new CustomEvent(UPGRADE_MODAL_EVENT, { detail: payload })
         );
-        // Retry after a short delay — covers race conditions where the interceptor
-        // fires before the React provider has registered its trigger function.
-        setTimeout(() => {
-            if (_trigger) {
-                _trigger(payload);
-            } else {
-                console.error("[FreeTierLimit] Provider still not mounted. 403 payload lost:", payload);
-            }
-        }, 500);
     }
 };
 
@@ -93,6 +78,7 @@ export function FreeTierLimitProvider({ children }: { children: ReactNode }) {
 
     const triggerUpgradeModal = useCallback(
         (payload: FreeTierLimitPayload) => {
+            console.log("[FreeTierLimit] triggerUpgradeModal called:", payload.limit_type);
             setState({
                 isOpen: true,
                 limitType: payload.limit_type,
@@ -108,10 +94,15 @@ export function FreeTierLimitProvider({ children }: { children: ReactNode }) {
         setState(DEFAULT_STATE);
     }, []);
 
-    // Register the trigger function on mount so the Axios interceptor can use it
+    // Listen for the DOM event dispatched by the Axios interceptor
     useEffect(() => {
-        setGlobalLimitTrigger(triggerUpgradeModal);
-        return () => setGlobalLimitTrigger(null);
+        const handler = (e: Event) => {
+            const payload = (e as CustomEvent<FreeTierLimitPayload>).detail;
+            console.log("[FreeTierLimit] Received DOM event, opening modal:", payload.limit_type);
+            triggerUpgradeModal(payload);
+        };
+        window.addEventListener(UPGRADE_MODAL_EVENT, handler);
+        return () => window.removeEventListener(UPGRADE_MODAL_EVENT, handler);
     }, [triggerUpgradeModal]);
 
     return (
@@ -122,3 +113,4 @@ export function FreeTierLimitProvider({ children }: { children: ReactNode }) {
         </FreeTierLimitContext.Provider>
     );
 }
+
