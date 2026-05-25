@@ -992,7 +992,7 @@ function NewProjectPageInner() {
                                             {isSubmitting ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
                                             {isSubmitting ? 'Creating...' : 'Create Project'}
                                             {!isSubmitting && (
-                                                <span className="inline-flex items-center gap-1 opacity-50 text-[8px] font-normal"><TokenIcon size={9} />1</span>
+                                                <span className="inline-flex items-center gap-1 text-white text-[9px] font-semibold"><TokenIcon size={11} />1</span>
                                             )}
                                         </button>
                                     )}

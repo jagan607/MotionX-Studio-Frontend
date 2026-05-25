@@ -42,22 +42,41 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         // ── Free Tier Limit Gate ──
-        // Catch 403s with the FREE_TIER_LIMIT_REACHED error_code and trigger
-        // the upgrade modal as a side-effect. The promise is still rejected so
-        // calling components can clean up their own loading states.
-        if (
-            error.response?.status === 403 &&
-            (error.response?.data?.error_code === "FREE_TIER_LIMIT_REACHED" ||
-             error.response?.data?.limit_type)
-        ) {
-            // Normalize the payload — some backend responses may not include all fields
+        // Catch 403s and trigger the upgrade modal as a side-effect.
+        // The promise is still rejected so calling components can clean up their own loading states.
+        if (error.response?.status === 403) {
             const data = error.response.data;
+            const detailStr = typeof data?.detail === "string" ? data.detail : "";
+
+            // Normalize limit type based on the detail string content
+            let limitType = "asset_images_generated"; // Fallback default
+            if (data?.limit_type) {
+                limitType = data.limit_type;
+            } else {
+                const lowerDetail = detailStr.toLowerCase();
+                if (lowerDetail.includes("asset_images") || lowerDetail.includes("asset_image")) {
+                    limitType = "asset_images_generated";
+                } else if (lowerDetail.includes("production_shots") || lowerDetail.includes("production_shot")) {
+                    limitType = "production_shots_generated";
+                } else if (lowerDetail.includes("videos") || lowerDetail.includes("video")) {
+                    limitType = "videos_generated";
+                } else if (lowerDetail.includes("projects") || lowerDetail.includes("project")) {
+                    limitType = "projects_created";
+                } else if (lowerDetail.includes("playground")) {
+                    limitType = "playground_images_generated";
+                } else if (lowerDetail.includes("moodboard")) {
+                    limitType = "moodboards_free";
+                } else if (lowerDetail.includes("ai_director") || lowerDetail.includes("ai director")) {
+                    limitType = "ai_director";
+                }
+            }
+
             const payload = {
-                detail: data.detail || "You've reached your free plan limit.",
+                detail: detailStr || "You've reached your free plan limit.",
                 error_code: "FREE_TIER_LIMIT_REACHED" as const,
-                limit_type: data.limit_type || "unknown",
-                current_usage: data.current_usage ?? 0,
-                limit: data.limit ?? 0,
+                limit_type: limitType,
+                current_usage: data?.current_usage ?? 0,
+                limit: data?.limit ?? 0,
             };
             fireGlobalLimitTrigger(payload);
         }
@@ -81,9 +100,7 @@ api.interceptors.response.use(
  *   }
  */
 export const isFreeTierLimitError = (error: any): boolean =>
-    error?.response?.status === 403 &&
-    (error?.response?.data?.error_code === "FREE_TIER_LIMIT_REACHED" ||
-     !!error?.response?.data?.limit_type);
+    error?.response?.status === 403;
 
 // --- 4. PROJECT HELPERS ---
 
