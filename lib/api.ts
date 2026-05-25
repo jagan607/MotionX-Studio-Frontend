@@ -47,9 +47,19 @@ api.interceptors.response.use(
         // calling components can clean up their own loading states.
         if (
             error.response?.status === 403 &&
-            error.response?.data?.error_code === "FREE_TIER_LIMIT_REACHED"
+            (error.response?.data?.error_code === "FREE_TIER_LIMIT_REACHED" ||
+             error.response?.data?.limit_type)
         ) {
-            fireGlobalLimitTrigger(error.response.data);
+            // Normalize the payload — some backend responses may not include all fields
+            const data = error.response.data;
+            const payload = {
+                detail: data.detail || "You've reached your free plan limit.",
+                error_code: "FREE_TIER_LIMIT_REACHED" as const,
+                limit_type: data.limit_type || "unknown",
+                current_usage: data.current_usage ?? 0,
+                limit: data.limit ?? 0,
+            };
+            fireGlobalLimitTrigger(payload);
         }
 
         if (error.response && error.response.status === 401) {
@@ -72,7 +82,8 @@ api.interceptors.response.use(
  */
 export const isFreeTierLimitError = (error: any): boolean =>
     error?.response?.status === 403 &&
-    error?.response?.data?.error_code === "FREE_TIER_LIMIT_REACHED";
+    (error?.response?.data?.error_code === "FREE_TIER_LIMIT_REACHED" ||
+     !!error?.response?.data?.limit_type);
 
 // --- 4. PROJECT HELPERS ---
 
