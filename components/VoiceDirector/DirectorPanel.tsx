@@ -24,6 +24,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion } from 'framer-motion';
 import type { VoiceSessionState } from "./useVoiceDirector";
+import { TokenIcon } from "../ui/TokenIcon";
+import ApprovalModal, { type PendingApproval } from "./ApprovalModal";
 
 // ── Message Types ────────────────────────────────────────────────
 
@@ -62,6 +64,10 @@ interface DirectorPanelProps {
     // Voice Selection
     selectedVoice?: string;
     onVoiceChange?: (voice: string) => void;
+    // Approval gate
+    pendingApproval?: PendingApproval | null;
+    onApproveAction?: () => void;
+    onDeclineAction?: () => void;
 }
 
 export default function DirectorPanel({
@@ -79,6 +85,9 @@ export default function DirectorPanel({
     messages,
     isAgentBusy,
     onStopAgent,
+    pendingApproval,
+    onApproveAction,
+    onDeclineAction,
 }: DirectorPanelProps) {
     const pathname = usePathname();
     const [inputText, setInputText] = useState("");
@@ -305,8 +314,14 @@ export default function DirectorPanel({
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 35 }}
-            className="w-[380px] shrink-0 h-full flex flex-col border-l border-white/[0.06] bg-[#111111]/70 backdrop-blur-2xl"
+            className="w-[380px] shrink-0 h-full flex flex-col border-l border-white/[0.06] bg-[#111111]/70 backdrop-blur-2xl relative"
         >
+            {/* ── Approval Overlay ─────────────────────────────── */}
+            <ApprovalModal
+                pending={pendingApproval ?? null}
+                onApprove={onApproveAction ?? (() => {})}
+                onDecline={onDeclineAction ?? (() => {})}
+            />
             {/* ── Header ─────────────────────────────────────────── */}
             <div
                 className="flex items-center justify-between px-5 py-4 shrink-0"
@@ -365,32 +380,39 @@ export default function DirectorPanel({
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-thin scrollbar-thumb-white/5">
                 {messages.length === 0 && !assistantText && (
                     <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                        <div
-                            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-                            style={{
-                                background: "linear-gradient(135deg, rgba(212,10,18,0.2), rgba(212,10,18,0.08))",
-                                border: "1px solid rgba(212,10,18,0.18)",
-                            }}
-                        >
-                            <Sparkles size={22} className="text-[#D40A12]" />
-                        </div>
+
                         <p className="text-[13px] text-white/70 leading-relaxed">
                             Your AI Director is ready to help.
                             <br />
                             Type a message or click the mic to dictate.
                         </p>
                         {!isConnected && (
-                            <button
-                                onClick={() => isLocked ? onUpgradeClick?.() : onConnect?.()}
-                                className="mt-5 px-5 py-2.5 rounded-lg text-[12px] font-semibold transition-all cursor-pointer hover:brightness-110"
-                                style={{
-                                    background: "#D40A12",
-                                    color: "#fff",
-                                    boxShadow: "0 2px 12px rgba(212,10,18,0.3)",
-                                }}
-                            >
-                                {isLocked ? "Upgrade to Pro" : "Start Session"}
-                            </button>
+                            <>
+                                <button
+                                    onClick={() => isLocked ? onUpgradeClick?.() : onConnect?.()}
+                                    className="mt-5 flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-[12px] font-semibold transition-all cursor-pointer hover:brightness-110"
+                                    style={{
+                                        background: "#D40A12",
+                                        color: "#fff",
+                                        boxShadow: "0 2px 12px rgba(212,10,18,0.3)",
+                                    }}
+                                >
+                                    {isLocked ? "Upgrade to Pro" : (
+                                        <>
+                                            Start Session
+                                            <span className="flex items-center gap-1 text-[11px] font-medium text-white/80">
+                                                0.5
+                                                <TokenIcon size={10} className="text-white/80" style={{ strokeWidth: 2.5 }} />
+                                            </span>
+                                        </>
+                                    )}
+                                </button>
+                                {!isLocked && (
+                                    <p className="mt-3 text-[10px] text-white/25 tracking-wide">
+                                        Minimum balance to connect · Billed per minute of use
+                                    </p>
+                                )}
+                            </>
                         )}
                     </div>
                 )}
