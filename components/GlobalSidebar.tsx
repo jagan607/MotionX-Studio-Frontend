@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Command, Plus, Globe, Zap, Rocket, ChevronLeft, ChevronRight, FolderOpen } from "@/lib/lucide";
+import { Command, Plus, Globe, Zap, Rocket, ChevronLeft, ChevronRight, FolderOpen, Sparkles } from "@/lib/lucide";
 
 export default function GlobalSidebar() {
     const pathname = usePathname();
@@ -47,6 +47,10 @@ export default function GlobalSidebar() {
                 <Link href="/playground" className={`w-full text-left ${isCollapsed ? 'px-0 justify-center' : 'px-4'} py-2.5 text-[10px] font-bold tracking-[1.5px] uppercase rounded-lg transition-all flex items-center gap-3 no-underline mt-1 ${pathname === '/playground' ? 'bg-[#D40A12]/15 text-[#D40A12] border border-[#D40A12]/30 shadow-[0_0_15px_rgba(212,10,18,0.2)]' : 'text-white/50 hover:bg-white/[0.05] hover:text-white border border-transparent'}`}>
                     <Zap size={16} className={isCollapsed ? 'mx-auto' : ''} />
                     {!isCollapsed && <span>Playground</span>}
+                </Link>
+                <Link href="/jewelry" className={`w-full text-left ${isCollapsed ? 'px-0 justify-center' : 'px-4'} py-2.5 text-[10px] font-bold tracking-[1.5px] uppercase rounded-lg transition-all flex items-center gap-3 no-underline mt-1 ${pathname?.startsWith('/jewelry') ? 'bg-[#D40A12]/15 text-[#D40A12] border border-[#D40A12]/30 shadow-[0_0_15px_rgba(212,10,18,0.2)]' : 'text-white/50 hover:bg-white/[0.05] hover:text-white border border-transparent'}`}>
+                    <Sparkles size={16} className={isCollapsed ? 'mx-auto' : ''} strokeWidth={2.5} />
+                    {!isCollapsed && <span>Jewelry Ads</span>}
                 </Link>
             </div>
             

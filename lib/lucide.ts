@@ -69,6 +69,7 @@ export { default as Film } from "lucide-react/dist/esm/icons/film";
 export { default as Focus } from "lucide-react/dist/esm/icons/focus";
 export { default as FolderKanban } from "lucide-react/dist/esm/icons/folder-kanban";
 export { default as Gauge } from "lucide-react/dist/esm/icons/gauge";
+export { default as Gem } from "lucide-react/dist/esm/icons/gem";
 export { default as Gift } from "lucide-react/dist/esm/icons/gift";
 export { default as Globe } from "lucide-react/dist/esm/icons/globe";
 export { default as GripVertical } from "lucide-react/dist/esm/icons/grip-vertical";
