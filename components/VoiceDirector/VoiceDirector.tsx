@@ -18,9 +18,11 @@ import { useCallback, useRef, useState, useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useCredits } from "@/hooks/useCredits";
+import { useFreeTierLimit } from "@/app/context/FreeTierLimitContext";
 import { useVoiceDirector, VoiceAction } from "./useVoiceDirector";
 import DirectorPanel, { type ChatMessage } from "./DirectorPanel";
 import DirectorToggle from "./DirectorToggle";
+import type { PendingApproval } from "./ApprovalModal";
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -566,6 +568,7 @@ export default function VoiceDirector() {
     const lastAssistantTextRef = useRef("");
     const [isAgentBusy, setIsAgentBusy] = useState(false);
     const stopAgentRef = useRef(false);
+    const [pendingApproval, setPendingApproval] = useState<PendingApproval | null>(null);
 
     /** Send real tool execution result back to Gemini agent + show in chat */
     const sendFeedback = useCallback((message: string, success = true) => {
@@ -647,6 +650,27 @@ export default function VoiceDirector() {
                             },
                         ]);
                         // No feedback needed — this is informational only
+                        return;
+                    }
+
+                    // ── Approval Gate (HITL) ──────────────────────────
+                    case "requires_approval": {
+                        const description = (action.args.description as string) || "The AI wants to perform an action";
+                        const creditCost = (action.args.credit_cost as number) || 0;
+
+                        setMessages((prev) => [
+                            ...prev,
+                            {
+                                id: nextMsgId(),
+                                role: "action" as const,
+                                text: `🛡️ Approval requested: ${description} (${creditCost} credits)`,
+                                timestamp: Date.now(),
+                                actionStatus: "pending",
+                            },
+                        ]);
+
+                        setPendingApproval({ description, credit_cost: creditCost });
+                        // Don't mark agent as not-busy — we're waiting for user input
                         return;
                     }
 
@@ -1176,21 +1200,54 @@ export default function VoiceDirector() {
         toast.error(message, { id: "voice-error", duration: 4000 });
     }, []);
 
+    // ── Approval Handlers ────────────────────────────────────────────
+
+    const handleApprove = useCallback(() => {
+        if (!pendingApproval) return;
+        sendActionResultRef.current(true, "User approved");
+        setMessages((prev) => [
+            ...prev,
+            {
+                id: nextMsgId(),
+                role: "action" as const,
+                text: `✅ Approved: ${pendingApproval.description}`,
+                timestamp: Date.now(),
+                actionStatus: "success",
+            },
+        ]);
+        setPendingApproval(null);
+    }, [pendingApproval]);
+
+    const handleDecline = useCallback(() => {
+        const desc = pendingApproval?.description || "action";
+        sendActionResultRef.current(false, "User declined");
+        setMessages((prev) => [
+            ...prev,
+            {
+                id: nextMsgId(),
+                role: "action" as const,
+                text: `❌ Declined: ${desc}`,
+                timestamp: Date.now(),
+                actionStatus: "error",
+            },
+        ]);
+        setPendingApproval(null);
+        setIsAgentBusy(false);
+    }, [pendingApproval]);
+
     // ── Upgrade Handler ──────────────────────────────────────────────
 
+    const { triggerUpgradeModal } = useFreeTierLimit();
+
     const handleUpgradeClick = useCallback(() => {
-        toast(
-            "Voice Director is a Pro feature. Upgrade your plan to unlock voice interaction.",
-            {
-                id: "voice-upgrade",
-                duration: 4000,
-                icon: "🎙️",
-                style: {
-                    borderLeft: "3px solid #D40A12",
-                },
-            }
-        );
-    }, []);
+        triggerUpgradeModal({
+            detail: "AI Director is a Pro feature. Upgrade to unlock voice and text interaction.",
+            error_code: "FREE_TIER_LIMIT_REACHED",
+            limit_type: "ai_director",
+            current_usage: 0,
+            limit: 0,
+        });
+    }, [triggerUpgradeModal]);
 
     // ── Voice Director Hook ──────────────────────────────────────────
 
@@ -1341,6 +1398,9 @@ export default function VoiceDirector() {
                         setTimeout(() => voice.connect(v), 500);
                     }
                 }}
+                pendingApproval={pendingApproval}
+                onApproveAction={handleApprove}
+                onDeclineAction={handleDecline}
             />
         </div>
     );

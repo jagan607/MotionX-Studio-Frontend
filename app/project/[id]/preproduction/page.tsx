@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, onSnapshot, collection, query, getDocs, updateDoc, setDoc, deleteDoc, serverTimestamp, orderBy, writeBatch } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, collection, query, getDocs, updateDoc, setDoc, serverTimestamp, orderBy, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
-    fetchEpisodes, fetchProjectAssets, updateAsset, deleteAsset, triggerAssetGeneration,
-    api, checkJobStatus, fetchEpisodeScript,
+    fetchEpisodes, fetchProjectAssets, updateAsset, deleteAsset, triggerAssetGeneration, isFreeTierLimitError,
+    api, checkJobStatus, fetchEpisodeScript, deleteScene,
 } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { v4 as uuidv4 } from 'uuid';
@@ -608,7 +608,7 @@ export default function PreProductionCanvas() {
             toast.success("Generating...");
             setTimeout(fetchAssets, 1500);
             return res.image_url;
-        } catch { toast.error("Generation failed"); }
+        } catch (e) { if (!isFreeTierLimitError(e)) toast.error("Generation failed"); }
         finally { setGeneratingMap(prev => ({ ...prev, [assetId]: false })); }
     };
 
@@ -916,8 +916,7 @@ export default function PreProductionCanvas() {
         setIsDeleting(true);
         try {
             if (editingScene?.id === pendingDeleteId) setEditingScene(null);
-            const sceneRef = doc(db, "projects", projectId, "episodes", activeEpisodeId, "scenes", pendingDeleteId);
-            await deleteDoc(sceneRef);
+            await deleteScene(projectId, activeEpisodeId, pendingDeleteId);
             toastSuccess("Scene Deleted");
             await fetchAssets();
         } catch (e) {
@@ -1444,7 +1443,7 @@ export default function PreProductionCanvas() {
             {pendingDeleteId && (
                 <DeleteConfirmModal
                     title="Delete Scene"
-                    message="Are you sure you want to delete this scene? This action cannot be undone."
+                    message="Are you sure you want to delete this scene? All associated shots will also be permanently deleted. This action cannot be undone."
                     isDeleting={isDeleting}
                     onConfirm={handleConfirmDelete}
                     onCancel={() => setPendingDeleteId(null)}

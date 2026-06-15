@@ -13,6 +13,7 @@ import Script from "next/script";
 import { MediaViewerProvider } from "@/app/context/MediaViewerContext";
 import { WorkspaceProvider } from "@/app/context/WorkspaceContext";
 import { CreditsProvider } from "@/hooks/useCredits";
+import { FreeTierLimitProvider } from "@/app/context/FreeTierLimitContext";
 
 // Lazy-loaded: GlobalMediaViewer is a modal (never visible on initial paint)
 const GlobalMediaViewer = dynamic(
@@ -27,6 +28,11 @@ const ActivityTracker = dynamic(
 // Lazy-loaded: VoiceDirector is the global AI voice assistant (floating mic orb)
 const VoiceDirector = dynamic(
   () => import("@/components/VoiceDirector/VoiceDirector")
+);
+
+// Lazy-loaded: UpgradeModal for free tier limit enforcement (never visible on initial paint)
+const UpgradeModal = dynamic(
+  () => import("@/app/components/modals/UpgradeModal")
 );
 
 const inter = Inter({
@@ -189,6 +195,7 @@ export default function RootLayout({
             <AuthProvider>
               <WorkspaceProvider>
               <CreditsProvider>
+              <FreeTierLimitProvider>
               <ActivityTracker />
               {/* <div className="vignette pointer-events-none fixed inset-0 z-50" /> */}
 
@@ -211,6 +218,8 @@ export default function RootLayout({
                   <VoiceDirector />
                 </Suspense>
               </div>
+
+              <UpgradeModal />
 
               <Toaster
                 position="bottom-right"
@@ -239,6 +248,7 @@ export default function RootLayout({
                   },
                 }}
               />
+              </FreeTierLimitProvider>
               </CreditsProvider>
               </WorkspaceProvider>
             </AuthProvider>

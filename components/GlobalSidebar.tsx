@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Command, Plus, Globe, Zap, Rocket, ChevronLeft, ChevronRight, FolderOpen, Sparkles } from "@/lib/lucide";
+import { EMERGENCY_MODE } from '@/lib/emergencyConfig';
 
 export default function GlobalSidebar() {
     const pathname = usePathname();
@@ -20,7 +21,7 @@ export default function GlobalSidebar() {
     return (
         <aside className={`${isCollapsed ? 'w-[70px]' : 'w-[220px] lg:w-[250px]'} shrink-0 border-r border-white/[0.08] bg-[#111111]/70 backdrop-blur-2xl flex flex-col z-[40] shadow-[4px_0_32px_rgba(0,0,0,0.5)] transition-all duration-300 relative group`}>
             {/* Collapse Toggle */}
-            <button 
+            <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className="absolute -right-3 top-6 w-6 h-6 bg-[#1a1a1a] border border-white/10 hover:border-[#D40A12]/50 rounded-full flex items-center justify-center text-white/70 hover:text-[#D40A12] cursor-pointer z-50 transition-all opacity-0 group-hover:opacity-100 shadow-[0_0_10px_rgba(0,0,0,0.8)]"
             >
@@ -44,16 +45,18 @@ export default function GlobalSidebar() {
                     <Globe size={16} className={isCollapsed ? 'mx-auto' : ''} />
                     {!isCollapsed && <span>Community</span>}
                 </Link>
-                <Link href="/playground" className={`w-full text-left ${isCollapsed ? 'px-0 justify-center' : 'px-4'} py-2.5 text-[10px] font-bold tracking-[1.5px] uppercase rounded-lg transition-all flex items-center gap-3 no-underline mt-1 ${pathname === '/playground' ? 'bg-[#D40A12]/15 text-[#D40A12] border border-[#D40A12]/30 shadow-[0_0_15px_rgba(212,10,18,0.2)]' : 'text-white/50 hover:bg-white/[0.05] hover:text-white border border-transparent'}`}>
-                    <Zap size={16} className={isCollapsed ? 'mx-auto' : ''} />
-                    {!isCollapsed && <span>Playground</span>}
-                </Link>
+                {!EMERGENCY_MODE && (
+                    <Link href="/playground" className={`w-full text-left ${isCollapsed ? 'px-0 justify-center' : 'px-4'} py-2.5 text-[10px] font-bold tracking-[1.5px] uppercase rounded-lg transition-all flex items-center gap-3 no-underline mt-1 ${pathname === '/playground' ? 'bg-[#D40A12]/15 text-[#D40A12] border border-[#D40A12]/30 shadow-[0_0_15px_rgba(212,10,18,0.2)]' : 'text-white/50 hover:bg-white/[0.05] hover:text-white border border-transparent'}`}>
+                        <Zap size={16} className={isCollapsed ? 'mx-auto' : ''} />
+                        {!isCollapsed && <span>Playground</span>}
+                    </Link>
+                )}
                 <Link href="/jewelry" className={`w-full text-left ${isCollapsed ? 'px-0 justify-center' : 'px-4'} py-2.5 text-[10px] font-bold tracking-[1.5px] uppercase rounded-lg transition-all flex items-center gap-3 no-underline mt-1 ${pathname?.startsWith('/jewelry') ? 'bg-[#D40A12]/15 text-[#D40A12] border border-[#D40A12]/30 shadow-[0_0_15px_rgba(212,10,18,0.2)]' : 'text-white/50 hover:bg-white/[0.05] hover:text-white border border-transparent'}`}>
                     <Sparkles size={16} className={isCollapsed ? 'mx-auto' : ''} strokeWidth={2.5} />
                     {!isCollapsed && <span>Jewelry Ads</span>}
                 </Link>
             </div>
-            
+
             {/* ═══ AI Director — subtle sidebar entry ═══ */}
             <div className={`mt-auto ${isCollapsed ? 'p-2' : 'p-4'} border-t border-white/[0.04]`}>
                 <button

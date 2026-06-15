@@ -5,6 +5,7 @@ import { Project, TaxonomyResponse } from "./types";
 import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getActiveWorkspaceSlug } from "@/app/context/WorkspaceContext";
+import { fireGlobalLimitTrigger } from "@/app/context/FreeTierLimitContext";
 
 // 1. Create the Axios Instance
 export const api = axios.create({
@@ -40,12 +41,66 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
+        // ── Free Tier Limit Gate ──
+        // Catch 403s and trigger the upgrade modal as a side-effect.
+        // The promise is still rejected so calling components can clean up their own loading states.
+        if (error.response?.status === 403) {
+            const data = error.response.data;
+            const detailStr = typeof data?.detail === "string" ? data.detail : "";
+
+            // Normalize limit type based on the detail string content
+            let limitType = "asset_images_generated"; // Fallback default
+            if (data?.limit_type) {
+                limitType = data.limit_type;
+            } else {
+                const lowerDetail = detailStr.toLowerCase();
+                if (lowerDetail.includes("asset_images") || lowerDetail.includes("asset_image")) {
+                    limitType = "asset_images_generated";
+                } else if (lowerDetail.includes("production_shots") || lowerDetail.includes("production_shot")) {
+                    limitType = "production_shots_generated";
+                } else if (lowerDetail.includes("videos") || lowerDetail.includes("video")) {
+                    limitType = "videos_generated";
+                } else if (lowerDetail.includes("projects") || lowerDetail.includes("project")) {
+                    limitType = "projects_created";
+                } else if (lowerDetail.includes("playground")) {
+                    limitType = "playground_images_generated";
+                } else if (lowerDetail.includes("moodboard")) {
+                    limitType = "moodboards_free";
+                } else if (lowerDetail.includes("ai_director") || lowerDetail.includes("ai director")) {
+                    limitType = "ai_director";
+                }
+            }
+
+            const payload = {
+                detail: detailStr || "You've reached your free plan limit.",
+                error_code: "FREE_TIER_LIMIT_REACHED" as const,
+                limit_type: limitType,
+                current_usage: data?.current_usage ?? 0,
+                limit: data?.limit ?? 0,
+            };
+            fireGlobalLimitTrigger(payload);
+        }
+
         if (error.response && error.response.status === 401) {
             console.error("Unauthorized! Redirecting to login...");
         }
         return Promise.reject(error);
     }
 );
+
+/**
+ * Helper to check if an Axios error is a Free Tier limit rejection.
+ * Calling components can use this to suppress their own error toasts
+ * when the global upgrade modal is already handling the UX.
+ *
+ * Usage:
+ *   } catch (error) {
+ *       if (isFreeTierLimitError(error)) return; // modal already shown
+ *       toast.error(getApiErrorMessage(error));
+ *   }
+ */
+export const isFreeTierLimitError = (error: any): boolean =>
+    error?.response?.status === 403;
 
 // --- 4. PROJECT HELPERS ---
 
@@ -186,6 +241,16 @@ export const fetchScenes = async (projectId: string, containerId?: string) => {
     const query = containerId ? `?container_id=${containerId}` : '';
     const res = await api.get(`/api/v1/script/${projectId}/scenes${query}`);
     return res.data;
+};
+
+export const deleteScene = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string
+) => {
+    return await api.delete(
+        `/api/v1/script/scene/${projectId}/${episodeId}/${sceneId}`
+    );
 };
 
 export const fetchEpisodes = async (projectId: string) => {

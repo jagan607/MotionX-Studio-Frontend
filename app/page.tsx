@@ -237,6 +237,8 @@ const ROTATING_TAGLINES = [
   "Consistent characters, sets, and cinematography — every shot.",
 ];
 
+const WAITLIST_STORAGE_KEY = "motionx_waitlist_submitted";
+
 const HeroSection = () => {
   const headline = "Direct the Impossible";
   const [countdownDone, setCountdownDone] = useState(false);
@@ -247,6 +249,44 @@ const HeroSection = () => {
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const [taglineIdx, setTaglineIdx] = useState(0);
   const [taglineFading, setTaglineFading] = useState(false);
+
+  // ── Waitlist lead-capture state (maintenance mode only) ──
+  const [email, setEmail] = useState("");
+  const [formStatus, setFormStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  // Check localStorage for previous submission (dedup)
+  useEffect(() => {
+    if (IS_MAINTENANCE_MODE) {
+      try {
+        if (localStorage.getItem(WAITLIST_STORAGE_KEY) === "true") {
+          setFormStatus("success");
+        }
+      } catch { /* SSR / private browsing guard */ }
+    }
+  }, []);
+
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setFormStatus("loading");
+    try {
+      const res = await fetch(process.env.NEXT_PUBLIC_WAITLIST_WEBHOOK_URL!, {
+        method: "POST",
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      // Apps Script redirects on success — treat any 2xx/redirect as success
+      // For opaque responses (no-cors), res.ok may be false, so we also check res.type
+      if (res.ok || res.type === "opaque" || res.redirected) {
+        setFormStatus("success");
+        try { localStorage.setItem(WAITLIST_STORAGE_KEY, "true"); } catch { /* noop */ }
+      } else {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || "Submission failed");
+      }
+    } catch {
+      setFormStatus("error");
+    }
+  };
 
   // Film countdown: 3 → 2 → 1 → ACTION → done
   useEffect(() => {
@@ -459,44 +499,111 @@ const HeroSection = () => {
           />
         </h1>
 
-        {/* Rotating Tagline */}
-        <div className="mt-5 md:mt-6 h-8 flex items-center justify-center overflow-hidden">
-          <p
-            className="text-base md:text-xl font-sans font-medium text-neutral-400 tracking-wide transition-all duration-400"
-            style={{
-              opacity: isComplete ? (taglineFading ? 0 : 1) : 0,
-              transform: taglineFading ? 'translateY(10px)' : 'translateY(0)',
-              transition: 'opacity 0.4s ease, transform 0.4s ease',
-            }}
-          >
-            {ROTATING_TAGLINES[taglineIdx]}
-          </p>
-        </div>
-
-        {/* Static Subheadline */}
-        <p className="animate-fade-up-delay text-sm md:text-base mt-3 max-w-2xl mx-auto font-sans text-neutral-500 leading-relaxed tracking-wide drop-shadow-xl">
-          The world&apos;s first AI film studio. Write your script, design your world, generate cinematic footage, and{" "}
-          <span className="text-neutral-300 font-medium">deliver a finished film</span> — all in one workspace.
-        </p>
-
-        {/* CTAs */}
-        <div className="animate-fade-up-delay-2 flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 md:mt-10 w-full max-w-sm sm:max-w-none mx-auto">
-          {!IS_MAINTENANCE_MODE && (
-            <Link
-              href="/login"
-              className="w-full sm:w-auto justify-center px-8 py-3.5 sm:px-10 sm:py-4 bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(212,10,18,0.5)] flex items-center gap-3 backdrop-blur-md"
+        {/* Tagline — conditional: maintenance copy vs rotating */}
+        {IS_MAINTENANCE_MODE ? (
+          <div className="mt-5 md:mt-6 flex items-center justify-center">
+            <p
+              className="text-sm md:text-base max-w-xl mx-auto font-sans text-neutral-400 leading-relaxed tracking-wide"
+              style={{
+                opacity: isComplete ? 1 : 0,
+                transition: 'opacity 0.6s ease',
+              }}
             >
-              <Play size={14} fill="currentColor" /> Start Directing
-            </Link>
+              We are currently undergoing system upgrades. Drop your email below for{" "}
+              <span className="text-neutral-300 font-medium">priority access</span> when we are back online.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Rotating Tagline */}
+            <div className="mt-5 md:mt-6 h-8 flex items-center justify-center overflow-hidden">
+              <p
+                className="text-base md:text-xl font-sans font-medium text-neutral-400 tracking-wide transition-all duration-400"
+                style={{
+                  opacity: isComplete ? (taglineFading ? 0 : 1) : 0,
+                  transform: taglineFading ? 'translateY(10px)' : 'translateY(0)',
+                  transition: 'opacity 0.4s ease, transform 0.4s ease',
+                }}
+              >
+                {ROTATING_TAGLINES[taglineIdx]}
+              </p>
+            </div>
+
+            {/* Static Subheadline */}
+            <p className="animate-fade-up-delay text-sm md:text-base mt-3 max-w-2xl mx-auto font-sans text-neutral-500 leading-relaxed tracking-wide drop-shadow-xl">
+              The world&apos;s first AI film studio. Write your script, design your world, generate cinematic footage, and{" "}
+              <span className="text-neutral-300 font-medium">deliver a finished film</span> — all in one workspace.
+            </p>
+          </>
+        )}
+
+        {/* CTAs — conditional: email form (maintenance) vs buttons (normal) */}
+        <div className="animate-fade-up-delay-2 flex flex-col items-center justify-center gap-4 mt-8 md:mt-10 w-full max-w-lg mx-auto">
+          {IS_MAINTENANCE_MODE ? (
+            /* ── Waitlist Email Capture Form ── */
+            formStatus === "success" ? (
+              <div className="flex items-center gap-3 px-6 py-4 rounded-full border border-white/10 bg-white/[0.03] backdrop-blur-md">
+                <div className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center flex-shrink-0">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5.5L4 7.5L8 3" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+                <span className="text-sm font-sans text-neutral-300 tracking-wide">
+                  Got it. We&apos;ll be in touch soon.
+                </span>
+              </div>
+            ) : (
+              <form
+                onSubmit={handleWaitlistSubmit}
+                className="flex flex-col sm:flex-row items-center gap-3 w-full"
+              >
+                <div className="relative flex-1 w-full">
+                  <input
+                    type="email"
+                    required
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={formStatus === "loading"}
+                    className="w-full px-6 py-3.5 sm:py-4 bg-transparent border border-white/50 hover:border-white/70 focus:border-[#D40A12]/80 focus:outline-none rounded-full text-sm text-white placeholder-neutral-500 font-sans tracking-wide backdrop-blur-md transition-all disabled:opacity-50"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={formStatus === "loading"}
+                  className="w-full sm:w-auto flex-shrink-0 px-8 py-3.5 sm:px-10 sm:py-4 bg-[#D40A12] hover:bg-[#ff1a25] disabled:bg-[#D40A12]/60 text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(212,10,18,0.5)] disabled:shadow-none flex items-center justify-center gap-2 backdrop-blur-md"
+                >
+                  {formStatus === "loading" ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                      Submitting…
+                    </>
+                  ) : "Notify Me"}
+                </button>
+                {formStatus === "error" && (
+                  <p className="w-full text-center sm:text-left text-xs text-red-400/80 mt-1 font-sans tracking-wide">
+                    Something went wrong. Please try again.
+                  </p>
+                )}
+              </form>
+            )
+          ) : (
+            /* ── Standard CTAs ── */
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-sm sm:max-w-none">
+              <Link
+                href="/login"
+                className="w-full sm:w-auto justify-center px-8 py-3.5 sm:px-10 sm:py-4 bg-[#D40A12] hover:bg-[#ff1a25] text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all hover:shadow-[0_0_40px_rgba(212,10,18,0.5)] flex items-center gap-3 backdrop-blur-md"
+              >
+                <Play size={14} fill="currentColor" /> Start Directing
+              </Link>
+              <a
+                href={CALENDLY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto justify-center px-8 py-3.5 sm:px-10 sm:py-4 bg-white/10 border border-white/20 hover:bg-white/20 hover:border-white/50 text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all flex items-center gap-3 backdrop-blur-md"
+              >
+                Book a Demo
+              </a>
+            </div>
           )}
-          <a
-            href={CALENDLY_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:w-auto justify-center px-8 py-3.5 sm:px-10 sm:py-4 bg-white/10 border border-white/20 hover:bg-white/20 hover:border-white/50 text-white text-[12px] font-bold tracking-[0.15em] uppercase rounded-full transition-all flex items-center gap-3 backdrop-blur-md"
-          >
-            Book a Demo
-          </a>
         </div>
       </div>
 

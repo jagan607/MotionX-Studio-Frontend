@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { auth } from "@/lib/firebase";
 import { usePricing } from "@/app/hooks/usePricing";
 import { TokenIcon } from "@/components/ui/TokenIcon";
+import { EMERGENCY_MODE, EMERGENCY_MESSAGES } from '@/lib/emergencyConfig';
 
 // WaveSurfer Imports
 import WaveSurfer from 'wavesurfer.js';
@@ -522,7 +523,7 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
 
                                 <div>
                                     <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={`Enter dialogue... (${selectedEmotion} tone)`} style={{ width: '100%', height: '60px', backgroundColor: '#111', border: '1px solid #333', color: 'white', padding: '10px', fontSize: '11px', resize: 'none' }} />
-                                    <button onClick={handleSynthesize} disabled={isSynthesizing} style={{ width: '100%', marginTop: '10px', padding: '10px', backgroundColor: '#222', border: '1px solid #333', color: 'white', fontSize: '10px', fontWeight: 'bold', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                                    <button onClick={handleSynthesize} disabled={isSynthesizing || EMERGENCY_MODE} style={{ width: '100%', marginTop: '10px', padding: '10px', backgroundColor: '#222', border: '1px solid #333', color: 'white', fontSize: '10px', fontWeight: 'bold', display: 'flex', justifyContent: 'center', gap: '8px' }}>
                                         {isSynthesizing ? <Loader2 size={12} className="animate-spin" /> : <Mic size={12} />} SYNTHESIZE
                                         <span style={{ opacity: 0.5, fontSize: '9px', fontWeight: 'normal', display: 'inline-flex', alignItems: 'center', gap: '3px' }}><TokenIcon size={9} />{voiceoverCost}</span>
                                     </button>
@@ -588,7 +589,12 @@ export const LipSyncModal = ({ videoUrl, onClose, onGenerateVoice, onStartSync, 
                     </div>
 
                     <div style={{ padding: '20px', borderTop: '1px solid #222', backgroundColor: '#161616' }}>
-                        <button onClick={handleExecuteSync} disabled={isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile && !preloadedAudioUrl)} style={{ width: '100%', padding: '15px', backgroundColor: '#D40A12', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', display: 'flex', justifyContent: 'center', gap: '10px', opacity: (isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile && !preloadedAudioUrl)) ? 0.5 : 1 }}>
+                        {EMERGENCY_MODE && (
+                            <div style={{ marginBottom: '12px', padding: '12px 16px', borderRadius: '8px', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', textAlign: 'center' }}>
+                                <span style={{ color: '#fbbf24', fontSize: '11px', fontWeight: 700 }}>⚠️ {EMERGENCY_MESSAGES.LIPSYNC_DISABLED}</span>
+                            </div>
+                        )}
+                        <button onClick={handleExecuteSync} disabled={EMERGENCY_MODE || isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile && !preloadedAudioUrl)} style={{ width: '100%', padding: '15px', backgroundColor: '#D40A12', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', display: 'flex', justifyContent: 'center', gap: '10px', opacity: (EMERGENCY_MODE || isSyncing || (mode === 'tts' && !generatedAudioUrl) || (mode === 'upload' && !uploadedFile && !preloadedAudioUrl)) ? 0.5 : 1 }}>
                             {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
                             {mode === 'upload' && trimRange && (Math.abs(trimRange.end - trimRange.start - audioDuration) > 0.1) ? 'TRIM & SYNC' : 'EXECUTE SYNC'}
                             <span style={{ opacity: 0.6, fontSize: '10px', fontWeight: 'normal', letterSpacing: '0', display: 'inline-flex', alignItems: 'center', gap: '3px' }}><TokenIcon size={9} />{getLipSyncCost(5)}</span>

@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { api } from "@/lib/api";
 import { toastSuccess, toastError } from "@/lib/toast";
+import { EMERGENCY_MODE, EMERGENCY_FALLBACK_IMAGE_PROVIDER } from '@/lib/emergencyConfig';
 
 export const useShotBatch = (
     shotsRef: React.MutableRefObject<any[]>,
@@ -44,7 +45,7 @@ export const useShotBatch = (
             formData.append("project_id", projectId);
             formData.append("episode_id", episodeId);
             formData.append("scene_id", activeSceneId);
-            formData.append("image_provider", "gemini");
+            formData.append("image_provider", EMERGENCY_MODE ? EMERGENCY_FALLBACK_IMAGE_PROVIDER : "gemini");
             formData.append("aspect_ratio", aspectRatio);
             formData.append("style", "");
 

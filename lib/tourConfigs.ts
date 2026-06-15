@@ -41,7 +41,7 @@ export const DASHBOARD_TOUR_STEPS: TourStep[] = [
     {
         targetId: "tour-credits-target",
         title: "YOUR CREDITS",
-        body: "Every AI generation (images, videos, auto-direct) costs credits. You start with 30 free credits. Top up anytime to keep directing.",
+        body: "Every AI generation (images, videos, auto-direct) costs credits. You start with 10 free credits. Top up anytime to keep directing.",
         placement: "bottom",
         arrowSide: "right",
     },

@@ -194,7 +194,7 @@ export default function PricingPage() {
                         title="Free"
                         price={PRICING_MAP.free[currency]}
                         description="Evaluation Mode"
-                        credits="30 CREDITS (ONE TIME)"
+                        credits="10 CREDITS (ONE TIME)"
                         features={["200 MB Cloud Storage", "1 Active Project", "Public Gallery Showcase", "Standard Queue"]}
                         notIncluded={["Recurring Credits", "Commercial License", "4K Upscaling", "Private Mode"]}
                         isLoading={false}

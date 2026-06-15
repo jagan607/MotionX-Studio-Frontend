@@ -3,6 +3,7 @@ import { db } from "@/lib/firebase";
 import { api } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiErrors";
+import { EMERGENCY_MODE, EMERGENCY_MESSAGES } from '@/lib/emergencyConfig';
 
 export const useShotAudioGen = (
     projectId: string,
@@ -12,6 +13,12 @@ export const useShotAudioGen = (
 
     // FIX: Updated signature to accept the full 'shot' object
     const handleGenerateVoiceover = async (shot: any) => {
+        // Emergency Mode: Audio worker is offline
+        if (EMERGENCY_MODE) {
+            toastError(EMERGENCY_MESSAGES.AUDIO_DISABLED);
+            return null;
+        }
+
         // Validate inside the function
         const text = shot.voiceover_text || shot.dialogue || "";
         const voiceId = shot.voice_id || "default_voice"; // Fallback or handle error
@@ -51,6 +58,12 @@ export const useShotAudioGen = (
     };
 
     const handleLipSyncShot = async (shot: any, audioUrl: string | null, audioFile: File | null) => {
+        // Emergency Mode: LipSync worker is offline
+        if (EMERGENCY_MODE) {
+            toastError(EMERGENCY_MESSAGES.LIPSYNC_DISABLED);
+            return;
+        }
+
         console.log("🔊 [LipSync] START — audioUrl param:", audioUrl, "| audioFile:", audioFile?.name || null, "| shot.audio_url (stale?):", shot.audio_url);
 
         if (!shot.video_url) return toastError("No video to sync");

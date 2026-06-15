@@ -12,12 +12,11 @@ import {
     writeBatch,
     setDoc,
     getDocs,
-    deleteDoc,
     serverTimestamp
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "react-hot-toast";
-import { api, fetchProject, fetchEpisodes } from "@/lib/api";
+import { api, fetchProject, fetchEpisodes, deleteScene } from "@/lib/api";
 import { Project } from "@/lib/types";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -26,6 +25,7 @@ import { ScriptWorkstation, WorkstationScene, Character, LocationAsset } from "@
 import { StudioHeader } from "@/app/components/studio/StudioHeader";
 import { ProjectSettingsModal } from "@/app/components/studio/ProjectSettingsModal";
 import { AddSceneControls } from "@/components/script/AddSceneControls";
+import { DeleteConfirmModal } from "@/components/DeleteConfirmModal";
 
 export default function SceneManagerPage() {
     const params = useParams();
@@ -51,6 +51,8 @@ export default function SceneManagerPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     const [isExtending, setIsExtending] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // NEW: Read search params for deep linking
     const searchParams = useSearchParams();
@@ -308,18 +310,26 @@ export default function SceneManagerPage() {
     };
 
     // 5. DELETE SCENE
-    const handleDeleteScene = async (sceneId: string) => {
+    const handleDeleteScene = (sceneId: string) => {
+        setPendingDeleteId(sceneId);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!pendingDeleteId) return;
+        setIsDeleting(true);
         try {
             // CLEAR SELECTION if deleting the active scene
-            if (activeSceneId === sceneId) {
+            if (activeSceneId === pendingDeleteId) {
                 setActiveSceneId(null);
             }
-            const sceneRef = doc(db, "projects", projectId, "episodes", episodeId, "scenes", sceneId);
-            await deleteDoc(sceneRef);
+            await deleteScene(projectId, episodeId, pendingDeleteId);
             toast.success("Scene Deleted");
         } catch (e) {
             console.error("Delete Scene Error:", e);
             toast.error("Failed to delete scene");
+        } finally {
+            setIsDeleting(false);
+            setPendingDeleteId(null);
         }
     };
 
@@ -496,6 +506,17 @@ export default function SceneManagerPage() {
                 isProcessing={isProcessing}
                 isCommitting={false}
             />
+
+            {/* ── DELETE CONFIRMATION MODAL ── */}
+            {pendingDeleteId && (
+                <DeleteConfirmModal
+                    title="Delete Scene"
+                    message="Are you sure you want to delete this scene? All associated shots will also be permanently deleted. This action cannot be undone."
+                    isDeleting={isDeleting}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setPendingDeleteId(null)}
+                />
+            )}
         </>
     );
 }

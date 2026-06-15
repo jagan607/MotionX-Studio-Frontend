@@ -787,6 +787,7 @@ export function useVoiceDirector(options: UseVoiceDirectorOptions = {}) {
             wsRef.current.send(JSON.stringify({
                 type: "action_result",
                 success,
+                approved: success,
                 message,
             }));
         }

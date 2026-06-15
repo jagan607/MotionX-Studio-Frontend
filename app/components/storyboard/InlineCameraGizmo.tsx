@@ -6,6 +6,7 @@ import { OrbitControls, PerspectiveCamera, useTexture } from '@react-three/drei'
 import * as THREE from 'three';
 import { Sparkles, Save, RotateCcw, Maximize2 } from "@/lib/lucide";
 import { CameraTransform } from '@/lib/types';
+import { EMERGENCY_MODE, EMERGENCY_FALLBACK_IMAGE_PROVIDER } from '@/lib/emergencyConfig';
 
 const DEFAULT_CAMERA: CameraTransform = { x: 0, y: 1.6, z: 3, rx: 0, ry: 0, fov: 50 };
 
@@ -250,7 +251,9 @@ export function CameraViewfinder({
 /** Inline camera gizmo for shot cards */
 export function InlineCameraGizmo({ imageUrl, initialTransform, isGenerating = false, onClose, onSave, onRegenerate, onExpand }: Props) {
     const [cam, setCam] = useState<CameraTransform>(initialTransform || DEFAULT_CAMERA);
-    const [provider, setProvider] = useState<ImageProvider>('gemini');
+    const [provider, setProvider] = useState<ImageProvider>(
+        EMERGENCY_MODE ? EMERGENCY_FALLBACK_IMAGE_PROVIDER as ImageProvider : 'gemini'
+    );
 
     // Generation flow states
     const [gizmoState, setGizmoState] = useState<'idle' | 'generating' | 'preview'>('idle');
@@ -368,13 +371,15 @@ export function InlineCameraGizmo({ imageUrl, initialTransform, isGenerating = f
 
                     {/* Provider picker */}
                     <div className="flex bg-white/[0.02] rounded-md border border-white/[0.06] overflow-hidden">
+                        {!EMERGENCY_MODE && (
                         <button onClick={() => setProvider('gemini')} disabled={isBusy}
                             className={`px-2 py-1.5 text-[8px] font-bold uppercase tracking-[0.3px] transition-all cursor-pointer disabled:opacity-40
                                 ${provider === 'gemini' ? 'bg-[#D40A12]/15 text-white' : 'text-neutral-500 hover:text-neutral-300'}`}>
                             Gemini
                         </button>
+                        )}
                         <button onClick={() => setProvider('luma-uni-1')} disabled={isBusy}
-                            className={`px-2 py-1.5 text-[8px] font-bold uppercase tracking-[0.3px] transition-all cursor-pointer border-l border-white/[0.06] disabled:opacity-40
+                            className={`px-2 py-1.5 text-[8px] font-bold uppercase tracking-[0.3px] transition-all cursor-pointer ${!EMERGENCY_MODE ? 'border-l border-white/[0.06]' : ''} disabled:opacity-40
                                 ${provider === 'luma-uni-1' ? 'bg-[#D40A12]/15 text-white' : 'text-neutral-500 hover:text-neutral-300'}`}>
                             Uni
                         </button>
