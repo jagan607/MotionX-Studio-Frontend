@@ -132,10 +132,12 @@ const DEFAULT_PRICING: Pricing = {
         playground: {
             gemini: { flash: 0.3, pro: 0.6 },
             seedream: { flash: 0.3, pro: 0.6 },
+            'luma-uni-1': { flash: 0.5, pro: 0.5 },
         },
         shot: {
             gemini: { flash: 0.5, pro: 1.0 },
             seedream: { flash: 0.5, pro: 1.0 },
+            'luma-uni-1': { flash: 0.5, pro: 0.5 },
         },
     },
     upscale: { flash: 3, pro: 3 },

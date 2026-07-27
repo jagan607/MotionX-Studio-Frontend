@@ -87,6 +87,7 @@ function extractAssetIds(
 const PROVIDERS = [
     { value: "gemini", label: "Gemini" },
     { value: "seedream", label: "SeedReam" },
+    { value: "luma-uni-1", label: "Luma" },
 ];
 
 const ASPECT_RATIOS = [
@@ -981,11 +982,13 @@ export default function PlaygroundPromptBar() {
                                             options={ASPECT_RATIOS}
                                             onChange={(v) => setStylePref("aspect_ratio", v)}
                                         />
-                                        <QuickSelect
-                                            value={stylePrefs.model_tier}
-                                            options={MODEL_TIERS}
-                                            onChange={(v) => setStylePref("model_tier", v)}
-                                        />
+                                        {stylePrefs.image_provider !== 'luma-uni-1' && (
+                                            <QuickSelect
+                                                value={stylePrefs.model_tier}
+                                                options={MODEL_TIERS}
+                                                onChange={(v) => setStylePref("model_tier", v)}
+                                            />
+                                        )}
                                         <QuickSelect
                                             value={stylePrefs.image_resolution || '1k'}
                                             options={RESOLUTIONS}
@@ -1066,12 +1069,14 @@ export default function PlaygroundPromptBar() {
                                     options={ASPECT_RATIOS}
                                     onChange={(v) => setStylePref("aspect_ratio", v)}
                                 />
-                                <SettingsField
-                                    label="Model Tier"
-                                    value={stylePrefs.model_tier}
-                                    options={MODEL_TIERS}
-                                    onChange={(v) => setStylePref("model_tier", v)}
-                                />
+                                {stylePrefs.image_provider !== 'luma-uni-1' && (
+                                    <SettingsField
+                                        label="Model Tier"
+                                        value={stylePrefs.model_tier}
+                                        options={MODEL_TIERS}
+                                        onChange={(v) => setStylePref("model_tier", v)}
+                                    />
+                                )}
                                 <SettingsField
                                     label="Visual Style"
                                     value={stylePrefs.style}
