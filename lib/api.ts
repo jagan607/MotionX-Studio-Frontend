@@ -300,6 +300,9 @@ export const fetchUserProjectsBasic = async (uid: string): Promise<DashboardProj
             id: p.id || p.project_id,
         }));
 
+        // Filter out jewel_proj_* projects (different structure, not compatible with Studio UI)
+        projects = projects.filter(p => !p.id.startsWith("jewel_proj_"));
+
         // Sort by most recently updated (or created) first
         projects.sort((a, b) => {
             const dateA = new Date(a.updated_at || a.created_at || 0).getTime();
