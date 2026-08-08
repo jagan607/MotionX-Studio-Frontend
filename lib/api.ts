@@ -588,6 +588,23 @@ export const retrySetAngle = async (
     return res.data;
 };
 
+export const uploadSetAngle = async (
+    projectId: string,
+    episodeId: string,
+    sceneId: string,
+    targetAngle: string,
+    file: File
+) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("project_id", projectId);
+    formData.append("episode_id", episodeId);
+    formData.append("scene_id", sceneId);
+    formData.append("target_angle", targetAngle);
+    const res = await api.post("/api/v1/shot/upload_set_angle", formData);
+    return res.data;
+};
+
 export const updateSetDesign = async (
     projectId: string,
     episodeId: string,

@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     Sparkles, X, Loader2, Save, CloudFog, Building2,
-    ChevronLeft, ChevronRight, Eye, ImagePlus, Pencil, Download, AlertTriangle, Trash2, Maximize2
+    ChevronLeft, ChevronRight, Eye, ImagePlus, Pencil, Download, AlertTriangle, Trash2, Maximize2, Upload
 } from "@/lib/lucide";
 import { TokenIcon } from "@/components/ui/TokenIcon";
-import { generateSetDesign, expandSetLegacy, expandSet360, updateSetDesign, inpaintSetDesign, cloneSetDesign, retrySetAngle, resetSetDesign } from "@/lib/api";
+import { generateSetDesign, expandSetLegacy, expandSet360, updateSetDesign, inpaintSetDesign, cloneSetDesign, retrySetAngle, resetSetDesign, uploadSetAngle } from "@/lib/api";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { InpaintEditor } from "./InpaintEditor";
 
@@ -87,6 +87,8 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
     const [isResetting, setIsResetting] = useState(false);
     const [isExpandingLegacy, setIsExpandingLegacy] = useState(false);
     const [isExpanding360, setIsExpanding360] = useState(false);
+    const [isUploadingAngle, setIsUploadingAngle] = useState(false);
+    const uploadInputRef = useRef<HTMLInputElement>(null);
     const [isDownloadingAll, setIsDownloadingAll] = useState(false);
 
     const location = locations.find(
@@ -311,6 +313,46 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
             }
         } finally {
             setIsRetryingAngle(false);
+        }
+    };
+
+    // ── UPLOAD CUSTOM IMAGE FOR CURRENT ANGLE ────────────────────────
+    const handleUploadAngle = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || isUploadingAngle) return;
+
+        setIsUploadingAngle(true);
+        try {
+            const res = await uploadSetAngle(projectId, episodeId, sceneId, activeView, file);
+            const uploadedUrl = res.image_url;
+
+            if (uploadedUrl && onUpdate) {
+                const updatedUrls = { ...existingData?.image_urls, [activeView]: uploadedUrl };
+                const updatedData: SetDesignData = {
+                    ...existingData,
+                    image_urls: updatedUrls,
+                    image_status: "ready",
+                    ...(activeView === "front" ? { image_url: uploadedUrl } : {}),
+                };
+
+                // Check if all 4 angles now have URLs
+                const allReady = ["front", "left", "right", "back"].every(
+                    a => updatedUrls[a as keyof typeof updatedUrls]
+                );
+                if (allReady) {
+                    updatedData.burst_status = "ready";
+                }
+
+                onUpdate(updatedData);
+            }
+
+            toastSuccess(`${(ANGLE_LABELS[activeView] || activeView).toUpperCase()} uploaded successfully`);
+        } catch (e: any) {
+            toastError(e?.response?.data?.detail || "Failed to upload image");
+        } finally {
+            setIsUploadingAngle(false);
+            // Reset input so the same file can be re-selected
+            if (uploadInputRef.current) uploadInputRef.current.value = "";
         }
     };
 
@@ -801,6 +843,17 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                                     </div>
                                 ) : null}
 
+                                {/* 0. UPLOAD — always available when not rendering */}
+                                {!showGlobalRenderOverlay && !showAngleRenderOverlay && (
+                                    <button
+                                        onClick={() => uploadInputRef.current?.click()}
+                                        disabled={isUploadingAngle}
+                                        className="inline-flex items-center gap-2 bg-black/70 hover:bg-black/90 border border-white/20 hover:border-white/40 text-white/70 hover:text-white px-4 py-2 rounded-sm backdrop-blur-md text-[10px] font-mono uppercase tracking-[2px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isUploadingAngle ? <><Loader2 size={12} className="animate-spin" /> UPLOADING...</> : <><Upload size={12} /> UPLOAD</>}
+                                    </button>
+                                )}
+
                                 {/* 1. EDIT FRAME — only when generated image exists */}
                                 {generatedImage && !showGlobalRenderOverlay && !showAngleRenderOverlay && (
                                     <button
@@ -899,16 +952,26 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                             </div>
                             <div>
                                 <div className="text-[10px] font-bold text-white/30 uppercase tracking-[3px] mb-2">No Location Preview</div>
-                                <div className="text-[11px] text-white/15 max-w-[240px] leading-relaxed mb-5">Generate a location image in Assets to see a visual preview of your set here.</div>
-                                {onOpenAssets && (
+                                <div className="text-[11px] text-white/15 max-w-[240px] leading-relaxed mb-5">Generate a location image in Assets, or upload your own image directly.</div>
+                                <div className="flex items-center justify-center gap-3">
                                     <button
-                                        onClick={() => { onOpenAssets(); handleClose(); }}
-                                        className="inline-flex items-center gap-2.5 px-5 py-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] hover:border-white/[0.2] rounded-xl text-[11px] font-bold text-white/70 hover:text-white uppercase tracking-widest transition-all cursor-pointer"
+                                        onClick={() => uploadInputRef.current?.click()}
+                                        disabled={isUploadingAngle}
+                                        className="inline-flex items-center gap-2.5 px-5 py-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] hover:border-white/[0.2] rounded-xl text-[11px] font-bold text-white/70 hover:text-white uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50"
                                     >
-                                        <ImagePlus size={14} />
-                                        Open in Assets
+                                        {isUploadingAngle ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                                        {isUploadingAngle ? "Uploading..." : "Upload Image"}
                                     </button>
-                                )}
+                                    {onOpenAssets && (
+                                        <button
+                                            onClick={() => { onOpenAssets(); handleClose(); }}
+                                            className="inline-flex items-center gap-2.5 px-5 py-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] hover:border-white/[0.2] rounded-xl text-[11px] font-bold text-white/70 hover:text-white uppercase tracking-widest transition-all cursor-pointer"
+                                        >
+                                            <ImagePlus size={14} />
+                                            Open in Assets
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -925,6 +988,15 @@ export const SetDesignPanel: React.FC<SetDesignPanelProps> = ({
                     onApply={handleInpaintApply}
                 />
             )}
+
+            {/* HIDDEN FILE INPUT FOR UPLOAD */}
+            <input
+                ref={uploadInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleUploadAngle}
+            />
 
             {/* CONFIRMATION MODAL */}
             {confirmAction && (
